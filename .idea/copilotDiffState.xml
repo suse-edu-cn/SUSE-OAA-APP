@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/fix_dependencies.sh">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/fix_dependencies.sh" />
+              <option name="originalContent" value="#!/bin/zsh&#10;&#10;# 依赖问题修复脚本&#10;echo &quot; 开始修复 ProjectOAA 依赖问题...&quot;&#10;echo &quot;&quot;&#10;&#10;# 检查 Java 是否安装&#10;if ! command -v java &amp;&gt; /dev/null&#10;then&#10;    echo &quot;❌ 未检测到 Java 环境&quot;&#10;    echo &quot; 正在安装 Java...&quot;&#10;    brew install openjdk@17&#10;    &#10;    echo &quot;⚙️  配置 Java 环境变量...&quot;&#10;    echo 'export JAVA_HOME=/opt/homebrew/opt/openjdk@17' &gt;&gt; ~/.zshrc&#10;    echo 'export PATH=&quot;$JAVA_HOME/bin:$PATH&quot;' &gt;&gt; ~/.zshrc&#10;    source ~/.zshrc&#10;    &#10;    echo &quot;✅ Java 安装完成&quot;&#10;else&#10;    echo &quot;✅ Java 已安装: $(java -version 2&gt;&amp;1 | head -n 1)&quot;&#10;fi&#10;&#10;echo &quot;&quot;&#10;echo &quot; 步骤 1/3: 清理构建缓存...&quot;&#10;cd /Users/vincent/ProjectOAA&#10;./gradlew clean&#10;&#10;echo &quot;&quot;&#10;echo &quot; 步骤 2/3: 重新构建项目（触发 KSP 生成代码）...&quot;&#10;./gradlew kspDebugKotlin&#10;&#10;echo &quot;&quot;&#10;echo &quot;✅ 步骤 3/3: 构建完成！&quot;&#10;echo &quot;&quot;&#10;echo &quot; 下一步操作：&quot;&#10;echo &quot;1. 在 Android Studio 中打开项目&quot;&#10;echo &quot;2. 选择 File &gt; Invalidate Caches...&quot;&#10;echo &quot;3. 选择 'Invalidate and Restart'&quot;&#10;echo &quot;4. 等待 IDE 重启和重新索引&quot;&#10;echo &quot;&quot;&#10;echo &quot;✨ 修复完成！&quot;&#10;" />
+              <option name="updatedContent" value="#!/bin/zsh&#10;&#10;# 依赖问题修复脚本&#10;echo &quot; 开始修复 ProjectOAA 依赖问题...&quot;&#10;echo &quot;&quot;&#10;&#10;# 检查 Java 是否安装&#10;if ! command -v java &amp;&gt; /dev/null&#10;then&#10;    echo &quot;❌ 未检测到 Java 环境&quot;&#10;    echo &quot; 正在安装 Java...&quot;&#10;    brew install openjdk@17&#10;    &#10;    echo &quot;⚙️  配置 Java 环境变量...&quot;&#10;    echo 'export JAVA_HOME=/opt/homebrew/opt/openjdk@17' &gt;&gt; ~/.zshrc&#10;    echo 'export PATH=&quot;$JAVA_HOME/bin:$PATH&quot;' &gt;&gt; ~/.zshrc&#10;    source ~/.zshrc&#10;    &#10;    echo &quot;✅ Java 安装完成&quot;&#10;else&#10;    echo &quot;✅ Java 已安装: $(java -version 2&gt;&amp;1 | head -n 1)&quot;&#10;fi&#10;&#10;echo &quot;&quot;&#10;echo &quot; 步骤 1/3: 清理构建缓存...&quot;&#10;cd /Users/vincent/ProjectOAA&#10;./gradlew clean&#10;&#10;echo &quot;&quot;&#10;echo &quot; 步骤 2/3: 重新构建项目（触发 KSP 生成代码）...&quot;&#10;./gradlew kspDebugKotlin&#10;&#10;echo &quot;&quot;&#10;echo &quot;✅ 步骤 3/3: 构建完成！&quot;&#10;echo &quot;&quot;&#10;echo &quot; 下一步操作：&quot;&#10;echo &quot;1. 在 Android Studio 中打开项目&quot;&#10;echo &quot;2. 选择 File &gt; Invalidate Caches...&quot;&#10;echo &quot;3. 选择 'Invalidate and Restart'&quot;&#10;echo &quot;4. 等待 IDE 重启和重新索引&quot;&#10;echo &quot;&quot;&#10;echo &quot;✨ 修复完成！&quot;&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

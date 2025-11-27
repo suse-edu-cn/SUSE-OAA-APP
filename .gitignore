@@ -1,0 +1,40 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# 编译产物
+*.class
+*.exe
+*.out
+*.dll
+*.so
+
+# 依赖目录
+node_modules/
+vendor/
+
+# 环境变量文件
+.env
+.env.local
+
+# IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
