@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -15,7 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.suseoaa.projectoaa.courseList.ui.screen.CourseListScreen
+import com.suseoaa.projectoaa.courseList.viewmodel.CourseListViewModel
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
+import com.suseoaa.projectoaa.student.ui.StudentAppMainEntry
 
 // ========== 页面内容实现 ==========
 
@@ -34,14 +37,11 @@ fun HomeContent(viewModel: ShareViewModel) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Button(
                 onClick = { viewModel.toggleOfUI() }) {
                 Text(if (viewModel.showOfState.collectAsState().value) "隐藏" else "显示")
             }
         }
-
-
         if (isVisible) {
             // 【辅助内容区域】占 40% 宽度（如：详情面板、预览等）
             Surface(
@@ -93,16 +93,9 @@ fun SearchContent(viewModel: ShareViewModel) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            Icons.Default.Search,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.secondary
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("搜索页面", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(hint, style = MaterialTheme.typography.bodyMedium)
+//        显示课程列表
+        val vm: CourseListViewModel = viewModel() // 或使用自定义 factory
+        CourseListScreen(viewModel = vm)
     }
 }
 
@@ -139,15 +132,7 @@ fun ProfileContent(viewModel: ShareViewModel) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            Icons.Default.Person,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.error
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("个人中心", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(info, style = MaterialTheme.typography.bodyMedium)
+//        招新换届
+        StudentAppMainEntry()
     }
 }
