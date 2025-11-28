@@ -22,18 +22,18 @@ import kotlinx.coroutines.withContext
  * MVVM架构 - ViewModel层（管理UI状态和业务逻辑）
  */
 class CourseListViewModel(application: Application) : AndroidViewModel(application) {
-    
+
     private val database = CourseDatabase.getInstance(application)
     private val repository = CourseRepository(database.courseDao())
-    
+
     // UI状态
     var uiState by mutableStateOf(CourseListUiState())
         private set
-    
+
     // 课程数据
     private val _courseData: MutableStateFlow<CourseResponseJson?> = MutableStateFlow(null)
     val courseData: StateFlow<CourseResponseJson?> = _courseData.asStateFlow()
-    
+
     /**
      * 从学校系统获取课表并保存
      */
@@ -45,27 +45,35 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
                     errorMessage = null,
                     statusMessage = "正在登录..."
                 )
-                
+
                 val result = withContext(Dispatchers.IO) {
                     // 登录
                     val (loginSuccess, debugInfo) = SchoolSystem.login(username, password)
-                    
+
                     if (!loginSuccess) {
-                        return@withContext Triple(null, "登录失败: $debugInfo", debugInfo)
+                        return@withContext Triple(
+                            null,
+                            "登录失败: $debugInfo",
+                            debugInfo
+                        )
                     }
-                    
+
                     uiState = uiState.copy(statusMessage = "正在获取课表...")
-                    
+
                     // 获取课表数据
                     val (parsedData, scheduleDebugInfo) = SchoolSystem.queryScheduleParsed()
-                    
+
                     if (parsedData == null) {
-                        return@withContext Triple(null, "课表数据解析失败: $scheduleDebugInfo", scheduleDebugInfo)
+                        return@withContext Triple(
+                            null,
+                            "课表数据解析失败: $scheduleDebugInfo",
+                            scheduleDebugInfo
+                        )
                     }
-                    
+
                     Triple(parsedData, null, "成功获取课表")
                 }
-                
+
                 val (courseData, error, _) = result
 
                 if (courseData != null) {
@@ -74,7 +82,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
                     withContext(Dispatchers.IO) {
                         repository.saveFromResponse(courseData)
                     }
-                    
+
                     _courseData.value = courseData
                     uiState = uiState.copy(
                         isLoading = false,
@@ -88,7 +96,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
                         statusMessage = null
                     )
                 }
-                
+
             } catch (e: Exception) {
                 uiState = uiState.copy(
                     isLoading = false,
@@ -98,7 +106,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
             }
         }
     }
-    
+
     /**
      * 清除消息
      */

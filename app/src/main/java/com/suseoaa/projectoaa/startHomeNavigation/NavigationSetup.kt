@@ -4,9 +4,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.rememberNavController
-import com.suseoaa.projectoaa.startHomeNavigation.ui.CompactLayout
-import com.suseoaa.projectoaa.startHomeNavigation.ui.ExpandedLayout
-import com.suseoaa.projectoaa.startHomeNavigation.ui.MediumLayout
+import com.suseoaa.projectoaa.startHomeNavigation.platform.fold.MediumLayout
+import com.suseoaa.projectoaa.startHomeNavigation.platform.pad.ExpandedLayout
+import com.suseoaa.projectoaa.startHomeNavigation.platform.phone.CompactLayout
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

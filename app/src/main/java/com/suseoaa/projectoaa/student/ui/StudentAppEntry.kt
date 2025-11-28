@@ -152,9 +152,11 @@ fun StartSelectionScreen(onStartClick: () -> Unit, onProfileClick: () -> Unit) {
                 )
             }
         ) { paddingValues ->
-            BoxWithConstraints(modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
                 val isWide = maxWidth > 600.dp && maxWidth > maxHeight
                 if (isWide) {
                     Row(
