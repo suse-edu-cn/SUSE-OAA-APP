@@ -45,10 +45,8 @@ fun ProjectOAATheme(
             val apiWallpaper = WallpaperManager.currentWallpaperUri.value
             val file = if (apiWallpaper?.path != null) File(apiWallpaper.path!!) else null
 
-            // 判断：文件有效
             val isFileValid = apiWallpaper != null && file != null && file.exists() && file.length() > 0
 
-            // === 恢复核心逻辑：必须是二次元主题 && 文件有效 才显示 ===
             val showWallpaper = themeConfig.name.contains("二次元") && isFileValid
 
             if (showWallpaper) {

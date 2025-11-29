@@ -107,7 +107,11 @@ fun RegisterScreen(navController: NavController, viewModel: MainViewModel) {
                         .weight(1f)
                         .fillMaxHeight(),
                     shape = cardShape,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(
+                            alpha = 0.9f
+                        )
+                    ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(
@@ -119,9 +123,20 @@ fun RegisterScreen(navController: NavController, viewModel: MainViewModel) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         RegisterFormContent(
-                            studentid, name, username, password, confirmPassword, passwordError,
-                            { studentid = it }, { name = it }, { username = it }, { password = it }, { confirmPassword = it },
-                            viewModel, navController, ::submitRegistration
+                            studentid,
+                            name,
+                            username,
+                            password,
+                            confirmPassword,
+                            passwordError,
+                            { studentid = it },
+                            { name = it },
+                            { username = it },
+                            { password = it },
+                            { confirmPassword = it },
+                            viewModel,
+                            navController,
+                            ::submitRegistration
                         )
                     }
                 }
@@ -153,14 +168,29 @@ fun RegisterScreen(navController: NavController, viewModel: MainViewModel) {
 
                 Card(
                     shape = cardShape,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(
+                            alpha = 0.9f
+                        )
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(32.dp)) {
                         RegisterFormContent(
-                            studentid, name, username, password, confirmPassword, passwordError,
-                            { studentid = it }, { name = it }, { username = it }, { password = it }, { confirmPassword = it },
-                            viewModel, navController, ::submitRegistration
+                            studentid,
+                            name,
+                            username,
+                            password,
+                            confirmPassword,
+                            passwordError,
+                            { studentid = it },
+                            { name = it },
+                            { username = it },
+                            { password = it },
+                            { confirmPassword = it },
+                            viewModel,
+                            navController,
+                            ::submitRegistration
                         )
                     }
                 }
@@ -173,10 +203,20 @@ fun RegisterScreen(navController: NavController, viewModel: MainViewModel) {
 // === 抽离的表单内容 (保持样式统一) ===
 @Composable
 fun RegisterFormContent(
-    studentid: String, name: String, username: String, pass: String, confirmPass: String, passError: String?,
-    onIdChange: (String) -> Unit, onNameChange: (String) -> Unit, onUserChange: (String) -> Unit,
-    onPassChange: (String) -> Unit, onConfirmChange: (String) -> Unit,
-    viewModel: MainViewModel, navController: NavController, onSubmit: () -> Unit
+    studentid: String,
+    name: String,
+    username: String,
+    pass: String,
+    confirmPass: String,
+    passError: String?,
+    onIdChange: (String) -> Unit,
+    onNameChange: (String) -> Unit,
+    onUserChange: (String) -> Unit,
+    onPassChange: (String) -> Unit,
+    onConfirmChange: (String) -> Unit,
+    viewModel: MainViewModel,
+    navController: NavController,
+    onSubmit: () -> Unit
 ) {
     // 统一输入框圆角 (12dp)
     val fieldShape = RoundedCornerShape(12.dp)
@@ -229,7 +269,12 @@ fun RegisterFormContent(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         modifier = Modifier.fillMaxWidth(), singleLine = true, shape = fieldShape,
         isError = passError != null,
-        supportingText = { if (passError != null) Text(passError, color = MaterialTheme.colorScheme.error) }
+        supportingText = {
+            if (passError != null) Text(
+                passError,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
     )
 
     Spacer(modifier = Modifier.height(32.dp))
@@ -237,7 +282,9 @@ fun RegisterFormContent(
     // 注册按钮 (圆角 16dp)
     Button(
         onClick = onSubmit,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
         enabled = !viewModel.isLoading,
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -261,7 +308,12 @@ fun RegisterFormContent(
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = viewModel.uiState,
-            color = if (viewModel.uiState.contains("成功")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+            color = if (viewModel
+                    .uiState.contains("成功")
+            ) MaterialTheme
+                .colorScheme
+                .primary
+            else MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodyMedium
         )
     }

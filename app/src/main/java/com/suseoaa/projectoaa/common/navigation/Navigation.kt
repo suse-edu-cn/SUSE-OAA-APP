@@ -1,8 +1,6 @@
 package com.suseoaa.projectoaa.common.navigation
 
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -11,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.suseoaa.projectoaa.common.util.SessionManager
 import com.suseoaa.projectoaa.login.ui.LoginScreen
+import com.suseoaa.projectoaa.login.ui.ProfileScreen
 import com.suseoaa.projectoaa.login.ui.RegisterScreen
 import com.suseoaa.projectoaa.login.ui.SplashScreen
 import com.suseoaa.projectoaa.login.viewmodel.MainViewModel
@@ -25,30 +24,21 @@ fun AppNavigation(windowSizeClass: WindowWidthSizeClass, viewModel: ShareViewMod
     val loginViewModel: MainViewModel = viewModel()
     val context = LocalContext.current
 
-    // 使用 AppRoutes 定义的路由
     NavHost(navController = navController, startDestination = AppRoutes.Splash.route) {
-
 
         composable(AppRoutes.Splash.route) {
             SplashScreen(navController, loginViewModel)
         }
 
         composable(AppRoutes.Login.route) {
-
             LoginScreen(
                 navController = navController,
                 viewModel = loginViewModel,
                 onLoginSuccess = {
-                    navController.navigate(AppRoutes.StudentEntry.route) {
+                    navController.navigate(AppRoutes.Home.route) {
                         popUpTo(AppRoutes.Login.route) { inclusive = true }
                     }
                 }
-            )
-        }
-        composable(AppRoutes.Home.route) {
-            AdaptiveApp(
-                windowSizeClass,
-                viewModel
             )
         }
 
@@ -56,12 +46,43 @@ fun AppNavigation(windowSizeClass: WindowWidthSizeClass, viewModel: ShareViewMod
             RegisterScreen(navController, loginViewModel)
         }
 
+        composable(AppRoutes.Home.route) {
+            AdaptiveApp(
+                windowSizeClass = windowSizeClass,
+                viewModel = viewModel,
+                onLogout = {
+                    SessionManager.clear(context)
+                    loginViewModel.clearState()
+                    navController.navigate(AppRoutes.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
         composable(AppRoutes.StudentEntry.route) {
             StudentAppMainEntry(
                 onLogout = {
                     SessionManager.clear(context)
+                    loginViewModel.clearState()
                     navController.navigate(AppRoutes.Login.route) {
-                        popUpTo(AppRoutes.StudentEntry.route) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable(AppRoutes.Profile.route) {
+            ProfileScreen(
+                onBack = { navController.popBackStack() },
+                onLogout = {
+                    SessionManager.clear(context)
+                    loginViewModel.clearState()
+                    navController.navigate(AppRoutes.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )

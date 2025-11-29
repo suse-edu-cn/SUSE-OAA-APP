@@ -8,14 +8,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color // 引入 Color
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.suseoaa.projectoaa.common.navigation.AppNavigation
 import com.suseoaa.projectoaa.common.theme.ProjectOAATheme
 import com.suseoaa.projectoaa.common.theme.ThemeManager
 import com.suseoaa.projectoaa.common.util.SessionManager
 import com.suseoaa.projectoaa.common.util.WallpaperManager
-import com.suseoaa.projectoaa.navigation.AdaptiveApp
+// [修复] 引入正确的 ShareViewModel 包名 (navigation.viewmodel)
 import com.suseoaa.projectoaa.navigation.viewmodel.ShareViewModel
 
 class MainActivity : ComponentActivity() {
@@ -33,10 +33,11 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Transparent
                 ) {
-                    AppNavigation(windowSizeClass = windowSizeClass.widthSizeClass,
-                        viewModel<ShareViewModel>())
-                }
-//                旧代码，我怕忘记参数是什么，暂时先保留一下
+                    AppNavigation(
+                        windowSizeClass = windowSizeClass.widthSizeClass,
+                        viewModel = viewModel<ShareViewModel>()
+                    )
+                //                旧代码，我怕忘记参数是什么，暂时先保留一下
 //                Surface {
 //                    // 【步骤3】根据窗口尺寸选择布局
 //                    AdaptiveApp(
@@ -44,6 +45,7 @@ class MainActivity : ComponentActivity() {
 //                        viewModel<ShareViewModel>()
 //                    )
 //                }
+                }
             }
         }
     }

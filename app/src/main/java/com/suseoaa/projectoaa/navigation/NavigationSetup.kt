@@ -5,35 +5,37 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.rememberNavController
 import com.suseoaa.projectoaa.navigation.ui.CompactLayout
-import com.suseoaa.projectoaa.navigation.ui.ExpandedLayout
 import com.suseoaa.projectoaa.navigation.ui.MediumLayout
+import com.suseoaa.projectoaa.navigation.ui.ExpandedLayout
 import com.suseoaa.projectoaa.navigation.viewmodel.ShareViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdaptiveApp(windowSizeClass: WindowWidthSizeClass, viewModel: ShareViewModel) {
-    // 使用 NavController 来管理页面路由（navigation-compose 的 NavHost -> 默认无动画瞬切）
+fun AdaptiveApp(
+    windowSizeClass: WindowWidthSizeClass,
+    viewModel: ShareViewModel,
+    onLogout: () -> Unit
+) {
     val navController = rememberNavController()
 
-    // 【关键判断】根据屏幕宽度选择不同的布局策略
     when (windowSizeClass) {
-        // 【手机】紧凑屏幕（宽度 < 600dp）
+        // 【手机】紧凑屏幕
         WindowWidthSizeClass.Compact -> {
-            CompactLayout(navController, viewModel)
+            CompactLayout(navController, viewModel, onLogout)
         }
 
-        // 【小平板/横屏手机】中等屏幕（600dp ≤ 宽度 < 840dp）
+        // 【小平板/横屏手机】中等屏幕
         WindowWidthSizeClass.Medium -> {
-            MediumLayout(navController, viewModel)
+            MediumLayout(navController, viewModel, onLogout)
         }
 
-        // 【大平板】展开屏幕（宽度 ≥ 840dp）
+        // 【大平板】展开屏幕
         WindowWidthSizeClass.Expanded -> {
-            ExpandedLayout(navController, viewModel)
+            ExpandedLayout(navController, viewModel, onLogout)
         }
 
         else -> {
-            CompactLayout(navController, viewModel)
+            CompactLayout(navController, viewModel, onLogout)
         }
     }
 }

@@ -34,10 +34,12 @@ fun StudentAppMainEntry(onLogout: () -> Unit = {}) {
                 onProfileClick = { currentScreen = AppScreen.Profile }
             )
         }
+
         AppScreen.Form -> {
             BackHandler { currentScreen = AppScreen.Start }
             StudentFormScreen(onBack = { currentScreen = AppScreen.Start })
         }
+
         AppScreen.Profile -> {
             BackHandler { currentScreen = AppScreen.Start }
             ProfileScreen(
@@ -64,14 +66,20 @@ fun StartSelectionScreen(onStartClick: () -> Unit, onProfileClick: () -> Unit) {
                 drawerContentColor = MaterialTheme.colorScheme.onSurface
             ) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(200.dp).background(MaterialTheme.colorScheme.primaryContainer),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
                         Icon(
                             imageVector = Icons.Default.AccountCircle,
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface),
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface),
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -120,20 +128,60 @@ fun StartSelectionScreen(onStartClick: () -> Unit, onProfileClick: () -> Unit) {
             topBar = {
                 CenterAlignedTopAppBar(
                     title = { Text("Project:OAA") },
-                    navigationIcon = { IconButton(onClick = { scope.launch { drawerState.open() } }) { Icon(Icons.Default.Menu, "菜单", tint = MaterialTheme.colorScheme.primary) } },
-                    actions = { IconButton(onClick = { showThemeDialog = true }) { Icon(Icons.Default.Settings, "切换主题", tint = MaterialTheme.colorScheme.primary) } },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(
+                                Icons.Default.Menu,
+                                "菜单",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            showThemeDialog = true
+                        }) {
+                            Icon(
+                                Icons.Default.Settings,
+                                "切换主题",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
                 )
             }
         ) { paddingValues ->
-            BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
                 val isWide = maxWidth > 600.dp && maxWidth > maxHeight
                 if (isWide) {
-                    Row(modifier = Modifier.fillMaxSize().padding(48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("欢迎回来，${SessionManager.currentUser}", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(48.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "欢迎回来，${SessionManager.currentUser}",
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("身份：${SessionManager.currentRole}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.outline)
+                            Text(
+                                "身份：${SessionManager.currentRole}",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
                         }
                         Spacer(modifier = Modifier.width(48.dp))
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -141,10 +189,25 @@ fun StartSelectionScreen(onStartClick: () -> Unit, onProfileClick: () -> Unit) {
                         }
                     }
                 } else {
-                    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                        Text("欢迎回来，${SessionManager.currentUser}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            "欢迎回来，${SessionManager.currentUser}",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("身份：${SessionManager.currentRole}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            "身份：${SessionManager.currentRole}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.outline
+                        )
                         Spacer(modifier = Modifier.height(64.dp))
                         LargeSelectionButton(text = "招新/换届申请", onClick = onStartClick)
                     }

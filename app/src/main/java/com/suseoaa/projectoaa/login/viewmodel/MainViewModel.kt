@@ -12,6 +12,8 @@ import com.suseoaa.projectoaa.login.model.RegisterRequest
 import com.suseoaa.projectoaa.login.repository.AuthRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 
 class MainViewModel : BaseViewModel() {
 
@@ -52,19 +54,24 @@ class MainViewModel : BaseViewModel() {
     fun login(context: Context, username: String, pass: String) {
         // 使用基类的 launchDataLoad 自动处理 isLoading 和 异常捕获
         launchDataLoad {
+            Log.d("LoginDebug", "请求已发送")
             uiState = "正在登录..."
             loginSuccess = false
+            try {
+                val result = withTimeout(5000L) {repository.login(username, pass)}
 
-            // 调用仓库
-            val result = repository.login(username, pass)
-
-            result.onSuccess { token ->
-                uiState = "登录成功"
-                SessionManager.saveToken(context, token)
-                SessionManager.saveUserInfo(context, username, "会员")
-                loginSuccess = true
-            }.onFailure { error ->
-                uiState = "登录失败: ${error.message}"
+                result.onSuccess { token ->
+                    uiState = "登录成功"
+                    SessionManager.saveToken(context, token)
+                    SessionManager.saveUserInfo(context, username, "会员")
+                    loginSuccess = true
+                }.onFailure { error ->
+                    uiState = "登录失败: ${error.message}"
+                }
+            } catch (e: TimeoutCancellationException){
+                Log.e("LoginDebug", "登录超时")
+                uiState = "登录失败：Timeout"
+                loginSuccess = false
             }
         }
     }
@@ -74,6 +81,7 @@ class MainViewModel : BaseViewModel() {
      */
     fun register(studentid: String, name: String, username: String, pass: String, role: String) {
         launchDataLoad {
+            Log.d("RegisterDebug", "请求已发送")
             uiState = "正在注册..."
 
             val request = RegisterRequest(
@@ -83,14 +91,19 @@ class MainViewModel : BaseViewModel() {
                 password = pass,
                 role = role
             )
+            try {
+                val result = withTimeout(5000L){repository.register(request)}
 
-            val result = repository.register(request)
-
-            result.onSuccess { msg ->
-                uiState = "注册成功: $msg"
-            }.onFailure { error ->
-                uiState = "注册失败: ${error.message}"
+                result.onSuccess { msg ->
+                    uiState = "注册成功: $msg"
+                }.onFailure { error ->
+                    uiState = "注册失败: ${error.message}"
+                }
+            }catch (e: TimeoutCancellationException){
+                Log.e("RegisterDebug", "注册超时")
+                uiState="注册失败：Timeout"
             }
+
         }
     }
 

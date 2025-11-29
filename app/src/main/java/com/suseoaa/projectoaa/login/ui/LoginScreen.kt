@@ -81,7 +81,11 @@ fun LoginScreen(
                         .weight(1f)
                         .fillMaxHeight(),
                     shape = cardShape,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(
+                            alpha = 0.9f
+                        )
+                    ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(
@@ -91,7 +95,15 @@ fun LoginScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        LoginFormContent(username, password, { username = it }, { password = it }, viewModel, context, navController)
+                        LoginFormContent(
+                            username,
+                            password,
+                            { username = it },
+                            { password = it },
+                            viewModel,
+                            context,
+                            navController
+                        )
                     }
                 }
             }
@@ -124,11 +136,23 @@ fun LoginScreen(
 
                 Card(
                     shape = cardShape,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(
+                            alpha = 0.9f
+                        )
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(32.dp)) {
-                        LoginFormContent(username, password, { username = it }, { password = it }, viewModel, context, navController)
+                        LoginFormContent(
+                            username,
+                            password,
+                            { username = it },
+                            { password = it },
+                            viewModel,
+                            context,
+                            navController
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(40.dp))
@@ -141,8 +165,11 @@ fun LoginScreen(
 @Composable
 fun LoginFormContent(
     user: String, pass: String,
-    onUserChange: (String) -> Unit, onPassChange: (String) -> Unit,
-    viewModel: MainViewModel, context: android.content.Context, navController: NavController
+    onUserChange: (String) -> Unit,
+    onPassChange: (String) -> Unit,
+    viewModel: MainViewModel,
+    context: android.content.Context,
+    navController: NavController
 ) {
     val fieldShape = RoundedCornerShape(12.dp)
     OutlinedTextField(
@@ -167,7 +194,9 @@ fun LoginFormContent(
     Spacer(modifier = Modifier.height(32.dp))
     Button(
         onClick = { viewModel.login(context, user, pass) },
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
         enabled = !viewModel.isLoading,
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -175,12 +204,20 @@ fun LoginFormContent(
     }
     Spacer(modifier = Modifier.height(16.dp))
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        TextButton(onClick = { viewModel.clearState(); navController.navigate(AppRoutes.Register.route) }) {
+        TextButton(onClick = {
+            viewModel.clearState()
+            navController.navigate(AppRoutes.Register.route)
+        }) {
             Text("没有账号？去注册")
         }
     }
     if (viewModel.uiState.isNotEmpty()) {
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = viewModel.uiState, color = if (viewModel.uiState.contains("成功")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = viewModel.uiState,
+            color = if (viewModel.uiState.contains("成功")) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }

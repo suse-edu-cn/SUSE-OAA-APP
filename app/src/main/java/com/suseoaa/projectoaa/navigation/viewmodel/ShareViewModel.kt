@@ -1,27 +1,25 @@
 package com.suseoaa.projectoaa.navigation.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.common.theme.OaaThemeConfig
+import com.suseoaa.projectoaa.common.theme.ThemeManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
 class ShareViewModel : ViewModel() {
+
+    // === 主题状态控制 ===
+    val currentTheme: OaaThemeConfig
+        get() = ThemeManager.currentTheme
+
+    // 更新主题的方法，从 ThemeConfig 列表中选择
+    fun updateTheme(themeConfig: OaaThemeConfig) {
+        ThemeManager.currentTheme = themeConfig
+    }
+
+    // === UI 可见性控制 ===
     private val _showOfState = MutableStateFlow(false)
     val showOfState: StateFlow<Boolean> = _showOfState
-
-    // 预加载的页面数据（示例）
-    private val _homeItems = MutableStateFlow<List<String>>(emptyList())
-    val homeItems: StateFlow<List<String>> = _homeItems
-
-    private val _searchHint = MutableStateFlow<String>("")
-    val searchHint: StateFlow<String> = _searchHint
-
-    private val _settingsInfo = MutableStateFlow<String>("")
-    val settingsInfo: StateFlow<String> = _settingsInfo
-
-    private val _profileInfo = MutableStateFlow<String>("")
-    val profileInfo: StateFlow<String> = _profileInfo
 
     fun toggleOfUI() {
         _showOfState.value = !_showOfState.value
