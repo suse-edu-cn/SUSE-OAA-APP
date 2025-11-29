@@ -35,8 +35,8 @@ fun LoginScreen(
 
     LaunchedEffect(key1 = viewModel.loginSuccess) {
         if (viewModel.loginSuccess) {
-            onLoginSuccess()
             viewModel.clearState()
+            onLoginSuccess()
         }
     }
 

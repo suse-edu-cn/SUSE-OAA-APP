@@ -102,7 +102,6 @@ object ImageCompressor {
 
     private fun getImageRotation(context: Context, uri: Uri): Int {
         var rotation = 0
-        // 使用 ExifInterface 读取旋转信息
         context.contentResolver.openInputStream(uri)?.use { inputStream ->
             val exifInterface = ExifInterface(inputStream)
             when (exifInterface.getAttributeInt(

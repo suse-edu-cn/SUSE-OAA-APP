@@ -65,7 +65,7 @@ class ProfileViewModel : BaseViewModel() {
         isEditing = false
     }
 
-    fun updatePassword(context: Context) {
+    fun updatePassword(context: Context, onSuccess:()-> Unit) {
         if (newPasswordInput.isBlank()) {
             errorMessage = "密码不能为空"
             return
@@ -84,6 +84,7 @@ class ProfileViewModel : BaseViewModel() {
                 showPasswordDialog = false
                 newPasswordInput = ""
                 logout(context)
+                onSuccess()
             } else {
                 throw Exception(response.body()?.message ?: "修改密码失败")
             }

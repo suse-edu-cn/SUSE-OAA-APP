@@ -55,11 +55,6 @@ fun ProfileScreen(
                         IconButton(onClick = { viewModel.cancelEditing() }) {
                             Icon(Icons.Default.Close, contentDescription = "取消")
                         }
-                    } else {
-                        // 查看模式下：左上角是返回
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                        }
                     }
                 },
                 actions = {
@@ -105,13 +100,13 @@ private fun ProfileContent(
     val errorMsg = viewModel.errorMessage
     val isEditing = viewModel.isEditing
 
-    // === 新增：监听修改密码弹窗 ===
+    // === 监听修改密码弹窗 ===
     if (viewModel.showPasswordDialog) {
         ChangePasswordDialog(
             viewModel = viewModel,
             onConfirm = {
                 // 调用修改密码逻辑
-                viewModel.updatePassword(context)
+                viewModel.updatePassword(context, onSuccess = onLogout)
             },
             onDismiss = {
                 viewModel.showPasswordDialog = false
@@ -218,7 +213,7 @@ private fun ProfileContent(
     }
 }
 
-// === 新增：修改密码弹窗组件 ===
+// === 修改密码弹窗组件 ===
 @Composable
 fun ChangePasswordDialog(
     viewModel: ProfileViewModel,
