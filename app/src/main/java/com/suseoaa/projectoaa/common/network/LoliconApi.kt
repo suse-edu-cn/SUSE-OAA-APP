@@ -8,18 +8,17 @@ import com.squareup.moshi.JsonClass
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import retrofit2.converter.moshi.MoshiConverterFactory
 
-// 1. 修改：增加 error 字段，且让 data 可空，防止解析崩溃
 @JsonClass(generateAdapter = true)
 data class LoliconResponse(
-    val data: List<LoliconData>?, // 改为可空
-    val error: String? = null     // 增加错误信息字段
+    val data: List<LoliconData>?,
+    val error: String? = null
 )
 
 @JsonClass(generateAdapter = true)
 data class LoliconData(
     val pid: Long,
-    val title: String,
-    val author: String,
+    val title: String?,
+    val author: String?,
     val urls: Map<String, String>
 )
 

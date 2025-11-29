@@ -62,7 +62,9 @@ fun ProjectOAATheme(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(colorScheme.surface.copy(alpha = 0.9f))
+                        .background(
+                            colorScheme.surface.copy(alpha = 0.9f)
+                        )
                 )
             } else {
                 // 3. 非二次元主题，或者没图时：显示默认渐变

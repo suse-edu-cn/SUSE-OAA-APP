@@ -14,15 +14,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color // [必须导入]
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-
-// [关键引用] 引用正确的 ProfileScreen (含退出功能)
 import com.suseoaa.projectoaa.login.ui.ProfileScreen
-// [关键引用] 引用正确的 ViewModel (navigation包)
 import com.suseoaa.projectoaa.navigation.viewmodel.ShareViewModel
 
 // ==========================================
@@ -70,7 +68,7 @@ object NavigationTracker {
 fun CompactLayout(
     navController: NavHostController,
     viewModel: ShareViewModel,
-    onLogout: () -> Unit // [必须] 接收退出回调
+    onLogout: () -> Unit
 ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route ?: "home"
     var isForward by remember { mutableStateOf(true) }
@@ -81,8 +79,26 @@ fun CompactLayout(
     }
 
     Scaffold(
+        // [核心修复] 将 Scaffold 背景设为透明，否则它会挡住 Theme.kt 中的壁纸
+        containerColor = Color.Transparent,
+
+        // [优化] 如果不在 Profile 页，显示半透明顶部栏
+        topBar = {
+            if (currentRoute != "profile") {
+                TopAppBar(
+                    title = { Text("手机模式") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        // 顶部栏也设为半透明，增强沉浸感
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    )
+                )
+            }
+        },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                // [优化] 底部导航栏半透明
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+            ) {
                 val navigateTo = { route: String ->
                     if (currentRoute != route) {
                         navController.navigate(route) {
@@ -112,6 +128,7 @@ fun CompactLayout(
             composable(route = "search") { SearchContent(viewModel) }
             composable(route = "settings") { SettingsContent(viewModel) }
             composable(route = "profile") {
+                // 注意：ProfileScreen 内部也有 Scaffold，如果它不透明，个人中心页的壁纸仍会被遮挡
                 ProfileScreen(onBack = { navController.navigate("home") }, onLogout = onLogout)
             }
         }
@@ -136,6 +153,7 @@ fun MediumLayout(
     Row(modifier = Modifier.fillMaxSize()) {
         NavigationRail(
             modifier = Modifier.fillMaxHeight(),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), // 侧边栏半透明
             header = { Icon(Icons.Default.Menu, null, Modifier.padding(vertical = 16.dp)) }
         ) {
             val navigateTo = { route: String ->
@@ -154,6 +172,15 @@ fun MediumLayout(
         }
 
         Column(modifier = Modifier.fillMaxSize()) {
+            if (currentRoute != "profile") {
+                TopAppBar(
+                    title = { Text("小平板模式") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f) // 顶部栏半透明
+                    )
+                )
+            }
+
             NavHost(
                 navController = navController,
                 startDestination = "home",
@@ -192,6 +219,7 @@ fun ExpandedLayout(
     Row(modifier = Modifier.fillMaxSize()) {
         PermanentNavigationDrawer(
             drawerContent = {
+                // 侧边抽屉通常保持不透明，以免视觉混乱，也可以设为 semi-transparent
                 PermanentDrawerSheet(modifier = Modifier.width(280.dp).shadow(10.dp)) {
                     Spacer(Modifier.height(16.dp))
                     val navigateTo = { route: String ->

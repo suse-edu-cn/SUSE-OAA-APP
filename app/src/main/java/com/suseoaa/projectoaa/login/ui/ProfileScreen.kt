@@ -45,7 +45,7 @@ fun ProfileScreen(
     val isEditing = viewModel.isEditing
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "修改资料" else "个人中心", fontWeight = FontWeight.Bold) },
