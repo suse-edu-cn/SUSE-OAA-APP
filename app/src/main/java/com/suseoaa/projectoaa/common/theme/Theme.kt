@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
@@ -20,7 +21,7 @@ import java.io.File
 
 @Composable
 fun ProjectOAATheme(
-    themeConfig: OaaThemeConfig = AnimeLightTheme,
+    themeConfig: OaaThemeConfig = ThemeManager.currentTheme,
     content: @Composable () -> Unit
 ) {
     val colorScheme = themeConfig.colorScheme
@@ -30,9 +31,18 @@ fun ProjectOAATheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-                !themeConfig.isDark
+            // [修改] 沉浸式核心：状态栏背景设为透明
+            window.statusBarColor = Color.Transparent.toArgb()
+
+            // [修改] 导航栏(底部)背景设为主题背景色
+            window.navigationBarColor = colorScheme.background.toArgb()
+
+            // [修改] 状态栏图标颜色控制：
+            // 如果不是暗黑主题(isDark=false)，则 isAppearanceLightStatusBars=true (意味着背景是亮的，系统会把图标显示为黑色)
+            // 这样在“简约白”主题下，状态栏图标就是黑色的。
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !themeConfig.isDark
+            insetsController.isAppearanceLightNavigationBars = !themeConfig.isDark
         }
     }
 
@@ -69,18 +79,11 @@ fun ProjectOAATheme(
                         .background(colorScheme.surface.copy(alpha = 0.9f))
                 )
             } else {
-                // 3. 非二次元主题，或者没图时：显示默认渐变
+                // 3. 非二次元主题（如简约白），或者没图时：显示默认背景
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                    colorScheme.background
-                                )
-                            )
-                        )
+                        .background(colorScheme.background) // 直接使用主题背景色
                 )
             }
             content()

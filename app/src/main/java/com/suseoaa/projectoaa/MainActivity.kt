@@ -3,12 +3,13 @@ package com.suseoaa.projectoaa
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge // [关键] 引入这个
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color // 引入 Color
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.suseoaa.projectoaa.common.navigation.AppNavigation
 import com.suseoaa.projectoaa.common.theme.ProjectOAATheme
@@ -20,6 +21,9 @@ import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        // [关键修改] 开启 Edge-to-Edge，让应用内容能绘制到状态栏下方
+        enableEdgeToEdge()
+
         super.onCreate(savedInstanceState)
 
         SessionManager.fetchToken(this)
@@ -35,14 +39,6 @@ class MainActivity : ComponentActivity() {
                     AppNavigation(windowSizeClass = windowSizeClass.widthSizeClass,
                         viewModel<ShareViewModel>())
                 }
-//                旧代码，我怕忘记参数是什么，暂时先保留一下
-//                Surface {
-//                    // 【步骤3】根据窗口尺寸选择布局
-//                    AdaptiveApp(
-//                        windowSizeClass = windowSizeClass.widthSizeClass,
-//                        viewModel<ShareViewModel>()
-//                    )
-//                }
             }
         }
     }

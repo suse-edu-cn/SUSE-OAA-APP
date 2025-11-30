@@ -1,7 +1,6 @@
 package com.suseoaa.projectoaa.startHomeNavigation.platform.pad
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -9,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -16,190 +17,112 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.suseoaa.projectoaa.startHomeNavigation.ui.HomeContent
-import com.suseoaa.projectoaa.startHomeNavigation.ui.NavigationTracker
 import com.suseoaa.projectoaa.startHomeNavigation.ui.ProfileContent
 import com.suseoaa.projectoaa.startHomeNavigation.ui.SearchContent
 import com.suseoaa.projectoaa.startHomeNavigation.ui.SettingsContent
-import com.suseoaa.projectoaa.startHomeNavigation.ui.getEnterTransition
-import com.suseoaa.projectoaa.startHomeNavigation.ui.getExitTransition
-import com.suseoaa.projectoaa.startHomeNavigation.ui.getNavigationDirection
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
+import kotlinx.coroutines.launch
 
-// ========== 大平板布局：双栏布局（主从模式） ==========
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpandedLayout(
-    navController: NavHostController, viewModel: ShareViewModel
-) {
-    val currentRoute =
-        navController.currentBackStackEntryAsState().value?.destination?.route ?: "home"
+fun ExpandedLayout(navController: NavHostController, viewModel: ShareViewModel) {
+    val pagerState = rememberPagerState(pageCount = { 4 })
+    val scope = rememberCoroutineScope()
 
-    // 跟踪导航方向
-    var isForward by remember { mutableStateOf(true) }
+    val homeIndex = 0
+    val searchIndex = 1
+    val settingsIndex = 2
+    val profileIndex = 3
 
-    // 当前路由变化时更新导航方向
-    LaunchedEffect(currentRoute) {
-        isForward = getNavigationDirection(NavigationTracker.lastRoute, currentRoute)
-        NavigationTracker.updateRoute(currentRoute)
-    }
+    val livelyItemColors = NavigationDrawerItemDefaults.colors(
+        selectedIconColor = MaterialTheme.colorScheme.primary,
+        selectedTextColor = MaterialTheme.colorScheme.primary,
+        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 
-    Row(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // 【左侧：永久可见的导航抽屉】
+    Row(modifier = Modifier.fillMaxSize()) {
         PermanentNavigationDrawer(
             drawerContent = {
                 PermanentDrawerSheet(
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    drawerContentColor = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .width(280.dp)
-                        .shadow(
-                            elevation = 10.dp,
-                            ambientColor = Color.Gray,
-                            spotColor = Color.DarkGray
-                        )
+                        .shadow(elevation = 2.dp)
                 ) {
-                    Spacer(
-                        modifier = Modifier.height(16.dp)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        "Project OAA",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.primary
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     NavigationDrawerItem(
-                        icon = {
-                            Icon(
-                                Icons.Default.Home, contentDescription = null
-                            )
-                        },
+                        colors = livelyItemColors,
+                        icon = { Icon(Icons.Default.Home, null) },
                         label = { Text("首页") },
-                        selected = currentRoute == "home",
-                        onClick = {
-                            if (currentRoute != "home") {
-                                navController.navigate("home") {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        },
+                        selected = pagerState.currentPage == homeIndex,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(homeIndex) } },
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )
-
                     NavigationDrawerItem(
-                        icon = {
-                            Icon(
-                                Icons.Default.Search, contentDescription = null
-                            )
-                        },
+                        colors = livelyItemColors,
+                        icon = { Icon(Icons.Default.Search, null) },
                         label = { Text("搜索") },
-                        selected = currentRoute == "search",
-                        onClick = {
-                            if (currentRoute != "search") {
-                                navController.navigate("search") {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        },
+                        selected = pagerState.currentPage == searchIndex,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(searchIndex) } },
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )
-
                     NavigationDrawerItem(
-                        icon = {
-                            Icon(
-                                Icons.Default.Settings, contentDescription = null
-                            )
-                        },
+                        colors = livelyItemColors,
+                        icon = { Icon(Icons.Default.Settings, null) },
                         label = { Text("设置") },
-                        selected = currentRoute == "settings",
-                        onClick = {
-                            if (currentRoute != "settings") {
-                                navController.navigate("settings") {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        },
+                        selected = pagerState.currentPage == settingsIndex,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(settingsIndex) } },
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )
-
                     NavigationDrawerItem(
-                        icon = {
-                            Icon(
-                                Icons.Default.Person, contentDescription = null
-                            )
-                        },
+                        colors = livelyItemColors,
+                        icon = { Icon(Icons.Default.Person, null) },
                         label = { Text("个人中心") },
-                        selected = currentRoute == "profile",
-                        onClick = {
-                            if (currentRoute != "profile") {
-                                navController.navigate("profile") {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        },
+                        selected = pagerState.currentPage == profileIndex,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(profileIndex) } },
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )
                 }
             }) {
-            // 【中间和右侧：双栏内容区域】
             Row(modifier = Modifier.fillMaxSize()) {
-                // 【主内容区域】占 60% 宽度
-                Box(
-                    modifier = Modifier
-                        .weight(0.6f)
-                        .fillMaxHeight()
-                ) {
-                    Column {
-                        NavHost(
-                            navController = navController,
-                            startDestination = "home",
-                            modifier = Modifier.fillMaxSize(),
-                            enterTransition = {
-                                getEnterTransition(isForward)
-                            },
-                            exitTransition = {
-                                getExitTransition(isForward)
-                            },
-                            popEnterTransition = {
-                                getEnterTransition(isForward)
-                            },
-                            popExitTransition = {
-                                getExitTransition(isForward)
-                            }
-                        ) {
-                            composable(route = "home") { HomeContent(viewModel) }
-                            composable(route = "search") { SearchContent(viewModel) }
-                            composable(route = "settings") { SettingsContent(viewModel) }
-                            composable(route = "profile") { ProfileContent(viewModel) }
+                Box(modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()) {
+                    // 使用 Pager 包裹主内容
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        userScrollEnabled = true
+                    ) { page ->
+                        when (page) {
+                            homeIndex -> HomeContent(viewModel)
+                            searchIndex -> SearchContent(viewModel)
+                            settingsIndex -> SettingsContent(viewModel)
+                            profileIndex -> ProfileContent(viewModel)
                         }
                     }
                 }

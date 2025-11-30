@@ -110,6 +110,28 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         prefs.edit().putString(KEY_CURRENT_ID, studentId).apply()
     }
 
+    /**
+     * 刷新当前显示的账号课表
+     * 使用本地保存的密码进行更新
+     */
+    fun refreshSchedule() {
+        val currentId = _currentStudentId.value
+        if (currentId.isBlank()) {
+            uiState = uiState.copy(errorMessage = "当前未选择账号，无法刷新")
+            return
+        }
+
+        // 从保存的列表中查找当前账号的密码
+        val password = _savedAccounts.value[currentId]
+        if (password.isNullOrBlank()) {
+            uiState = uiState.copy(errorMessage = "未找到账号 $currentId 的保存密码，请尝试重新导入")
+            return
+        }
+
+        // 复用 fetchAndSaveCourseSchedule 进行更新
+        fetchAndSaveCourseSchedule(currentId, password)
+    }
+
     fun fetchAndSaveCourseSchedule(username: String, password: String) {
         viewModelScope.launch {
             try {

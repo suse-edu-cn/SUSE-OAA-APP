@@ -2,6 +2,8 @@ package com.suseoaa.projectoaa.startHomeNavigation.platform.phone
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -12,173 +14,100 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.suseoaa.projectoaa.startHomeNavigation.ui.HomeContent
-import com.suseoaa.projectoaa.startHomeNavigation.ui.NavigationTracker
 import com.suseoaa.projectoaa.startHomeNavigation.ui.ProfileContent
 import com.suseoaa.projectoaa.startHomeNavigation.ui.SearchContent
 import com.suseoaa.projectoaa.startHomeNavigation.ui.SettingsContent
-import com.suseoaa.projectoaa.startHomeNavigation.ui.getEnterTransition
-import com.suseoaa.projectoaa.startHomeNavigation.ui.getExitTransition
-import com.suseoaa.projectoaa.startHomeNavigation.ui.getNavigationDirection
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
+import kotlinx.coroutines.launch
 
-// ========== 手机布局：底部导航栏 ==========
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompactLayout(navController: NavHostController, viewModel: ShareViewModel) {
-    // 当前选中的页面（从 NavController 获取）
-    val currentRoute =
-        navController.currentBackStackEntryAsState().value?.destination?.route ?: "home"
+    val pagerState = rememberPagerState(pageCount = { 4 })
+    val scope = rememberCoroutineScope()
 
-    // 跟踪导航方向
-    var isForward by remember { mutableStateOf(true) }
+    val homeIndex = 0
+    val searchIndex = 1
+    val settingsIndex = 2
+    val profileIndex = 3
 
-    // 当前路由变化时更新导航方向
-    LaunchedEffect(currentRoute) {
-        isForward = getNavigationDirection(NavigationTracker.lastRoute, currentRoute)
-        NavigationTracker.updateRoute(currentRoute)
-    }
+    val livelyItemColors = NavigationBarItemDefaults.colors(
+        selectedIconColor = MaterialTheme.colorScheme.primary,
+        selectedTextColor = MaterialTheme.colorScheme.primary,
+        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 
     Scaffold(
-        // 【顶部栏】
-//        topBar = {
-//            TopAppBar(
-//                title = { Text("手机模式") },
-//                colors = TopAppBarDefaults.topAppBarColors(
-//                    containerColor =
-//                        MaterialTheme.colorScheme.primaryContainer
-//                )
-//            )
-//        },
-
-        // 【底部导航栏】典型的手机布局
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar {
-                // 首页
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            Icons.Default.Home, contentDescription = null
-                        )
-                    },
-                    label = { Text("首页") },
-                    selected = currentRoute == "home",
-                    onClick = {
-                        if (currentRoute != "home") {
-                            navController.navigate("home") {
-                                popUpTo(
-                                    navController.graph.startDestinationId
-                                ) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    })
-
-                // 搜索
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            Icons.Default.Search, contentDescription = null
-                        )
-                    },
-                    label = { Text("搜索") },
-                    selected = currentRoute == "search",
-                    onClick = {
-                        if (currentRoute != "search") {
-                            navController.navigate("search") {
-                                popUpTo(
-                                    navController.graph.startDestinationId
-                                ) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    })
-
-                // 设置
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            Icons.Default.Settings, contentDescription = null
-                        )
-                    },
-                    label = { Text("设置") },
-                    selected = currentRoute == "settings",
-                    onClick = {
-                        if (currentRoute != "settings") {
-                            navController.navigate("settings") {
-                                popUpTo(
-                                    navController.graph.startDestinationId
-                                )
-                                { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    })
-
-                // 个人
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            Icons.Default.Person, contentDescription = null
-                        )
-                    },
-                    label = { Text("个人") },
-                    selected = currentRoute == "profile",
-                    onClick = {
-                        if (currentRoute != "profile") {
-                            navController.navigate("profile") {
-                                popUpTo(
-                                    navController.graph.startDestinationId
-                                ) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    })
+            Surface(
+                shadowElevation = 8.dp,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp
+                ) {
+                    NavigationBarItem(
+                        colors = livelyItemColors,
+                        icon = { Icon(Icons.Default.Home, null) },
+                        label = { Text("首页") },
+                        selected = pagerState.currentPage == homeIndex,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(homeIndex) } }
+                    )
+                    NavigationBarItem(
+                        colors = livelyItemColors,
+                        icon = { Icon(Icons.Default.Search, null) },
+                        label = { Text("搜索") },
+                        selected = pagerState.currentPage == searchIndex,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(searchIndex) } }
+                    )
+                    NavigationBarItem(
+                        colors = livelyItemColors,
+                        icon = { Icon(Icons.Default.Settings, null) },
+                        label = { Text("设置") },
+                        selected = pagerState.currentPage == settingsIndex,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(settingsIndex) } }
+                    )
+                    NavigationBarItem(
+                        colors = livelyItemColors,
+                        icon = { Icon(Icons.Default.Person, null) },
+                        label = { Text("个人") },
+                        selected = pagerState.currentPage == profileIndex,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(profileIndex) } }
+                    )
+                }
             }
-        }) { padding ->
-        // 【内容区域】使用 NavHost（带过渡动画），并把 ShareViewModel 传给需要的 screen（满足 MVVM）
-        NavHost(
-            navController = navController,
-            startDestination = "home",
+        }
+    ) { padding ->
+        HorizontalPager(
+            state = pagerState,
             modifier = Modifier
-                .padding(padding)
+                // [核心修复] 不要直接使用 .padding(padding)，因为那包含了顶部状态栏高度。
+                // 我们只应用底部的 padding（避开底部导航栏），让顶部内容（Page）可以延伸到状态栏下方。
+                // 这样 Page 内部的白色 TopBar 就能覆盖状态栏背景了。
+                .padding(bottom = padding.calculateBottomPadding())
                 .fillMaxSize(),
-            enterTransition = {
-                getEnterTransition(isForward)
-            },
-            exitTransition = {
-                getExitTransition(isForward)
-            },
-            popEnterTransition = {
-                getEnterTransition(isForward)
-            },
-            popExitTransition = {
-                getExitTransition(isForward)
+            userScrollEnabled = true
+        ) { page ->
+            when (page) {
+                homeIndex -> HomeContent(viewModel)
+                searchIndex -> SearchContent(viewModel)
+                settingsIndex -> SettingsContent(viewModel)
+                profileIndex -> ProfileContent(viewModel)
             }
-        ) {
-            composable(route = "home") { HomeContent(viewModel) }
-            composable(route = "search") { SearchContent(viewModel) }
-            composable(route = "settings") { SettingsContent(viewModel) }
-            composable(route = "profile") { ProfileContent(viewModel) }
         }
     }
 }
