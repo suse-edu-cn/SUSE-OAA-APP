@@ -11,9 +11,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-/**
- * 主题配置接口
- */
 data class OaaThemeConfig(
     val name: String,
     val colorScheme: ColorScheme,
@@ -22,98 +19,95 @@ data class OaaThemeConfig(
     val isDark: Boolean = false
 )
 
-/**
- * 全局主题管理器
- */
 object ThemeManager {
-    // 修改 1: 默认主题改为 MaterialDesignTheme
-    var currentTheme by mutableStateOf(MaterialDesignTheme)
+    // 默认使用升级后的高级白主题
+    var currentTheme by mutableStateOf(MinimalistTheme)
 
-    // 修改 2: 调整列表顺序，将 Material Design 放在首位
     val themeList = listOf(
-        MaterialDesignTheme, // 首位：标准 MD
-        AnimeLightTheme,     // 第二：二次元 (后台会自动缓存壁纸)
-        HoloDarkTheme,       // 第三：复古 4.0
-        GingerbreadTheme     // 第四：复古 2.3
+        MinimalistTheme,
+        MaterialDesignTheme,
+        AnimeLightTheme,
+        HoloDarkTheme,
+        GingerbreadTheme
     )
 }
 
-// ================== 1. 标准 Material Design (移动到最前，方便查找) ==================
-val MaterialDesignTheme = OaaThemeConfig(
-    name = "Material Design (Standard)",
+// ================== [升级] 高级白 (Premium White) ==================
+val MinimalistTheme = OaaThemeConfig(
+    name = "高级白 (Premium)",
     colorScheme = lightColorScheme(
-        primary = Purple40,
-        secondary = PurpleGrey40,
-        tertiary = Pink40
+        primary = PremiumPrimary,
+        onPrimary = PremiumOnPrimary,
+
+        // 选中状态的容器色 (例如选中的 Tab)
+        primaryContainer = PremiumPrimaryContainer,
+        onPrimaryContainer = PremiumOnPrimaryContainer,
+
+        secondary = PremiumSecondary,
+        onSecondary = Color.White,
+
+        tertiary = PremiumTertiary, // 引入第三色增加活力
+
+        background = PremiumBackground, // 灰白背景
+        onBackground = PremiumTextMain,
+
+        surface = PremiumSurface,       // 纯白卡片
+        onSurface = PremiumTextMain,
+
+        surfaceVariant = PremiumSurface, // 也是纯白，用于某些变体卡片
+        onSurfaceVariant = PremiumTextSub,
+
+        outline = PremiumOutline,
+        outlineVariant = Color(0xFFEEEEEE) // 极淡的分隔线
     ),
     shapes = Shapes(
-        small = RoundedCornerShape(4.dp),
-        medium = RoundedCornerShape(4.dp),
-        large = RoundedCornerShape(8.dp)
+        small = RoundedCornerShape(12.dp),  // 更圆润，符合现代高级感
+        medium = RoundedCornerShape(16.dp),
+        large = RoundedCornerShape(24.dp)
     ),
+    appBackground = PremiumBackground,
+    isDark = false
+)
+
+// ... 其他主题保持不变 ...
+val MaterialDesignTheme = OaaThemeConfig(
+    name = "Material Design (Standard)",
+    colorScheme = lightColorScheme(primary = Purple40, secondary = PurpleGrey40, tertiary = Pink40),
+    shapes = Shapes(small = RoundedCornerShape(4.dp), medium = RoundedCornerShape(4.dp), large = RoundedCornerShape(8.dp)),
     appBackground = Color(0xFFFFFBFE),
     isDark = false
 )
 
-// ================== 2. 二次元主题 (Sakura) ==================
 val AnimeLightTheme = OaaThemeConfig(
     name = "二次元 (Sakura)",
     colorScheme = lightColorScheme(
-        primary = AnimePinkPrimary,
-        onPrimary = AnimePinkOnPrimary,
-        primaryContainer = AnimePinkContainer,
-        secondary = AnimeBlueSecondary,
-        onSecondary = AnimeBlueOnSecondary,
-        secondaryContainer = AnimeBlueContainer,
-        background = AnimeBackgroundLight,
-        surface = AnimeSurfaceLight,
-        outline = AnimeOutline
+        primary = AnimePinkPrimary, onPrimary = AnimePinkOnPrimary, primaryContainer = AnimePinkContainer,
+        secondary = AnimeBlueSecondary, onSecondary = AnimeBlueOnSecondary, secondaryContainer = AnimeBlueContainer,
+        background = AnimeBackgroundLight, surface = AnimeSurfaceLight, outline = AnimeOutline
     ),
     shapes = AnimeShapes,
     appBackground = AnimeBackgroundLight,
     isDark = false
 )
 
-// ================== 3. Android 4.x Holo Dark ==================
 val HoloDarkTheme = OaaThemeConfig(
     name = "Android 4.0 (Holo Dark)",
     colorScheme = darkColorScheme(
-        primary = HoloBlue,
-        onPrimary = Color.Black,
-        primaryContainer = Color.Black,
-        secondary = HoloBlue,
-        background = HoloDarkBg,
-        surface = HoloSurface,
-        onSurface = HoloContent,
-        outline = Color.Gray
+        primary = HoloBlue, onPrimary = Color.Black, primaryContainer = Color.Black,
+        secondary = HoloBlue, background = HoloDarkBg, surface = HoloSurface, onSurface = HoloContent, outline = Color.Gray
     ),
-    shapes = Shapes(
-        small = RoundedCornerShape(0.dp),
-        medium = RoundedCornerShape(0.dp),
-        large = RoundedCornerShape(0.dp)
-    ),
+    shapes = Shapes(small = RoundedCornerShape(0.dp), medium = RoundedCornerShape(0.dp), large = RoundedCornerShape(0.dp)),
     appBackground = HoloDarkBg,
     isDark = true
 )
 
-// ================== 4. Android 2.3 Gingerbread ==================
 val GingerbreadTheme = OaaThemeConfig(
     name = "Android 2.3 (Gingerbread)",
     colorScheme = darkColorScheme(
-        primary = GingerOrange,
-        onPrimary = Color.Black,
-        primaryContainer = GingerSurface,
-        secondary = GingerGreen,
-        background = GingerBackground,
-        surface = GingerSurface,
-        onSurface = GingerText,
-        outline = GingerOrange
+        primary = GingerOrange, onPrimary = Color.Black, primaryContainer = GingerSurface,
+        secondary = GingerGreen, background = GingerBackground, surface = GingerSurface, onSurface = GingerText, outline = GingerOrange
     ),
-    shapes = Shapes(
-        small = RoundedCornerShape(0.dp),
-        medium = RoundedCornerShape(0.dp),
-        large = RoundedCornerShape(0.dp)
-    ),
+    shapes = Shapes(small = RoundedCornerShape(0.dp), medium = RoundedCornerShape(0.dp), large = RoundedCornerShape(0.dp)),
     appBackground = GingerBackground,
     isDark = true
 )
