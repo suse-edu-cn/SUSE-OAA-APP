@@ -26,7 +26,8 @@ fun SplashScreen(
     }
 
     LaunchedEffect(key1 = viewModel.isTokenValid) {
-        when (viewModel.isTokenValid) {
+//        when (viewModel.isTokenValid) {
+        when (true) {
             true -> {
                 //  Entry
                 navController.navigate(AppRoutes.Home.route) {

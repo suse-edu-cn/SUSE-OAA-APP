@@ -1,6 +1,5 @@
 package com.suseoaa.projectoaa.courseList.data.remote.dto
 
-
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 

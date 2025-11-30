@@ -8,91 +8,155 @@ import com.suseoaa.projectoaa.courseList.data.remote.dto.CourseResponseJson
 import com.suseoaa.projectoaa.courseList.data.remote.dto.Kb
 import kotlinx.coroutines.flow.Flow
 
-/**
- * 课程仓库
- * MVVM架构 - Model层（Repository，封装数据访问逻辑）
- */
 class CourseRepository(private val dao: CourseDao) {
-    
-    /**
-     * 获取所有课程及时间
-     */
-    fun getAllCoursesWithTimes(): Flow<List<CourseWithTimes>> = 
-        dao.getAllCoursesWithTimes()
-    
-    /**
-     * 从网络响应保存课程数据
-     */
-    suspend fun saveFromResponse(resp: CourseResponseJson) {
-        val groups: Map<String, List<Kb>> = (resp.kbList ?: emptyList())
-            .filterNotNull()
-            .groupBy { it.kcmc ?: "未知课程" }
-        
+
+    fun getCoursesByStudent(studentId: String): Flow<List<CourseWithTimes>> =
+        dao.getCoursesByStudentId(studentId)
+
+    suspend fun saveFromResponse(studentId: String, resp: CourseResponseJson) {
+        val rawList = resp.kbList ?: emptyList()
+
+        // 1. 过滤无效数据，确保课程名存在
+        val validList = rawList.filterNotNull().filter {
+            !it.courseName.isNullOrBlank()
+        }
+
+        // 2. 按课程名分组
+        // 数据库 CourseEntity 主键是 (studentId, courseName)，同名课程必须归为一个实体
+        // 但其下的所有时间段（ClassTimeEntity）会保留所有差异（如不同老师、不同周次）
+        val groups: Map<String, List<Kb>> = validList.groupBy { it.courseName!! }
+
         for ((courseName, list) in groups) {
-            val first = list.first()
+            // 选出信息最全的一个作为课程元数据（优先选有 ID 的）
+            val infoSource = list.find { !it.courseId.isNullOrBlank() } ?: list.first()
+
             val course = CourseEntity(
+                studentId = studentId,
                 courseName = courseName,
-                remoteCourseId = first.kchId ?: "",
-                nature = first.kcxz ?: "",
-                background = first.kcbj ?: "",
-                category = first.kclb ?: "",
-                assessment = first.khfsmc ?: "",
-                totalHours = first.kcxszc ?: ""
+                remoteCourseId = infoSource.courseId ?: "",
+                nature = infoSource.nature ?: "",
+                background = infoSource.background ?: "",
+                category = infoSource.category ?: "",
+                assessment = infoSource.assessment ?: "",
+                totalHours = infoSource.totalHours ?: ""
             )
+
+            // 3. 构建所有时间段
+            // map 操作会为列表中的每一项生成一个时间段记录，确保不会因为合并而丢失“张三老师”和“李四老师”的区别
             val times = list.map { kb ->
-                val mask = parseWeeksToMask(kb.zcd ?: "")
+                val mask = parseWeeksToMask(kb.weeks ?: "")
+
                 ClassTimeEntity(
+                    studentId = studentId,
                     courseOwnerName = courseName,
-                    weekday = kb.xqjmc ?: "",
-                    period = kb.jc ?: "",
-                    weeks = kb.zcd ?: "",
+                    weekday = kb.dayOfWeek ?: "",
+                    period = kb.period ?: "",
+                    weeks = kb.weeks ?: "全周",
                     weeksMask = mask,
-                    location = kb.cdmc ?: "",
-                    teacher = kb.xm ?: "",
-                    teacherTitle = kb.zcmc ?: "",
-                    politicalStatus = kb.zzmm ?: "",
-                    classGroup = kb.jxbzc ?: ""
+                    location = kb.location ?: "",
+                    teacher = kb.teacher ?: "", // 这里的老师信息会被完整保留
+                    teacherTitle = kb.teacherTitle ?: "",
+                    politicalStatus = kb.politicalStatus ?: "",
+                    classGroup = kb.classGroup ?: ""
                 )
             }
+
+            // 4. 写入数据库
+            // upsert 会先插入/更新 Course，然后替换该课程名下的所有 Time
             dao.upsertCourseWithTimes(course, times)
         }
     }
-    
+
     /**
-     * 解析周次字符串为位掩码
-     * 例如：1-16周、1-16周 单周、2-14周 双周、1,3,5周、3-5,7,9-10周
+     * 解析周次字符串，生成位掩码。
+     * 支持格式示例：
+     * - "1-16周"
+     * - "1-8周(单), 10-16周(双)"
+     * - "1-8周 10-16周" (空格分隔)
+     * - "1,3,5-9"
      */
     internal fun parseWeeksToMask(raw: String): Long {
-        var s = raw.replace("周", "").replace(" ", "").trim()
-        if (s.isEmpty()) return 0L
-        val isOdd = s.contains("单")
-        val isEven = s.contains("双")
-        s = s.replace("单", "").replace("双", "").replace("周", "").replace("，", ",")
-        
+        if (raw.isBlank()) return 0L
+
         var mask = 0L
-        fun setWeek(w: Int) { if (w in 1..63) mask = mask or (1L shl (w - 1)) }
-        
-        val parts = s.split(',').filter { it.isNotBlank() }
-        for (p in parts) {
-            if ("-" in p) {
-                val (a, b) = p.split('-').mapNotNull { it.toIntOrNull() }.let { it.first() to it.last() }
-                val range = if (a <= b) a..b else b..a
-                for (w in range) setWeek(w)
-            } else {
-                p.toIntOrNull()?.let { setWeek(it) }
+
+        try {
+            // 1. 预处理：统一所有可能的分隔符为英文逗号
+            // 关键修复：将空格 " " 也视为分隔符，防止 "1-8 10-16" 变成 "1-810-16"
+            var normalized = raw
+                .replace("，", ",")
+                .replace("；", ",")
+                .replace(";", ",")
+                .replace("、", ",")
+                .replace("\n", ",") // 换行符
+                .replace(Regex("\\s+"), ",") // 将所有空白字符（包括空格、制表符）替换为逗号
+
+            // 移除可能产生的连续逗号
+            normalized = normalized.replace(Regex(",+"), ",")
+
+            // 2. 按逗号拆分片段
+            val parts = normalized.split(',')
+
+            for (part in parts) {
+                if (part.isBlank()) continue
+
+                // 3. 判断当前片段的单双周属性
+                // 这样可以正确处理混合情况，如一段单周，另一段双周
+                val isOdd = part.contains("单")
+                val isEven = part.contains("双")
+
+                // 4. 提取纯数字范围
+                // 移除除数字和连字符外的所有字符
+                val cleanPart = part.replace(Regex("[^0-9-]"), "")
+
+                if (cleanPart.isBlank()) continue
+
+                // 5. 解析范围 (e.g., "1-8") 或 单点 (e.g., "5")
+                if (cleanPart.contains("-")) {
+                    val rangeParts = cleanPart.split('-')
+                    if (rangeParts.size >= 2) {
+                        // 过滤掉空字符串，防止 "-5" 或 "5-" 这种情况导致的异常
+                        val start = rangeParts[0].toIntOrNull()
+                        val end = rangeParts[1].toIntOrNull()
+
+                        if (start != null && end != null) {
+                            val range = if (start <= end) start..end else end..start
+                            for (w in range) {
+                                if (shouldInclude(w, isOdd, isEven)) {
+                                    mask = mask or (1L shl (w - 1))
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    val w = cleanPart.toIntOrNull()
+                    if (w != null) {
+                        if (shouldInclude(w, isOdd, isEven)) {
+                            mask = mask or (1L shl (w - 1))
+                        }
+                    }
+                }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // 解析失败时不应该返回 -1 (全 1)，因为这会显示在所有周
+            // 返回 0 可能更好，或者视情况而定。为了安全起见，这里记录错误但允许流程继续
+            return 0L
         }
-        if (isOdd && !isEven) {
-            mask = mask and ODD_MASK
-        } else if (isEven && !isOdd) {
-            mask = mask and EVEN_MASK
-        }
+
         return mask
     }
-    
-    companion object {
-        private const val ODD_BITS: Long = 0x5555555555555555L
-        private val ODD_MASK = ODD_BITS
-        private val EVEN_MASK = (ODD_BITS shl 1)
+
+    private fun shouldInclude(week: Int, isOdd: Boolean, isEven: Boolean): Boolean {
+        // 防止越界
+        if (week !in 1..63) return false
+
+        // 如果指定了单周，且当前是偶数 -> 不包含
+        if (isOdd && !isEven && week % 2 == 0) return false
+
+        // 如果指定了双周，且当前是奇数 -> 不包含
+        if (isEven && !isOdd && week % 2 != 0) return false
+
+        return true
     }
 }

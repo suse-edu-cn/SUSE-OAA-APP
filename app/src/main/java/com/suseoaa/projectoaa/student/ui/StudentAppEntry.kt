@@ -31,8 +31,7 @@ fun StudentAppMainEntry(onLogout: () -> Unit = {}) {
         AppScreen.Start -> {
             StartSelectionScreen(
                 onStartClick = { currentScreen = AppScreen.Form },
-                onProfileClick = { currentScreen = AppScreen.Profile }
-            )
+                onProfileClick = { currentScreen = AppScreen.Profile })
         }
 
         AppScreen.Form -> {
@@ -43,8 +42,7 @@ fun StudentAppMainEntry(onLogout: () -> Unit = {}) {
         AppScreen.Profile -> {
             BackHandler { currentScreen = AppScreen.Start }
             ProfileScreen(
-                onBack = { currentScreen = AppScreen.Start },
-                onLogout = onLogout
+                onBack = { currentScreen = AppScreen.Start }, onLogout = onLogout
             )
         }
     }
@@ -59,12 +57,12 @@ fun StartSelectionScreen(onStartClick: () -> Unit, onProfileClick: () -> Unit) {
     val context = LocalContext.current
 
     ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
+        drawerState = drawerState, drawerContent = {
             ModalDrawerSheet(
                 drawerContainerColor = MaterialTheme.colorScheme.surface,
                 drawerContentColor = MaterialTheme.colorScheme.onSurface
-            ) {
+            )
+            {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -102,15 +100,22 @@ fun StartSelectionScreen(onStartClick: () -> Unit, onProfileClick: () -> Unit) {
                     icon = { Icon(Icons.Default.Person, null) },
                     selected = false,
                     onClick = { scope.launch { drawerState.close(); onProfileClick() } },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    modifier = Modifier.padding(
+                        NavigationDrawerItemDefaults.ItemPadding
+                    )
                 )
                 if (ThemeManager.currentTheme.name.contains("二次元")) {
                     NavigationDrawerItem(
-                        label = { Text("获取当前壁纸") },
-                        icon = { Icon(Icons.Default.Image, null) },
-                        selected = false,
-                        onClick = { WallpaperManager.saveCurrentToGallery(context); scope.launch { drawerState.close() } },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        label = { Text("获取当前壁纸") }, icon = {
+                            Icon(
+                                Icons.Default.Image, null
+                            )
+                        }, selected = false, onClick = {
+                            WallpaperManager.saveCurrentToGallery(context)
+                            scope.launch { drawerState.close() }
+                        }, modifier = Modifier.padding(
+                            NavigationDrawerItemDefaults.ItemPadding
+                        )
                     )
                 }
                 NavigationDrawerItem(
@@ -118,26 +123,27 @@ fun StartSelectionScreen(onStartClick: () -> Unit, onProfileClick: () -> Unit) {
                     icon = { Icon(Icons.Default.Info, null) },
                     selected = false,
                     onClick = { scope.launch { drawerState.close() } },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    modifier = Modifier.padding(
+                        NavigationDrawerItemDefaults.ItemPadding
+                    )
                 )
             }
         }
-    ) {
+    )
+    {
         Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
+            containerColor = Color.Transparent, topBar = {
                 CenterAlignedTopAppBar(
-                    title = { Text("Project:OAA") },
-                    navigationIcon = {
+                    title = { Text("Project:OAA") }, navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(
-                                Icons.Default.Menu,
+                                Icons
+                                    .Default.Menu,
                                 "菜单",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
-                    },
-                    actions = {
+                    }, actions = {
                         IconButton(onClick = {
                             showThemeDialog = true
                         }) {
@@ -147,11 +153,11 @@ fun StartSelectionScreen(onStartClick: () -> Unit, onProfileClick: () -> Unit) {
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+                    }, colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
-            }
-        ) { paddingValues ->
+            }) { paddingValues ->
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
@@ -184,7 +190,10 @@ fun StartSelectionScreen(onStartClick: () -> Unit, onProfileClick: () -> Unit) {
                             )
                         }
                         Spacer(modifier = Modifier.width(48.dp))
-                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
                             LargeSelectionButton(text = "招新/换届申请", onClick = onStartClick)
                         }
                     }
