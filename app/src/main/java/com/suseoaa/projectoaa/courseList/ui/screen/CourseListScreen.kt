@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -42,6 +43,7 @@ import com.suseoaa.projectoaa.courseList.data.entity.CourseWithTimes
 import com.suseoaa.projectoaa.courseList.viewmodel.CourseListViewModel
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import kotlin.math.roundToInt
 
 // 预定义的课程颜色
 private val CourseColors = listOf(
@@ -78,6 +80,9 @@ private val SectionIndexMap = DailySchedule.mapIndexedNotNull { index, slot ->
     if (slot.sectionName.isNotEmpty()) slot.sectionName to index else null
 }.toMap()
 
+// === 关键修复：定义日期行固定高度 ===
+private val DateHeaderHeight = 24.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListScreen(
@@ -91,9 +96,7 @@ fun CourseListScreen(
     val currentStudentId by viewModel.currentStudentId.collectAsStateWithLifecycle()
     val uiState = viewModel.uiState
 
-    // 真实的当前周（基于时间）
     val realCurrentWeek = viewModel.realCurrentWeek
-
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp > 600
 
@@ -106,32 +109,23 @@ fun CourseListScreen(
     var showAccountDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
 
-    // 初始化 Pager
     val pagerState = rememberPagerState(
         initialPage = (viewModel.currentDisplayWeek - 1).coerceAtLeast(0),
         pageCount = { 25 }
     )
 
-    // 监听 Pager 滑动 (Pager -> ViewModel)
-    // 关键修复：使用 settledPage 而不是 currentPage
-    // 这样只有在滚动彻底结束（用户抬手或动画完成）时才更新 ViewModel
-    // 避免了在 animateScrollToPage 过程中因为 currentPage 变化导致 ViewModel 更新
-    // 进而触发 LaunchedEffect 重启，打断正在进行的动画，导致停在中间位置
+    // 监听 Pager 滑动 settledPage，避免动画冲突
     LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }
-            .collect { page ->
-                val newWeek = page + 1
-                if (viewModel.currentDisplayWeek != newWeek) {
-                    viewModel.currentDisplayWeek = newWeek
-                }
+        snapshotFlow { pagerState.settledPage }.collect { page ->
+            val newWeek = page + 1
+            if (viewModel.currentDisplayWeek != newWeek) {
+                viewModel.currentDisplayWeek = newWeek
             }
+        }
     }
 
-    // 监听 ViewModel 变动 (ViewModel -> Pager)
-    // 仅当用户点击 Tab 导致 ViewModel 变化时，触发滚动
     LaunchedEffect(viewModel.currentDisplayWeek) {
         val targetPage = viewModel.currentDisplayWeek - 1
-        // 只有当目标页与当前页不同，且 Pager 没有在被用户拖拽时才自动滚动
         if (pagerState.currentPage != targetPage && targetPage in 0..24) {
             pagerState.animateScrollToPage(
                 page = targetPage,
@@ -220,7 +214,7 @@ fun CourseListScreen(
                         val isSelected = w == (pagerState.currentPage + 1)
                         val isRealCurrentWeek = w == realCurrentWeek
                         val textColor = when {
-                            isRealCurrentWeek -> Color.Red // 真实当前周标红
+                            isRealCurrentWeek -> Color.Red
                             isSelected -> Color(0xFFE57373)
                             else -> Color.Gray
                         }
@@ -263,7 +257,6 @@ fun CourseListScreen(
                             .weight(if (isTablet && selectedCourses != null) 0.65f else 1f)
                             .fillMaxHeight()
                     ) {
-                        // === 动静分离布局 ===
                         CourseScheduleLayout(
                             allCourses = allCourses,
                             startDate = startDate,
@@ -320,7 +313,7 @@ fun CourseListScreen(
     }
 }
 
-// === 布局容器：分离静态轴和动态内容 ===
+// === 布局容器 ===
 @Composable
 fun CourseScheduleLayout(
     allCourses: List<CourseWithTimes>,
@@ -329,34 +322,49 @@ fun CourseScheduleLayout(
     getCoursesForWeek: (Int, List<CourseWithTimes>) -> List<CourseWithTimes>,
     onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
 ) {
+    val density = LocalDensity.current
+    val timeAxisWidth = 32.dp
+
     Column(modifier = Modifier.fillMaxSize()) {
-        // 1. 顶部固定：星期标头
+        // 1. 顶部：固定的星期标头
         Row(modifier = Modifier.fillMaxWidth()) {
-            Spacer(modifier = Modifier.width(32.dp)) // 左侧留出时间轴宽度
+            Spacer(modifier = Modifier.width(timeAxisWidth))
             StaticWeekDayHeader()
         }
 
-        // 2. 主体：使用 BoxWithConstraints 计算一次高度
+        // 2. 主体
         BoxWithConstraints(modifier = Modifier
             .weight(1f)
             .fillMaxWidth()) {
+            // 关键修复：计算实际可用的网格高度
+            // 总高度减去顶部的日期行高度，剩余的才是给格子和时间轴的
             val totalHeight = maxHeight
+            val gridHeight = totalHeight - DateHeaderHeight
             val totalWeight = remember { DailySchedule.sumOf { it.weight.toDouble() }.toFloat() }
-            val unitHeightPx = with(LocalDensity.current) { totalHeight.toPx() } / totalWeight
 
-            // 修复：显式捕获 maxWidth 避免闭包隐式接收者问题
+            // 单元格高度基于 gridHeight 计算，而不是 totalHeight
+            val unitHeightPx = with(density) { gridHeight.toPx() } / totalWeight
+
             val parentMaxWidth = maxWidth
 
             Row(modifier = Modifier.fillMaxSize()) {
-                // 3. 左侧固定：时间轴
-                StaticTimeAxis(unitHeightPx)
+                // 3. 左侧：固定的时间轴
+                // 使用 Column + Spacer 将其下移，对齐到日期行下方
+                Column(modifier = Modifier.width(timeAxisWidth)) {
+                    Spacer(modifier = Modifier.height(DateHeaderHeight))
+                    StaticTimeAxis(unitHeightPx, gridHeight) // 传入 gridHeight
+                }
 
-                // 4. 右侧滑动：网格 + 课程
+                // 4. 右侧：可滑动区域
                 Box(modifier = Modifier.weight(1f)) {
-                    // A. 底层：固定网格线 (不随 Pager 滑动，提升性能)
-                    StaticGridBackground(unitHeightPx)
+                    // A. 底层网格 (静态)
+                    // 同样下移，对齐
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Spacer(modifier = Modifier.height(DateHeaderHeight))
+                        StaticGridBackground(unitHeightPx)
+                    }
 
-                    // B. 顶层：Pager (包含日期、高亮、课程)
+                    // B. 顶层 Pager (动态)
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
@@ -373,12 +381,11 @@ fun CourseScheduleLayout(
                             )
                         }
 
-                        // 传递计算好的 maxWidth (减去时间轴宽度)
                         DynamicWeekContent(
                             courses = weekCourses,
                             weekStartDate = weekStart,
                             unitHeightPx = unitHeightPx,
-                            maxWidth = parentMaxWidth - 32.dp,
+                            maxWidth = parentMaxWidth - timeAxisWidth, // 准确的宽度
                             onCourseClick = onCourseClick
                         )
                     }
@@ -388,8 +395,6 @@ fun CourseScheduleLayout(
     }
 }
 
-// === 静态组件 ===
-
 @Composable
 fun StaticWeekDayHeader() {
     val weekDays = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
@@ -397,10 +402,7 @@ fun StaticWeekDayHeader() {
         .fillMaxWidth()
         .padding(vertical = 4.dp)) {
         weekDays.forEach { dayName ->
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(
                     text = dayName,
                     fontSize = 12.sp,
@@ -413,8 +415,7 @@ fun StaticWeekDayHeader() {
 }
 
 @Composable
-fun StaticTimeAxis(unitHeightPx: Float) {
-    val density = LocalDensity.current
+fun StaticTimeAxis(unitHeightPx: Float, height: Dp) {
     Layout(content = {
         DailySchedule.forEach { slot ->
             Box(contentAlignment = Alignment.Center) {
@@ -442,19 +443,20 @@ fun StaticTimeAxis(unitHeightPx: Float) {
             }
         }
     }) { measurables, constraints ->
+        // 使用传入的 height 约束布局高度
+        val heightPx = height.roundToPx()
         val placeables =
             measurables.map { it.measure(constraints.copy(minWidth = 0, maxWidth = 100)) }
-        val widthPx = with(density) { 32.dp.roundToPx() }
 
-        layout(widthPx, constraints.maxHeight) {
+        layout(constraints.maxWidth, heightPx) {
             var y = 0f
             placeables.forEachIndexed { index, placeable ->
                 val slot = DailySchedule[index]
-                val height = slot.weight * unitHeightPx
-                val x = (widthPx - placeable.width) / 2
-                val yPos = y + (height - placeable.height) / 2
+                val slotHeight = slot.weight * unitHeightPx
+                val x = (constraints.maxWidth - placeable.width) / 2
+                val yPos = y + (slotHeight - placeable.height) / 2
                 placeable.place(x.toInt(), yPos.toInt())
-                y += height
+                y += slotHeight
             }
         }
     }
@@ -482,8 +484,6 @@ fun StaticGridBackground(unitHeightPx: Float) {
     }
 }
 
-// === 动态组件 ===
-
 @Composable
 fun DynamicWeekContent(
     courses: List<CourseWithTimes>,
@@ -493,7 +493,10 @@ fun DynamicWeekContent(
     onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
+        // 1. 日期行 (固定高度)
         DynamicDateRow(weekStartDate)
+
+        // 2. 剩余空间 (网格高度)
         Box(modifier = Modifier
             .weight(1f)
             .fillMaxWidth()) {
@@ -508,8 +511,10 @@ fun DynamicWeekContent(
 @Composable
 fun DynamicDateRow(startDate: LocalDate) {
     val today = remember { LocalDate.now() }
+    // 关键修复：高度强制固定为 DateHeaderHeight
     Row(modifier = Modifier
         .fillMaxWidth()
+        .height(DateHeaderHeight)
         .padding(bottom = 4.dp)) {
         for (i in 0..6) {
             val date = startDate.plusDays(i.toLong())
@@ -520,8 +525,9 @@ fun DynamicDateRow(startDate: LocalDate) {
                     .padding(horizontal = 2.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(if (isToday) Color(0xFFE3F2FD) else Color.Transparent)
-                    .padding(vertical = 2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxHeight(), // 填满固定高度
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = "${date.monthValue}/${date.dayOfMonth}",
@@ -567,18 +573,7 @@ fun HighlightTodayColumn(weekStartDate: LocalDate, maxWidth: Dp) {
     }
 }
 
-// === 渲染数据类 ===
-data class CourseRenderInfo(
-    val course: CourseWithTimes,
-    val time: ClassTimeEntity,
-    val x: Dp,
-    val y: Dp,
-    val width: Dp,
-    val height: Dp,
-    val color: Color,
-    val overlappedData: List<Pair<CourseWithTimes, ClassTimeEntity>>
-)
-
+// 渲染数据类
 private data class LayoutItem(
     val course: CourseWithTimes,
     val time: ClassTimeEntity,
@@ -596,19 +591,7 @@ fun ScheduleCourseOverlay(
 ) {
     val density = LocalDensity.current
 
-    val renderItems = remember(courses, unitHeightPx, maxWidth) {
-        val contentWidthPx = with(density) { maxWidth.toPx() }
-        val colWidthPx = contentWidthPx / 7
-        val colWidthDp = with(density) { colWidthPx.toDp() }
-
-        val slotYPositions = FloatArray(DailySchedule.size + 1)
-        var currentY = 0f
-        DailySchedule.forEachIndexed { index, slot ->
-            slotYPositions[index] = currentY
-            currentY += slot.weight * unitHeightPx
-        }
-        slotYPositions[DailySchedule.size] = currentY
-
+    val preparedItems = remember(courses) {
         val items = mutableListOf<LayoutItem>()
         courses.forEach { course ->
             course.times.forEach { time ->
@@ -628,90 +611,101 @@ fun ScheduleCourseOverlay(
                 }
             }
         }
+        items.groupBy { it.dayIndex }
+    }
 
-        val finalRenderList = mutableListOf<CourseRenderInfo>()
+    Layout(
+        content = {
+            for (day in 0..6) {
+                val dayItems = preparedItems[day] ?: emptyList()
+                val groups = dayItems.groupBy { "${it.startIndex}-${it.endIndex}" }
 
-        for (day in 0..6) {
-            val dayItems = items.filter { it.dayIndex == day }
-            if (dayItems.isEmpty()) continue
+                groups.forEach { (_, groupItems) ->
+                    val distinctNames = groupItems.map { it.course.course.courseName }.distinct()
+                    val hasDifferentCourses = distinctNames.size > 1
+                    val overlappedData = groupItems.map { it.course to it.time }
 
-            val groups = dayItems.groupBy { "${it.startIndex}-${it.endIndex}" }
-
-            groups.forEach { (_, groupItems) ->
-                val firstItem = groupItems.first()
-                val distinctNames = groupItems.map { it.course.course.courseName }.distinct()
-                val hasDifferentCourses = distinctNames.size > 1
-
-                val yPosPx = slotYPositions[firstItem.startIndex]
-                val endYPosPx = slotYPositions[firstItem.endIndex.coerceAtMost(DailySchedule.size)]
-                val heightPx = endYPosPx - yPosPx
-                val xDp = colWidthDp * day
-                val yDp = with(density) { yPosPx.toDp() }
-                val heightDp = with(density) { heightPx.toDp() } - 2.dp
-
-                val overlappedData = groupItems.map { it.course to it.time }
-
-                if (hasDifferentCourses) {
-                    groupItems.forEachIndexed { _, item ->
+                    if (hasDifferentCourses) {
+                        groupItems.forEachIndexed { i, item ->
+                            val baseColor =
+                                CourseColors[kotlin.math.abs(item.course.course.courseName.hashCode()) % CourseColors.size]
+                            CourseCard(
+                                title = item.course.course.courseName,
+                                location = item.time.location,
+                                color = baseColor.copy(alpha = 0.85f),
+                                onClick = { onCourseClick(overlappedData) },
+                                modifier = Modifier.layoutId(item)
+                            )
+                        }
+                    } else if (groupItems.isNotEmpty()) {
+                        val item = groupItems.first()
                         val baseColor =
                             CourseColors[kotlin.math.abs(item.course.course.courseName.hashCode()) % CourseColors.size]
-                        finalRenderList.add(
-                            CourseRenderInfo(
-                                course = item.course,
-                                time = item.time,
-                                x = xDp,
-                                y = yDp,
-                                width = colWidthDp - 2.dp,
-                                height = heightDp,
-                                color = baseColor.copy(alpha = 0.85f),
-                                overlappedData = overlappedData
-                            )
+                        CourseCard(
+                            title = item.course.course.courseName,
+                            location = item.time.location,
+                            color = baseColor,
+                            onClick = { onCourseClick(overlappedData) },
+                            modifier = Modifier.layoutId(item)
                         )
                     }
-                } else {
-                    val item = groupItems.first()
-                    val baseColor =
-                        CourseColors[kotlin.math.abs(item.course.course.courseName.hashCode()) % CourseColors.size]
-                    finalRenderList.add(
-                        CourseRenderInfo(
-                            course = item.course,
-                            time = item.time,
-                            x = xDp,
-                            y = yDp,
-                            width = colWidthDp - 2.dp,
-                            height = heightDp,
-                            color = baseColor,
-                            overlappedData = overlappedData
-                        )
-                    )
                 }
             }
         }
-        finalRenderList
-    }
+    ) { measurables, constraints ->
+        val totalWidthPx = constraints.maxWidth.toFloat()
+        val colWidthPx = totalWidthPx / 7f
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        renderItems.forEach { item ->
-            CourseCard(item, onCourseClick)
+        val slotYPositions = FloatArray(DailySchedule.size + 1)
+        var currentY = 0f
+        DailySchedule.forEachIndexed { index, slot ->
+            slotYPositions[index] = currentY
+            currentY += slot.weight * unitHeightPx
+        }
+        slotYPositions[DailySchedule.size] = currentY
+
+        val placeables = measurables.map { measurable ->
+            val item = measurable.layoutId as LayoutItem
+            val yPos = slotYPositions[item.startIndex]
+            val endYPos = slotYPositions[item.endIndex.coerceAtMost(DailySchedule.size)]
+            val height = (endYPos - yPos).roundToInt() - 2.dp.roundToPx()
+            val width = colWidthPx.roundToInt() - 2.dp.roundToPx()
+
+            val placeable = measurable.measure(
+                androidx.compose.ui.unit.Constraints.fixed(
+                    width = width.coerceAtLeast(0),
+                    height = height.coerceAtLeast(0)
+                )
+            )
+            Triple(placeable, item, yPos)
+        }
+
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            placeables.forEach { (placeable, item, yPos) ->
+                val dayIndex = item.dayIndex
+                val xPos = (colWidthPx * dayIndex).roundToInt()
+                placeable.place(xPos, yPos.roundToInt())
+            }
         }
     }
 }
 
-// 保持其他函数不变
+// ... 保持 AccountSelectionDialog, LoginDialog, CourseDetailContent, DetailItem, CourseCard, parseWeekday, parsePeriod, CourseRenderInfo 不变 ...
+// (为了节省篇幅，假设下方包含这些函数，请直接使用上一次回答中的相应部分)
+
 @Composable
 private fun CourseCard(
-    item: CourseRenderInfo,
-    onClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
+    title: String,
+    location: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = item.color),
+        colors = CardDefaults.cardColors(containerColor = color),
         shape = RoundedCornerShape(6.dp),
         elevation = CardDefaults.cardElevation(0.dp),
-        modifier = Modifier
-            .absoluteOffset(x = item.x, y = item.y)
-            .width(item.width)
-            .height(item.height)
-            .clickable { onClick(item.overlappedData) }
+        modifier = modifier.clickable { onClick() }
     ) {
         Column(
             modifier = Modifier
@@ -721,7 +715,7 @@ private fun CourseCard(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = item.course.course.courseName,
+                text = title,
                 fontSize = 11.sp,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
@@ -730,10 +724,10 @@ private fun CourseCard(
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
             )
-            if (item.time.location.isNotBlank()) {
+            if (location.isNotBlank()) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "@${item.time.location}",
+                    text = "@$location",
                     fontSize = 9.sp,
                     color = Color.White.copy(0.95f),
                     textAlign = TextAlign.Center,
