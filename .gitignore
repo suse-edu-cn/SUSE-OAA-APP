@@ -1,40 +1,76 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
+# Android 编译产物
 /build
-/captures
-.externalNativeBuild
-.cxx
+/app/build
+*/build
+*.apk
+*.aar
+*.ap_
+*.dex
+*.class
+*.jar
+
+# Gradle
+.gradle/
+gradle.properties
+gradle-app.setting
+gradlew
+gradlew.bat
+gradle/wrapper/gradle-wrapper.properties
+
+# IDE (Android Studio)
+.idea/
+*.iml
+*.ipr
+*.iws
+captures/
+codeStyles/
+
+# 本地配置文件
 local.properties
 
-# 编译产物
-*.class
-*.exe
-*.out
-*.dll
-*.so
+# macOS 系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.background
+.hotfiles.btree
+*~
 
-# 依赖目录
-node_modules/
-vendor/
+# 日志文件
+*.log
 
-# 环境变量文件
-.env
-.env.local
+# 临时文件
+*.tmp
+*.temp
 
-# IDE配置
-.vscode/
-.idea/
+# 密钥文件 (绝对不要提交!)
+*.jks
+*.keystore
+debug.keystore
+release.keystore
+
+# 备份文件
+*~
+*.bak
 *.swp
 *.swo
 
-# 操作系统文件
-.DS_Store
-Thumbs.db
+# NPM/Yarn
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 测试相关
+**/test-results/
+**/test-reports/
+**/androidTest/
+**/espresso/
