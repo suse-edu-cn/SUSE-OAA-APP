@@ -4,16 +4,15 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
-import androidx.room.PrimaryKey
 import androidx.room.Relation
 
-/**
- * 课程实体（课程主表）
- * MVVM架构 - Model层（数据实体） 
- */
-@Entity(tableName = "courses")
+@Entity(
+    tableName = "courses",
+    primaryKeys = ["studentId", "courseName"]
+)
 data class CourseEntity(
-    @PrimaryKey val courseName: String,
+    val studentId: String,
+    val courseName: String,
     val remoteCourseId: String = "",
     val nature: String = "",
     val background: String = "",
@@ -22,29 +21,27 @@ data class CourseEntity(
     val totalHours: String = ""
 )
 
-/**
- * 上课时间实体（时间明细表）
- */
 @Entity(
     tableName = "class_times",
     foreignKeys = [
         ForeignKey(
             entity = CourseEntity::class,
-            parentColumns = ["courseName"],
-            childColumns = ["courseOwnerName"],
+            parentColumns = ["studentId", "courseName"],
+            childColumns = ["studentId", "courseOwnerName"],
             onDelete = ForeignKey.CASCADE
         )
     ],
     indices = [
-        Index("courseOwnerName"),
+        Index("studentId", "courseOwnerName"),
         Index(
-            value = ["courseOwnerName", "weekday", "period", "weeks", "location", "teacher", "classGroup"],
+            value = ["studentId", "courseOwnerName", "weekday", "period", "weeks", "location", "teacher", "classGroup"],
             unique = true
         )
     ]
 )
 data class ClassTimeEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val id: Long = 0,
+    val studentId: String,
     val courseOwnerName: String,
     val weekday: String = "",
     val period: String = "",
@@ -55,11 +52,11 @@ data class ClassTimeEntity(
     val teacherTitle: String = "",
     val politicalStatus: String = "",
     val classGroup: String = ""
-)
+) {
+    @androidx.room.PrimaryKey(autoGenerate = true)
+    var uniqueId: Long = 0
+}
 
-/**
- * 课程及其时间（一对多关系）
- */
 data class CourseWithTimes(
     @Embedded val course: CourseEntity,
     @Relation(
@@ -67,16 +64,4 @@ data class CourseWithTimes(
         entityColumn = "courseOwnerName"
     )
     val times: List<ClassTimeEntity>
-)
-
-/**
- * 时间及其课程（多对一关系）
- */
-data class TimeWithCourse(
-    @Embedded val time: ClassTimeEntity,
-    @Relation(
-        parentColumn = "courseOwnerName",
-        entityColumn = "courseName"
-    )
-    val course: CourseEntity
 )

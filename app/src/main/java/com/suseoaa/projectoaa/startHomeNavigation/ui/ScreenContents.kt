@@ -3,7 +3,6 @@ package com.suseoaa.projectoaa.startHomeNavigation.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -85,18 +84,10 @@ fun HomeContent(viewModel: ShareViewModel) {
 
 @Composable
 fun SearchContent(viewModel: ShareViewModel) {
-    val hint by viewModel.searchHint.collectAsState()
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-//        显示课程列表
-        val vm: CourseListViewModel = viewModel() // 或使用自定义 factory
-        CourseListScreen(viewModel = vm)
-    }
+    // 修复：移除外层 Column 和 padding(16.dp)，让 CourseListScreen 全屏填充
+    // 这样课表界面就能紧贴屏幕边缘和平板的导航栏，消除多余的边距
+    val vm: CourseListViewModel = viewModel() // 或使用自定义 factory
+    CourseListScreen(viewModel = vm)
 }
 
 @Composable

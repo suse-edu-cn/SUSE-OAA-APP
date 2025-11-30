@@ -35,8 +35,10 @@ interface LoginAPI {
 
 // 课表查询接口
 interface ScheduleAPI {
+    // 修复：此处必须返回 ResponseBody，因为 /kbcx/xskbcx_cxXsKb.html 的 GET 请求返回的是 HTML 页面，
+    // 如果定义为 CourseResponseJson 会导致 Moshi 解析失败并抛出异常。
     @GET("/kbcx/xskbcx_cxXsKb.html")
-    suspend fun getSchedulePage(@Query("gnmkdm") gnmkdm: String = "N2151"): Response<CourseResponseJson>
+    suspend fun getSchedulePage(@Query("gnmkdm") gnmkdm: String = "N2151"): Response<ResponseBody>
 
     @FormUrlEncoded
     @POST("/kbcx/xskbcx_cxXsKb.html")
