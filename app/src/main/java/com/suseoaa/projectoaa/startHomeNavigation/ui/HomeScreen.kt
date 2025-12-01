@@ -47,7 +47,8 @@ fun HomeScreen(
     // 计算主题和颜色
     val currentThemeName = currentTheme.name
     val isAnimeTheme = currentThemeName.contains("二次元")
-    val isLegacyTheme = currentThemeName.contains("Android 4.0") || currentThemeName.contains("Android 2.3")
+    val isLegacyTheme =
+        currentThemeName.contains("Android 4.0") || currentThemeName.contains("Android 2.3")
 
     val colorScheme = MaterialTheme.colorScheme
     val displayColors = HomeDisplayColors(
@@ -186,31 +187,40 @@ internal fun HomeContent(
             )
         }
 
-        // 课表
-        item {
-            AppCard(onClick = { navController.navigate(AppRoutes.CourseList.route) }) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(AppRoutes.CourseList.icon, null, tint = colors.secondary, modifier = Modifier.size(32.dp))
-                    Spacer(Modifier.width(16.dp))
-                    Text(AppRoutes.CourseList.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
-                }
-            }
-        }
 
         // 招新
         item {
             AppCard(onClick = { navController.navigate(AppRoutes.StudentForm.route) }) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(AppRoutes.StudentForm.icon, null, tint = colors.tertiary, modifier = Modifier.size(32.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        AppRoutes.StudentForm.icon,
+                        null,
+                        tint = colors.tertiary,
+                        modifier = Modifier.size(32.dp)
+                    )
                     Spacer(Modifier.width(16.dp))
-                    Text(AppRoutes.StudentForm.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
+                    Text(
+                        AppRoutes.StudentForm.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.onSurface
+                    )
                 }
             }
         }
 
         // --- 待办事项 ---
         item {
-            Text("待办事项", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp), color = colors.onSurface)
+            Text(
+                "待办事项",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
+                color = colors.onSurface
+            )
         }
         items((0..2).toList(), key = { "task_$it" }) { index ->
             TaskItem(
@@ -248,7 +258,12 @@ private fun TaskItem(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Assignment, null, tint = secondaryColor, modifier = Modifier.size(32.dp))
+            Icon(
+                Icons.Default.Assignment,
+                null,
+                tint = secondaryColor,
+                modifier = Modifier.size(32.dp)
+            )
             Spacer(Modifier.width(16.dp))
             Column {
                 Text(

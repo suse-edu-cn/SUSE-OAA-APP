@@ -1,12 +1,6 @@
 package com.suseoaa.projectoaa.startHomeNavigation.ui
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -70,7 +64,10 @@ fun AppNavigationGraph(
 
         // --- 个人页 ---
         composable(route = AppRoutes.Profile.route) {
-            ProfileScreen(onBack = { navController.navigate(AppRoutes.Home.route) }, onLogout = onLogout)
+            ProfileScreen(
+                onBack = { navController.navigate(AppRoutes.Home.route) },
+                onLogout = onLogout
+            )
         }
 
         // --- 新增功能页 ---
