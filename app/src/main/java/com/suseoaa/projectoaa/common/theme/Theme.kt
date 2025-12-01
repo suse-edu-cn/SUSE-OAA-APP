@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -52,12 +54,11 @@ fun ProjectOAATheme(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
-            val apiWallpaper = WallpaperManager.currentWallpaperUri.value
-            val file = if (apiWallpaper?.path != null) File(apiWallpaper.path!!) else null
+            val apiWallpaper by WallpaperManager.currentWallpaper.collectAsState()
+            val file = apiWallpaper?.path?.let { File(it) }
 
             // 判断：文件有效
-            val isFileValid =
-                apiWallpaper != null && file != null && file.exists() && file.length() > 0
+            val isFileValid = file?.exists() == true && file.length() > 0
 
             // === 恢复核心逻辑：必须是二次元主题 && 文件有效 才显示 ===
             val showWallpaper = themeConfig.name.contains("二次元") && isFileValid
