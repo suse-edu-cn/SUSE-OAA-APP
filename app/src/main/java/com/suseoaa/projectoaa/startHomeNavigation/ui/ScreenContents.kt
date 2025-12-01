@@ -27,14 +27,52 @@ import androidx.compose.ui.graphics.vector.ImageVector
 // 移除了 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.suseoaa.projectoaa.common.theme.OaaThemeConfig
 import com.suseoaa.projectoaa.common.theme.ThemeManager
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.HomeViewModel
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 
 // ==========================================
-// 2. 搜索页面
+// 1. 首页 (HomeContent wrapper)
 // ==========================================
+@Composable
+fun HomeContent(
+    viewModel: ShareViewModel,
+    navController: NavHostController
+) {
+    // Use hiltViewModel to get HomeViewModel
+    val homeViewModel: HomeViewModel = hiltViewModel()
+
+    // Call the actual HomeScreen
+    HomeScreen(
+        navController = navController,
+        homeViewModel = homeViewModel,
+        shareViewModel = viewModel
+    )
+}
+
+// ==========================================
+// 2. 课表页面 (CourseContent)
+// ==========================================
+@Composable
+fun CourseContent(
+    viewModel: ShareViewModel,
+    navController: NavHostController
+) {
+    // 使用 hiltViewModel 获取 CourseListViewModel
+    val courseViewModel: com.suseoaa.projectoaa.courseList.viewmodel.CourseListViewModel =
+        hiltViewModel()
+
+    // 调用实际的 CourseListScreen
+    com.suseoaa.projectoaa.courseList.ui.screen.CourseListScreen(
+        viewModel = courseViewModel,
+//        onBack = { navController.popBackStack() }
+    )
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchContent(viewModel: ShareViewModel) { // 这个签名已经是正确的
@@ -42,7 +80,8 @@ fun SearchContent(viewModel: ShareViewModel) { // 这个签名已经是正确的
     var active by remember { mutableStateOf(false) }
 
     val currentThemeName = viewModel.currentTheme.name
-    val isLegacyTheme = currentThemeName.contains("Android 4.0") || currentThemeName.contains("Android 2.3")
+    val isLegacyTheme =
+        currentThemeName.contains("Android 4.0") || currentThemeName.contains("Android 2.3")
     val originalColorScheme = MaterialTheme.colorScheme
 
     val colorScheme = if (isLegacyTheme) {
@@ -59,15 +98,32 @@ fun SearchContent(viewModel: ShareViewModel) { // 这个签名已经是正确的
     MaterialTheme(colorScheme = colorScheme) {
         Column(modifier = Modifier.fillMaxSize()) {
             SearchBar(
-                query = query, onQueryChange = { query = it }, onSearch = { active = false }, active = active, onActiveChange = { active = it },
+                query = query,
+                onQueryChange = { query = it },
+                onSearch = { active = false },
+                active = active,
+                onActiveChange = { active = it },
                 placeholder = { Text("搜索...") },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
-                trailingIcon = { if (active) { IconButton(onClick = { if (query.isNotEmpty()) query = "" else active = false }) { Icon(Icons.Default.Close, null) } } },
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                trailingIcon = {
+                    if (active) {
+                        IconButton(onClick = {
+                            if (query.isNotEmpty()) query = "" else active = false
+                        }) { Icon(Icons.Default.Close, null) }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 colors = SearchBarDefaults.colors(
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f),
                     dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                    inputFieldColors = TextFieldDefaults.colors(focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f), unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
+                    inputFieldColors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(
+                            alpha = 0.1f
+                        ),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
+                    )
                 )
             ) {
                 LazyColumn {
@@ -78,13 +134,34 @@ fun SearchContent(viewModel: ShareViewModel) { // 这个签名已经是正确的
                         ListItem(
                             headlineContent = { Text("历史记录: 招新面试表 $it") },
                             leadingContent = { Icon(Icons.Default.History, null) },
-                            modifier = Modifier.clickable { query = "招新面试表 $it"; active = false },
-                            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
+                            modifier = Modifier.clickable {
+                                query = "招新面试表 $it"; active = false
+                            },
+                            colors = ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surface.copy(
+                                    alpha = 0.1f
+                                )
+                            )
                         )
                     }
                 }
             }
-            Box(Modifier.fillMaxSize(), Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.Search, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.surfaceVariant); Spacer(Modifier.height(16.dp)); Text("输入关键词开始搜索", color = MaterialTheme.colorScheme.outline) } }
+            Box(
+                Modifier.fillMaxSize(),
+                Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.Search,
+                        null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.surfaceVariant
+                    ); Spacer(Modifier.height(16.dp)); Text(
+                    "输入关键词开始搜索",
+                    color = MaterialTheme.colorScheme.outline
+                )
+                }
+            }
         }
     }
 }
@@ -106,7 +183,8 @@ fun SettingsContent(
     var showThemeDialog by remember { mutableStateOf(false) }
 
     val currentThemeName = currentTheme.name
-    val isLegacyTheme = currentThemeName.contains("Android 4.0") || currentThemeName.contains("Android 2.3")
+    val isLegacyTheme =
+        currentThemeName.contains("Android 4.0") || currentThemeName.contains("Android 2.3")
     val originalColorScheme = MaterialTheme.colorScheme
 
     val colorScheme = if (isLegacyTheme) {
@@ -137,19 +215,41 @@ fun SettingsContent(
             }
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item { Text("设置", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)) }
+                item {
+                    Text(
+                        "设置",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                    )
+                }
                 item {
                     AppCard {
                         SettingGroupTitle("通用")
-                        SettingItem(icon = Icons.Default.Palette, title = "主题外观", subtitle = currentTheme.name, onClick = { showThemeDialog = true })
+                        SettingItem(
+                            icon = Icons.Default.Palette,
+                            title = "主题外观",
+                            subtitle = currentTheme.name,
+                            onClick = { showThemeDialog = true })
                         if (currentTheme.name.contains("二次元")) {
                             // --- [修改：调用 ViewModel 方法] ---
-                            SettingItem(icon = Icons.Default.Image, title = "保存当前壁纸", subtitle = "保存到系统相册", onClick = viewModel::onSaveWallpaper)
+                            SettingItem(
+                                icon = Icons.Default.Image,
+                                title = "保存当前壁纸",
+                                subtitle = "保存到系统相册",
+                                onClick = viewModel::onSaveWallpaper
+                            )
                         }
-                        SettingItem(icon = Icons.Default.Language, title = "语言", subtitle = "简体中文")
+                        SettingItem(
+                            icon = Icons.Default.Language,
+                            title = "语言",
+                            subtitle = "简体中文"
+                        )
                         SettingItem(
                             icon = Icons.Default.Palette, // 或者 Icons.Default.Image
                             title = "外观与壁纸",
@@ -178,8 +278,15 @@ fun SettingsContent(
                 item {
                     AppCard {
                         SettingGroupTitle("关于")
-                        SettingItem(icon = Icons.Default.Info, title = "关于 Project OAA", subtitle = "版本 v1.0.0 Alpha", onClick = { navController.navigate("settings_about") })
-                        SettingItem(icon = Icons.Default.BugReport, title = "反馈问题", onClick = { navController.navigate("settings_feedback") })
+                        SettingItem(
+                            icon = Icons.Default.Info,
+                            title = "关于 Project OAA",
+                            subtitle = "版本 v1.0.0 Alpha",
+                            onClick = { navController.navigate("settings_about") })
+                        SettingItem(
+                            icon = Icons.Default.BugReport,
+                            title = "反馈问题",
+                            onClick = { navController.navigate("settings_feedback") })
                     }
                 }
                 item { Spacer(modifier = Modifier.height(60.dp)) }
@@ -190,15 +297,104 @@ fun SettingsContent(
 }
 
 
-@Composable private fun ThemeSelectionDialog(currentTheme: OaaThemeConfig, onThemeSelected: (OaaThemeConfig) -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("选择主题") }, text = { Column { ThemeManager.themeList.forEach { theme -> ThemeOption(text = theme.name, selected = currentTheme.name == theme.name, onClick = { onThemeSelected(theme) }) } } }, confirmButton = { TextButton(onClick = onDismiss) { Text("取消") } }, containerColor = MaterialTheme.colorScheme.surface)
+@Composable
+private fun ThemeSelectionDialog(
+    currentTheme: OaaThemeConfig,
+    onThemeSelected: (OaaThemeConfig) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择主题") },
+        text = {
+            Column {
+                ThemeManager.themeList.forEach { theme ->
+                    ThemeOption(
+                        text = theme.name,
+                        selected = currentTheme.name == theme.name,
+                        onClick = { onThemeSelected(theme) })
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+        containerColor = MaterialTheme.colorScheme.surface
+    )
 }
-@Composable private fun ThemeOption(text: String, selected: Boolean, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 0.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) { RadioButton(selected = selected, onClick = onClick); Spacer(Modifier.width(8.dp)); Text(text) }
+
+@Composable
+private fun ThemeOption(text: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 0.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick
+        ); Spacer(Modifier.width(8.dp)); Text(text)
+    }
 }
-@Composable private fun SettingGroupTitle(title: String) {
-    Text(text = title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 4.dp, top = 0.dp, end = 0.dp, bottom = 8.dp) )
+
+@Composable
+private fun SettingGroupTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp, top = 0.dp, end = 0.dp, bottom = 8.dp)
+    )
 }
-@Composable private fun SettingItem(icon: ImageVector, title: String, subtitle: String? = null, onClick: () -> Unit = {}) {
-    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 0.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) { Icon(icon, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(24.dp)); Spacer(Modifier.width(16.dp)); Column(Modifier.weight(1f)) { Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface); if (subtitle != null) { Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } }; Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline) }
+
+@Composable
+private fun SettingItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    onClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 0.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(24.dp)
+        ); Spacer(Modifier.width(16.dp)); Column(Modifier.weight(1f)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        ); if (subtitle != null) {
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    }; Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
+    }
+}
+
+// ==========================================
+// 4. 个人资料页面 (ProfileContent)
+// ==========================================
+@Composable
+fun ProfileContent(viewModel: ShareViewModel) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "个人资料功能开发中...",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }

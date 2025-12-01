@@ -1,7 +1,7 @@
 package com.suseoaa.projectoaa.startHomeNavigation.repository.detail
 
 import com.suseoaa.projectoaa.common.network.DetailApiService
-import com.suseoaa.projectoaa.navigation.viewmodel.DetailBlock
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.DetailBlock
 import javax.inject.Inject
 import javax.inject.Singleton
 

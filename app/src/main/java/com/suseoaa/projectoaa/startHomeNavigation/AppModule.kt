@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation // (或者你的 di 包)
+package com.suseoaa.projectoaa.startHomeNavigation
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -6,8 +6,8 @@ import android.content.SharedPreferences
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.suseoaa.projectoaa.common.network.DetailApiService
 import com.suseoaa.projectoaa.common.util.SessionManager
-import com.suseoaa.projectoaa.navigation.repository.*
-import com.suseoaa.projectoaa.navigation.repository.detail.*
+import com.suseoaa.projectoaa.startHomeNavigation.repository.*
+import com.suseoaa.projectoaa.startHomeNavigation.repository.detail.*
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

@@ -22,7 +22,7 @@ import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.HomeViewModel
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 
 // 用于传递计算好的颜色
-private data class HomeDisplayColors(
+internal data class HomeDisplayColors(
     val primary: Color,
     val onSurface: Color,
     val onSurfaceVariant: Color,
@@ -74,7 +74,7 @@ fun HomeScreen(
 // 2. HomeContent (纯 UI - 哑 Composable)
 // ==========================================
 @Composable
-private fun HomeContent(
+internal fun HomeContent(
     uiState: HomeUiState,
     isAnimeTheme: Boolean,
     colors: HomeDisplayColors,

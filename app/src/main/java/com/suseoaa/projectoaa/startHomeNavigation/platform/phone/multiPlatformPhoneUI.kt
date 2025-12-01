@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,9 +23,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.suseoaa.projectoaa.startHomeNavigation.ui.CourseContent
 import com.suseoaa.projectoaa.startHomeNavigation.ui.HomeContent
 import com.suseoaa.projectoaa.startHomeNavigation.ui.ProfileContent
-import com.suseoaa.projectoaa.startHomeNavigation.ui.SearchContent
 import com.suseoaa.projectoaa.startHomeNavigation.ui.SettingsContent
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 import kotlinx.coroutines.launch
@@ -37,7 +37,7 @@ fun CompactLayout(navController: NavHostController, viewModel: ShareViewModel) {
     val scope = rememberCoroutineScope()
 
     val homeIndex = 0
-    val searchIndex = 1
+    val courseIndex = 1
     val settingsIndex = 2
     val profileIndex = 3
 
@@ -69,10 +69,10 @@ fun CompactLayout(navController: NavHostController, viewModel: ShareViewModel) {
                     )
                     NavigationBarItem(
                         colors = livelyItemColors,
-                        icon = { Icon(Icons.Default.Search, null) },
-                        label = { Text("搜索") },
-                        selected = pagerState.currentPage == searchIndex,
-                        onClick = { scope.launch { pagerState.animateScrollToPage(searchIndex) } }
+                        icon = { Icon(Icons.Default.DateRange, null) },
+                        label = { Text("课表") },
+                        selected = pagerState.currentPage == courseIndex,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(courseIndex) } }
                     )
                     NavigationBarItem(
                         colors = livelyItemColors,
@@ -103,9 +103,9 @@ fun CompactLayout(navController: NavHostController, viewModel: ShareViewModel) {
             userScrollEnabled = true
         ) { page ->
             when (page) {
-                homeIndex -> HomeContent(viewModel)
-                searchIndex -> SearchContent(viewModel)
-                settingsIndex -> SettingsContent(viewModel)
+                homeIndex -> HomeContent(viewModel, navController)
+                courseIndex -> CourseContent(viewModel, navController)
+                settingsIndex -> SettingsContent(viewModel, navController)
                 profileIndex -> ProfileContent(viewModel)
             }
         }

@@ -18,10 +18,11 @@ sealed class AppRoutes(val route: String, val title: String, val icon: ImageVect
     //旧的入口
 
     object Home : AppRoutes("home", "首页", Icons.Default.Home)
-    object Search : AppRoutes("search", "搜索", Icons.Default.Search)
+    object CourseList : AppRoutes("course_list", "课表", Icons.Default.DateRange)
     object Settings : AppRoutes("settings", "设置", Icons.Default.Settings)
     object Profile : AppRoutes("profile", "个人", Icons.Default.Person)
 
-    object CourseList : AppRoutes("course_list", "课表查询", Icons.Default.DateRange)
+    // 保留搜索路由以防其他地方使用
+    object Search : AppRoutes("search", "搜索", Icons.Default.Search)
     object StudentForm : AppRoutes("student_form", "招新/换届申请", Icons.Default.PersonAdd)
 }

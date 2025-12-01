@@ -24,16 +24,7 @@ import com.suseoaa.projectoaa.student.ui.StudentFormScreen
 import com.suseoaa.projectoaa.student.viewmodel.StudentFormViewModel
 
 // ==========================================
-// 1. 动画与工具函数 (私有)
-// ==========================================
-private val screenOrder = mapOf("home" to 0, "search" to 1, "settings" to 2, "profile" to 3)
-private fun getNavigationDirection(from: String, to: String): Boolean { val fromIndex = screenOrder.getOrDefault(from, 0); val toIndex = screenOrder.getOrDefault(to, 0); return toIndex > fromIndex }
-private fun getEnterTransition(isForward: Boolean): EnterTransition { return slideInHorizontally(initialOffsetX = { if (isForward) it else -it }, animationSpec = tween(300)) + fadeIn(tween(300)) }
-private fun getExitTransition(isForward: Boolean): ExitTransition { return slideOutHorizontally(targetOffsetX = { if (isForward) -it / 2 else it / 2 }, animationSpec = tween(300)) + fadeOut(tween(300)) }
-object NavigationTracker { var lastRoute: String = "home"; fun updateRoute(newRoute: String) { lastRoute = newRoute } }
-
-// ==========================================
-// 2. 核心路由图 (AppNavigationGraph)
+// 核心路由图 (AppNavigationGraph)
 // ==========================================
 
 /**
@@ -86,7 +77,7 @@ fun AppNavigationGraph(
         composable(route = AppRoutes.CourseList.route) {
             CourseListScreen(
                 viewModel = hiltViewModel<CourseListViewModel>(),
-                onBack = { navController.popBackStack() }
+//                onBack = { navController.popBackStack() }
             )
         }
         composable(route = AppRoutes.StudentForm.route) {

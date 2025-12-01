@@ -1,6 +1,6 @@
 package com.suseoaa.projectoaa.startHomeNavigation.repository.detail
 
-import com.suseoaa.projectoaa.navigation.viewmodel.DetailBlock
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.DetailBlock
 
 /**
  * 详情页数据仓库的 "契约" (Interface)。

@@ -28,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 // [修复] 导入 Hilt 和 ViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.suseoaa.projectoaa.navigation.viewmodel.ShareViewModel
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 import com.suseoaa.projectoaa.student.viewmodel.StudentFormViewModel
 // [解耦] 移除了 ThemeManager 导入
 // [修复] 移除了静态 SessionManager 和 WallpaperManager 导入
