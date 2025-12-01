@@ -53,7 +53,6 @@ fun LoginScreen(
             onLoginSuccess()
         }
     }
-
     val cardShape = RoundedCornerShape(24.dp)
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
