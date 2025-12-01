@@ -6,7 +6,18 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,8 +34,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
+import com.suseoaa.projectoaa.student.viewmodel.StudentFormEvent // [解耦] 1. 导入事件
 import com.suseoaa.projectoaa.student.viewmodel.StudentFormViewModel
 import java.util.Calendar
 
@@ -38,56 +49,99 @@ val DEPARTMENTS = listOf("算法竞赛部", "项目实践部", "组织宣传部"
 @Composable
 fun StudentFormScreen(
     onBack: () -> Unit,
-    viewModel: StudentFormViewModel = viewModel()
+    viewModel: StudentFormViewModel = hiltViewModel(),
+    currentThemeName: String
 ) {
-    // 每次进入初始化类型
     LaunchedEffect(Unit) { viewModel.initType("通用") }
     val context = LocalContext.current
 
-    Scaffold(
-        containerColor = Color.Transparent, // 保持背景透明，显示壁纸
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("申请报名表") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
-        }
-    ) { padding ->
-        // 使用 Box + LocalConfiguration 替代 BoxWithConstraints，避免 Scope 报错
-        Box(modifier = Modifier.padding(padding)) {
-
-            // 1. 获取屏幕配置
-            val configuration = LocalConfiguration.current
-            val screenWidth = configuration.screenWidthDp.dp
-
-            // 2. 判断是否为横屏且宽度足够 (平板横屏模式)
-            val isWide = screenWidth > 600.dp && configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-            // 3. 渲染响应式内容
-            ResponsiveFormContent(viewModel, isWide) {
-                viewModel.submitForm(context) {
+    // [解耦] 2. 监听来自 ViewModel 的一次性事件
+    LaunchedEffect(key1 = viewModel) {
+        viewModel.eventFlow.collect { event ->
+            when (event) {
+                is StudentFormEvent.SubmissionSuccess -> {
                     Toast.makeText(context, "提交成功！", Toast.LENGTH_SHORT).show()
-                    onBack()
+                    onBack() // 视图决定在成功时导航回去
+                }
+                is StudentFormEvent.SubmissionError -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
+                is StudentFormEvent.ImageError -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
+                is StudentFormEvent.AuthError -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                    // (未来可以在这里处理“跳转到登录页”的逻辑)
                 }
             }
         }
+    }
 
-        // Loading 遮罩
-        if (viewModel.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+    // 2. 添加颜色覆盖逻辑 (不变)
+    val isLegacyTheme = currentThemeName.contains("Android 4.0") || currentThemeName.contains("Android 2.3")
+    val originalColorScheme = MaterialTheme.colorScheme
+    val colorScheme = if (isLegacyTheme) {
+        originalColorScheme.copy(
+            primary = Color.White,
+            onPrimary = Color.Black,
+            secondary = Color.White,
+            tertiary = Color.White,
+            onSurface = Color.White,
+            onSurfaceVariant = Color.LightGray,
+            outline = Color.Gray,
+            surfaceVariant = Color.DarkGray
+        )
+    } else {
+        originalColorScheme
+    }
+
+    // 3. 将覆盖后的 colorScheme 应用于所有子组件 (不变)
+    MaterialTheme(colorScheme = colorScheme) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("申请报名表") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+        ) { padding ->
+            Box(modifier = Modifier.padding(padding)) {
+
+                val configuration = LocalConfiguration.current
+                val screenWidth = configuration.screenWidthDp.dp
+                val isWide = screenWidth > 600.dp && configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                ResponsiveFormContent(
+                    viewModel = viewModel,
+                    isWide = isWide,
+                    // [解耦] 3. onSubmit 回调现在只负责触发 ViewModel 的方法
+                    // 所有后续逻辑 (Toast/导航) 都在 LaunchedEffect 中处理
+                    onSubmit = {
+                        viewModel.submitForm()
+                    }
+                )
+            }
+
+            // Loading 遮罩 (不变)
+            if (viewModel.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
         }
     }
@@ -95,17 +149,17 @@ fun StudentFormScreen(
 
 /**
  * 响应式表单内容
- * 根据 isWide 参数决定是 单列布局 还是 双列布局
+ * (此函数内部无需修改，所有组件会自动继承父级覆盖后的 colorScheme)
  */
 @Composable
 fun ResponsiveFormContent(
     viewModel: StudentFormViewModel,
     isWide: Boolean,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit // 这个 onSubmit 现在只调用 viewModel.submitForm()
 ) {
     val formData = viewModel.formData
     val errors = viewModel.formErrors
-    val scrollState = rememberScrollState() // 竖屏时的滚动状态
+    val scrollState = rememberScrollState()
 
     // 图片选择器
     val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -136,9 +190,10 @@ fun ResponsiveFormContent(
                     // 头像区域
                     Box(
                         modifier = Modifier
-                            .size(90.dp)
+                            .
+                            size(90.dp)
                             .clip(CircleShape)
-                            .background(Color.LightGray)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .clickable { photoLauncher.launch("image/*") }
                             .border(
                                 width = if (errors.photoError != null) 2.dp else 1.dp,
@@ -155,9 +210,15 @@ fun ResponsiveFormContent(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            Icon(Icons.Default.AccountCircle, null, Modifier.size(48.dp), tint = Color.Gray)
+                            Icon(
+                                Icons.Default.AccountCircle,
+                                null,
+                                Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
+
 
                     Spacer(modifier = Modifier.width(20.dp))
 
@@ -180,7 +241,7 @@ fun ResponsiveFormContent(
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
                 // 学院班级
-                CompactTextField(formData.college, "所在学院", error = errors.college) { viewModel.updateCollege(it) }
+                CompactTextField(formData. college, "所在学院", error = errors.college) { viewModel.updateCollege(it) }
                 CompactTextField(formData.majorClass, "专业班级", error = errors.majorClass) { viewModel.updateMajorClass(it) }
 
                 // 日期与面貌 (一行两个)
@@ -238,7 +299,7 @@ fun ResponsiveFormContent(
 
                 // 提交按钮
                 Button(
-                    onClick = onSubmit,
+                    onClick = onSubmit, // [解耦] 此 onClick 现在只调用 viewModel.submitForm()
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     enabled = !viewModel.isLoading
@@ -249,7 +310,7 @@ fun ResponsiveFormContent(
         }
     }
 
-    // --- 布局逻辑 ---
+    // --- 布局逻辑 (不变) ---
     if (isWide) {
         // 平板横屏：左右双栏
         Row(

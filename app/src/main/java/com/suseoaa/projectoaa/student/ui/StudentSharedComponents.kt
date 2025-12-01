@@ -3,7 +3,6 @@ package com.suseoaa.projectoaa.student.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -18,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
+// [解耦] 移除了 LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -26,8 +25,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.suseoaa.projectoaa.common.theme.OaaThemeConfig
 import com.suseoaa.projectoaa.common.theme.ThemeManager
-import com.suseoaa.projectoaa.common.util.WallpaperManager
+// [解耦] 移除了 WallpaperManager
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 
 // 统一的圆角风格
 val InputFieldShape = RoundedCornerShape(12.dp)
@@ -48,7 +57,11 @@ fun LargeSelectionButton(text: String, onClick: () -> Unit, isSecondary: Boolean
 }
 
 @Composable
-fun ThemeSelectionDialog(onDismiss: () -> Unit) {
+fun ThemeSelectionDialog(
+    onDismiss: () -> Unit,
+    // [解耦] 添加 onThemeSelected 回调
+    onThemeSelected: (OaaThemeConfig) -> Unit
+) {
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -66,7 +79,8 @@ fun ThemeSelectionDialog(onDismiss: () -> Unit) {
                 )
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(ThemeManager.themeList) { theme ->
-                        ThemeOptionItem(theme, onDismiss)
+                        // [解耦] 将回调传递下去
+                        ThemeOptionItem(theme, onThemeSelected)
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
@@ -77,14 +91,18 @@ fun ThemeSelectionDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-fun ThemeOptionItem(theme: OaaThemeConfig, onDismiss: () -> Unit) {
+fun ThemeOptionItem(
+    theme: OaaThemeConfig,
+    // [解耦] 接收一个回调，而不是 onDismiss
+    onThemeSelected: (OaaThemeConfig) -> Unit
+) {
     val isSelected = ThemeManager.currentTheme == theme
-    val context = LocalContext.current
+    // [解耦] 移除了 context
+
     Surface(
         onClick = {
-            ThemeManager.currentTheme = theme
-            if (theme.name.contains("二次元")) WallpaperManager.randomizeDisplay(context)
-            onDismiss()
+            // [解耦] 只报告事件，不执行逻辑
+            onThemeSelected(theme)
         },
         shape = RoundedCornerShape(16.dp),
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
@@ -301,5 +319,6 @@ fun CompactDropdownMenu(
         }
     }
 }
+
 fun Modifier.scale(scale: Float) =
     this.then(Modifier.graphicsLayer(scaleX = scale, scaleY = scale))

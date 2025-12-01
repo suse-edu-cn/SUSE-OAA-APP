@@ -1,11 +1,15 @@
 package com.suseoaa.projectoaa.login.viewmodel
 
-import android.content.Context
+// [修复] 移除了 Context 导入
+// import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
+// [修复] 导入 Hilt 注解
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.suseoaa.projectoaa.common.base.BaseViewModel
 import com.suseoaa.projectoaa.common.util.SessionManager
 import com.suseoaa.projectoaa.login.model.RegisterRequest
@@ -15,7 +19,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
-class MainViewModel : BaseViewModel() {
+// [修复] 1. 添加 Hilt 注解
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    // [修复] 2. 注入 Repository 和 SessionManager
+    private val repository: AuthRepository,
+    private val sessionManager: SessionManager
+) : BaseViewModel() {
 
     // UI 状态文本 (用于显示 "登录成功"、"密码错误" 等具体消息)
     var uiState by mutableStateOf("")
@@ -29,18 +39,18 @@ class MainViewModel : BaseViewModel() {
     var isTokenValid by mutableStateOf<Boolean?>(null)
         private set
 
-    // 引入仓库
-    private val repository = AuthRepository()
+    // [修复] 移除了 'private val repository = AuthRepository()'
 
     /**
      * 启动时检查 Token
+     * [修复] 移除了 context 参数
      */
-    fun checkToken(context: Context) {
+    fun checkToken() {
         viewModelScope.launch {
             delay(500)
-            val token = SessionManager.fetchToken(context)
-            if (!token.isNullOrBlank()) {
-                Log.d("Auth", "本地Token有效: ${SessionManager.currentUser}")
+            // [修复] SessionManager 已经在 init 时自动加载了 Token
+            if (sessionManager.isLoggedIn()) {
+                Log.d("Auth", "本地Token有效: ${sessionManager.currentUser}")
                 isTokenValid = true
             } else {
                 isTokenValid = false
@@ -50,20 +60,23 @@ class MainViewModel : BaseViewModel() {
 
     /**
      * 登录逻辑
+     * [修复] 移除了 context 参数
      */
-    fun login(context: Context, username: String, pass: String) {
+    fun login(username: String, pass: String) {
         // 使用基类的 launchDataLoad 自动处理 isLoading 和 异常捕获
         launchDataLoad {
             Log.d("LoginDebug", "请求已发送")
             uiState = "正在登录..."
             loginSuccess = false
             try {
+                // repository 现在是注入的实例
                 val result = withTimeout(5000L) {repository.login(username, pass)}
 
                 result.onSuccess { token ->
                     uiState = "登录成功"
-                    SessionManager.saveToken(context, token)
-                    SessionManager.saveUserInfo(context, username, "会员")
+                    // [修复] 调用注入的 sessionManager 实例 (无 context)
+                    sessionManager.saveToken(token)
+                    sessionManager.saveUserInfo(username, "会员")
                     loginSuccess = true
                 }.onFailure { error ->
                     uiState = "登录失败: ${error.message}"
@@ -92,6 +105,7 @@ class MainViewModel : BaseViewModel() {
                 role = role
             )
             try {
+                // repository 现在是注入的实例
                 val result = withTimeout(5000L){repository.register(request)}
 
                 result.onSuccess { msg ->
@@ -103,8 +117,17 @@ class MainViewModel : BaseViewModel() {
                 Log.e("RegisterDebug", "注册超时")
                 uiState="注册失败：Timeout"
             }
-
         }
+    }
+
+    /**
+     * [新增]
+     * 将登出逻辑封装到 ViewModel 中
+     * (这是 Navigation.kt 所需的)
+     */
+    fun logout() {
+        sessionManager.clear() // 调用注入的 sessionManager 实例
+        clearState()
     }
 
     /**

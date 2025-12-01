@@ -1,19 +1,33 @@
 package com.suseoaa.projectoaa.login.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -29,14 +43,14 @@ fun LoginScreen(
     viewModel: MainViewModel,
     onLoginSuccess: () -> Unit
 ) {
-    val context = LocalContext.current
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
+    // 监听登录成功事件
     LaunchedEffect(key1 = viewModel.loginSuccess) {
         if (viewModel.loginSuccess) {
-            onLoginSuccess()
             viewModel.clearState()
+            onLoginSuccess()
         }
     }
 
@@ -46,47 +60,27 @@ fun LoginScreen(
         val useSplitLayout = this.maxWidth > 600.dp && this.maxWidth > this.maxHeight
 
         if (useSplitLayout) {
+            // 平板/横屏布局
             Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
+                modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 左侧品牌区
+                // 1. 左侧品牌区
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 48.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(120.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        text = "登录 Project OAA",
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text("Project:OAA", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("登录", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.outline)
                 }
 
-                // 右侧表单区
+                // 2. 右侧表单区
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight(),
+                        .fillMaxSize(),
                     shape = cardShape,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(
-                            alpha = 0.9f
-                        )
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -101,47 +95,27 @@ fun LoginScreen(
                             { username = it },
                             { password = it },
                             viewModel,
-                            context,
                             navController
                         )
                     }
                 }
             }
         } else {
-            // === 手机/平板竖屏布局 (垂直堆叠) ===
-            // 增加 verticalScroll 确保在小屏幕或键盘弹出时可滚动
+            // 手机/竖屏布局
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Spacer(modifier = Modifier.height(40.dp))
-                Icon(
-                    imageVector = Icons.Default.AccountCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "登录 Project OAA",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Text("Project:OAA", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("登录", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.outline)
                 Spacer(modifier = Modifier.height(48.dp))
-
                 Card(
+                    modifier = Modifier.fillMaxWidth(),
                     shape = cardShape,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(
-                            alpha = 0.9f
-                        )
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
                     Column(modifier = Modifier.padding(32.dp)) {
                         LoginFormContent(
@@ -150,7 +124,6 @@ fun LoginScreen(
                             { username = it },
                             { password = it },
                             viewModel,
-                            context,
                             navController
                         )
                     }
@@ -161,39 +134,46 @@ fun LoginScreen(
     }
 }
 
-// === LoginFormContent 保持不变 ===
+// === 登录表单 ===
 @Composable
 fun LoginFormContent(
     user: String, pass: String,
     onUserChange: (String) -> Unit,
     onPassChange: (String) -> Unit,
     viewModel: MainViewModel,
-    context: android.content.Context,
     navController: NavController
 ) {
     val fieldShape = RoundedCornerShape(12.dp)
+
+    Text(
+        "登录",
+        style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(modifier = Modifier.height(24.dp))
     OutlinedTextField(
-        value = user, onValueChange = onUserChange,
+        value = user,
+        onValueChange = onUserChange,
         label = { Text("用户名") },
-        leadingIcon = { Icon(Icons.Default.AccountBox, null) },
         modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        shape = fieldShape
+        shape = fieldShape,
+        singleLine = true
     )
     Spacer(modifier = Modifier.height(16.dp))
     OutlinedTextField(
-        value = pass, onValueChange = onPassChange,
+        value = pass,
+        onValueChange = onPassChange,
         label = { Text("密码") },
-        leadingIcon = { Icon(Icons.Default.Lock, null) },
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        shape = fieldShape
+        shape = fieldShape,
+        singleLine = true
     )
     Spacer(modifier = Modifier.height(32.dp))
     Button(
-        onClick = { viewModel.login(context, user, pass) },
+        onClick = { viewModel.login(user, pass) },
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp),
@@ -202,22 +182,27 @@ fun LoginFormContent(
     ) {
         Text(if (viewModel.isLoading) "登录中..." else "登录", fontSize = 18.sp)
     }
-    Spacer(modifier = Modifier.height(16.dp))
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        TextButton(onClick = {
-            viewModel.clearState()
-            navController.navigate(AppRoutes.Register.route)
-        }) {
-            Text("没有账号？去注册")
-        }
-    }
-    if (viewModel.uiState.isNotEmpty()) {
-        Spacer(modifier = Modifier.height(16.dp))
+
+    // 错误/状态信息
+    if (viewModel.uiState.isNotBlank()) {
         Text(
-            text = viewModel.uiState,
-            color = if (viewModel.uiState.contains("成功")) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium
+            viewModel.uiState,
+            color = if (viewModel.loginSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 16.dp)
         )
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        TextButton(onClick = { /* TODO */ }) {
+            Text("忘记密码？")
+        }
+        TextButton(onClick = { navController.navigate(AppRoutes.Register.route) }) {
+            Text("注册账户")
+        }
     }
 }

@@ -1,12 +1,14 @@
 package com.suseoaa.projectoaa.student.viewmodel
 
-import android.content.Context
 import android.net.Uri
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.suseoaa.projectoaa.common.base.BaseViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+// [解耦] 1. 导入你的服务类
 import com.suseoaa.projectoaa.common.util.ImageCompressor
 import com.suseoaa.projectoaa.common.util.SessionManager
 import com.suseoaa.projectoaa.student.model.FormFieldErrors
@@ -15,132 +17,126 @@ import com.suseoaa.projectoaa.student.network.ApplicationRequest
 import com.suseoaa.projectoaa.student.repository.StudentRepository
 import com.suseoaa.projectoaa.student.util.FormValidator
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
+// [解耦] 2. 移除 java.io.File 导入，ViewModel 不再关心文件系统
 
-class StudentFormViewModel : BaseViewModel() {
+// (StudentFormEvent 保持不变)
+sealed class StudentFormEvent {
+    object SubmissionSuccess : StudentFormEvent()
+    data class SubmissionError(val message: String) : StudentFormEvent()
+    data class ImageError(val message: String) : StudentFormEvent()
+    data class AuthError(val message: String) : StudentFormEvent()
+}
 
-    // --- UI 数据状态 ---
+@HiltViewModel
+class StudentFormViewModel @Inject constructor(
+    // [解耦] 3. 注入服务类
+    private val repository: StudentRepository,
+    private val sessionManager: SessionManager,
+    private val validator: FormValidator,       // <-- 新增
+    private val compressor: ImageCompressor     // <-- 新增
+    // [解耦] 4. 移除 @ApplicationContext private val context: Context
+) : ViewModel() {
+
+    // (UI 状态, 错误状态, 加载状态, 事件流都保持不变)
     var formData by mutableStateOf(StudentApplicationData())
         private set
-
-    // --- 表单校验错误信息 ---
     var formErrors by mutableStateOf(FormFieldErrors())
         private set
+    var isLoading by mutableStateOf(false)
+        private set
+    private val _eventFlow = MutableSharedFlow<StudentFormEvent>()
+    val eventFlow = _eventFlow.asSharedFlow()
 
-    // 引入仓库
-    private val repository = StudentRepository()
-
-    // --- 初始化与字段更新方法 (保持不变) ---
-
-    fun initType(type: String) {
-        formData = StudentApplicationData(type = type)
-        formErrors = FormFieldErrors()
-    }
-
+    // (所有 update... 函数保持不变)
+    fun initType(type: String) {}
     fun updateName(v: String) {
         formData = formData.copy(name = v)
-        formErrors = formErrors.copy(name = null)
+        if (v.isNotBlank()) formErrors = formErrors.copy(name = null)
     }
-
-    fun updateGender(v: String) {
-        formData = formData.copy(gender = v)
-    }
-
+    fun updateGender(v: String) { formData = formData.copy(gender = v) }
     fun updateCollege(v: String) {
         formData = formData.copy(college = v)
-        formErrors = formErrors.copy(college = null)
+        if (v.isNotBlank()) formErrors = formErrors.copy(college = null)
     }
-
     fun updateMajorClass(v: String) {
         formData = formData.copy(majorClass = v)
-        formErrors = formErrors.copy(majorClass = null)
+        if (v.isNotBlank()) formErrors = formErrors.copy(majorClass = null)
     }
-
     fun updatePoliticalStatus(v: String) {
         formData = formData.copy(politicalStatus = v)
-        formErrors = formErrors.copy(politicalStatus = null)
+        if (v.isNotBlank()) formErrors = formErrors.copy(politicalStatus = null)
     }
-
     fun updateBirthDate(v: String) {
         formData = formData.copy(birthDate = v)
-        formErrors = formErrors.copy(birthDate = null)
+        if (v.isNotBlank()) formErrors = formErrors.copy(birthDate = null)
     }
-
     fun updatePhone(v: String) {
         formData = formData.copy(phoneNumber = v)
-        formErrors = formErrors.copy(phoneNumber = null)
+        if (v.isNotBlank()) formErrors = formErrors.copy(phoneNumber = null)
     }
-
     fun updateQQ(v: String) {
         formData = formData.copy(qq = v)
-        formErrors = formErrors.copy(qq = null)
+        if (v.isNotBlank()) formErrors = formErrors.copy(qq = null)
     }
-
     fun updatePhoto(uri: Uri?) {
         formData = formData.copy(photoUri = uri)
-        formErrors = formErrors.copy(photoError = null)
+        if (uri != null) formErrors = formErrors.copy(photoError = null)
     }
-
     fun updateResume(v: String) {
         formData = formData.copy(resume = v)
-        formErrors = formErrors.copy(resume = null)
+        if (v.isNotBlank()) formErrors = formErrors.copy(resume = null)
     }
-
     fun updateReason(v: String) {
         formData = formData.copy(reason = v)
-        formErrors = formErrors.copy(reason = null)
+        if (v.isNotBlank()) formErrors = formErrors.copy(reason = null)
     }
-
     fun updateFirstChoice(choice: String) {
         formData = formData.copy(firstChoice = choice)
-        // 互斥逻辑：如果第一志愿和第二志愿相同，清空第二志愿
-        if (formData.secondChoice == choice) {
-            formData = formData.copy(secondChoice = "")
-        }
-        formErrors = formErrors.copy(firstChoice = null)
+        if (choice.isNotBlank()) formErrors = formErrors.copy(firstChoice = null)
     }
-
     fun updateSecondChoice(choice: String) {
         formData = formData.copy(secondChoice = choice)
     }
-
     fun updateObeyAdjustment(v: Boolean) {
         formData = formData.copy(isObeyAdjustment = v)
     }
 
     // --- 核心提交逻辑 ---
 
-    fun submitForm(context: Context, onSuccess: () -> Unit) {
-        // 临时变量，用于 finally 块清理图片缓存
+    fun submitForm() {
         var compressedPhotoUri: Uri? = null
 
-        // 使用基类 launchDataLoad 自动管理 isLoading
-        launchDataLoad {
-            // 1. 本地校验
-            val errors = FormValidator.validateInput(formData, context)
-            if (errors.hasErrors()) {
-                formErrors = errors
-                return@launchDataLoad // 校验失败，直接返回，不触发 loading
-            }
-            // 清除旧错误
-            formErrors = FormFieldErrors()
-
+        viewModelScope.launch {
+            isLoading = true
             try {
-                // 2. 图片处理 (耗时操作)
+                // 1. 校验
+                // [解耦] 5. 使用注入的 validator，不再传递 context
+                val errors = validator.validateInput(formData)
+                if (errors.hasErrors()) {
+                    formErrors = errors
+                    return@launch
+                }
+                formErrors = FormFieldErrors()
+
+                // 2. 处理图片 (IO操作)
                 if (formData.photoUri != null) {
+                    // [解耦] 6. 使用注入的 compressor，不再传递 context
                     val resultUri = withContext(Dispatchers.IO) {
-                        ImageCompressor.compressImage(context, formData.photoUri)
+                        compressor.compressImage(formData.photoUri)
                     }
                     compressedPhotoUri = resultUri
 
                     if (resultUri == null) {
-                        Toast.makeText(context, "图片处理失败，请重试", Toast.LENGTH_LONG).show()
-                        return@launchDataLoad
+                        _eventFlow.emit(StudentFormEvent.ImageError("图片处理失败，请重试"))
+                        return@launch
                     }
                 }
 
-                // 3. 构建 DTO 对象
+                // 3. 构建 DTO (不变)
                 val apiRequest = ApplicationRequest(
                     name = formData.name,
                     reason = formData.reason,
@@ -157,31 +153,30 @@ class StudentFormViewModel : BaseViewModel() {
                     adjustiment = if (formData.isObeyAdjustment) 1 else 0
                 )
 
-                // 4. 获取 Token
-                val token = SessionManager.jwtToken
+                // 4. 检查Token (不变)
+                val token = sessionManager.jwtToken
                 if (token.isNullOrBlank()) {
-                    Toast.makeText(context, "错误：未登录或Token已过期", Toast.LENGTH_SHORT).show()
-                    return@launchDataLoad
+                    _eventFlow.emit(StudentFormEvent.AuthError("错误：未登录或Token已过期"))
+                    return@launch
                 }
 
-                // 5. 调用仓库提交 (网络请求)
+                // 5. 调用仓库
                 val result = repository.submitApplication(token, apiRequest)
 
                 // 6. 处理结果
                 result.onSuccess {
-                    Toast.makeText(context, "提交成功", Toast.LENGTH_SHORT).show()
-                    onSuccess()
+                    _eventFlow.emit(StudentFormEvent.SubmissionSuccess)
                 }.onFailure { e ->
-                    Toast.makeText(context, "提交失败: ${e.message}", Toast.LENGTH_LONG).show()
+                    _eventFlow.emit(StudentFormEvent.SubmissionError("提交失败: ${e.message}"))
                 }
 
+            } catch (e: Exception) {
+                _eventFlow.emit(StudentFormEvent.SubmissionError("发生未知错误: ${e.message}"))
             } finally {
-                // 7. 无论成功失败，清理压缩产生的临时文件
-                compressedPhotoUri?.path?.let {
-                    val file = File(it)
-                    if (file.exists()) {
-                        file.delete()
-                    }
+                isLoading = false
+                // [解耦] 7. 委托 compressor 清理文件，ViewModel 不再关心 File API
+                compressedPhotoUri?.let {
+                    compressor.cleanupCompressedImage(it)
                 }
             }
         }

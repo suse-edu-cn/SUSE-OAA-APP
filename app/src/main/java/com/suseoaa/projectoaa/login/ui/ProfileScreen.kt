@@ -2,7 +2,20 @@ package com.suseoaa.projectoaa.login.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,13 +43,14 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.suseoaa.projectoaa.login.model.UserInfoData
 import com.suseoaa.projectoaa.login.viewmodel.ProfileViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: ProfileViewModel = viewModel()
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
     LaunchedEffect(Unit) {
         viewModel.fetchUserInfo()
@@ -45,7 +59,7 @@ fun ProfileScreen(
     val isEditing = viewModel.isEditing
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text(if (isEditing) "修改资料" else "个人中心", fontWeight = FontWeight.Bold) },
@@ -54,11 +68,6 @@ fun ProfileScreen(
                         // 编辑模式下：左上角是取消
                         IconButton(onClick = { viewModel.cancelEditing() }) {
                             Icon(Icons.Default.Close, contentDescription = "取消")
-                        }
-                    } else {
-                        // 查看模式下：左上角是返回
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                         }
                     }
                 },
@@ -96,7 +105,6 @@ private fun ProfileContent(
     paddingValues: PaddingValues,
     onLogout: () -> Unit
 ) {
-    val context = LocalContext.current
     val screenConfig = LocalConfiguration.current
     val isWideScreen = screenConfig.screenWidthDp >= 600
 
@@ -105,13 +113,13 @@ private fun ProfileContent(
     val errorMsg = viewModel.errorMessage
     val isEditing = viewModel.isEditing
 
-    // === 新增：监听修改密码弹窗 ===
+    // === 监听修改密码弹窗 ===
     if (viewModel.showPasswordDialog) {
         ChangePasswordDialog(
             viewModel = viewModel,
             onConfirm = {
                 // 调用修改密码逻辑
-                viewModel.updatePassword(context)
+                viewModel.updatePassword(onSuccess = onLogout)
             },
             onDismiss = {
                 viewModel.showPasswordDialog = false
@@ -206,7 +214,6 @@ private fun ProfileContent(
 
                             // 退出登录：调用 ViewModel 清除数据并跳转
                             RealLogoutButton(onClick = {
-                                viewModel.logout(context)
                                 onLogout()
                             })
                         }
@@ -218,7 +225,7 @@ private fun ProfileContent(
     }
 }
 
-// === 新增：修改密码弹窗组件 ===
+// === 修改密码弹窗组件 ===
 @Composable
 fun ChangePasswordDialog(
     viewModel: ProfileViewModel,

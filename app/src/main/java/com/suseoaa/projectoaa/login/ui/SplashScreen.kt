@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.suseoaa.projectoaa.common.navigation.AppRoutes
 import com.suseoaa.projectoaa.login.viewmodel.MainViewModel
@@ -19,10 +18,9 @@ fun SplashScreen(
     navController: NavController,
     viewModel: MainViewModel
 ) {
-    val context = LocalContext.current
 
     LaunchedEffect(key1 = true) {
-        viewModel.checkToken(context)
+        viewModel.checkToken()
     }
 
     LaunchedEffect(key1 = viewModel.isTokenValid) {

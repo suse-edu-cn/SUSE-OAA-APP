@@ -1,17 +1,21 @@
-import java.io.FileInputStream
 import java.util.Properties
+import java.io.FileInputStream
+
+
+
+
 plugins {
-    // 步骤1-1：添加 Android 与 Kotlin 插件
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    // 步骤1-2：添加 KSP（Room 编译器使用 KSP 生成代码）——版本与 Kotlin 对齐（来自版本库）
     alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt.android)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
 }
 
 android {
     namespace = "com.suseoaa.projectoaa"
-    compileSdk =36
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.suseoaa.projectoaa"
@@ -22,14 +26,12 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-
         val properties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
             properties.load(FileInputStream(localPropertiesFile))
         }
-
-        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://172.27.25.195:8080/\""
+        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://10.0.2.2:8080/\""
 
         buildConfigField("String", "API_BASE_URL", baseUrl)
     }
@@ -47,12 +49,20 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        }
+    }
     kotlinOptions {
         jvmTarget = "11"
     }
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.11" // 适用于 Kotlin 1.9.23
     }
 }
 
@@ -67,20 +77,23 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.foundation.layout)
+    implementation(libs.androidx.compose.material3.windowSizeClass)
+    implementation(libs.androidx.compose.compiler)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    // 测试
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.androidx.compose.bom)) // <- 确保测试 BOM 在这里
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // 步骤1-3：添加 Room 依赖（runtime + ktx + 编译器）
-    // runtime 提供运行时，ktx 提供协程/Flow 支持，ksp 触发注解处理生成 DAO 实现
+    // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    // 编译器版本与 runtime 对齐（此处使用 2.8.3）
     ksp(libs.androidx.room.compiler)
 
     // Retrofit + OkHttp
@@ -89,22 +102,21 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
     implementation(libs.moshi.kotlin)
-    // Moshi codegen（生成适配器，零反射）
     ksp(libs.moshi.kotlin.codegen)
-//    页面跳转
-    implementation(libs.androidx.navigation.compose)
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
 
-
-    // Material3 WindowSizeClass 支持
-    implementation(libs.androidx.compose.material3.window.size.class1)
-
-    // Navigation Compose
+    // Navigation
     implementation(libs.androidx.navigation.compose)
 
     // 图标包
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
 
-    // Coil 图片加载库
+    // Coil
     implementation(libs.coil.compose)
+
+    // Hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
+    implementation(libs.hilt.navigation.compose)
 }

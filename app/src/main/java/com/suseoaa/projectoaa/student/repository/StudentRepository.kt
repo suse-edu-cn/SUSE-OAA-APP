@@ -1,19 +1,26 @@
 package com.suseoaa.projectoaa.student.repository
 
-import com.suseoaa.projectoaa.common.network.NetworkModule
+import javax.inject.Inject
+import javax.inject.Singleton
 import com.suseoaa.projectoaa.student.network.ApiService
 import com.suseoaa.projectoaa.student.network.ApplicationRequest
 
-class StudentRepository {
-    private val api = NetworkModule.createService(ApiService::class.java)
+@Singleton
+class StudentRepository @Inject constructor(
+    private val api: ApiService
+) {
 
-    suspend fun submitApplication(token: String, request: ApplicationRequest): Result<String> {
-        val response = api.submitApplication(token, request)
-        return if (response.isSuccessful) {
-            Result.success("提交成功")
-        } else {
-            val errorBody = response.errorBody()?.string() ?: "未知错误"
-            Result.failure(Exception("提交失败: $errorBody"))
+    suspend fun submitApplication(token: String, request: ApplicationRequest): Result<Unit> {
+        return try {
+            val response = api.submitApplication(token, request)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "未知错误"
+                Result.failure(Exception("提交失败: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("网络请求失败: ${e.message}"))
         }
     }
 }
