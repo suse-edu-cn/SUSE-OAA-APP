@@ -37,7 +37,7 @@ fun CompactLayout(
     shareViewModel: ShareViewModel
 ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route ?: AppRoutes.Home.route
-    val showBottomBar = currentRoute in listOf(AppRoutes.Home.route, AppRoutes.Search.route, AppRoutes.Settings.route, AppRoutes.Profile.route)
+    val showBottomBar = currentRoute in listOf(AppRoutes.Home.route, AppRoutes.CourseList.route, AppRoutes.Settings.route, AppRoutes.Profile.route)
 
     val wallpaperUri by shareViewModel.appWallpaper.collectAsStateWithLifecycle()
     val maskAlpha by shareViewModel.wallpaperAlpha.collectAsStateWithLifecycle()
@@ -82,7 +82,7 @@ fun CompactLayout(
                             }
                         }
                         NavigationBarItem(icon = { Icon(AppRoutes.Home.icon, null) }, label = { Text(AppRoutes.Home.title) }, selected = currentRoute == AppRoutes.Home.route, onClick = { navigateTo(AppRoutes.Home.route) })
-                        NavigationBarItem(icon = { Icon(AppRoutes.Search.icon, null) }, label = { Text(AppRoutes.Search.title) }, selected = currentRoute == AppRoutes.Search.route, onClick = { navigateTo(AppRoutes.Search.route) })
+                        NavigationBarItem(icon = { Icon(AppRoutes.CourseList.icon, null) }, label = { Text(AppRoutes.CourseList.title) }, selected = currentRoute == AppRoutes.CourseList.route, onClick = { navigateTo(AppRoutes.CourseList.route) })
                         NavigationBarItem(icon = { Icon(AppRoutes.Settings.icon, null) }, label = { Text(AppRoutes.Settings.title) }, selected = currentRoute == AppRoutes.Settings.route, onClick = { navigateTo(AppRoutes.Settings.route) })
                         NavigationBarItem(icon = { Icon(AppRoutes.Profile.icon, null) }, label = { Text(AppRoutes.Profile.title) }, selected = currentRoute == AppRoutes.Profile.route, onClick = { navigateTo(AppRoutes.Profile.route) })
                     }
@@ -107,7 +107,7 @@ fun MediumLayout(
     shareViewModel: ShareViewModel
 ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route ?: AppRoutes.Home.route
-    val showNavRail = currentRoute in listOf(AppRoutes.Home.route, AppRoutes.Search.route, AppRoutes.Settings.route, AppRoutes.Profile.route)
+    val showNavRail = currentRoute in listOf(AppRoutes.Home.route, AppRoutes.CourseList.route, AppRoutes.Settings.route, AppRoutes.Profile.route)
 
     val wallpaperUri by shareViewModel.appWallpaper.collectAsStateWithLifecycle()
     val maskAlpha by shareViewModel.wallpaperAlpha.collectAsStateWithLifecycle()
@@ -142,7 +142,7 @@ fun MediumLayout(
                         }
                     }
                     NavigationRailItem(icon = { Icon(AppRoutes.Home.icon, null) }, label = { Text(AppRoutes.Home.title) }, selected = currentRoute == AppRoutes.Home.route, onClick = { navigateTo(AppRoutes.Home.route) })
-                    NavigationRailItem(icon = { Icon(AppRoutes.Search.icon, null) }, label = { Text(AppRoutes.Search.title) }, selected = currentRoute == AppRoutes.Search.route, onClick = { navigateTo(AppRoutes.Search.route) })
+                    NavigationRailItem(icon = { Icon(AppRoutes.CourseList.icon, null) }, label = { Text(AppRoutes.CourseList.title) }, selected = currentRoute == AppRoutes.CourseList.route, onClick = { navigateTo(AppRoutes.CourseList.route) })
                     NavigationRailItem(icon = { Icon(AppRoutes.Settings.icon, null) }, label = { Text(AppRoutes.Settings.title) }, selected = currentRoute == AppRoutes.Settings.route, onClick = { navigateTo(AppRoutes.Settings.route) })
                     NavigationRailItem(icon = { Icon(AppRoutes.Profile.icon, null) }, label = { Text(AppRoutes.Profile.title) }, selected = currentRoute == AppRoutes.Profile.route, onClick = { navigateTo(AppRoutes.Profile.route) })
                 }
@@ -204,7 +204,7 @@ fun ExpandedLayout(
                             }
                         }
                         NavigationDrawerItem(icon = { Icon(AppRoutes.Home.icon, null) }, label = { Text(AppRoutes.Home.title) }, selected = currentRoute == AppRoutes.Home.route, onClick = { navigateTo(AppRoutes.Home.route) }, modifier = Modifier.padding(horizontal = 12.dp))
-                        NavigationDrawerItem(icon = { Icon(AppRoutes.Search.icon, null) }, label = { Text(AppRoutes.Search.title) }, selected = currentRoute == AppRoutes.Search.route, onClick = { navigateTo(AppRoutes.Search.route) }, modifier = Modifier.padding(horizontal = 12.dp))
+                        NavigationDrawerItem(icon = { Icon(AppRoutes.CourseList.icon, null) }, label = { Text(AppRoutes.CourseList.title) }, selected = currentRoute == AppRoutes.CourseList.route, onClick = { navigateTo(AppRoutes.CourseList.route) }, modifier = Modifier.padding(horizontal = 12.dp))
                         NavigationDrawerItem(icon = { Icon(AppRoutes.Settings.icon, null) }, label = { Text(AppRoutes.Settings.title) }, selected = currentRoute == AppRoutes.Settings.route, onClick = { navigateTo(AppRoutes.Settings.route) }, modifier = Modifier.padding(horizontal = 12.dp))
                         NavigationDrawerItem(icon = { Icon(AppRoutes.Profile.icon, null) }, label = { Text(AppRoutes.Profile.title) }, selected = currentRoute == AppRoutes.Profile.route, onClick = { navigateTo(AppRoutes.Profile.route) }, modifier = Modifier.padding(horizontal = 12.dp))
                     }

@@ -35,7 +35,7 @@ import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.HomeViewModel
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 
 // ==========================================
-// 1. 首页 (HomeContent wrapper)
+// 1. 首页 (HomeContent)
 // ==========================================
 @Composable
 fun HomeContent(
@@ -53,6 +53,7 @@ fun HomeContent(
     )
 }
 
+
 // ==========================================
 // 2. 课表页面 (CourseContent)
 // ==========================================
@@ -61,110 +62,9 @@ fun CourseContent(
     viewModel: ShareViewModel,
     navController: NavHostController
 ) {
-    // 使用 hiltViewModel 获取 CourseListViewModel
-    val courseViewModel: com.suseoaa.projectoaa.courseList.viewmodel.CourseListViewModel =
-        hiltViewModel()
-
-    // 调用实际的 CourseListScreen
-    com.suseoaa.projectoaa.courseList.ui.screen.CourseListScreen(
-        viewModel = courseViewModel,
-//        onBack = { navController.popBackStack() }
-    )
+    com.suseoaa.projectoaa.courseList.ui.screen.CourseListScreen()
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SearchContent(viewModel: ShareViewModel) { // 这个签名已经是正确的
-    var query by remember { mutableStateOf("") }
-    var active by remember { mutableStateOf(false) }
-
-    val currentThemeName = viewModel.currentTheme.name
-    val isLegacyTheme =
-        currentThemeName.contains("Android 4.0") || currentThemeName.contains("Android 2.3")
-    val originalColorScheme = MaterialTheme.colorScheme
-
-    val colorScheme = if (isLegacyTheme) {
-        originalColorScheme.copy(
-            primary = Color.White,
-            onSurface = Color.White,
-            onSurfaceVariant = Color.LightGray, // 用于占位符和图标
-            outline = Color.Gray
-        )
-    } else {
-        originalColorScheme
-    }
-
-    MaterialTheme(colorScheme = colorScheme) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            SearchBar(
-                query = query,
-                onQueryChange = { query = it },
-                onSearch = { active = false },
-                active = active,
-                onActiveChange = { active = it },
-                placeholder = { Text("搜索...") },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                trailingIcon = {
-                    if (active) {
-                        IconButton(onClick = {
-                            if (query.isNotEmpty()) query = "" else active = false
-                        }) { Icon(Icons.Default.Close, null) }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                colors = SearchBarDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f),
-                    dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                    inputFieldColors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(
-                            alpha = 0.1f
-                        ),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
-                    )
-                )
-            ) {
-                LazyColumn {
-                    items(
-                        items = (0..2).toList(),
-                        key = { "history_item_$it" }
-                    ) {
-                        ListItem(
-                            headlineContent = { Text("历史记录: 招新面试表 $it") },
-                            leadingContent = { Icon(Icons.Default.History, null) },
-                            modifier = Modifier.clickable {
-                                query = "招新面试表 $it"; active = false
-                            },
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surface.copy(
-                                    alpha = 0.1f
-                                )
-                            )
-                        )
-                    }
-                }
-            }
-            Box(
-                Modifier.fillMaxSize(),
-                Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Search,
-                        null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.surfaceVariant
-                    ); Spacer(Modifier.height(16.dp)); Text(
-                    "输入关键词开始搜索",
-                    color = MaterialTheme.colorScheme.outline
-                )
-                }
-            }
-        }
-    }
-}
 
 // ==========================================
 // 3. 设置页面 (SettingsContent)

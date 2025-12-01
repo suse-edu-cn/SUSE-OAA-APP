@@ -11,13 +11,8 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-<<<<<<< HEAD
       "versionCode": 2,
-      "versionName": "1.1.2",
-=======
-      "versionCode": 1,
-      "versionName": "1.0",
->>>>>>> upstream/fwj
+      "versionName": "1.1.3",
       "outputFile": "app-release.apk"
     }
   ],
@@ -38,5 +33,5 @@
       ]
     }
   ],
-  "minSdkVersionForDexing": 31
+  "minSdkVersionForDexing": 28
 }

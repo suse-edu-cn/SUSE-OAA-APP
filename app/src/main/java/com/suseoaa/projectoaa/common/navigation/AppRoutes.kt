@@ -6,7 +6,6 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -22,7 +21,5 @@ sealed class AppRoutes(val route: String, val title: String, val icon: ImageVect
     object Settings : AppRoutes("settings", "设置", Icons.Default.Settings)
     object Profile : AppRoutes("profile", "个人", Icons.Default.Person)
 
-    // 保留搜索路由以防其他地方使用
-    object Search : AppRoutes("search", "搜索", Icons.Default.Search)
     object StudentForm : AppRoutes("student_form", "招新/换届申请", Icons.Default.PersonAdd)
 }

@@ -49,10 +49,6 @@ fun AppNavigationGraph(
             )
         }
 
-        // --- 搜索页 ---
-        composable(route = AppRoutes.Search.route) {
-            SearchContent(viewModel = shareViewModel)
-        }
 
         // --- 设置页 (主页) ---
         composable(route = AppRoutes.Settings.route) {

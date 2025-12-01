@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.courseList.data.entity.ClassTimeEntity
 import com.suseoaa.projectoaa.courseList.data.entity.CourseWithTimes
@@ -96,7 +97,7 @@ private val DateHeaderHeight = 32.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListScreen(
-    viewModel: CourseListViewModel,
+    viewModel: CourseListViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -811,7 +812,7 @@ private fun CourseCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(3.dp),
+                .padding(horizontal = 3.dp, vertical = 2.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -820,17 +821,19 @@ private fun CourseCard(
                 fontSize = 11.sp,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                lineHeight = 12.sp,
+                lineHeight = 11.sp,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
             )
+            Spacer(modifier = Modifier.height(2.dp))
             if (location.isNotBlank()) {
                 val displayLocation = location.removePrefix("L")
                 Text(
                     text = displayLocation,
                     fontSize = 9.sp,
                     color = Color.White.copy(0.9f),
+                    lineHeight = 10.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
