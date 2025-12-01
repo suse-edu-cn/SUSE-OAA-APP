@@ -1,20 +1,20 @@
 package com.suseoaa.projectoaa.courseList.data.remote.dto
 
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.Json
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class UserModel(
-    @Json(name = "monitor")
-    val monitor: Boolean?,
-    @Json(name = "roleCount")
-    val roleCount: Int?,
-    @Json(name = "roleKeys")
-    val roleKeys: String?,
-    @Json(name = "roleValues")
-    val roleValues: String?,
-    @Json(name = "status")
-    val status: Int?,
-    @Json(name = "usable")
-    val usable: Boolean?
+    @SerialName("monitor")
+    val monitor: Boolean? = null,
+    @SerialName("roleCount")
+    val roleCount: Int? = null,
+    @SerialName("roleKeys")
+    val roleKeys: String? = null,
+    @SerialName("roleValues")
+    val roleValues: String? = null,
+    @SerialName("status")
+    val status: Int? = null,
+    @SerialName("usable")
+    val usable: Boolean? = null
 )

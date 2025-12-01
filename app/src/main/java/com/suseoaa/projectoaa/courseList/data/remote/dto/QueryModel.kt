@@ -1,33 +1,33 @@
 package com.suseoaa.projectoaa.courseList.data.remote.dto
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
-
-@JsonClass(generateAdapter = true)
+@Serializable
 data class QueryModel(
-    @Json(name = "currentPage")
-    val currentPage: Int?,
-    @Json(name = "currentResult")
-    val currentResult: Int?,
-    @Json(name = "entityOrField")
-    val entityOrField: Boolean?,
-    @Json(name = "limit")
-    val limit: Int?,
-    @Json(name = "offset")
-    val offset: Int?,
-    @Json(name = "pageNo")
-    val pageNo: Int?,
-    @Json(name = "pageSize")
-    val pageSize: Int?,
-    @Json(name = "showCount")
-    val showCount: Int?,
-    @Json(name = "sorts")
-    val sorts: List<Any?>?,
-    @Json(name = "totalCount")
-    val totalCount: Int?,
-    @Json(name = "totalPage")
-    val totalPage: Int?,
-    @Json(name = "totalResult")
-    val totalResult: Int?
+    @SerialName("currentPage")
+    val currentPage: Int? = null,
+    @SerialName("currentResult")
+    val currentResult: Int? = null,
+    @SerialName("entityOrField")
+    val entityOrField: Boolean? = null,
+    @SerialName("limit")
+    val limit: Int? = null,
+    @SerialName("offset")
+    val offset: Int? = null,
+    @SerialName("pageNo")
+    val pageNo: Int? = null,
+    @SerialName("pageSize")
+    val pageSize: Int? = null,
+    @SerialName("showCount")
+    val showCount: Int? = null,
+    @SerialName("sorts")
+    val sorts: List<JsonElement>? = null,
+    @SerialName("totalCount")
+    val totalCount: Int? = null,
+    @SerialName("totalPage")
+    val totalPage: Int? = null,
+    @SerialName("totalResult")
+    val totalResult: Int? = null
 )

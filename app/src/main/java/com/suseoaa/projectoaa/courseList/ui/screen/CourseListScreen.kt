@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.courseList.ui.screen
 
+import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.SecondaryIndicator
@@ -24,7 +26,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -94,11 +95,12 @@ private val SectionIndexMap = DailySchedule.mapIndexedNotNull { index, slot ->
 
 private val DateHeaderHeight = 32.dp
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListScreen(
     viewModel: CourseListViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val allCourses by viewModel.allCourses.collectAsStateWithLifecycle()
@@ -273,7 +275,11 @@ fun CourseListScreen(
 
                             Tab(
                                 selected = isSelected,
-                                onClick = { scope.launch { pagerState.animateScrollToPage(w - 1) } },
+                                onClick = {
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(w - 1)
+                                    }
+                                },
                                 text = {
                                     Text(
                                         "${w}周",
@@ -376,12 +382,21 @@ fun CourseListScreen(
 
         if (showLoginDialog) LoginDialog({
             showLoginDialog = false
-        }) { u, p -> viewModel.fetchAndSaveCourseSchedule(u, p); showLoginDialog = false }
+        }) { u, p ->
+            viewModel.fetchAndSaveCourseSchedule(u, p);
+            showLoginDialog = false
+        }
         if (showAccountDialog) AccountSelectionDialog(
             savedAccounts,
             currentStudentId,
-            { viewModel.switchUser(it); showAccountDialog = false },
-            { showAccountDialog = false; showLoginDialog = true }) { showAccountDialog = false }
+            {
+                viewModel.switchUser(it)
+                showAccountDialog = false
+            },
+            {
+                showAccountDialog = false
+                showLoginDialog = true
+            }) { showAccountDialog = false }
     }
 }
 
@@ -445,7 +460,10 @@ fun CourseScheduleLayout(
                     ) { page ->
                         val weekIndex = page + 1
                         val weekStart =
-                            remember(startDate, page) { startDate.plusWeeks(page.toLong()) }
+                            remember(
+                                startDate,
+                                page
+                            ) { startDate.plusWeeks(page.toLong()) }
                         val weekCourses = remember(weekIndex, allCourses) {
                             getCoursesForWeek(
                                 weekIndex,
@@ -519,7 +537,9 @@ fun CourseDetailContent(
                 ) {
                     repeat(pagerState.pageCount) { iteration ->
                         val color =
-                            if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(
+                            if (pagerState.currentPage == iteration)
+                                MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outline.copy(
                                 alpha = 0.3f
                             )
                         Box(
@@ -615,7 +635,12 @@ fun StaticTimeAxis(unitHeightPx: Float, height: Dp) {
 @Composable
 fun StaticGridBackground(unitHeightPx: Float) {
     val dashColor = MaterialTheme.colorScheme.outlineVariant
-    val pathEffect = remember { PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f) }
+    val pathEffect = remember {
+        PathEffect.dashPathEffect(
+            floatArrayOf(5f, 5f),
+            0f
+        )
+    }
     Canvas(modifier = Modifier.fillMaxSize()) {
         var y = 0f
         DailySchedule.forEach { slot ->
@@ -672,7 +697,10 @@ fun DynamicDateRow(startDate: LocalDate) {
                     .weight(1f)
                     .padding(horizontal = 4.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (isToday) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .background(
+                        if (isToday) MaterialTheme.colorScheme.primary
+                        else Color.Transparent
+                    )
                     .fillMaxHeight(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -680,7 +708,8 @@ fun DynamicDateRow(startDate: LocalDate) {
                 Text(
                     text = "${date.monthValue}/${date.dayOfMonth}",
                     fontSize = 11.sp,
-                    color = if (isToday) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    color = if (isToday) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurface,
                     fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
                 )
             }
@@ -691,7 +720,10 @@ fun DynamicDateRow(startDate: LocalDate) {
 @Composable
 fun HighlightTodayColumn(weekStartDate: LocalDate, maxWidth: Dp) {
     val today = LocalDate.now()
-    val daysBetween = ChronoUnit.DAYS.between(weekStartDate, today).toInt()
+    val daysBetween = ChronoUnit.DAYS.between(
+        weekStartDate,
+        today
+    ).toInt()
     if (daysBetween in 0..6) {
         val density = LocalDensity.current
         val highlightColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
@@ -755,7 +787,12 @@ fun ScheduleCourseOverlay(
                 val overlappedData = groupItems.map { it.course to it.time }
                 val item = groupItems.first()
                 val baseColor =
-                    CourseColors[kotlin.math.abs(item.course.course.courseName.hashCode()) % CourseColors.size]
+                    CourseColors[
+                        kotlin
+                            .math
+                            .abs(
+                                item.course.course.courseName.hashCode()
+                            ) % CourseColors.size]
                 CourseCard(
                     title = item.course.course.courseName,
                     location = item.time.location,
@@ -778,12 +815,15 @@ fun ScheduleCourseOverlay(
         val placeables = measurables.map { measurable ->
             val item = measurable.layoutId as LayoutItem
             val yPos = slotYPositions[item.startIndex]
-            val endYPos = slotYPositions[item.endIndex.coerceAtMost(DailySchedule.size)]
+            val endYPos = slotYPositions[
+                item.endIndex
+                    .coerceAtMost(DailySchedule.size)]
             val height = (endYPos - yPos).roundToInt() - 2.dp.roundToPx()
             val width = colWidthPx.roundToInt() - 2.dp.roundToPx()
             val placeable = measurable.measure(
                 androidx.compose.ui.unit.Constraints.fixed(
-                    width = width.coerceAtLeast(0), height = height.coerceAtLeast(0)
+                    width = width.coerceAtLeast(0),
+                    height = height.coerceAtLeast(0)
                 )
             )
             Triple(placeable, item, yPos)
@@ -867,7 +907,11 @@ fun CourseDetailCard(courseData: CourseWithTimes, timeData: ClassTimeEntity) {
                 modifier = Modifier.padding(vertical = 12.dp),
                 color = MaterialTheme.colorScheme.background
             )
-            DetailItem(Icons.Default.AccessTime, "时间", "${timeData.weekday} ${timeData.period}节")
+            DetailItem(
+                Icons.Default.AccessTime,
+                "时间",
+                "${timeData.weekday} ${timeData.period}节"
+            )
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 12.dp),
                 color = MaterialTheme.colorScheme.background
@@ -878,7 +922,11 @@ fun CourseDetailCard(courseData: CourseWithTimes, timeData: ClassTimeEntity) {
                     modifier = Modifier.padding(vertical = 12.dp),
                     color = MaterialTheme.colorScheme.background
                 )
-                DetailItem(Icons.Default.Assignment, "考察方式", courseData.course.assessment)
+                DetailItem(
+                    Icons.AutoMirrored.Filled.Assignment,
+                    "考察方式",
+                    courseData.course.assessment
+                )
             }
             if (timeData.classGroup.isNotBlank()) {
                 HorizontalDivider(

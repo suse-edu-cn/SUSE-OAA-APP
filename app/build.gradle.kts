@@ -10,7 +10,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.21"
 }
 
 android {
@@ -46,8 +46,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     java {
         toolchain {
@@ -55,7 +55,7 @@ android {
         }
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "21"
     }
     buildFeatures {
         compose = true
@@ -83,7 +83,7 @@ dependencies {
     implementation(libs.androidx.foundation.layout)
     implementation(libs.androidx.compose.material3.windowSizeClass)
     implementation(libs.androidx.compose.compiler)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation(libs.kotlinx.serialization.json)
     // 测试
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -99,14 +99,11 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    // Retrofit + OkHttp
+    // Retrofit + OkHttp + Kotlinx Serialization (Industry Standard)
     implementation(libs.retrofit)
-    implementation(libs.converter.moshi)
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
-    implementation(libs.moshi.kotlin)
-    ksp(libs.moshi.kotlin.codegen)
-    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+    implementation(libs.retrofit2.kotlinx.serialization.converter)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
@@ -122,4 +119,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
+    // 添加 AndroidX 依赖
+    implementation(libs.androidx.activity.compose.v190)
+    implementation(libs.androidx.core.splashscreen) // 可选，用于启动画面
 }

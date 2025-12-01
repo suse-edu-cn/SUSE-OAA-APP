@@ -1,11 +1,11 @@
 package com.suseoaa.projectoaa.courseList.data.remote.dto
 
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.Json
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class Xsbj(
-    @Json(name = "xslxbj") val xslxbj: String?,
-    @Json(name = "xsmc") val xsmc: String?,
-    @Json(name = "xsdm") val xsdm: String?
+    @SerialName("xslxbj") val xslxbj: String? = null,
+    @SerialName("xsmc") val xsmc: String? = null,
+    @SerialName("xsdm") val xsdm: String? = null
 )

@@ -1,25 +1,25 @@
 package com.suseoaa.projectoaa.common.network
 
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.http.GET
 import retrofit2.http.Query
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import okhttp3.OkHttpClient
-import retrofit2.converter.moshi.MoshiConverterFactory
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class LoliconResponse(
-    val data: List<LoliconData>?,
+    val data: List<LoliconData>? = null,
     val error: String? = null
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class LoliconData(
     val pid: Long,
-    val title: String?,
-    val author: String?,
+    val title: String? = null,
+    val author: String? = null,
     val urls: Map<String, String>
 )
 
@@ -40,9 +40,11 @@ interface LoliconApi {
 
     companion object {
         fun create(): LoliconApi {
-            val moshi = Moshi.Builder()
-                .add(KotlinJsonAdapterFactory())
-                .build()
+            val json = Json {
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+                isLenient = true
+            }
 
             val client = OkHttpClient.Builder()
                 .addInterceptor { chain ->
@@ -53,10 +55,12 @@ interface LoliconApi {
                 }
                 .build()
 
+            val contentType = "application/json".toMediaType()
+
             return Retrofit.Builder()
                 .baseUrl("https://api.lolicon.app/")
                 .client(client)
-                .addConverterFactory(MoshiConverterFactory.create(moshi))
+                .addConverterFactory(json.asConverterFactory(contentType))
                 .build()
                 .create(LoliconApi::class.java)
         }

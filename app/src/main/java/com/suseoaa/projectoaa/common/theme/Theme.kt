@@ -1,13 +1,15 @@
 package com.suseoaa.projectoaa.common.theme
 
 import android.app.Activity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -29,21 +31,36 @@ fun ProjectOAATheme(
     val shapes = themeConfig.shapes
     val view = LocalView.current
 
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            // [修改] 沉浸式核心：状态栏背景设为透明
-            window.statusBarColor = Color.Transparent.toArgb()
+    DisposableEffect(view, themeConfig.isDark, colorScheme) {
+        val activity = view.context as? Activity
+        val componentActivity = view.context as? androidx.activity.ComponentActivity
+        val window = activity?.window
+        if (window != null) {
+            // edge-to-edge（根据需要启用）
+            WindowCompat.setDecorFitsSystemWindows(window, false)
 
-            // [修改] 导航栏(底部)背景设为主题背景色
-            window.navigationBarColor = colorScheme.background.toArgb()
+            val transparentColor = Color.Transparent.toArgb()
+            val backgroundColor = colorScheme.background.toArgb()
+            val scrimColor = colorScheme.primary.copy(alpha = 0.2f).toArgb()
 
-            // [修改] 状态栏图标颜色控制：
-            // 如果不是暗黑主题(isDark=false)，则 isAppearanceLightStatusBars=true (意味着背景是亮的，系统会把图标显示为黑色)
-            // 这样在“简约白”主题下，状态栏图标就是黑色的。
-            val insetsController = WindowCompat.getInsetsController(window, view)
-            insetsController.isAppearanceLightStatusBars = !themeConfig.isDark
-            insetsController.isAppearanceLightNavigationBars = !themeConfig.isDark
+            val statusBarStyle = if (themeConfig.isDark) {
+                SystemBarStyle.dark(transparentColor)
+            } else {
+                SystemBarStyle.light(transparentColor, scrimColor)
+            }
+            val navigationBarStyle = if (themeConfig.isDark) {
+                SystemBarStyle.dark(backgroundColor)
+            } else {
+                SystemBarStyle.light(backgroundColor, scrimColor)
+            }
+
+            componentActivity?.enableEdgeToEdge(
+                statusBarStyle = statusBarStyle,
+                navigationBarStyle = navigationBarStyle
+            )
+        }
+        onDispose {
+            // 可在此恢复原有设置（如果需要）
         }
     }
 

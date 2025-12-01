@@ -1,8 +1,8 @@
 package com.suseoaa.projectoaa.courseList.data.remote.dto
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class RSAKey(
     val modulus: String,
     val exponent: String

@@ -1,20 +1,20 @@
 package com.suseoaa.projectoaa.courseList.data.remote
 
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.suseoaa.projectoaa.courseList.data.api.RsaKeyAPI
 import com.suseoaa.projectoaa.courseList.data.api.GetCSRFToken
 import com.suseoaa.projectoaa.courseList.data.api.RedirectAPI
 import com.suseoaa.projectoaa.courseList.data.api.LoginAPI
 import com.suseoaa.projectoaa.courseList.data.api.ScheduleAPI
-import okhttp3.Interceptor
-import okhttp3.OkHttpClient
-import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.suseoaa.projectoaa.courseList.data.remote.dto.CourseResponseJson
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.Response
 import retrofit2.HttpException
+import retrofit2.Retrofit
 import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.PublicKey
@@ -168,14 +168,16 @@ object SchoolSystem {
         .followRedirects(false) // 禁用自动重定向，手动处理
         .build()
 
-    private val moshi = Moshi.Builder()
-        .add(KotlinJsonAdapterFactory())
-        .build()
+    private val json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+        isLenient = true
+    }
 
     private val retrofit = Retrofit.Builder()
         .baseUrl("https://jwgl.suse.edu.cn")
         .client(okHttpClient)
-        .addConverterFactory(MoshiConverterFactory.create(moshi))
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
 
     private val loginAPI = retrofit.create(LoginAPI::class.java)
@@ -258,7 +260,7 @@ object SchoolSystem {
                         val redirectRetrofit = Retrofit.Builder()
                             .baseUrl("https://jwgl.suse.edu.cn")
                             .client(redirectClient)
-                            .addConverterFactory(MoshiConverterFactory.create(moshi))
+                            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
                             .build()
 
                         val redirectAPI = redirectRetrofit.create(RedirectAPI::class.java)
@@ -405,8 +407,7 @@ object SchoolSystem {
 
         return if (rawData != null) {
             try {
-                val adapter = moshi.adapter(CourseResponseJson::class.java)
-                val courseData = adapter.fromJson(rawData)
+                val courseData = json.decodeFromString<CourseResponseJson>(rawData)
                 Pair(courseData, "$debugInfo✓ JSON解析成功\n")
             } catch (e: Exception) {
                 Pair(null, "$debugInfo✗ JSON解析失败: ${e.message}\n")

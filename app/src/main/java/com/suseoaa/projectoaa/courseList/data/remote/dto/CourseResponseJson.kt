@@ -1,46 +1,47 @@
 package com.suseoaa.projectoaa.courseList.data.remote.dto
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class CourseResponseJson(
-    @Json(name = "djdzList")
-    val djdzList: List<Any?>?,
-    @Json(name = "jfckbkg")
-    val jfckbkg: Boolean?,
-    @Json(name = "jxhjkcList")
-    val jxhjkcList: List<Any?>?,
-    @Json(name = "kbList")
-    val kbList: List<Kb?>?,
-    @Json(name = "kblx")
-    val kblx: Int?,
-    @Json(name = "qsxqj")
-    val qsxqj: String?,
-    @Json(name = "rqazcList")
-    val rqazcList: List<Any?>?,
-    @Json(name = "sfxsd")
-    val sfxsd: String?,
-    @Json(name = "sjfwkg")
-    val sjfwkg: Boolean?,
-    @Json(name = "sjkList")
-    val sjkList: List<Any?>?,
-    @Json(name = "sxgykbbz")
-    val sxgykbbz: String?,
-    @Json(name = "xkkg")
-    val xkkg: Boolean?,
-    @Json(name = "xnxqsfkz")
-    val xnxqsfkz: String?,
-    @Json(name = "xqbzxxszList")
-    val xqbzxxszList: List<Any?>?,
-    @Json(name = "xqjmcMap")
-    val xqjmcMap: Map<String, String>?,
-    @Json(name = "xsbjList")
-    val xsbjList: List<Xsbj?>?,
-    @Json(name = "xskbsfxstkzt")
-    val xskbsfxstkzt: String?,
-    @Json(name = "xsxx")
-    val xsxx: Xsxx?,
-    @Json(name = "zckbsfxssj")
-    val zckbsfxssj: String?
+    @SerialName("djdzList")
+    val djdzList: List<JsonElement>? = null,
+    @SerialName("jfckbkg")
+    val jfckbkg: Boolean? = null,
+    @SerialName("jxhjkcList")
+    val jxhjkcList: List<JsonElement>? = null,
+    @SerialName("kbList")
+    val kbList: List<Kb?>? = null,
+    @SerialName("kblx")
+    val kblx: Int? = null,
+    @SerialName("qsxqj")
+    val qsxqj: String? = null,
+    @SerialName("rqazcList")
+    val rqazcList: List<JsonElement>? = null,
+    @SerialName("sfxsd")
+    val sfxsd: String? = null,
+    @SerialName("sjfwkg")
+    val sjfwkg: Boolean? = null,
+    @SerialName("sjkList")
+    val sjkList: List<JsonElement>? = null,
+    @SerialName("sxgykbbz")
+    val sxgykbbz: String? = null,
+    @SerialName("xkkg")
+    val xkkg: Boolean? = null,
+    @SerialName("xnxqsfkz")
+    val xnxqsfkz: String? = null,
+    @SerialName("xqbzxxszList")
+    val xqbzxxszList: List<JsonElement>? = null,
+    @SerialName("xqjmcMap")
+    val xqjmcMap: Map<String, String>? = null,
+    @SerialName("xsbjList")
+    val xsbjList: List<Xsbj?>? = null,
+    @SerialName("xskbsfxstkzt")
+    val xskbsfxstkzt: String? = null,
+    @SerialName("xsxx")
+    val xsxx: Xsxx? = null,
+    @SerialName("zckbsfxssj")
+    val zckbsfxssj: String? = null
 )

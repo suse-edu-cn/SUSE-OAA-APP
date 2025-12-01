@@ -1,17 +1,17 @@
 package com.suseoaa.projectoaa.common.network
 
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import com.suseoaa.projectoaa.BuildConfig
 import com.suseoaa.projectoaa.common.util.SessionManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import com.suseoaa.projectoaa.BuildConfig
 // 导入两个 ApiService
 import com.suseoaa.projectoaa.login.api.ApiService as LoginApiService
 import com.suseoaa.projectoaa.student.network.ApiService as StudentApiService
@@ -25,9 +25,11 @@ object NetworkModule {
 
     @Singleton
     @Provides
-    fun provideMoshi(): Moshi = Moshi.Builder()
-        .add(KotlinJsonAdapterFactory())
-        .build()
+    fun provideJson(): Json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+        isLenient = true
+    }
 
     @Singleton
     @Provides
@@ -62,16 +64,18 @@ object NetworkModule {
             .build()
     }
 
-//    @Singleton
-//    @Provides
-//    fun provideRetrofit(okHttpClient: OkHttpClient, moshi: Moshi): Retrofit {
-//        return Retrofit.Builder()
-//            .baseUrl(BASE_URL)
-//            .client(okHttpClient)
-//            .addConverterFactory(MoshiConverterFactory.create(moshi))
-//            .build()
-//    }
-//提供用于登录/个人资料的 ApiService
+    @Singleton
+    @Provides
+    fun provideRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit {
+        val contentType = "application/json".toMediaType()
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+    }
+
+    // 提供用于登录/个人资料的 ApiService
     @Singleton
     @Provides
     fun provideLoginApiService(retrofit: Retrofit): LoginApiService {
@@ -83,5 +87,12 @@ object NetworkModule {
     @Provides
     fun provideStudentApiService(retrofit: Retrofit): StudentApiService {
         return retrofit.create(StudentApiService::class.java)
+    }
+
+    // 提供用于详情页的 ApiService
+    @Singleton
+    @Provides
+    fun provideDetailApiService(retrofit: Retrofit): DetailApiService {
+        return retrofit.create(DetailApiService::class.java)
     }
 }
