@@ -15,10 +15,10 @@ android {
 
     defaultConfig {
         applicationId = "com.suseoaa.projectoaa"
-        minSdk = 31
+        minSdk = 28
         targetSdk = 36
         versionCode = 2
-        versionName = "1.1.0"
+        versionName = "1.1.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

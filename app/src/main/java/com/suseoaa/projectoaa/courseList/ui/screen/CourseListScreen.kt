@@ -56,36 +56,41 @@ private val CourseColors = listOf(
     Color(0xFFFFCA28), Color(0xFF9CCC65), Color(0xFF7E57C2), Color(0xFF29B6F6)
 )
 
+// [修改] 增加 endTime 字段
 data class TimeSlotConfig(
     val sectionName: String,
     val startTime: String,
+    val endTime: String,
     val type: SlotType,
     val weight: Float
 )
 
 enum class SlotType { CLASS, BREAK_SMALL, BREAK_LUNCH, BREAK_DINNER }
 
+// [修改] 补全下课时间 (按每节课45分钟计算)
 private val DailySchedule = listOf(
-    TimeSlotConfig("1", "08:30", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("2", "09:20", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("3", "10:25", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("4", "11:15", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("午餐", "", SlotType.BREAK_LUNCH, 0.5f),
-    TimeSlotConfig("午休", "", SlotType.BREAK_LUNCH, 0.5f),
-    TimeSlotConfig("5", "14:00", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("6", "14:50", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("7", "15:55", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("8", "16:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", SlotType.BREAK_DINNER, 0.4f),
-    TimeSlotConfig("9", "19:00", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("10", "19:50", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("11", "20:40", SlotType.CLASS, 1.2f)
+    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
+    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("午餐", "12:00", "14:00", SlotType.BREAK_LUNCH, 0.5f),
+    TimeSlotConfig("午休", "", "", SlotType.BREAK_LUNCH, 0.5f),
+    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
+    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_DINNER, 0.4f),
+    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.2f)
 )
-private val SectionIndexMap =
-    DailySchedule.mapIndexedNotNull { index, slot -> if (slot.sectionName.isNotEmpty()) slot.sectionName to index else null }
-        .toMap()
+
+private val SectionIndexMap = DailySchedule.mapIndexedNotNull { index, slot ->
+    if (slot.sectionName.isNotEmpty()) slot.sectionName to index else null
+}.toMap()
+
 private val DateHeaderHeight = 32.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -202,7 +207,6 @@ fun CourseListScreen(
                                 onDismissRequest = { menuExpanded = false },
                                 modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                             ) {
-                                // [修改] 刷新当前课表
                                 DropdownMenuItem(
                                     text = { Text("刷新当前课表") },
                                     onClick = {
@@ -210,7 +214,6 @@ fun CourseListScreen(
                                         viewModel.refreshSchedule()
                                     }
                                 )
-                                // [修改] 导入新账号
                                 DropdownMenuItem(
                                     text = { Text("导入新课表") },
                                     onClick = {
@@ -393,16 +396,20 @@ fun CourseScheduleLayout(
     val timeAxisWidth = 40.dp
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
             Spacer(modifier = Modifier.width(timeAxisWidth))
             StaticWeekDayHeader()
         }
 
-        BoxWithConstraints(modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth()) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
             val totalHeight = maxHeight
             val gridHeight = totalHeight - DateHeaderHeight
             val totalWeight = remember { DailySchedule.sumOf { it.weight.toDouble() }.toFloat() }
@@ -532,9 +539,11 @@ fun CourseDetailContent(
 @Composable
 fun StaticWeekDayHeader() {
     val weekDays = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .padding(vertical = 12.dp)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+    ) {
         weekDays.forEach { dayName ->
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(
@@ -558,16 +567,20 @@ fun StaticTimeAxis(unitHeightPx: Float, height: Dp) {
                     verticalArrangement = Arrangement.Center
                 ) {
                     if (slot.type == SlotType.CLASS) {
+                        // 节次数字
                         Text(
-                            slot.sectionName,
+                            text = slot.sectionName,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
+                        // [修改] 上下课时间：使用换行符 + 紧凑行高
                         Text(
-                            slot.startTime,
+                            text = "${slot.startTime}\n${slot.endTime}",
                             fontSize = 9.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            lineHeight = 9.sp, // 极小行高，减少间距
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     } else if (slot.type == SlotType.BREAK_LUNCH) {
                         Text(
@@ -630,9 +643,11 @@ fun DynamicWeekContent(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         DynamicDateRow(weekStartDate)
-        Box(modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
             HighlightTodayColumn(weekStartDate, maxWidth)
             ScheduleCourseOverlay(courses, unitHeightPx, maxWidth, onCourseClick)
         }
@@ -642,10 +657,12 @@ fun DynamicWeekContent(
 @Composable
 fun DynamicDateRow(startDate: LocalDate) {
     val today = remember { LocalDate.now() }
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .height(DateHeaderHeight)
-        .padding(bottom = 6.dp)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(DateHeaderHeight)
+            .padding(bottom = 6.dp)
+    ) {
         for (i in 0..6) {
             val date = startDate.plusDays(i.toLong())
             val isToday = date == today
