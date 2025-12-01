@@ -13,6 +13,7 @@ import com.suseoaa.projectoaa.courseList.data.entity.CourseWithTimes
 import com.suseoaa.projectoaa.courseList.data.remote.SchoolSystem
 import com.suseoaa.projectoaa.courseList.data.repository.CourseRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,6 +43,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         private set
 
     // === 课程数据 ===
+    @OptIn(ExperimentalCoroutinesApi::class)
     val allCourses: StateFlow<List<CourseWithTimes>> = _currentStudentId
         .flatMapLatest { id ->
             if (id.isBlank()) flowOf(emptyList())
