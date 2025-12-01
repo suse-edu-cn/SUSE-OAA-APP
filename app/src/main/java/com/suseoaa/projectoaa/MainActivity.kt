@@ -24,7 +24,7 @@ import androidx.lifecycle.lifecycleScope
 import com.suseoaa.projectoaa.common.navigation.AppNavigation
 import com.suseoaa.projectoaa.common.theme.ProjectOAATheme
 import com.suseoaa.projectoaa.common.util.WallpaperManager
-import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
+import com.suseoaa.projectoaa.navigation.viewmodel.ShareViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
