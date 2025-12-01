@@ -910,7 +910,7 @@ fun CourseDetailCard(courseData: CourseWithTimes, timeData: ClassTimeEntity) {
             DetailItem(
                 Icons.Default.AccessTime,
                 "时间",
-                "${timeData.weekday} ${timeData.period}节"
+                "${timeData.weekday} ${timeData.period}"
             )
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 12.dp),
