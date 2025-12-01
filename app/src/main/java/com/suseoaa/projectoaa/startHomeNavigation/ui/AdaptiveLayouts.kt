@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.ui
+package com.suseoaa.projectoaa.startHomeNavigation.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -23,7 +23,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import com.suseoaa.projectoaa.common.navigation.AppRoutes
-import com.suseoaa.projectoaa.navigation.viewmodel.ShareViewModel
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 
 // ==========================================
 // 1. 布局组件 (Compact, Medium, Expanded)

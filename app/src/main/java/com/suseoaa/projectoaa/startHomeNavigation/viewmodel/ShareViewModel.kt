@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.viewmodel
+package com.suseoaa.projectoaa.startHomeNavigation.viewmodel
 
 import android.content.Context
 import android.util.Log
@@ -11,9 +11,9 @@ import com.suseoaa.projectoaa.common.theme.OaaThemeConfig
 import com.suseoaa.projectoaa.common.theme.ThemeManager
 import com.suseoaa.projectoaa.common.util.SessionManager
 import com.suseoaa.projectoaa.common.util.WallpaperManager
-import com.suseoaa.projectoaa.navigation.repository.FeedbackRepository
-import com.suseoaa.projectoaa.navigation.repository.SettingsRepository
-import com.suseoaa.projectoaa.navigation.repository.WallpaperRepository
+import com.suseoaa.projectoaa.startHomeNavigation.repository.FeedbackRepository
+import com.suseoaa.projectoaa.startHomeNavigation.repository.SettingsRepository
+import com.suseoaa.projectoaa.startHomeNavigation.repository.WallpaperRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers

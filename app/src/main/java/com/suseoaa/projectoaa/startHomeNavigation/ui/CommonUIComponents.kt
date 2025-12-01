@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.ui
+package com.suseoaa.projectoaa.startHomeNavigation.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column

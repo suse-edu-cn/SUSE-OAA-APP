@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.ui
+package com.suseoaa.projectoaa.startHomeNavigation.ui
 
 // 移除了 import android.content.Context
 import androidx.compose.foundation.clickable
@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.suseoaa.projectoaa.common.theme.OaaThemeConfig
 import com.suseoaa.projectoaa.common.theme.ThemeManager
-import com.suseoaa.projectoaa.navigation.viewmodel.ShareViewModel
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 
 // ==========================================
 // 2. 搜索页面

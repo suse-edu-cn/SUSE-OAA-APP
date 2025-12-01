@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.repository
+package com.suseoaa.projectoaa.startHomeNavigation.repository
 
 import com.suseoaa.projectoaa.common.network.LoliconApi
 import javax.inject.Inject

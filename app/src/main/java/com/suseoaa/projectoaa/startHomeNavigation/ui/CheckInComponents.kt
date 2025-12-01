@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.ui
+package com.suseoaa.projectoaa.startHomeNavigation.ui
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
@@ -25,9 +25,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import com.suseoaa.projectoaa.navigation.viewmodel.CheckInUiState
-import com.suseoaa.projectoaa.navigation.viewmodel.CheckInViewModel
-import com.suseoaa.projectoaa.navigation.viewmodel.HomeUiState
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.CheckInUiState
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.CheckInViewModel
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.HomeUiState
 
 /**
  * 封装了打卡功能的 "Smart" Composable。

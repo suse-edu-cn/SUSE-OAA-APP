@@ -7,11 +7,9 @@ import com.suseoaa.projectoaa.startHomeNavigation.platform.fold.MediumLayout
 import com.suseoaa.projectoaa.startHomeNavigation.platform.pad.ExpandedLayout
 import com.suseoaa.projectoaa.startHomeNavigation.platform.phone.CompactLayout
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
-
 @Composable
 fun AdaptiveApp(
     windowSizeClass: WindowWidthSizeClass,
-    onLogout: () -> Unit,
     shareViewModel: ShareViewModel
 ) {
     val navController = rememberNavController()
@@ -20,22 +18,19 @@ fun AdaptiveApp(
         WindowWidthSizeClass.Compact -> {
             CompactLayout(
                 navController = navController,
-                onLogout = onLogout,
-                shareViewModel = shareViewModel
+                viewModel = shareViewModel
             )
         }
         WindowWidthSizeClass.Medium -> {
             MediumLayout(
                 navController = navController,
-                onLogout = onLogout,
-                shareViewModel = shareViewModel
+                viewModel = shareViewModel
             )
         }
         WindowWidthSizeClass.Expanded -> {
             ExpandedLayout(
                 navController = navController,
-                onLogout = onLogout,
-                shareViewModel = shareViewModel
+                viewModel = shareViewModel
             )
         }
     }

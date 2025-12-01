@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.ui
+package com.suseoaa.projectoaa.startHomeNavigation.ui
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -19,7 +19,7 @@ import com.suseoaa.projectoaa.common.navigation.AppRoutes
 import com.suseoaa.projectoaa.courseList.ui.screen.CourseListScreen
 import com.suseoaa.projectoaa.courseList.viewmodel.CourseListViewModel
 import com.suseoaa.projectoaa.login.ui.ProfileScreen
-import com.suseoaa.projectoaa.navigation.viewmodel.ShareViewModel
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 import com.suseoaa.projectoaa.student.ui.StudentFormScreen
 import com.suseoaa.projectoaa.student.viewmodel.StudentFormViewModel
 

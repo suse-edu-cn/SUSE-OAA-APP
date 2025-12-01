@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.viewmodel
+package com.suseoaa.projectoaa.startHomeNavigation.viewmodel
 
 import android.content.Context
 import android.net.Uri
@@ -8,7 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.common.util.WallpaperManager
-import com.suseoaa.projectoaa.navigation.repository.UserDataRepository
+import com.suseoaa.projectoaa.startHomeNavigation.repository.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers

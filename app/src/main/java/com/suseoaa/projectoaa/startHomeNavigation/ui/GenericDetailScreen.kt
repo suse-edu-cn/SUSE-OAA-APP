@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.ui
+package com.suseoaa.projectoaa.startHomeNavigation.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,8 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.suseoaa.projectoaa.navigation.viewmodel.DetailBlock
-import com.suseoaa.projectoaa.navigation.viewmodel.GenericDetailViewModel
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.DetailBlock
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.GenericDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

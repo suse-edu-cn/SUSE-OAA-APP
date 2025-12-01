@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.ui
+package com.suseoaa.projectoaa.startHomeNavigation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,9 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.suseoaa.projectoaa.common.navigation.AppRoutes
-import com.suseoaa.projectoaa.navigation.viewmodel.HomeUiState
-import com.suseoaa.projectoaa.navigation.viewmodel.HomeViewModel
-import com.suseoaa.projectoaa.navigation.viewmodel.ShareViewModel
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.HomeUiState
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.HomeViewModel
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 
 // 用于传递计算好的颜色
 private data class HomeDisplayColors(

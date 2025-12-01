@@ -49,14 +49,7 @@ fun AppNavigation(
         composable(AppRoutes.Home.route) {
             AdaptiveApp(
                 windowSizeClass = windowSizeClass,
-                shareViewModel = shareViewModel,
-                onLogout = {
-                    loginViewModel.logout()
-                    navController.navigate(AppRoutes.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
+                shareViewModel = shareViewModel
             )
         }
 

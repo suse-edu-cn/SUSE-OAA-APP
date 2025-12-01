@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.viewmodel
+package com.suseoaa.projectoaa.startHomeNavigation.viewmodel
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -7,7 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.common.util.SessionManager
-import com.suseoaa.projectoaa.navigation.repository.detail.DetailRepository // 依赖接口
+import com.suseoaa.projectoaa.startHomeNavigation.repository.detail.DetailRepository // 依赖接口
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject

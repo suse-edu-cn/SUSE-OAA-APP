@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.repository
+package com.suseoaa.projectoaa.startHomeNavigation.repository
 
 sealed class ImageResult {
     data class Success(val url: String) : ImageResult()

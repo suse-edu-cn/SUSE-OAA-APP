@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.repository
+package com.suseoaa.projectoaa.startHomeNavigation.repository
 
 interface SettingsRepository {
     // --- 主题 ---

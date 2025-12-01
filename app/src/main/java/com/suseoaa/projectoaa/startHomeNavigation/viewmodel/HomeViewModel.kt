@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.navigation.viewmodel
+package com.suseoaa.projectoaa.startHomeNavigation.viewmodel
 
 import android.annotation.SuppressLint
 import androidx.compose.runtime.getValue
