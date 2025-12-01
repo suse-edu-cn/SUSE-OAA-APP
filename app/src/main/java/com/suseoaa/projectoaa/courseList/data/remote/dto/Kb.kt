@@ -20,4 +20,14 @@ data class Kb(
     @Json(name = "zcmc") val teacherTitle: String?,
     @Json(name = "zzmm") val politicalStatus: String?,
     @Json(name = "jxbzc") val classGroup: String?
-)
+) {
+    // 兼容性属性：提供原始字段名的访问方式
+    val kcmc: String? get() = courseName
+    val cdmc: String? get() = location
+    val xm: String? get() = teacher
+    val xqjmc: String? get() = dayOfWeek
+    val jc: String? get() = period
+    val zcd: String? get() = weeks
+    val kch: String? get() = courseId
+    val kcxz: String? get() = nature
+}
