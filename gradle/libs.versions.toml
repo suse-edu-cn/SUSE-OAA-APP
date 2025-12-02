@@ -1,11 +1,11 @@
 [versions]
 accompanistSystemuicontroller = "0.36.0"
 activityComposeVersion = "1.9.0"
+androidx-material3 = "1.2.1"
 agp = "8.13.1"
 coil = "2.5.0"
 compiler = "1.5.11"
 composeBom = "2024.10.01"
-converterMoshi = "2.11.0"
 coreSplashscreen = "1.2.0"
 kotlin = "2.1.0"
 kotlinxSerializationJson = "1.9.0"
@@ -19,7 +19,6 @@ activityCompose = "1.8.0"
 lifecycleViewmodelCompose = "2.9.4"
 loggingInterceptor = "4.12.0"
 material3WindowSizeClass = "1.4.0"
-moshi = "1.15.2"
 navigationCompose = "2.9.6"
 okhttp = "4.12.0"
 retrofit = "2.11.0"
@@ -31,6 +30,7 @@ foundation = "1.9.5"
 hilt = "2.51.1"
 hiltNavigationCompose = "1.0.0"
 runtime = "1.9.5"
+accompanist = "0.34.0"
 
 [libraries]
 androidx-activity-compose-v190 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
@@ -60,7 +60,6 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "loggingInterceptor" }
 material3 = { module = "androidx.compose.material3:material3" }
@@ -70,12 +69,13 @@ cronet-embedded = { group = "org.chromium.net", name = "cronet-embedded", versio
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
-
+androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "androidx-material3" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
 retrofit2-kotlinx-serialization-converter = { module = "com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter", version.ref = "retrofit2KotlinxSerializationConverter" }
+accompanist-swiperefresh = { module = "com.google.accompanist:accompanist-swiperefresh", version.ref = "accompanist" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

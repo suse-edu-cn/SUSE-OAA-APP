@@ -1,15 +1,11 @@
 package com.suseoaa.projectoaa.login.viewmodel
 
-// [修复] 移除了 Context 导入
-// import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
-// [修复] 导入 Hilt 注解
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+
 import com.suseoaa.projectoaa.common.base.BaseViewModel
 import com.suseoaa.projectoaa.common.util.SessionManager
 import com.suseoaa.projectoaa.login.model.RegisterRequest
@@ -18,11 +14,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
-
-// [修复] 1. 添加 Hilt 注解
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    // [修复] 2. 注入 Repository 和 SessionManager
     private val repository: AuthRepository,
     private val sessionManager: SessionManager
 ) : BaseViewModel() {

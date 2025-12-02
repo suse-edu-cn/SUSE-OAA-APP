@@ -190,13 +190,26 @@ object WallpaperManager {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Save to gallery failed", e)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "保存失败: ${e.message}", Toast.LENGTH_SHORT).show()
+
+                // [修改] 检查是否是权限错误并调用 PermissionHandler
+                val isPermissionError = e is SecurityException ||
+                        e.message?.contains("permission", ignoreCase = true) == true
+
+                if (isPermissionError) {
+                    // 必须切换回主线程来启动 Activity（尽管有 NEW_TASK 标志，但从协程中启动UI是好习惯）
+                    withContext(Dispatchers.Main) {
+                        // PermissionHandler 现在会启动一个透明 Activity 来处理权限
+                        PermissionHandler.requestStoragePermission(context.applicationContext)
+                    }
+                } else {
+                    // 对于其他错误，保持原始的 Toast 逻辑
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "保存失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
     }
-
     // ==========================================
     // 4. 每日打卡图逻辑 (Strategies)
     // ==========================================

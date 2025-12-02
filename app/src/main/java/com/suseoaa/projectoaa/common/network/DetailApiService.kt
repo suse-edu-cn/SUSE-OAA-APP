@@ -10,9 +10,9 @@ import retrofit2.http.Path
 /**
  * "标准信息块" (DTO - Data Transfer Object)
  */
-@Serializable // [修改] 替换 Gson
+@Serializable
 data class DetailBlockDto(
-    @SerialName("title") // [修改] 替换 @SerializedName
+    @SerialName("title")
     val title: String,
 
     @SerialName("content")
@@ -22,7 +22,7 @@ data class DetailBlockDto(
 /**
  * "通用信息页面" 完整JSON响应 (DTO)
  */
-@Serializable // [修改] 替换 Gson
+@Serializable
 data class GenericDetailResponse(
     @SerialName("taskId")
     val taskId: String,

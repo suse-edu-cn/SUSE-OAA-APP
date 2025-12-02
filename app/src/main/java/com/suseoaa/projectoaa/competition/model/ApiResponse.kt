@@ -1,4 +1,5 @@
-package com.suseoaa.projectoaa.login.model
+package com.suseoaa.projectoaa.competition.model
+
 import kotlinx.serialization.Serializable
 
 @Serializable

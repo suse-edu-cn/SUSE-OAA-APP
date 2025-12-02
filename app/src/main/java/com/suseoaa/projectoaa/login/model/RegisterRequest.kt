@@ -1,5 +1,7 @@
 package com.suseoaa.projectoaa.login.model
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class RegisterRequest(
     val studentid: String,
     val name: String,

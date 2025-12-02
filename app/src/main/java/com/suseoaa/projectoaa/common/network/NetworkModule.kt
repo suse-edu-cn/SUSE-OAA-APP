@@ -12,9 +12,16 @@ import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
-// 导入两个 ApiService
+// 导入三个 ApiService
 import com.suseoaa.projectoaa.login.api.ApiService as LoginApiService
 import com.suseoaa.projectoaa.student.network.ApiService as StudentApiService
+// (注意：你之前的代码里有 DetailApiService，但没有导入，这里我先注释掉)
+// import com.suseoaa.projectoaa.detail.api.ApiService as DetailApiService
+
+// ================== 新增导入 ==================
+import com.suseoaa.projectoaa.competition.network.ApiService as CompetitionApiService //
+// ============================================
+
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -89,10 +96,22 @@ object NetworkModule {
         return retrofit.create(StudentApiService::class.java)
     }
 
-    // 提供用于详情页的 ApiService
+    /* (你原来的 DetailApiService 提供器)
     @Singleton
     @Provides
     fun provideDetailApiService(retrofit: Retrofit): DetailApiService {
         return retrofit.create(DetailApiService::class.java)
     }
+    */
+
+    // ================== 新增 Provider ==================
+    /**
+     * 提供用于比赛功能的 ApiService
+     */
+    @Singleton
+    @Provides
+    fun provideCompetitionApiService(retrofit: Retrofit): CompetitionApiService {
+        return retrofit.create(CompetitionApiService::class.java)
+    }
+    // ==================================================
 }

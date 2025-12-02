@@ -1,9 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-
-
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -31,7 +28,7 @@ android {
         if (localPropertiesFile.exists()) {
             properties.load(FileInputStream(localPropertiesFile))
         }
-        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://10.0.2.2:8080/\""
+        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://10.0.2.2:8080\""
 
         buildConfigField("String", "API_BASE_URL", baseUrl)
     }
@@ -77,7 +74,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.foundation.layout)
@@ -119,7 +116,15 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
+
+    // 滑动模块（代替他妈的MD3下滑组件）
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.34.0")
+
     // 添加 AndroidX 依赖
     implementation(libs.androidx.activity.compose.v190)
-    implementation(libs.androidx.core.splashscreen) // 可选，用于启动画面
+    implementation(libs.androidx.core.splashscreen)
+
+    // markdown 模块
+    implementation("com.github.jeziellago:compose-markdown:0.4.0")
+
 }
