@@ -24,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.SecondaryIndicator
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.suseoaa.projectoaa.LocalWindowSizeClass
 import com.suseoaa.projectoaa.courseList.data.entity.ClassTimeEntity
 import com.suseoaa.projectoaa.courseList.data.entity.CourseWithTimes
 import com.suseoaa.projectoaa.courseList.viewmodel.CourseListViewModel
@@ -106,8 +108,6 @@ private val SectionIndexMap = DailySchedule.mapIndexedNotNull { index, slot ->
 private val DateHeaderHeight = 32.dp
 
 
-
-
 @SuppressLint("ConfigurationScreenWidthHeight")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,6 +115,7 @@ fun CourseListScreen(
     viewModel: CourseListViewModel = hiltViewModel(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
+    val windowSizeClass = LocalWindowSizeClass.current
     val context = LocalContext.current
     val allCourses by viewModel.allCourses.collectAsStateWithLifecycle()
     val startDate by viewModel.semesterStartDate.collectAsStateWithLifecycle()
@@ -186,7 +187,14 @@ fun CourseListScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .statusBarsPadding()
+//                          由于国产安卓对AOSP魔改程度较大，因此无法直接使用MD3中的函数
+                            .then(
+                                when (windowSizeClass.widthSizeClass) {
+                                    WindowWidthSizeClass.Compact -> Modifier.statusBarsPadding()
+                                    WindowWidthSizeClass.Medium -> Modifier.statusBarsPadding()
+                                    else -> Modifier.padding(top = 8.dp)
+                                }
+                            )
                             .padding(horizontal = 16.dp, vertical = 0.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
