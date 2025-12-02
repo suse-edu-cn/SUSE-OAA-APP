@@ -18,7 +18,7 @@ interface ApiService {
     suspend fun login(@Body request: LoginRequest): Response<ApiResponse<LoginData>>
 
     @POST("user/register")
-    suspend fun register(@Body request: RegisterRequest): Response<ApiResponse<Any>>
+    suspend fun register(@Body request: RegisterRequest): Response<ApiResponse<Unit>>
 
     @GET("user/Info")
     suspend fun getUserInfo(
@@ -29,11 +29,11 @@ interface ApiService {
     suspend fun updateUserInfo(
         @Header("Authorization") token: String,
         @Body request: UpdateUserInfoRequest
-    ): Response<ApiResponse<Any>>
+    ): Response<ApiResponse<Unit>>
 
     @POST("user/password")
     suspend fun updatePassword(
         @Header("Authorization") token: String,
         @Body request: UpdatePasswordRequest
-    ): Response<ApiResponse<Any>>
+    ): Response<ApiResponse<Unit>>
 }
