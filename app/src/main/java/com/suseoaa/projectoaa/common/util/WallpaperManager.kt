@@ -17,12 +17,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.TimeZone
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import androidx.core.content.edit
 
 /**
  * 壁纸管理单例对象
@@ -108,7 +108,7 @@ object WallpaperManager {
         _wallpaperAlpha.value = alpha
         scope.launch {
             context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-                .edit().putFloat(KEY_WALLPAPER_ALPHA, alpha).apply()
+                .edit { putFloat(KEY_WALLPAPER_ALPHA, alpha) }
         }
     }
 
@@ -261,7 +261,7 @@ object WallpaperManager {
 
     /**
      * 从本地随机选取一张壁纸显示
-     * [优化] 这是一个 suspend 函数，因为它执行 I/O 操作。
+     * 优化 这是一个 suspend 函数，因为它执行 I/O 操作。
      */
     private suspend fun randomizeDisplay(context: Context): File? = withContext(Dispatchers.IO) {
         val cacheDir = getCacheDir(context)
@@ -356,7 +356,7 @@ object WallpaperManager {
 
                 if (successCount > 0) {
                     context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-                        .edit().putLong(KEY_LAST_UPDATE, System.currentTimeMillis()).apply()
+                        .edit { putLong(KEY_LAST_UPDATE, System.currentTimeMillis()) }
                     // 如果当前没壁纸，下载完立刻显示
                     if (_currentWallpaper.value == null) {
                         randomizeDisplay(context)
@@ -455,7 +455,7 @@ object WallpaperManager {
                 destination.delete()
                 return@withContext false
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             if (destination.exists()) destination.delete()
             return@withContext false
         } finally {
@@ -483,13 +483,13 @@ object WallpaperManager {
     private fun cleanupTempFiles(dir: File) {
         try {
             dir.listFiles { _, name -> name.endsWith(TEMP_SUFFIX) }?.forEach { it.delete() }
-        } catch (e: Exception) { /* ignore */ }
+        } catch (_: Exception) { /* ignore */ }
     }
 
     private fun File.isValidImage(): Boolean = this.exists() && this.length() > MIN_IMAGE_SIZE
 
     /**
-     * [优化] 高效的日期比较，避免使用 Calendar.getInstance()
+     * 优化 高效的日期比较，避免使用 Calendar.getInstance()
      */
     private fun isSameDay(time1: Long, time2: Long): Boolean {
         // 必须考虑时区，否则0点附近会出错

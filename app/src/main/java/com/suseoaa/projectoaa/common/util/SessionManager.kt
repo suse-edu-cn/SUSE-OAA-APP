@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
 /**
  * 1. 从 'object' 变为 Hilt 管理的 '@Singleton class'。
@@ -40,17 +41,17 @@ class SessionManager @Inject constructor(
 
     fun saveToken(token: String) {
         jwtToken = token
-        prefs.edit().putString(KEY_TOKEN, token).apply()
+        prefs.edit { putString(KEY_TOKEN, token) }
     }
 
     fun saveUserInfo(username: String, role: String) {
         currentUser = username
         currentRole = role
 
-        prefs.edit()
-            .putString(KEY_USERNAME, username)
-            .putString(KEY_ROLE, role)
-            .apply()
+        prefs.edit {
+            putString(KEY_USERNAME, username)
+                .putString(KEY_ROLE, role)
+        }
     }
 
     private fun loadSession() {
@@ -69,7 +70,7 @@ class SessionManager @Inject constructor(
         jwtToken = null
         currentUser = "游客"
         currentRole = "未登录"
-        prefs.edit().clear().apply()
+        prefs.edit { clear() }
     }
 
     fun isLoggedIn(): Boolean {

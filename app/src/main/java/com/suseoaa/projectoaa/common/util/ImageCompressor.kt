@@ -67,15 +67,15 @@ class ImageCompressor @Inject constructor( // 5. 改为 class, 并使用 @Inject
                     val matrix = Matrix()
                     matrix.postRotate(rotation.toFloat())
                     val rotatedBitmap = Bitmap.createBitmap(
-                        bitmap!!,
+                        bitmap,
                         0,
                         0,
-                        bitmap!!.width,
-                        bitmap!!.height,
+                        bitmap.width,
+                        bitmap.height,
                         matrix,
                         true
                     )
-                    bitmap!!.recycle() // 回收旧的
+                    bitmap.recycle() // 回收旧的
                     bitmap = rotatedBitmap
                 }
 
@@ -83,13 +83,13 @@ class ImageCompressor @Inject constructor( // 5. 改为 class, 并使用 @Inject
 
                 // 4. 质量压缩 (迭代降低质量直到满足大小要求)
                 var compressQuality = 90
-                var outputStream = ByteArrayOutputStream()
-                bitmap!!.compress(Bitmap.CompressFormat.JPEG, compressQuality, outputStream)
+                val outputStream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, compressQuality, outputStream)
 
                 while (outputStream.toByteArray().size > MAX_FILE_SIZE_BYTES && compressQuality > 10) {
                     outputStream.reset()
                     compressQuality -= 10
-                    bitmap!!.compress(Bitmap.CompressFormat.JPEG, compressQuality, outputStream)
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, compressQuality, outputStream)
                 }
 
                 // 5. 保存到临时文件
@@ -101,7 +101,7 @@ class ImageCompressor @Inject constructor( // 5. 改为 class, 并使用 @Inject
                     fos.flush()
                 }
                 outputStream.close()
-                bitmap?.recycle()
+                bitmap.recycle()
 
                 return@withContext Uri.fromFile(tempFile)
 
@@ -130,7 +130,7 @@ class ImageCompressor @Inject constructor( // 5. 改为 class, 并使用 @Inject
     }
 
     /**
-     * [新增] 安全地清理压缩过的临时文件
+     * 新增 安全地清理压缩过的临时文件
      * 这个函数只删除位于 cacheDir 中的文件，不会误删 content:// 路径
      */
     fun cleanupCompressedImage(uri: Uri) {

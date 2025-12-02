@@ -211,6 +211,28 @@ internal fun HomeContent(
                     )
                 }
             }
+
+
+            AppCard(onClick = { navController.navigate(AppRoutes.Competition.route) }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        AppRoutes.Competition.icon,
+                        null,
+                        tint = colors.tertiary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(
+                        AppRoutes.Competition.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.onSurface
+                    )
+                }
+            }
         }
 
         // --- 待办事项 ---

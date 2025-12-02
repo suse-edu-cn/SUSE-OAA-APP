@@ -6,6 +6,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +23,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.SecondaryIndicator
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,8 +58,14 @@ import kotlin.math.roundToInt
 
 // 课程卡片颜色
 private val CourseColors = listOf(
-    Color(0xFF5C6BC0), Color(0xFFAB47BC), Color(0xFF42A5F5), Color(0xFF26A69A),
-    Color(0xFFFFCA28), Color(0xFF9CCC65), Color(0xFF7E57C2), Color(0xFF29B6F6)
+    Color(0xFF5C6BC0),
+    Color(0xFFAB47BC),
+    Color(0xFF42A5F5),
+    Color(0xFF26A69A),
+    Color(0xFFFFCA28),
+    Color(0xFF9CCC65),
+    Color(0xFF7E57C2),
+    Color(0xFF29B6F6)
 )
 
 // [修改] 增加 endTime 字段
@@ -94,6 +104,9 @@ private val SectionIndexMap = DailySchedule.mapIndexedNotNull { index, slot ->
 }.toMap()
 
 private val DateHeaderHeight = 32.dp
+
+
+
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -150,7 +163,9 @@ fun CourseListScreen(
         val today = LocalDate.now()
         DatePickerDialog(
             context,
-            { _, y, m, d -> viewModel.setSemesterStartDate(LocalDate.of(y, m + 1, d)) },
+            { _, y, m, d ->
+                viewModel.setSemesterStartDate(LocalDate.of(y, m + 1, d))
+            },
             today.year,
             today.monthValue - 1,
             today.dayOfMonth
@@ -158,13 +173,14 @@ fun CourseListScreen(
     }
 
     Scaffold(
-        modifier = modifier,
+        modifier = Modifier,
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 2.dp,
-                modifier = Modifier.zIndex(1f)
+                modifier = Modifier
+                    .zIndex(1f)
             ) {
                 Column {
                     Row(

@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.suseoaa.projectoaa.common.navigation.AppRoutes
+import com.suseoaa.projectoaa.competition.ui.CompetitionHome
 import com.suseoaa.projectoaa.courseList.ui.screen.CourseListScreen
 import com.suseoaa.projectoaa.courseList.viewmodel.CourseListViewModel
 import com.suseoaa.projectoaa.login.ui.ProfileScreen
@@ -80,7 +81,10 @@ fun AppNavigationGraph(
                 currentThemeName = shareViewModel.currentTheme.name
             )
         }
-
+//比赛
+        composable(route = AppRoutes.Competition.route) {
+            CompetitionHome()
+        }
         // --- [修改] 新增：待办事项详情页 ---
         composable(
             route = "todo_detail/{taskId}",

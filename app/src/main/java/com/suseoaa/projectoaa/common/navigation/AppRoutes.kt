@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 // [修复] 添加所有必需的图标导入
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Margin
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
@@ -22,4 +23,5 @@ sealed class AppRoutes(val route: String, val title: String, val icon: ImageVect
     object Profile : AppRoutes("profile", "个人", Icons.Default.Person)
 
     object StudentForm : AppRoutes("student_form", "招新/换届申请", Icons.Default.PersonAdd)
+    object Competition : AppRoutes("competition", "比赛", Icons.Default.Margin)
 }
