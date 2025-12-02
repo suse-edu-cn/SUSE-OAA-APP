@@ -19,6 +19,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.suseoaa.projectoaa.competition.viewmodel.MatchDetailViewModel
 
+// 确保这一行存在，并且不是红色的
+import dev.jeziellago.compose.markdowntext.MarkdownText
+
 /**
  * 比赛详情屏幕
  */
@@ -33,7 +36,6 @@ fun MatchDetailScreen(
     val errorMessage = viewModel.errorMessage
 
     Scaffold(
-        // 关键：适配 Theme.kt, 使 Scaffold 和 TopAppBar 背景透明
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
@@ -111,9 +113,9 @@ fun MatchDetailScreen(
                         )
                         Spacer(Modifier.height(12.dp))
 
-                        // 推荐使用 Markdown 渲染库
-                        Text(
-                            text = detail.content,
+                        // 确保这一行存在，并且不是红色的
+                        MarkdownText(
+                            markdown = detail.content,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

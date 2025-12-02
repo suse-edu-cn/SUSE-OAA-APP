@@ -28,7 +28,7 @@ android {
         if (localPropertiesFile.exists()) {
             properties.load(FileInputStream(localPropertiesFile))
         }
-        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://api.dev.suseoaa.com:8080\""
+        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://10.0.2.2:8080\""
 
         buildConfigField("String", "API_BASE_URL", baseUrl)
     }
@@ -123,4 +123,8 @@ dependencies {
     // 添加 AndroidX 依赖
     implementation(libs.androidx.activity.compose.v190)
     implementation(libs.androidx.core.splashscreen)
+
+    // markdown 模块
+    implementation("com.github.jeziellago:compose-markdown:0.4.0")
+
 }

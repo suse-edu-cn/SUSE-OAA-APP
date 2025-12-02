@@ -49,7 +49,6 @@ fun MatchListScreen(
     }
 
     Scaffold(
-        // 关键：适配 Theme.kt, 使 Scaffold 和 TopAppBar 背景透明
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
@@ -110,14 +109,25 @@ fun MatchListScreen(
  */
 @Composable
 fun MatchListItem(match: MatchItem, onClick: () -> Unit) {
-    val itemColor = parseColor(match.color)
+    // (修改) 1. 定义一个主题感知的颜色列表
+    val itemColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.primaryContainer,
+        MaterialTheme.colorScheme.secondaryContainer,
+        MaterialTheme.colorScheme.tertiaryContainer
+    )
+
+    // (修改) 2. 根据 match.id 在前端确定性地选择颜色
+    //    我们不再使用 match.color (来自后端)
+    val itemColor = itemColors[match.id % itemColors.size]
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(4.dp),
-        // 卡片颜色适配 M3 主题
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
@@ -132,7 +142,7 @@ fun MatchListItem(match: MatchItem, onClick: () -> Unit) {
                 modifier = Modifier
                     .width(6.dp)
                     .fillMaxHeight()
-                    .background(itemColor)
+                    .background(itemColor) // 3. 应用前端生成的颜色
             )
 
             // 右侧内容
@@ -198,17 +208,5 @@ private fun InfoRow(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-/**
- * 解析 API 颜色, 失败则回退到主题色
- */
-@Composable
-private fun parseColor(colorName: String): Color {
-    return when (colorName.lowercase()) {
-        "emerald" -> Color(0xFF10B981)
-        "indigo" -> Color(0xFF6366F1)
-        else -> MaterialTheme.colorScheme.primaryContainer
     }
 }
