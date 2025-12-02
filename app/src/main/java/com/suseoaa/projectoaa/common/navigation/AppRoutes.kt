@@ -14,6 +14,7 @@ sealed class AppRoutes(val route: String, val title: String, val icon: ImageVect
     object Splash : AppRoutes("splash", "Splash", Icons.Default.Home)
     object Login : AppRoutes("login", "Login", Icons.Default.Home)
     object Register : AppRoutes("register", "Register", Icons.Default.Home)
+
     object StudentEntry : AppRoutes("student_entry", "Student", Icons.Default.Home)
     //旧的入口
 

@@ -10,7 +10,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.suseoaa.projectoaa.common.navigation.AppRoutes
-import com.suseoaa.projectoaa.competition.ui.CompetitionHome
 import com.suseoaa.projectoaa.courseList.ui.screen.CourseListScreen
 import com.suseoaa.projectoaa.courseList.viewmodel.CourseListViewModel
 import com.suseoaa.projectoaa.login.ui.ProfileScreen
@@ -18,14 +17,18 @@ import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.ShareViewModel
 import com.suseoaa.projectoaa.student.ui.StudentFormScreen
 import com.suseoaa.projectoaa.student.viewmodel.StudentFormViewModel
 
-// ==========================================
-// 核心路由图 (AppNavigationGraph)
-// ==========================================
+// --- 导入比赛列表和详情页的UI和ViewModel ---
+import com.suseoaa.projectoaa.competition.ui.MatchDetailScreen
+import com.suseoaa.projectoaa.competition.ui.MatchListScreen
+import com.suseoaa.projectoaa.competition.viewmodel.MatchDetailViewModel
+import com.suseoaa.projectoaa.competition.viewmodel.MatchListViewModel
 
 /**
  * 包含应用所有路由的 NavHost 组件
- * (已从 AdaptiveLayouts 中解耦)
  */
+
+const val MATCH_ID_ARG = "matchId"
+val MATCH_DETAIL_ROUTE = "${AppRoutes.Competition.route}/{$MATCH_ID_ARG}"
 @Composable
 fun AppNavigationGraph(
     navController: NavHostController,
@@ -50,7 +53,6 @@ fun AppNavigationGraph(
             )
         }
 
-
         // --- 设置页 (主页) ---
         composable(route = AppRoutes.Settings.route) {
             SettingsContent(
@@ -71,7 +73,7 @@ fun AppNavigationGraph(
         composable(route = AppRoutes.CourseList.route) {
             CourseListScreen(
                 viewModel = hiltViewModel<CourseListViewModel>(),
-//                onBack = { navController.popBackStack() }
+                // onBack = { navController.popBackStack() }
             )
         }
         composable(route = AppRoutes.StudentForm.route) {
@@ -81,10 +83,31 @@ fun AppNavigationGraph(
                 currentThemeName = shareViewModel.currentTheme.name
             )
         }
-//比赛
+
+        // --- 比赛列表页 ---
         composable(route = AppRoutes.Competition.route) {
-            CompetitionHome()
+            MatchListScreen(
+                viewModel = hiltViewModel<MatchListViewModel>(),
+                onNavigateToDetail = { matchId ->
+                    // 导航到详情页
+                    navController.navigate("${AppRoutes.Competition.route}/$matchId")
+                }
+            )
         }
+
+        // --- 比赛详情页 ---
+        composable(
+            route = MATCH_DETAIL_ROUTE,
+            arguments = listOf(navArgument(MATCH_ID_ARG) {
+                type = NavType.IntType
+            })
+        ) {
+            MatchDetailScreen(
+                viewModel = hiltViewModel<MatchDetailViewModel>(),
+                onBack = { navController.popBackStack() } // 点击返回
+            )
+        }
+
         // --- [修改] 新增：待办事项详情页 ---
         composable(
             route = "todo_detail/{taskId}",

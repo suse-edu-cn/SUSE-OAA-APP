@@ -60,29 +60,29 @@ fun AppNavigation(
             )
         }
 
-        composable(AppRoutes.StudentEntry.route) {
-            StudentAppMainEntry(
-                onLogout = {
-                    loginViewModel.logout()
-                    navController.navigate(AppRoutes.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
-
-        composable(AppRoutes.Profile.route) {
-            ProfileScreen(
-                onBack = { navController.popBackStack() },
-                onLogout = {
-                    loginViewModel.logout()
-                    navController.navigate(AppRoutes.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
+//        composable(AppRoutes.StudentEntry.route) {
+//            StudentAppMainEntry(
+//                onLogout = {
+//                    loginViewModel.logout()
+//                    navController.navigate(AppRoutes.Login.route) {
+//                        popUpTo(0) { inclusive = true }
+//                        launchSingleTop = true
+//                    }
+//                }
+//            )
+//        }
+//
+//        composable(AppRoutes.Profile.route) {
+//            ProfileScreen(
+//                onBack = { navController.popBackStack() },
+//                onLogout = {
+//                    loginViewModel.logout()
+//                    navController.navigate(AppRoutes.Login.route) {
+//                        popUpTo(0) { inclusive = true }
+//                        launchSingleTop = true
+//                    }
+//                }
+//            )
+//        }
     }
 }
