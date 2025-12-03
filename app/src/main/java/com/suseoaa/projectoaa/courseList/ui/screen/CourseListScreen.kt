@@ -178,7 +178,7 @@ fun CourseListScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.background,
                 shadowElevation = 2.dp,
                 modifier = Modifier
                     .zIndex(1f)
@@ -190,9 +190,10 @@ fun CourseListScreen(
 //                          由于国产安卓对AOSP魔改程度较大，因此无法直接使用MD3中的函数
                             .then(
                                 when (windowSizeClass.widthSizeClass) {
-                                    WindowWidthSizeClass.Compact -> Modifier.statusBarsPadding()
+                                    WindowWidthSizeClass.Compact -> Modifier
                                     WindowWidthSizeClass.Medium -> Modifier.statusBarsPadding()
-                                    else -> Modifier.padding(top = 8.dp)
+                                    WindowWidthSizeClass.Expanded -> Modifier.statusBarsPadding()
+                                    else -> Modifier.statusBarsPadding()
                                 }
                             )
                             .padding(horizontal = 16.dp, vertical = 0.dp),
