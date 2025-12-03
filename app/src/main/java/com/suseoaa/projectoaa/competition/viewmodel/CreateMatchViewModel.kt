@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.competition.viewmodel
 
+import android.util.Base64
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,15 +14,16 @@ import javax.inject.Inject
 @HiltViewModel
 class CreateMatchViewModel @Inject constructor(
     private val repository: MatchRepository,
-    private val sessionManager: SessionManager //inject: javax.inject.Inject
+    private val sessionManager: SessionManager
 ) : BaseViewModel() {
 
     // 表单状态
     var title by mutableStateOf("")
-    var description by mutableStateOf("")
-    var content by mutableStateOf("")
+    var description by mutableStateOf("") // 普通文本
+    var content by mutableStateOf("")     // 需要转 Base64
 
-    // 日期状态 (yyyy-MM-dd)
+    // 日期状态
+    // UI 组件现在直接返回标准格式: "yyyy-MM-dd HH:mm:ss"
     var regStartTime by mutableStateOf("")
     var regEndTime by mutableStateOf("")
     var matchStartTime by mutableStateOf("")
@@ -38,22 +40,27 @@ class CreateMatchViewModel @Inject constructor(
 
         val token = sessionManager.jwtToken
         if (token.isNullOrBlank()) {
-            errorMessage = "未登录，无法发布比赛"
+            errorMessage = "未登录"
             return
         }
 
         launchDataLoad {
+            // 1. Content 转 Base64 (对应后端要求)
+            // NO_WRAP 避免产生换行符
+            val encodedContent = Base64.encodeToString(content.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+
+            // 2. 构造请求对象
             val request = CreateMatchRequest(
                 title = title,
-                content = content,
+                content = encodedContent,
                 description = description,
+                // 3. 直接使用 UI 传来的完整时间字符串，无需额外处理
                 startAt = matchStartTime,
                 endAt = matchEndTime,
                 regStartAt = regStartTime,
                 regEndAt = regEndTime
             )
 
-            //token
             val success = repository.createMatch(token, request)
             if (success) {
                 isSubmitSuccess = true

@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.competition.ui
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.suseoaa.projectoaa.competition.viewmodel.CreateMatchViewModel
 import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,21 +74,46 @@ fun CreateMatchScreen(
                 label = { Text("简短描述") },
                 modifier = Modifier.fillMaxWidth()
             )
-            //时间选择
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ReadOnlyDatePicker(Modifier.weight(1f), "报名开始", viewModel.regStartTime, { viewModel.regStartTime = it }, context)
-                ReadOnlyDatePicker(Modifier.weight(1f), "报名结束", viewModel.regEndTime, { viewModel.regEndTime = it }, context)
+                ReadOnlyDateTimePicker(
+                    Modifier.weight(1f),
+                    "报名开始",
+                    viewModel.regStartTime,
+                    { viewModel.regStartTime = it },
+                    context
+                )
+                ReadOnlyDateTimePicker(
+                    Modifier.weight(1f),
+                    "报名结束",
+                    viewModel.regEndTime,
+                    { viewModel.regEndTime = it },
+                    context
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ReadOnlyDatePicker(Modifier.weight(1f), "比赛开始", viewModel.matchStartTime, { viewModel.matchStartTime = it }, context)
-                ReadOnlyDatePicker(Modifier.weight(1f), "比赛结束", viewModel.matchEndTime, { viewModel.matchEndTime = it }, context)
+                ReadOnlyDateTimePicker(
+                    Modifier.weight(1f),
+                    "比赛开始",
+                    viewModel.matchStartTime,
+                    { viewModel.matchStartTime = it },
+                    context
+                )
+                ReadOnlyDateTimePicker(
+                    Modifier.weight(1f),
+                    "比赛结束",
+                    viewModel.matchEndTime,
+                    { viewModel.matchEndTime = it },
+                    context
+                )
             }
 
             OutlinedTextField(
                 value = viewModel.content,
                 onValueChange = { viewModel.content = it },
                 label = { Text("详细内容 (Markdown)") },
-                modifier = Modifier.fillMaxWidth().height(150.dp)
+                minLines = 5,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Button(
@@ -99,23 +126,58 @@ fun CreateMatchScreen(
         }
     }
 }
+
+/**
+ * 自定义组件：只读文本框，点击弹出 日期+时间 选择器
+ */
 @Composable
-fun ReadOnlyDatePicker(
+fun ReadOnlyDateTimePicker(
     modifier: Modifier,
     label: String,
     value: String,
-    onDateSelected: (String) -> Unit,
+    onDateTimeSelected: (String) -> Unit,
     context: Context
 ) {
     Box(modifier = modifier.clickable {
         val c = Calendar.getInstance()
-        DatePickerDialog(context, { _, y, m, d ->
-            onDateSelected(String.format("%d-%02d-%02d", y, m + 1, d))
-        }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show()
+
+        // 1. 先弹出日期选择器
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                // 2. 日期选完后，弹出时间选择器
+                TimePickerDialog(
+                    context,
+                    { _, hourOfDay, minute ->
+                        // 3. 拼接时间，强制秒数为 00
+                        val formattedDateTime = String.format(
+                            Locale.US,
+                            "%04d-%02d-%02d %02d:%02d:00",
+                            year,
+                            month + 1,
+                            dayOfMonth,
+                            hourOfDay,
+                            minute
+                        )
+                        onDateTimeSelected(formattedDateTime)
+                    },
+                    c.get(Calendar.HOUR_OF_DAY),
+                    c.get(Calendar.MINUTE),
+                    true // 使用 24 小时制
+                ).show()
+            },
+            c.get(Calendar.YEAR),
+            c.get(Calendar.MONTH),
+            c.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }) {
         OutlinedTextField(
-            value = value, onValueChange = {}, label = { Text(label) },
-            readOnly = true, enabled = false, modifier = Modifier.fillMaxWidth(),
+            value = value,
+            onValueChange = {},
+            label = { Text(label) },
+            readOnly = true, // 禁止键盘输入
+            enabled = false, // 禁用状态以利用 Box 的点击事件
+            modifier = Modifier.fillMaxWidth(),
             trailingIcon = { Icon(Icons.Default.DateRange, null) },
             colors = OutlinedTextFieldDefaults.colors(
                 disabledTextColor = MaterialTheme.colorScheme.onSurface,
