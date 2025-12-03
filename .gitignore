@@ -1,0 +1,171 @@
+# ==============================================================================
+# 🔐 1. 核心安全规则 (绝对不要提交这些文件！)
+# ==============================================================================
+
+# 密钥、证书和签名文件 (Android & General)
+*.jks
+*.keystore
+debug.keystore
+release.keystore
+*.key
+*.pem
+*.p12
+*.pfx
+*.p7b
+*.p7c
+*.cer
+*.crt
+id_rsa
+id_dsa
+id_ecdsa
+*.gpg
+*.pgp
+
+# 环境变量与敏感配置
+.env
+.env.*
+!.env.example
+!.env.template
+
+# 通用敏感文件名
+secrets.yml
+secrets.json
+credentials.json
+credentials.yml
+
+# OAuth & Token
+*.oauth
+*.token
+client_secret.json
+
+# 云平台与基础设施凭证 (AWS / GCP / Azure / Terraform)
+.aws/
+.azure/
+.gcloud/
+terraform.tfstate
+terraform.tfstate.backup
+
+# 包含私有配置的包管理器文件
+.npmrc
+.yarnrc
+
+# ==============================================================================
+# 📱 2. Android & Gradle 编译产物
+# ==============================================================================
+
+# 构建输出目录
+/build
+/app/build
+*/build
+**/build/
+
+# 编译生成的二进制文件
+*.apk
+*.aar
+*.ap_
+*.dex
+*.class
+*.jar
+
+# Gradle 缓存与配置
+.gradle/
+gradle-app.setting
+# 注意：通常 gradlew 和 wrapper.properties 建议提交以便他人构建
+# 但根据你的要求，这里将其忽略：
+gradlew
+gradlew.bat
+gradle/wrapper/gradle-wrapper.properties
+# 本地特定的 Gradle 属性（通常包含 SDK 路径）
+gradle.properties
+local.properties
+
+# Android 测试报告与临时文件
+**/test-results/
+**/test-reports/
+**/androidTest/
+**/espresso/
+*.hprof
+*.heapdump
+heapdump*
+captures/
+
+# ==============================================================================
+# 💻 3. IDE 与 编辑器配置 (避免团队冲突)
+# ==============================================================================
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+codeStyles/
+
+# VS Code (保留团队共享配置)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# 备份与交换文件 (Vim/Emacs/General)
+*~
+*.bak
+*.swp
+*.swo
+.gitignore.bak
+.gitignore.old
+
+# ==============================================================================
+# 📦 4. Node.js / Web 前端 (如果项目中包含混合开发)
+# ==============================================================================
+
+node_modules/
+dist/
+build/
+coverage/
+.npm/
+.yarn/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==============================================================================
+# 📝 5. 日志与临时文件
+# ==============================================================================
+
+*.log
+logs/
+log/
+*.log.*
+*.tmp
+*.temp
+
+# ==============================================================================
+# 🖥️ 6. 操作系统生成文件 (垃圾文件)
+# ==============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.background
+.hotfiles.btree
+
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+ehthumbs.db
