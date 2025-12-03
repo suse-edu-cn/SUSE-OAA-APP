@@ -6,9 +6,9 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ApiService {
-    @GET("api/matches/list")
+    @GET("/match/getList")
     suspend fun getMatchList(): ApiResponse<List<MatchItem>>
 
-    @GET("api/match/detail")
+    @GET("/match/getDetail")
     suspend fun getMatchDetail(@Query("id") id: Int): ApiResponse<MatchDetail>
 }
