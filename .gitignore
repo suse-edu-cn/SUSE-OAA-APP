@@ -1,0 +1,92 @@
+# 忽略 .gitignore 文件本身的模板或备份
+.gitignore.bak
+.gitignore.old
+
+# === 1. 密钥、凭证和敏感文件 (Keys, Secrets & Sensitive Files) ===
+# 环境变量文件。这是最常见的泄露源。
+.env
+.env.*
+!.env.example
+!.env.template
+
+# 包含"secret"或"credential"的通用文件名
+secrets.yml
+secrets.json
+credentials.json
+credentials.yml
+
+# 私钥和证书 (SSL, SSH, PGP, etc.)
+*.key
+*.pem
+*.p12
+*.pfx
+*.p7b
+*.p7c
+*.cer
+*.crt
+id_rsa
+id_dsa
+id_ecdsa
+*.gpg
+*.pgp
+
+# OAuth 2.0 令牌/凭证文件
+*.oauth
+*.token
+client_secret.json
+
+# 包含私有配置的 npm 和 yarn 文件
+.npmrc
+.yarnrc
+
+# AWS / GCP / Azure / Terraform 凭证和状态文件
+.aws/
+.azure/
+.gcloud/
+terraform.tfstate
+terraform.tfstate.backup
+
+# === 2. 日志文件 (Log Files) ===
+*.log
+logs/
+log/
+npm-debug.log*
+yarn-debug.log
+yarn-error.log
+*.log.*
+
+# === 3. 操作系统 (Windows & macOS) 垃圾文件 ===
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# === 4. 常见的 IDE 和编辑器配置 (避免团队冲突) ===
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# === 5. 常见的构建输出和依赖 (这些也不应上传) ===
+node_modules/
+dist/
+build/
+coverage/
+.npm/
+.yarn/
