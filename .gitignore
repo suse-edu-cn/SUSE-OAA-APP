@@ -1,79 +1,92 @@
-# Android 编译产物
-/build
-/app/build
-*/build
-*.apk
-*.aar
-*.ap_
-*.dex
-*.class
-*.jar
+# 忽略 .gitignore 文件本身的模板或备份
+.gitignore.bak
+.gitignore.old
 
-# Gradle
-.gradle/
-gradle.properties
-gradle-app.setting
-gradlew
-gradlew.bat
-gradle/wrapper/gradle-wrapper.properties
+# === 1. 密钥、凭证和敏感文件 (Keys, Secrets & Sensitive Files) ===
+# 环境变量文件。这是最常见的泄露源。
+.env
+.env.*
+!.env.example
+!.env.template
 
-# IDE (Android Studio)
-.idea/
-*.iml
-*.ipr
-*.iws
-captures/
-codeStyles/
+# 包含"secret"或"credential"的通用文件名
+secrets.yml
+secrets.json
+credentials.json
+credentials.yml
 
-# 本地配置文件
-local.properties
+# 私钥和证书 (SSL, SSH, PGP, etc.)
+*.key
+*.pem
+*.p12
+*.pfx
+*.p7b
+*.p7c
+*.cer
+*.crt
+id_rsa
+id_dsa
+id_ecdsa
+*.gpg
+*.pgp
 
-# macOS 系统文件
+# OAuth 2.0 令牌/凭证文件
+*.oauth
+*.token
+client_secret.json
+
+# 包含私有配置的 npm 和 yarn 文件
+.npmrc
+.yarnrc
+
+# AWS / GCP / Azure / Terraform 凭证和状态文件
+.aws/
+.azure/
+.gcloud/
+terraform.tfstate
+terraform.tfstate.backup
+
+# === 2. 日志文件 (Log Files) ===
+*.log
+logs/
+log/
+npm-debug.log*
+yarn-debug.log
+yarn-error.log
+*.log.*
+
+# === 3. 操作系统 (Windows & macOS) 垃圾文件 ===
+# macOS
 .DS_Store
 .AppleDouble
 .LSOverride
-Icon?
 ._*
-.DocumentRevisions-V100
-.fseventsd
 .Spotlight-V100
-.TemporaryItems
 .Trashes
-.VolumeIcon.icns
-.background
-.hotfiles.btree
-*~
+ehthumbs.db
 
-# 日志文件
-*.log
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
 
-# 临时文件
-*.tmp
-*.temp
-
-# 密钥文件 (绝对不要提交!)
-*.jks
-*.keystore
-debug.keystore
-release.keystore
-
-# 备份文件
-*~
-*.bak
+# === 4. 常见的 IDE 和编辑器配置 (避免团队冲突) ===
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+*.sublime-project
+*.sublime-workspace
 *.swp
 *.swo
 
-# NPM/Yarn
+# === 5. 常见的构建输出和依赖 (这些也不应上传) ===
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# 测试相关
-**/test-results/
-**/test-reports/
-**/androidTest/
-**/espresso/
-*.hprof
-*.heapdump
-heapdump*
+dist/
+build/
+coverage/
+.npm/
+.yarn/
