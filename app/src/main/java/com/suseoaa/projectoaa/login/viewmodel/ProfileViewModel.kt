@@ -62,7 +62,7 @@ class ProfileViewModel @Inject constructor(
     fun startEditing() {
         userInfo?.let {
             editName = it.name
-            editStudentId = it.studentid.toString()
+            editStudentId = it.student_id.toString()
             editUsername = it.username
             editRole = it.role
             editDepartment = it.department
@@ -111,7 +111,7 @@ class ProfileViewModel @Inject constructor(
             if (token.isNullOrBlank()) throw IllegalStateException("Token失效")
 
             val request = UpdateUserInfoRequest(
-                studentid = editStudentId.toLongOrNull() ?: 0L,
+                student_id = editStudentId.toLongOrNull() ?: 0L,
                 name = editName,
                 role = editRole,
                 department = editDepartment

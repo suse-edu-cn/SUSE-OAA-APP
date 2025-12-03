@@ -3,7 +3,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserInfoData(
-    val studentid: Long,
+    val student_id: Long,
     val name: String,
     val username: String,
     val avatar: String?,

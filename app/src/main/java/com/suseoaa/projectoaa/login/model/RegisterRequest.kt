@@ -3,7 +3,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RegisterRequest(
-    val studentid: String,
+    val student_id: String,
     val name: String,
     val username: String,
     val password: String,

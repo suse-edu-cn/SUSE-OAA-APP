@@ -22,6 +22,7 @@ import org.json.JSONObject
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import androidx.core.content.edit
 
 class CourseListViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -102,14 +103,14 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         current.forEach { (u, p) -> jsonArr.put(JSONObject().put("u", u).put("p", p)) }
         val prefs =
             getApplication<Application>().getSharedPreferences(PREFS_ACCOUNT, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_ACCOUNTS, jsonArr.toString()).apply()
+        prefs.edit { putString(KEY_ACCOUNTS, jsonArr.toString()) }
     }
 
     fun switchUser(studentId: String) {
         _currentStudentId.value = studentId
         val prefs =
             getApplication<Application>().getSharedPreferences(PREFS_ACCOUNT, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_CURRENT_ID, studentId).apply()
+        prefs.edit { putString(KEY_CURRENT_ID, studentId) }
     }
 
     /**
@@ -209,7 +210,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             val prefs =
                 getApplication<Application>().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit().putLong(KEY_START_DATE, monday.toEpochDay()).apply()
+            prefs.edit { putLong(KEY_START_DATE, monday.toEpochDay()) }
             _semesterStartDate.value = monday
 
             val today = LocalDate.now()

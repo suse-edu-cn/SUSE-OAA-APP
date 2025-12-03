@@ -93,7 +93,7 @@ class MainViewModel @Inject constructor(
             uiState = "正在注册..."
 
             val request = RegisterRequest(
-                studentid = studentid,
+                student_id = studentid,
                 name = name,
                 username = username,
                 password = pass,

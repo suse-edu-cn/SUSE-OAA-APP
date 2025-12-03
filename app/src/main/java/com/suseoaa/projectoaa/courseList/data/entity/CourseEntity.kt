@@ -32,9 +32,20 @@ data class CourseEntity(
         )
     ],
     indices = [
-        Index("studentId", "courseOwnerName"),
         Index(
-            value = ["studentId", "courseOwnerName", "weekday", "period", "weeks", "location", "teacher", "classGroup"],
+            "studentId", "courseOwnerName"
+        ),
+        Index(
+            value = [
+                "studentId",
+                "courseOwnerName",
+                "weekday",
+                "period",
+                "weeks",
+                "location",
+                "teacher",
+                "classGroup"
+            ],
             unique = true
         )
     ]

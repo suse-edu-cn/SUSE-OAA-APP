@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.login.ui
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -99,6 +100,7 @@ fun ProfileScreen(
     }
 }
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 private fun ProfileContent(
     viewModel: ProfileViewModel,
@@ -280,11 +282,11 @@ fun ChangePasswordDialog(
 private fun ViewProfileContent(user: UserInfoData, isWideScreen: Boolean) {
     val basicInfoItems = listOf(
         Triple("姓名", user.name, Icons.Default.Person),
-        Triple("学号", user.studentid.toString(), Icons.Default.Badge),
+        Triple("学号", user.student_id.toString(), Icons.Default.Badge),
         Triple("用户名", user.username, Icons.Default.AccountCircle),
     )
     val academicInfoItems = listOf(
-        Triple("所在学院", user.department, Icons.Default.School),
+        Triple("所在部门", user.department, Icons.Default.School),
         Triple("当前状态", "已认证", Icons.Default.Verified),
         Triple("身份角色", user.role, Icons.Default.AdminPanelSettings),
     )

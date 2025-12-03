@@ -1,4 +1,5 @@
 package com.suseoaa.projectoaa.startHomeNavigation.ui
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -36,8 +37,14 @@ fun CompactLayout(
     onLogout: () -> Unit,
     shareViewModel: ShareViewModel
 ) {
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route ?: AppRoutes.Home.route
-    val showBottomBar = currentRoute in listOf(AppRoutes.Home.route, AppRoutes.CourseList.route, AppRoutes.Settings.route, AppRoutes.Profile.route)
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+        ?: AppRoutes.Home.route
+    val showBottomBar = currentRoute in listOf(
+        AppRoutes.Home.route,
+        AppRoutes.CourseList.route,
+        AppRoutes.Settings.route,
+        AppRoutes.Profile.route
+    )
 
     val wallpaperUri by shareViewModel.appWallpaper.collectAsStateWithLifecycle()
     val maskAlpha by shareViewModel.wallpaperAlpha.collectAsStateWithLifecycle()
@@ -75,16 +82,34 @@ fun CompactLayout(
                         val navigateTo = { route: String ->
                             if (currentRoute != route) {
                                 navController.navigate(route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
                             }
                         }
-                        NavigationBarItem(icon = { Icon(AppRoutes.Home.icon, null) }, label = { Text(AppRoutes.Home.title) }, selected = currentRoute == AppRoutes.Home.route, onClick = { navigateTo(AppRoutes.Home.route) })
-                        NavigationBarItem(icon = { Icon(AppRoutes.CourseList.icon, null) }, label = { Text(AppRoutes.CourseList.title) }, selected = currentRoute == AppRoutes.CourseList.route, onClick = { navigateTo(AppRoutes.CourseList.route) })
-                        NavigationBarItem(icon = { Icon(AppRoutes.Settings.icon, null) }, label = { Text(AppRoutes.Settings.title) }, selected = currentRoute == AppRoutes.Settings.route, onClick = { navigateTo(AppRoutes.Settings.route) })
-                        NavigationBarItem(icon = { Icon(AppRoutes.Profile.icon, null) }, label = { Text(AppRoutes.Profile.title) }, selected = currentRoute == AppRoutes.Profile.route, onClick = { navigateTo(AppRoutes.Profile.route) })
+                        NavigationBarItem(
+                            icon = { Icon(AppRoutes.Home.icon, null) },
+                            label = { Text(AppRoutes.Home.title) },
+                            selected = currentRoute == AppRoutes.Home.route,
+                            onClick = { navigateTo(AppRoutes.Home.route) })
+                        NavigationBarItem(
+                            icon = { Icon(AppRoutes.CourseList.icon, null) },
+                            label = { Text(AppRoutes.CourseList.title) },
+                            selected = currentRoute == AppRoutes.CourseList.route,
+                            onClick = { navigateTo(AppRoutes.CourseList.route) })
+                        NavigationBarItem(
+                            icon = { Icon(AppRoutes.Settings.icon, null) },
+                            label = { Text(AppRoutes.Settings.title) },
+                            selected = currentRoute == AppRoutes.Settings.route,
+                            onClick = { navigateTo(AppRoutes.Settings.route) })
+                        NavigationBarItem(
+                            icon = { Icon(AppRoutes.Profile.icon, null) },
+                            label = { Text(AppRoutes.Profile.title) },
+                            selected = currentRoute == AppRoutes.Profile.route,
+                            onClick = { navigateTo(AppRoutes.Profile.route) })
                     }
                 }
             }
@@ -93,7 +118,9 @@ fun CompactLayout(
                 navController = navController,
                 shareViewModel = shareViewModel,
                 onLogout = onLogout,
-                modifier = Modifier.padding(padding).fillMaxSize()
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
             )
         }
     }
@@ -106,8 +133,14 @@ fun MediumLayout(
     onLogout: () -> Unit,
     shareViewModel: ShareViewModel
 ) {
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route ?: AppRoutes.Home.route
-    val showNavRail = currentRoute in listOf(AppRoutes.Home.route, AppRoutes.CourseList.route, AppRoutes.Settings.route, AppRoutes.Profile.route)
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+        ?: AppRoutes.Home.route
+    val showNavRail = currentRoute in listOf(
+        AppRoutes.Home.route,
+        AppRoutes.CourseList.route,
+        AppRoutes.Settings.route,
+        AppRoutes.Profile.route
+    )
 
     val wallpaperUri by shareViewModel.appWallpaper.collectAsStateWithLifecycle()
     val maskAlpha by shareViewModel.wallpaperAlpha.collectAsStateWithLifecycle()
@@ -123,14 +156,29 @@ fun MediumLayout(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background.copy(alpha = maskAlpha)))
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = maskAlpha))
+            )
         } else {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+            Box(Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background))
         }
 
         Row(modifier = Modifier.fillMaxSize()) {
             if (showNavRail) {
-                NavigationRail(modifier = Modifier.fillMaxHeight(), containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), header = { Icon(Icons.Default.Menu, null, Modifier.padding(vertical = 16.dp)) }) {
+                NavigationRail(
+                    modifier = Modifier.fillMaxHeight(),
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                    header = {
+                        Icon(
+                            Icons.Default.Menu,
+                            null,
+                            Modifier.padding(vertical = 16.dp)
+                        )
+                    }) {
                     // (NavigationRailItem 逻辑...)
                     val navigateTo = { route: String ->
                         if (currentRoute != route) {
@@ -141,10 +189,26 @@ fun MediumLayout(
                             }
                         }
                     }
-                    NavigationRailItem(icon = { Icon(AppRoutes.Home.icon, null) }, label = { Text(AppRoutes.Home.title) }, selected = currentRoute == AppRoutes.Home.route, onClick = { navigateTo(AppRoutes.Home.route) })
-                    NavigationRailItem(icon = { Icon(AppRoutes.CourseList.icon, null) }, label = { Text(AppRoutes.CourseList.title) }, selected = currentRoute == AppRoutes.CourseList.route, onClick = { navigateTo(AppRoutes.CourseList.route) })
-                    NavigationRailItem(icon = { Icon(AppRoutes.Settings.icon, null) }, label = { Text(AppRoutes.Settings.title) }, selected = currentRoute == AppRoutes.Settings.route, onClick = { navigateTo(AppRoutes.Settings.route) })
-                    NavigationRailItem(icon = { Icon(AppRoutes.Profile.icon, null) }, label = { Text(AppRoutes.Profile.title) }, selected = currentRoute == AppRoutes.Profile.route, onClick = { navigateTo(AppRoutes.Profile.route) })
+                    NavigationRailItem(
+                        icon = { Icon(AppRoutes.Home.icon, null) },
+                        label = { Text(AppRoutes.Home.title) },
+                        selected = currentRoute == AppRoutes.Home.route,
+                        onClick = { navigateTo(AppRoutes.Home.route) })
+                    NavigationRailItem(
+                        icon = { Icon(AppRoutes.CourseList.icon, null) },
+                        label = { Text(AppRoutes.CourseList.title) },
+                        selected = currentRoute == AppRoutes.CourseList.route,
+                        onClick = { navigateTo(AppRoutes.CourseList.route) })
+                    NavigationRailItem(
+                        icon = { Icon(AppRoutes.Settings.icon, null) },
+                        label = { Text(AppRoutes.Settings.title) },
+                        selected = currentRoute == AppRoutes.Settings.route,
+                        onClick = { navigateTo(AppRoutes.Settings.route) })
+                    NavigationRailItem(
+                        icon = { Icon(AppRoutes.Profile.icon, null) },
+                        label = { Text(AppRoutes.Profile.title) },
+                        selected = currentRoute == AppRoutes.Profile.route,
+                        onClick = { navigateTo(AppRoutes.Profile.route) })
                 }
             }
             AppNavigationGraph(
@@ -164,7 +228,8 @@ fun ExpandedLayout(
     onLogout: () -> Unit,
     shareViewModel: ShareViewModel
 ) {
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route ?: AppRoutes.Home.route
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+        ?: AppRoutes.Home.route
 
     val wallpaperUri by shareViewModel.appWallpaper.collectAsStateWithLifecycle()
     val maskAlpha by shareViewModel.wallpaperAlpha.collectAsStateWithLifecycle()
@@ -180,33 +245,65 @@ fun ExpandedLayout(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background.copy(alpha = maskAlpha)))
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = maskAlpha))
+            )
         } else {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+            Box(Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background))
         }
 
         Row(modifier = Modifier.fillMaxSize()) {
             PermanentNavigationDrawer(
                 drawerContent = {
                     PermanentDrawerSheet(
-                        modifier = Modifier.width(280.dp).shadow(10.dp),
-                        drawerContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                        modifier = Modifier
+                            .width(280.dp),
                     ) {
                         // (NavigationDrawerItem 逻辑...)
                         Spacer(Modifier.height(16.dp))
                         val navigateTo = { route: String ->
                             if (currentRoute != route) {
                                 navController.navigate(route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
                             }
                         }
-                        NavigationDrawerItem(icon = { Icon(AppRoutes.Home.icon, null) }, label = { Text(AppRoutes.Home.title) }, selected = currentRoute == AppRoutes.Home.route, onClick = { navigateTo(AppRoutes.Home.route) }, modifier = Modifier.padding(horizontal = 12.dp))
-                        NavigationDrawerItem(icon = { Icon(AppRoutes.CourseList.icon, null) }, label = { Text(AppRoutes.CourseList.title) }, selected = currentRoute == AppRoutes.CourseList.route, onClick = { navigateTo(AppRoutes.CourseList.route) }, modifier = Modifier.padding(horizontal = 12.dp))
-                        NavigationDrawerItem(icon = { Icon(AppRoutes.Settings.icon, null) }, label = { Text(AppRoutes.Settings.title) }, selected = currentRoute == AppRoutes.Settings.route, onClick = { navigateTo(AppRoutes.Settings.route) }, modifier = Modifier.padding(horizontal = 12.dp))
-                        NavigationDrawerItem(icon = { Icon(AppRoutes.Profile.icon, null) }, label = { Text(AppRoutes.Profile.title) }, selected = currentRoute == AppRoutes.Profile.route, onClick = { navigateTo(AppRoutes.Profile.route) }, modifier = Modifier.padding(horizontal = 12.dp))
+                        NavigationDrawerItem(
+                            icon = { Icon(AppRoutes.Home.icon, null) },
+                            label = { Text(AppRoutes.Home.title) },
+                            selected = currentRoute == AppRoutes.Home.route,
+                            onClick = { navigateTo(AppRoutes.Home.route) },
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(AppRoutes.CourseList.icon, null) },
+                            label = { Text(AppRoutes.CourseList.title) },
+                            selected = currentRoute == AppRoutes.CourseList.route,
+                            onClick = { navigateTo(AppRoutes.CourseList.route) },
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(AppRoutes.Settings.icon, null) },
+                            label = { Text(AppRoutes.Settings.title) },
+                            selected = currentRoute == AppRoutes.Settings.route,
+                            onClick = { navigateTo(AppRoutes.Settings.route) },
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(AppRoutes.Profile.icon, null) },
+                            label = { Text(AppRoutes.Profile.title) },
+                            selected = currentRoute == AppRoutes.Profile.route,
+                            onClick = { navigateTo(AppRoutes.Profile.route) },
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
                     }
                 }
             ) {

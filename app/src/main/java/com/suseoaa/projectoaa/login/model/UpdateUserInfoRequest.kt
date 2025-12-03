@@ -3,7 +3,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class UpdateUserInfoRequest(
-    val studentid: Long,
+    val student_id: Long,
     val name: String,
     val department: String,
     val role: String
