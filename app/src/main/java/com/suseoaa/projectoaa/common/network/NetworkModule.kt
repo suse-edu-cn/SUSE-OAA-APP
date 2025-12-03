@@ -12,11 +12,8 @@ import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
-// 导入三个 ApiService
 import com.suseoaa.projectoaa.login.api.ApiService as LoginApiService
 import com.suseoaa.projectoaa.student.network.ApiService as StudentApiService
-// (注意：你之前的代码里有 DetailApiService，但没有导入，这里我先注释掉)
-// import com.suseoaa.projectoaa.detail.api.ApiService as DetailApiService
 
 // ================== 新增导入 ==================
 import com.suseoaa.projectoaa.competition.network.ApiService as CompetitionApiService //

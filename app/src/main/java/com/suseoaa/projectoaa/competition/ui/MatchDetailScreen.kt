@@ -17,19 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-// (新增) 导入 Status
 import com.suseoaa.projectoaa.competition.model.MatchStatus
 import com.suseoaa.projectoaa.competition.viewmodel.MatchDetailViewModel
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
-/**
- * 比赛详情屏幕
- */
+@Suppress("DEPRECATION")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatchDetailScreen(
@@ -87,7 +82,6 @@ fun MatchDetailScreen(
                             .verticalScroll(rememberScrollState())
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        // (新增) 显示状态徽章
                         StatusBadge(status = status)
                         Spacer(Modifier.height(16.dp))
 
@@ -95,15 +89,15 @@ fun MatchDetailScreen(
                             icon = Icons.Default.MedicalInformation,
                             label = "比赛 ID",
                             value = detail.id.toString(),
-                            isEnded = isEnded // (修改)
+                            isEnded = isEnded
                         )
                         Spacer(Modifier.height(6.dp))
 
                         InfoRow(
                             icon = Icons.Default.PersonOutline,
-                            label = "主办方",
-                            value = detail.organizer.name,
-                            isEnded = isEnded // (修改)
+                            label = "发布者",
+                            value = detail.organizerName,
+                            isEnded = isEnded
                         )
                         Spacer(Modifier.height(6.dp))
 
@@ -111,15 +105,15 @@ fun MatchDetailScreen(
                             icon = Icons.Default.CalendarToday,
                             label = "报名时间",
                             value = detail.regTime.joinToString(" 到 "),
-                            isEnded = isEnded // (修改)
+                            isEnded = isEnded
                         )
                         Spacer(Modifier.height(6.dp))
 
                         InfoRow(
                             icon = Icons.Default.Event,
                             label = "比赛时间",
-                            value = detail.conTime.joinToString(" 到 "),
-                            isEnded = isEnded // (修改)
+                            value = detail.matchTime.joinToString(" 到 "),
+                            isEnded = isEnded
                         )
 
                         HorizontalDivider(
@@ -138,7 +132,6 @@ fun MatchDetailScreen(
                         MarkdownText(
                             markdown = detail.content,
                             style = MaterialTheme.typography.bodyLarge,
-                            // (修改) 已结束的比赛详情内容也使用中性色
                             color = if (isEnded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -148,17 +141,14 @@ fun MatchDetailScreen(
     }
 }
 
-/**
- * 辅助 Composable, 用于显示 "图标 + 标签 + 值"
- */
+// InfoRow 和 StatusBadge 保持不变 (引用自上一轮代码)
 @Composable
 private fun InfoRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String,
-    isEnded: Boolean // (新增)
+    isEnded: Boolean
 ) {
-    // (新增) 根据状态决定颜色
     val tint = if (isEnded) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
     val labelColor = if (isEnded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
 
@@ -167,14 +157,14 @@ private fun InfoRow(
             imageVector = icon,
             contentDescription = label,
             modifier = Modifier.size(16.dp),
-            tint = tint // (修改)
+            tint = tint
         )
         Spacer(Modifier.width(8.dp))
         Text(
             text = "$label: ",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = labelColor // (修改)
+            color = labelColor
         )
         Text(
             text = value,
@@ -184,10 +174,6 @@ private fun InfoRow(
     }
 }
 
-/**
- * 状态徽章 Composable
- * (从 MatchListScreen.kt 复制而来，使用文件 [1] 中的最新逻辑)
- */
 @Composable
 private fun StatusBadge(status: MatchStatus) {
     val (text, color) = when (status) {

@@ -33,4 +33,16 @@ class MatchRepository @Inject constructor(
             throw Exception(response.message)
         }
     }
+
+    /**
+     * 创建比赛
+     */
+    suspend fun createMatch(token: String, request: CreateMatchRequest): Boolean {
+        val response = apiService.createMatch(token, request)
+        if (response.code == 0 || response.code == 200) {
+            return true
+        } else {
+            throw Exception(response.message)
+        }
+    }
 }

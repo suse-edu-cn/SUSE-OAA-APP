@@ -331,9 +331,9 @@ private fun EditProfileForm(viewModel: ProfileViewModel, isWideScreen: Boolean) 
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔒 锁定：学号 (后端 Bug 保护)
+        // 🔒 锁定：学号
         EditTextField(
-            label = "学号 (不可修改)",
+            label = "学号",
             value = viewModel.editStudentId,
             onValueChange = { }, // 禁止修改
             icon = Icons.Default.Badge,
@@ -341,9 +341,9 @@ private fun EditProfileForm(viewModel: ProfileViewModel, isWideScreen: Boolean) 
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔒 锁定：用户名 (后端 Bug 保护)
+        // 🔒 锁定：用户名
         EditTextField(
-            label = "用户名 (不可修改)",
+            label = "用户名",
             value = viewModel.editUsername,
             onValueChange = { }, // 禁止修改
             icon = Icons.Default.AccountCircle,
@@ -355,7 +355,7 @@ private fun EditProfileForm(viewModel: ProfileViewModel, isWideScreen: Boolean) 
     val AcademicInputs = @Composable {
         // 允许修改：学院
         EditTextField(
-            label = "所在学院",
+            label = "所在部门",
             value = viewModel.editDepartment,
             onValueChange = { viewModel.editDepartment = it },
             icon = Icons.Default.School
