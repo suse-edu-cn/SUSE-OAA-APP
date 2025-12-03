@@ -1,25 +1,30 @@
 package com.suseoaa.projectoaa.competition.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.MedicalInformation
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+// (新增) 导入 Status
+import com.suseoaa.projectoaa.competition.model.MatchStatus
 import com.suseoaa.projectoaa.competition.viewmodel.MatchDetailViewModel
-
-// 确保这一行存在，并且不是红色的
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
 /**
@@ -73,38 +78,55 @@ fun MatchDetailScreen(
                     )
                 }
                 detail != null -> {
+                    val status = detail.status
+                    val isEnded = status == MatchStatus.ENDED
+
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        // 元数据
+                        // (新增) 显示状态徽章
+                        StatusBadge(status = status)
+                        Spacer(Modifier.height(16.dp))
+
+                        InfoRow(
+                            icon = Icons.Default.MedicalInformation,
+                            label = "比赛 ID",
+                            value = detail.id.toString(),
+                            isEnded = isEnded // (修改)
+                        )
+                        Spacer(Modifier.height(6.dp))
+
                         InfoRow(
                             icon = Icons.Default.PersonOutline,
                             label = "主办方",
-                            value = detail.organizer.name
+                            value = detail.organizer.name,
+                            isEnded = isEnded // (修改)
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(6.dp))
+
                         InfoRow(
                             icon = Icons.Default.CalendarToday,
                             label = "报名时间",
-                            value = detail.regTime.joinToString(" 到 ")
+                            value = detail.regTime.joinToString(" 到 "),
+                            isEnded = isEnded // (修改)
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(6.dp))
+
                         InfoRow(
                             icon = Icons.Default.Event,
                             label = "比赛时间",
-                            value = detail.conTime.joinToString(" 到 ")
+                            value = detail.conTime.joinToString(" 到 "),
+                            isEnded = isEnded // (修改)
                         )
 
-                        // 分隔线
                         HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 20.dp),
+                            modifier = Modifier.padding(vertical = 16.dp),
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                         )
 
-                        // 详情内容
                         Text(
                             text = "比赛详情",
                             style = MaterialTheme.typography.titleLarge,
@@ -113,11 +135,11 @@ fun MatchDetailScreen(
                         )
                         Spacer(Modifier.height(12.dp))
 
-                        // 确保这一行存在，并且不是红色的
                         MarkdownText(
                             markdown = detail.content,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            // (修改) 已结束的比赛详情内容也使用中性色
+                            color = if (isEnded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -133,26 +155,60 @@ fun MatchDetailScreen(
 private fun InfoRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    value: String
+    value: String,
+    isEnded: Boolean // (新增)
 ) {
+    // (新增) 根据状态决定颜色
+    val tint = if (isEnded) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
+    val labelColor = if (isEnded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
             contentDescription = label,
             modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.primary
+            tint = tint // (修改)
         )
         Spacer(Modifier.width(8.dp))
         Text(
             text = "$label: ",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = labelColor // (修改)
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * 状态徽章 Composable
+ * (从 MatchListScreen.kt 复制而来，使用文件 [1] 中的最新逻辑)
+ */
+@Composable
+private fun StatusBadge(status: MatchStatus) {
+    val (text, color) = when (status) {
+        MatchStatus.REGISTERING -> "报名中" to MaterialTheme.colorScheme.error
+        MatchStatus.ONGOING -> "比赛中" to MaterialTheme.colorScheme.primary
+        MatchStatus.UPCOMING -> "筹备中" to MaterialTheme.colorScheme.secondary
+        MatchStatus.REGISTRATION_ENDED -> "即将比赛" to MaterialTheme.colorScheme.tertiary
+        MatchStatus.ENDED -> "已结束" to MaterialTheme.colorScheme.outline
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(color.copy(alpha = 0.15f))
+            .padding(horizontal = 6.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text = text,
+            color = color,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold
         )
     }
 }
