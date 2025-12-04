@@ -35,9 +35,9 @@ import com.suseoaa.projectoaa.competition.viewmodel.MatchListViewModel
 @Composable
 fun MatchListScreen(
     viewModel: MatchListViewModel = hiltViewModel(),
-    onNavigateToDetail: (Int) -> Unit
+    onNavigateToDetail:(Int) -> Unit
+    //TODO:导航界面  onNavigateToCreate:() -> Unit
 ) {
-    // matchList 已经由 ViewModel 排序完毕
     val matchList = viewModel.matchList
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
@@ -63,6 +63,14 @@ fun MatchListScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
+        //TODO:暂时隐藏创建入口，待权限系统完善后启动
+        /*
+        floatingActionButton = {
+            FloatingActionButton(onClick = {onNavigateToCreate()}){
+                Icon(Icons.Default.Add, contentDescription = "创建比赛")
+            }
+         }
+         */
     ) { paddingValues ->
 
         SwipeRefresh(
@@ -76,11 +84,13 @@ fun MatchListScreen(
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                if (matchList.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp)
-                    ) {
+                // 修改点：无论是否有数据，都使用 LazyColumn，保证任何时候都能检测下滑手势
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    // 当内容不足一屏时，保证 LazyColumn 依然可以滚动，从而触发刷新（视 Compose 版本而定，通常 fillMaxSize 即可）
+                ) {
+                    if (matchList.isNotEmpty()) {
                         items(matchList) { match ->
                             MatchListItem(
                                 match = match,
@@ -88,19 +98,27 @@ fun MatchListScreen(
                                     onNavigateToDetail(match.id)
                                 }
                             )
-
-                            // 结束的 8dp, 其他 14dp
                             val spacing = if (match.status == MatchStatus.ENDED) 8.dp else 14.dp
                             Spacer(Modifier.height(spacing))
                         }
+                    } else if (!isLoading && errorMessage == null) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillParentMaxSize()
+                                    .padding(bottom = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "现在还没有比赛",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
                     }
                 }
-                else if (!isLoading && errorMessage == null) {
-                    Text(
-                        text = "暂无比赛",
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+
                 if (isLoading && matchList.isEmpty()) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
@@ -108,7 +126,6 @@ fun MatchListScreen(
         }
     }
 }
-
 
 /**
  * 比赛列表中的单个卡片项
@@ -133,15 +150,13 @@ fun MatchListItem(
     // 根据状态决定侧边栏和标题颜色
     val sideBarColor = if (isEnded) MaterialTheme.colorScheme.outlineVariant else itemColor
     val titleColor = if (isEnded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-
-    // 根据状态决定大小和阴影。结束的卡片阴影更低、更宽；其他的阴影更高、更窄。
     val cardElevation = if (isEnded) 2.dp else 6.dp
     val cardModifier = if (isEnded) {
-        Modifier.fillMaxWidth() // 宽一点（只受 LazyColumn 的 16.dp 影响）
+        Modifier.fillMaxWidth() //宽一点
     } else {
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp) // 窄一点（增加额外的 4.dp 内边距）
+            .padding(horizontal = 4.dp) //窄一点
     }
 
     Card(

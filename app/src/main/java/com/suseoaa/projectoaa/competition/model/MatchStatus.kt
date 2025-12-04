@@ -1,12 +1,22 @@
 package com.suseoaa.projectoaa.competition.model
 
-/**
- * 比赛状态的枚举
- */
 enum class MatchStatus {
-    UPCOMING, // 即将报名
-    REGISTERING, // 报名中
-    REGISTRATION_ENDED, // 报名结束
-    ONGOING, // 比赛中
-    ENDED // 已结束
+    UPCOMING,           // 0
+    REGISTERING,        // 1
+    REGISTRATION_ENDED, // 2
+    ONGOING,            // 3
+    ENDED;              // 4
+
+    companion object {
+        fun fromInt(code: Int): MatchStatus {
+            return when (code) {
+                0 -> UPCOMING
+                1 -> REGISTERING
+                2 -> REGISTRATION_ENDED
+                3 -> ONGOING
+                4 -> ENDED
+                else -> UPCOMING
+            }
+        }
+    }
 }
