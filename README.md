@@ -12,6 +12,27 @@
 
 -----
 
+## Mock Server 编译说明
+
+**源码目录：** `/mock_server`
+
+### 1\. Windows 环境
+
+使用 GCC 编译（需链接 `ws2_32` 和 `iphlpapi` 库）：
+
+```bash
+gcc mock_server.c -o mock_server.exe -O2 -lws2_32 -liphlpapi -finput-charset=UTF-8 -fexec-charset=UTF-8
+```
+
+### 2\. Linux / macOS 环境
+
+标准 GCC 编译：
+
+```bash
+gcc server.c -o server -O2 -finput-charset=UTF-8 -fexec-charset=UTF-8
+```
+
+-----
 
 
 ## 📚 目录
