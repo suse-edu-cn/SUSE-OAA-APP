@@ -1,6 +1,5 @@
 package com.suseoaa.projectoaa.courseList.data.api
 
-import com.suseoaa.projectoaa.courseList.data.remote.dto.CourseResponseJson
 import com.suseoaa.projectoaa.courseList.data.remote.dto.RSAKey
 import okhttp3.ResponseBody
 import retrofit2.Response

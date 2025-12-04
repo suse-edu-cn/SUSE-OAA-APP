@@ -19,7 +19,7 @@ android {
         minSdk = 28
         targetSdk = 36
         versionCode = 2
-        versionName = "1.1.5"
+        versionName = "1.1.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -29,7 +29,7 @@ android {
             properties.load(FileInputStream(localPropertiesFile))
         }
         // val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://47.109.32.27:8080\""
-        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://172.27.149.155:8080\""
+        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://47.109.32.27:8080\""
 
         buildConfigField("String", "API_BASE_URL", baseUrl)
     }
@@ -82,6 +82,7 @@ dependencies {
     implementation(libs.androidx.compose.material3.windowSizeClass)
     implementation(libs.androidx.compose.compiler)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     // 测试
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
