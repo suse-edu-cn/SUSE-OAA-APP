@@ -13,5 +13,6 @@ data class MatchItem(
     val regTime: List<String>,
 
     @SerialName("match_time")
-    val matchTime: List<String>
+    val matchTime: List<String>,
+    val status: Int
 )

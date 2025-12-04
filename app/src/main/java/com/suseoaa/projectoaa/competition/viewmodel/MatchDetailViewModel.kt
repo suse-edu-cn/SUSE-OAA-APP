@@ -40,7 +40,7 @@ class MatchDetailViewModel @Inject constructor(
             matchDetail = MatchDetailUiItem(
                 id = matchId,
                 title = rawDetail.title,
-                organizerName = "${rawDetail.author}",
+                organizerName = "${rawDetail.author.name}",
                 regTime = rawDetail.regTime,
                 matchTime = rawDetail.matchTime,
                 content = rawDetail.content,

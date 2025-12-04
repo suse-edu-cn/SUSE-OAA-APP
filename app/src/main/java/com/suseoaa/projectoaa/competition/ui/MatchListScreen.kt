@@ -84,11 +84,13 @@ fun MatchListScreen(
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                if (matchList.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp)
-                    ) {
+                // 修改点：无论是否有数据，都使用 LazyColumn，保证任何时候都能检测下滑手势
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    // 当内容不足一屏时，保证 LazyColumn 依然可以滚动，从而触发刷新（视 Compose 版本而定，通常 fillMaxSize 即可）
+                ) {
+                    if (matchList.isNotEmpty()) {
                         items(matchList) { match ->
                             MatchListItem(
                                 match = match,
@@ -99,14 +101,22 @@ fun MatchListScreen(
                             val spacing = if (match.status == MatchStatus.ENDED) 8.dp else 14.dp
                             Spacer(Modifier.height(spacing))
                         }
+                    } else if (!isLoading && errorMessage == null) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillParentMaxSize()
+                                    .padding(bottom = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "现在还没有比赛",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
                     }
-                } else if (!isLoading && errorMessage == null) {
-                    Text(
-                        text = "现在还没有比赛",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
                 }
 
                 if (isLoading && matchList.isEmpty()) {
@@ -116,7 +126,6 @@ fun MatchListScreen(
         }
     }
 }
-
 
 /**
  * 比赛列表中的单个卡片项

@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.competition.ui
 
+import android.util.Base64
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.filled.MedicalInformation
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,6 +78,15 @@ fun MatchDetailScreen(
                     val status = detail.status
                     val isEnded = status == MatchStatus.ENDED
 
+                    // Base64 解码
+                    val decodedContent = remember(detail.content) {
+                        try {
+                            String(Base64.decode(detail.content, Base64.DEFAULT))
+                        } catch (e: Exception) {
+                            detail.content
+                        }
+                    }
+
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -129,8 +140,9 @@ fun MatchDetailScreen(
                         )
                         Spacer(Modifier.height(12.dp))
 
+                        // 使用解码后的内容
                         MarkdownText(
-                            markdown = detail.content,
+                            markdown = decodedContent,
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (isEnded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -141,7 +153,6 @@ fun MatchDetailScreen(
     }
 }
 
-// InfoRow 和 StatusBadge 保持不变 (引用自上一轮代码)
 @Composable
 private fun InfoRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,

@@ -9,8 +9,6 @@ import com.suseoaa.projectoaa.competition.model.MatchListUiItem
 import com.suseoaa.projectoaa.competition.model.MatchStatus
 import com.suseoaa.projectoaa.competition.repository.MatchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @HiltViewModel
@@ -21,14 +19,13 @@ class MatchListViewModel @Inject constructor(
     var matchList by mutableStateOf<List<MatchListUiItem>>(emptyList())
         private set
 
-    private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-
     init {
         fetchMatchList()
     }
 
     fun fetchMatchList() {
         launchDataLoad {
+            // 获取原始数据列表
             val rawList: List<MatchItem> = repository.getMatchList()
 
             val uiList = rawList.map { item ->
@@ -37,42 +34,27 @@ class MatchListViewModel @Inject constructor(
                     title = item.title,
                     regTime = item.regTime,
                     matchTime = item.matchTime,
-                    // 列表接口没返回 status，依然需要本地计算
-                    status = calculateMatchStatus(item.regTime, item.matchTime)
+                    // 修复点：这里必须调用 item.status (Int)，而不是 item (MatchItem)
+                    // 注意：请确保你的 MatchItem 数据类中已经添加了 val status: Int 字段
+                    status = MatchStatus.fromInt(item.status)
                 )
             }
 
+            // 根据状态排序
             matchList = uiList.sortedBy { statusToSortWeight(it.status) }
         }
     }
 
+    /**
+     * 定义排序权重
+     */
     private fun statusToSortWeight(status: MatchStatus): Int {
         return when (status) {
-            MatchStatus.REGISTERING -> 1
-            MatchStatus.UPCOMING -> 2
-            MatchStatus.REGISTRATION_ENDED -> 2
-            MatchStatus.ONGOING -> 3
-            MatchStatus.ENDED -> 4
-        }
-    }
-
-    private fun calculateMatchStatus(regTime: List<String>, matchTime: List<String>): MatchStatus {
-        val today = LocalDate.now()
-        try {
-            val regStart = LocalDate.parse(regTime.getOrNull(0), dateFormatter)
-            val regEnd = LocalDate.parse(regTime.getOrNull(1), dateFormatter)
-            val matchStart = LocalDate.parse(matchTime.getOrNull(0), dateFormatter)
-            val matchEnd = LocalDate.parse(matchTime.getOrNull(1), dateFormatter)
-
-            return when {
-                today.isAfter(matchEnd) -> MatchStatus.ENDED
-                today.isAfter(matchStart.minusDays(1)) -> MatchStatus.ONGOING
-                today.isAfter(regEnd) -> MatchStatus.REGISTRATION_ENDED
-                today.isAfter(regStart.minusDays(1)) -> MatchStatus.REGISTERING
-                else -> MatchStatus.UPCOMING
-            }
-        } catch (e: Exception) {
-            return MatchStatus.UPCOMING
+            MatchStatus.REGISTERING -> 1       // 报名中
+            MatchStatus.UPCOMING -> 2          // 筹备中
+            MatchStatus.REGISTRATION_ENDED -> 2 // 即将比赛 (和筹备中权重一样，按时间自然排序)
+            MatchStatus.ONGOING -> 3           // 比赛中
+            MatchStatus.ENDED -> 4             // 已结束
         }
     }
 }

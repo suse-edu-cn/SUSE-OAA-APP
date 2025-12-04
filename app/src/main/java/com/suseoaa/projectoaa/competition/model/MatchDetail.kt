@@ -8,9 +8,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class MatchDetail(
-    // 注意：新的 API data 块中好像没有返回 id，id 通常已知
     val title: String,
-    val author: Long, // API 变更：organizer -> author
+    val author: Author,
     val status: Int,  // API 新增：状态码 0-4
 
     @SerialName("reg_time")
@@ -20,6 +19,13 @@ data class MatchDetail(
     val matchTime: List<String>, // 统一命名
 
     val content: String
+)
+
+
+@Serializable
+data class Author(
+    val id: Long,
+    val name: String
 )
 
 /**
