@@ -63,7 +63,7 @@ void log_msg(const char* color, const char* tag, const char* fmt, ...) {
 }
 
 // ==========================================
-// ============ Base64 Utils ================
+// ============      Base64       ===========
 // ==========================================
 
 static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
