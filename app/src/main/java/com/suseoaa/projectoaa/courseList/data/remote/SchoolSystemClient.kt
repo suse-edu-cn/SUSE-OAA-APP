@@ -28,9 +28,11 @@ class ReceivedCookiesInterceptorFixed : Interceptor {
         private val cookieMap: MutableMap<String, String> = mutableMapOf()
         val cookies: List<String>
             get() = cookieMap.map { "${it.key}=${it.value}" }
-
         fun clearCookies() {
             cookieMap.clear()
+        }
+        fun addCookie(name: String, value: String) {
+            cookieMap[name] = value
         }
     }
 
@@ -115,14 +117,8 @@ object SchoolSystem {
     private val headerInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
         val newRequest = originalRequest.newBuilder()
-            .addHeader(
-                "User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            )
-            .addHeader(
-                "Accept",
-                "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-            )
+            .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+            .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
             .addHeader("Accept-Language", "zh-CN,zh;q=0.9")
             .addHeader("Connection", "keep-alive")
             .addHeader("Upgrade-Insecure-Requests", "1")
@@ -155,10 +151,7 @@ object SchoolSystem {
             val newRequest = originalRequest.newBuilder()
                 .addHeader("Content-Type", "application/x-www-form-urlencoded")
                 .addHeader("X-Requested-With", "XMLHttpRequest")
-                .addHeader(
-                    "Referer",
-                    "https://jwgl.suse.edu.cn/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151"
-                )
+                .addHeader("Referer", "https://jwgl.suse.edu.cn/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151")
                 .addHeader("Accept", "application/json, text/javascript, */*; q=0.01")
                 .build()
             chain.proceed(newRequest)
@@ -224,8 +217,7 @@ object SchoolSystem {
 
             // 4. 加密密码
             debugInfo += "步骤4: 加密密码\n"
-            val encryptedPassword =
-                RSAEncryptorFixed.encrypt(password, rsaKey.modulus, rsaKey.exponent)
+            val encryptedPassword = RSAEncryptorFixed.encrypt(password, rsaKey.modulus, rsaKey.exponent)
             debugInfo += "密码加密成功\n"
 
             // 5. 发送登录请求（完全模拟Python的session.post()）
@@ -281,8 +273,7 @@ object SchoolSystem {
 
                         // 检查最终页面内容，确保不是错误页面
                         if (redirectContent.contains("登录", ignoreCase = true) &&
-                            redirectContent.contains("用户名", ignoreCase = true)
-                        ) {
+                            redirectContent.contains("用户名", ignoreCase = true)) {
                             debugInfo += "⚠ 最终页面似乎还是登录页面，可能登录失败\n"
                             debugInfo += "页面内容片段: ${redirectContent.take(200)}\n"
                             return Pair(false, "$debugInfo✗ 登录验证失败")
@@ -371,6 +362,10 @@ object SchoolSystem {
                 debugInfo += "✗ 课表页面访问失败，状态码: ${pageResponse.code()}\n"
                 return Pair(null, debugInfo)
             }
+
+//            val pageContent = pageResponse.body()?.string() ?: ""
+//            debugInfo += "✓ 课表页面访问成功，长度: ${pageContent.length}\n"
+
             // 2. 发送POST请求查询课表数据
             debugInfo += "步骤2: 发送POST请求查询课表数据\n"
             val response = scheduleAPI.querySchedule()
