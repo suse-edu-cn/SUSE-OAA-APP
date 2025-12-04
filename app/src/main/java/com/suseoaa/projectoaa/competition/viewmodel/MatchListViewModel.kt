@@ -51,10 +51,10 @@ class MatchListViewModel @Inject constructor(
     private fun statusToSortWeight(status: MatchStatus): Int {
         return when (status) {
             MatchStatus.REGISTERING -> 1       // 报名中
-            MatchStatus.UPCOMING -> 2          // 筹备中
-            MatchStatus.REGISTRATION_ENDED -> 2 // 即将比赛 (和筹备中权重一样，按时间自然排序)
+            MatchStatus.UPCOMING -> 4          // 筹备中
+            MatchStatus.REGISTRATION_ENDED -> 3 // 即将比赛 (和筹备中权重一样，按时间自然排序)
             MatchStatus.ONGOING -> 3           // 比赛中
-            MatchStatus.ENDED -> 4             // 已结束
+            MatchStatus.ENDED -> 5             // 已结束
         }
     }
 }
