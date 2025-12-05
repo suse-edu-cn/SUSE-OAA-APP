@@ -8,23 +8,36 @@ import com.suseoaa.projectoaa.courseList.data.entity.CourseWithTimes
 import com.suseoaa.projectoaa.courseList.data.remote.dto.CourseResponseJson
 import com.suseoaa.projectoaa.courseList.data.remote.dto.Kb
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine // [修复] 需要导入 combine
 
 class CourseRepository(private val dao: CourseDao) {
 
-    // 获取账号列表
     val allAccounts: Flow<List<CourseAccountEntity>> = dao.getAllAccounts()
 
-    // 根据学号、学年、学期获取课程
-    fun getCourses(studentId: String, xnm: String, xqm: String): Flow<List<CourseWithTimes>> =
-        dao.getCoursesByTerm(studentId, xnm, xqm)
 
-    // 删除账号
+    fun getCourses(studentId: String, xnm: String, xqm: String): Flow<List<CourseWithTimes>> {
+        val coursesFlow = dao.getCourseEntities(studentId, xnm, xqm)
+        val timesFlow = dao.getClassTimeEntities(studentId, xnm, xqm)
+
+        return coursesFlow.combine(timesFlow) { courses, allTimes ->
+            courses.map { course ->
+                // 在内存中过滤，确保只包含属于当前课程的时间
+                // 由于 SQL 已经过滤了 studentId, xnm, xqm，这里只需要匹配 courseName 和 isCustom
+                val matchingTimes = allTimes.filter { time ->
+                    time.courseOwnerName == course.courseName &&
+                            time.isCustom == course.isCustom
+                }
+                CourseWithTimes(course, matchingTimes)
+            }
+        }
+    }
+
     suspend fun deleteAccount(studentId: String) {
         dao.deleteAccount(studentId)
         dao.deleteAllCoursesByStudent(studentId)
     }
 
-    // 保存自定义课程
+
     suspend fun saveCustomCourse(
         studentId: String,
         xnm: String,
@@ -45,10 +58,7 @@ class CourseRepository(private val dao: CourseDao) {
             isCustom = true,
             background = "",
         )
-        // 转换节次格式 (例如 1-2)
         val periodStr = "$startNode-${startNode + duration - 1}"
-
-        // 计算周次Mask
         val mask = parseWeeksToMask(weeks)
 
         val time = ClassTimeEntity(
@@ -68,11 +78,9 @@ class CourseRepository(private val dao: CourseDao) {
         dao.insertCustomCourse(course, time)
     }
 
-    // 从网络响应保存
     suspend fun saveFromResponse(studentId: String, password: String, resp: CourseResponseJson) {
-        // 1. 保存/更新账号信息
         val xsxx = resp.xsxx
-        val xnm = xsxx?.xNM ?: "2024" // 默认值
+        val xnm = xsxx?.xNM ?: "2024"
         val xqm = xsxx?.xQM ?: "3"
 
         if (xsxx != null) {
@@ -87,7 +95,6 @@ class CourseRepository(private val dao: CourseDao) {
             dao.insertAccount(account)
         }
 
-        // 2. 处理课程列表
         val rawList = resp.kbList ?: emptyList()
         val validList = rawList.filterNotNull().filter { !it.courseName.isNullOrBlank() }
         val groups: Map<String, List<Kb>> = validList.groupBy { it.courseName!! }
@@ -135,7 +142,6 @@ class CourseRepository(private val dao: CourseDao) {
             allTimes.addAll(times)
         }
 
-        // 3. 写入数据库
         dao.updateTermCourses(studentId, xnm, xqm, courses, allTimes)
     }
 
@@ -143,7 +149,7 @@ class CourseRepository(private val dao: CourseDao) {
         if (raw.isBlank()) return 0L
         var mask = 0L
         try {
-            var normalized = raw
+            val normalized = raw
                 .replace("，", ",")
                 .replace("；", ",")
                 .replace(";", ",")

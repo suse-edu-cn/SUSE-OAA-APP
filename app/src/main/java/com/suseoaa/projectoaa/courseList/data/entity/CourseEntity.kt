@@ -5,26 +5,21 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import androidx.room.Relation
-
 /**
  * 账号信息表
- * 存储账号、密码、姓名、班级、入学年份(NJDM_ID)
  */
 @Entity(tableName = "course_accounts")
 data class CourseAccountEntity(
-    @PrimaryKey val studentId: String, // 学号作为主键
+    @PrimaryKey val studentId: String,
     val password: String,
-    val name: String,          // XM
-    val className: String,     // BJMC
-    val njdmId: String,        // NJDM_ID 入学年份，用于计算可选学年
-    val major: String          // ZYMC 专业
+    val name: String,
+    val className: String,
+    val njdmId: String,
+    val major: String
 )
 
 /**
  * 课程表实体
- * 联合主键升级：学号 + 课程名 + 学年 + 学期 + 是否自定义
- * 解决多账号课程冲突、多学期存储问题
  */
 @Entity(
     tableName = "courses",
@@ -33,11 +28,9 @@ data class CourseAccountEntity(
 data class CourseEntity(
     val studentId: String,
     val courseName: String,
-    val xnm: String, // 学年 (2024)
-    val xqm: String, // 学期 (3 或 12)
-    val isCustom: Boolean = false, // 是否为自定义课程
-
-    // 以下为非必填信息
+    val xnm: String,
+    val xqm: String,
+    val isCustom: Boolean = false,
     val remoteCourseId: String = "",
     val nature: String = "",
     val background: String = "",
@@ -48,7 +41,6 @@ data class CourseEntity(
 
 /**
  * 课程时间表实体
- * 外键关联到 courses 表 (级联删除)
  */
 @Entity(
     tableName = "class_times",
@@ -76,9 +68,9 @@ data class ClassTimeEntity(
     val period: String = "",
     val weeks: String = "",
     val weeksMask: Long = 0L,
-    val location: String = "", // 地点 (自定义课程选填)
-    val teacher: String = "",  // 教师 (自定义课程选填)
-    val duration: String = "", // 持续时间 (自定义课程选填)
+    val location: String = "",
+    val teacher: String = "",
+    val duration: String = "",
     val teacherTitle: String = "",
     val politicalStatus: String = "",
     val classGroup: String = ""
@@ -86,9 +78,5 @@ data class ClassTimeEntity(
 
 data class CourseWithTimes(
     @Embedded val course: CourseEntity,
-    @Relation(
-        parentColumn = "courseName",
-        entityColumn = "courseOwnerName"
-    )
-    val times: List<ClassTimeEntity> // 注意：这里Room会自动匹配外键，但我们需要在DAO里通过查询过滤确保精确匹配
+    val times: List<ClassTimeEntity>
 )
