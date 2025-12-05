@@ -12,7 +12,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Assignment
@@ -36,7 +35,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +50,7 @@ import com.suseoaa.projectoaa.courseList.viewmodel.CourseListViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import kotlin.String
 import kotlin.math.roundToInt
 
 // 课程卡片颜色
@@ -203,8 +202,15 @@ fun CourseListScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp),
+                            .then(
+                                when (windowSizeClass.widthSizeClass) {
+                                    WindowWidthSizeClass.Compact -> Modifier.padding(8.dp)
+                                    WindowWidthSizeClass.Expanded -> Modifier.statusBarsPadding()
+                                    WindowWidthSizeClass.Medium -> Modifier.statusBarsPadding()
+                                    else -> Modifier.statusBarsPadding()
+                                }
+                            )
+                            .padding(horizontal = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -333,9 +339,11 @@ fun CourseListScreen(
             }
         }
     ) { padding ->
-        Box(modifier = Modifier
-            .padding(padding)
-            .fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
             if (allCourses.isEmpty() && !uiState.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -432,8 +440,6 @@ fun CourseListScreen(
     }
 }
 
-// ... (CourseScheduleLayout, CourseDetailContent, CourseDetailCard 等其他组件保持不变) ...
-// 完整代码中请保留这些函数，由于篇幅原因这里仅展示 CourseListScreen 函数内的核心修改
 @Composable
 fun CourseScheduleLayout(
     allCourses: List<CourseWithTimes>,
@@ -447,16 +453,20 @@ fun CourseScheduleLayout(
     val timeAxisWidth = 40.dp
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
             Spacer(modifier = Modifier.width(timeAxisWidth))
             StaticWeekDayHeader()
         }
 
-        BoxWithConstraints(modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth()) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
             val totalHeight = maxHeight
             val gridHeight = totalHeight - DateHeaderHeight
             val totalWeight =
@@ -521,9 +531,11 @@ fun CourseDetailContent(
     infoList: List<Pair<CourseWithTimes, ClassTimeEntity>>,
     onClose: () -> Unit
 ) {
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .verticalScroll(rememberScrollState())) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -656,9 +668,11 @@ fun DetailItem(
 @Composable
 fun StaticWeekDayHeader() {
     val weekDays = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .padding(vertical = 12.dp)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+    ) {
         weekDays.forEach { dayName ->
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(
@@ -757,9 +771,11 @@ fun DynamicWeekContent(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         DynamicDateRow(weekStartDate)
-        Box(modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
             HighlightTodayColumn(weekStartDate, maxWidth)
             ScheduleCourseOverlay(courses, unitHeightPx, maxWidth, dailySchedule, onCourseClick)
         }
@@ -769,10 +785,12 @@ fun DynamicWeekContent(
 @Composable
 fun DynamicDateRow(startDate: LocalDate) {
     val today = remember { LocalDate.now() }
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .height(DateHeaderHeight)
-        .padding(bottom = 6.dp)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(DateHeaderHeight)
+            .padding(bottom = 6.dp)
+    ) {
         for (i in 0..6) {
             val date = startDate.plusDays(i.toLong())
             val isToday = date == today
@@ -975,6 +993,8 @@ fun AccountSelectionDialog(
     onDismiss: () -> Unit
 ) {
     AlertDialog(
+        containerColor = Color(0xFFFFFFFF),
+        tonalElevation = 6.dp,
         onDismissRequest = onDismiss,
         title = { Text("切换用户") },
         text = {
@@ -987,10 +1007,13 @@ fun AccountSelectionDialog(
                             .padding(vertical = 4.dp)
                             .clickable { onSelect(acc) },
                         colors = if (acc.studentId == currentId) CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                            containerColor = Color(0xD7FFFFFF)
                         ) else CardDefaults.cardColors()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .padding(12.dp)
+                        ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1039,6 +1062,7 @@ fun LoginDialog(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
     var u by remember { mutableStateOf("") }
     var p by remember { mutableStateOf("") }
     AlertDialog(
+        containerColor = Color(0xFFFFFFFF),
         onDismissRequest = onDismiss,
         title = { Text("导入课表") },
         text = {
@@ -1066,10 +1090,17 @@ fun AddCustomCourseDialog(
     var duration by remember { mutableIntStateOf(2) }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .background(color = Color(0xFFFFFFFF))
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 Text("添加自定义课程", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(16.dp))
 
