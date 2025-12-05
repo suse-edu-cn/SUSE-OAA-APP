@@ -2,6 +2,7 @@ package com.suseoaa.projectoaa.login.ui
 
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,7 +61,6 @@ fun LoginScreen(
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val useSplitLayout = this.maxWidth > 600.dp && this.maxWidth > this.maxHeight
-
         if (useSplitLayout) {
             // 平板/横屏布局
             Row(
@@ -80,7 +81,8 @@ fun LoginScreen(
                     Text(
                         "登录",
                         style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.outline
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -90,7 +92,11 @@ fun LoginScreen(
                         .weight(1f)
                         .fillMaxSize(),
                     shape = cardShape,
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        // 使用一个固定的颜色覆盖主题色
+                        containerColor = Color(0xFFFFFFFF)
+                    )
                 ) {
                     Column(
                         modifier = Modifier
@@ -117,7 +123,7 @@ fun LoginScreen(
                     .fillMaxSize()
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
             ) {
                 Text(
                     "Project:OAA",
@@ -128,13 +134,18 @@ fun LoginScreen(
                 Text(
                     "登录",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.outline
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(48.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = cardShape,
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        // 使用一个固定的颜色覆盖主题色
+                        containerColor = Color(0xFFFFFFFF)
+                    )
                 ) {
                     Column(modifier = Modifier.padding(32.dp)) {
                         LoginFormContent(
