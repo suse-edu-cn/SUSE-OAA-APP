@@ -4,11 +4,14 @@ import android.util.Base64
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.suseoaa.projectoaa.common.base.BaseViewModel
 import com.suseoaa.projectoaa.common.util.SessionManager
 import com.suseoaa.projectoaa.competition.model.CreateMatchRequest
 import com.suseoaa.projectoaa.competition.repository.MatchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -44,7 +47,7 @@ class CreateMatchViewModel @Inject constructor(
             return
         }
 
-        launchDataLoad {
+        viewModelScope.launch {
             // 1. Content 转 Base64 (对应后端要求)
             // NO_WRAP 避免产生换行符
             val encodedContent = Base64.encodeToString(content.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)

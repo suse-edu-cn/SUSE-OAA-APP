@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.login.ui
 
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -69,8 +71,17 @@ fun LoginScreen(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Project:OAA", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Text("登录", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.outline)
+                    Text(
+                        "Project:OAA",
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "登录",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
                 }
 
                 // 2. 右侧表单区
@@ -108,8 +119,17 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Project:OAA", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text("登录", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.outline)
+                Text(
+                    "Project:OAA",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "登录",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
                 Spacer(modifier = Modifier.height(48.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -142,6 +162,7 @@ fun LoginFormContent(
     viewModel: MainViewModel,
     navController: NavController
 ) {
+    val context = LocalContext.current
     val fieldShape = RoundedCornerShape(12.dp)
 
     Text(
@@ -179,17 +200,19 @@ fun LoginFormContent(
         enabled = !viewModel.isLoading,
         shape = RoundedCornerShape(16.dp)
     ) {
-        Text(if (viewModel.isLoading) "登录中..." else "登录", fontSize = 18.sp)
+        Text(
+            if (viewModel.isLoading) "登录中..." else "登录", fontSize = 18.sp
+        )
     }
 
-    // 错误/状态信息
-    if (viewModel.uiState.isNotBlank()) {
-        Text(
-            viewModel.uiState,
-            color = if (viewModel.loginSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 16.dp)
-        )
+    LaunchedEffect(viewModel.uiState) {
+        if (viewModel.uiState.isNotBlank()) {
+            Toast.makeText(
+                context,
+                viewModel.uiState,
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
     }
 
     Spacer(modifier = Modifier.height(8.dp))

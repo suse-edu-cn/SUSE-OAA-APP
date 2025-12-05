@@ -1,10 +1,12 @@
 package com.suseoaa.projectoaa.login.viewmodel
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.suseoaa.projectoaa.common.base.BaseViewModel
 import com.suseoaa.projectoaa.common.util.SessionManager
 import com.suseoaa.projectoaa.login.model.RegisterRequest
@@ -44,11 +46,11 @@ class MainViewModel @Inject constructor(
     fun checkToken() {
         viewModelScope.launch {
             // 给一点点延迟，让 Splash 动画展示一下，避免闪屏
-            delay(500)
+//            delay(500)
 
             val localToken = sessionManager.jwtToken
             if (localToken.isNullOrBlank()) {
-                Log.d("Auth", "本地无Token，需登录")
+//                Log.d("Auth", "本地无Token，需登录")
                 isTokenValid = false
                 return@launch
             }
@@ -62,19 +64,19 @@ class MainViewModel @Inject constructor(
                 }
 
                 result.onSuccess { userInfo ->
-                    Log.d("Auth", "Token验证成功，用户: ${userInfo.name}")
+//                    Log.d("Auth", "Token验证成功，用户: ${userInfo.name}")
                     // 更新本地缓存的用户信息（确保是最新的）
                     sessionManager.saveUserInfo(userInfo.username, userInfo.role)
                     isTokenValid = true
                 }.onFailure { e ->
-                    Log.w("Auth", "Token验证失败或过期: ${e.message}")
+//                    Log.w("Auth", "Token验证失败或过期: ${e.message}")
                     // Token 失效，清除本地数据，要求重新登录
                     sessionManager.clear()
                     isTokenValid = false
                 }
             } catch (e: Exception) {
                 // 网络超时或其他异常处理
-                Log.e("Auth", "Token验证过程异常: ${e.message}")
+//                Log.e("Auth", "Token验证过程异常: ${e.message}")
 
                 // 策略选择：
                 // A. 严格模式：网络错误视为验证失败 -> isTokenValid = false
@@ -97,7 +99,7 @@ class MainViewModel @Inject constructor(
      */
     fun login(username: String, pass: String) {
         launchDataLoad {
-            Log.d("LoginDebug", "请求已发送")
+//            Log.d("LoginDebug", "请求已发送")
             uiState = "正在登录..."
             loginSuccess = false
             try {
@@ -120,10 +122,11 @@ class MainViewModel @Inject constructor(
 
                     loginSuccess = true
                 }.onFailure { error ->
-                    uiState = "登录失败: ${error.message}"
+//                    uiState = "${error.message}"
+                    uiState = "请输入正确的账号或密码"
                 }
             } catch (e: TimeoutCancellationException) {
-                Log.e("LoginDebug", "登录超时")
+//                Log.e("LoginDebug", "登录超时")
                 uiState = "登录失败：Timeout"
                 loginSuccess = false
             }
@@ -154,7 +157,7 @@ class MainViewModel @Inject constructor(
                     uiState = "注册失败: ${error.message}"
                 }
             } catch (e: TimeoutCancellationException) {
-                Log.e("RegisterDebug", "注册超时")
+//                Log.e("RegisterDebug", "注册超时")
                 uiState = "注册失败：Timeout"
             }
         }

@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.common.base.BaseViewModel
 import com.suseoaa.projectoaa.competition.model.MatchDetail
 import com.suseoaa.projectoaa.competition.model.MatchDetailUiItem
@@ -11,6 +12,7 @@ import com.suseoaa.projectoaa.competition.model.MatchStatus
 import com.suseoaa.projectoaa.competition.repository.MatchRepository
 import com.suseoaa.projectoaa.startHomeNavigation.ui.MATCH_ID_ARG
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -29,7 +31,7 @@ class MatchDetailViewModel @Inject constructor(
     }
 
     fun fetchMatchDetail() {
-        launchDataLoad {
+        viewModelScope.launch {
             //原始数据
             val rawDetail: MatchDetail = repository.getMatchDetail(matchId)
 
@@ -40,7 +42,7 @@ class MatchDetailViewModel @Inject constructor(
             matchDetail = MatchDetailUiItem(
                 id = matchId,
                 title = rawDetail.title,
-                organizerName = "${rawDetail.author.name}",
+                organizerName = rawDetail.author.name,
                 regTime = rawDetail.regTime,
                 matchTime = rawDetail.matchTime,
                 content = rawDetail.content,

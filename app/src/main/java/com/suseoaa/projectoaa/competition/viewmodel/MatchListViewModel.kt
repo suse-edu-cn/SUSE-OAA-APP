@@ -3,12 +3,14 @@ package com.suseoaa.projectoaa.competition.viewmodel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.common.base.BaseViewModel
 import com.suseoaa.projectoaa.competition.model.MatchItem
 import com.suseoaa.projectoaa.competition.model.MatchListUiItem
 import com.suseoaa.projectoaa.competition.model.MatchStatus
 import com.suseoaa.projectoaa.competition.repository.MatchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,7 +26,7 @@ class MatchListViewModel @Inject constructor(
     }
 
     fun fetchMatchList() {
-        launchDataLoad {
+        viewModelScope.launch {
             // 获取原始数据列表
             val rawList: List<MatchItem> = repository.getMatchList()
 
