@@ -66,7 +66,7 @@ fun CompactLayout(
     val showBottomBar = currentRoute in listOf(
         AppRoutes.Home.route,
         AppRoutes.CourseList.route,
-        AppRoutes.Settings.route,
+//        AppRoutes.Settings.route,
         AppRoutes.Profile.route
     )
 
@@ -117,12 +117,12 @@ fun CompactLayout(
                             onClick = { navigateToTab(navController, AppRoutes.CourseList.route) }
                         )
                         // 设置
-                        NavigationBarItem(
-                            icon = { Icon(AppRoutes.Settings.icon, null) },
-                            label = { Text(AppRoutes.Settings.title) },
-                            selected = currentRoute == AppRoutes.Settings.route,
-                            onClick = { navigateToTab(navController, AppRoutes.Settings.route) }
-                        )
+//                        NavigationBarItem(
+//                            icon = { Icon(AppRoutes.Settings.icon, null) },
+//                            label = { Text(AppRoutes.Settings.title) },
+//                            selected = currentRoute == AppRoutes.Settings.route,
+//                            onClick = { navigateToTab(navController, AppRoutes.Settings.route) }
+//                        )
                         // 个人
                         NavigationBarItem(
                             icon = { Icon(AppRoutes.Profile.icon, null) },
@@ -162,7 +162,7 @@ fun MediumLayout(
     val showNavRail = currentRoute in listOf(
         AppRoutes.Home.route,
         AppRoutes.CourseList.route,
-        AppRoutes.Settings.route,
+//        AppRoutes.Settings.route,
         AppRoutes.Profile.route
     )
 
@@ -213,12 +213,12 @@ fun MediumLayout(
                         selected = currentRoute == AppRoutes.CourseList.route,
                         onClick = { navigateToTab(navController, AppRoutes.CourseList.route) }
                     )
-                    NavigationRailItem(
-                        icon = { Icon(AppRoutes.Settings.icon, null) },
-                        label = { Text(AppRoutes.Settings.title) },
-                        selected = currentRoute == AppRoutes.Settings.route,
-                        onClick = { navigateToTab(navController, AppRoutes.Settings.route) }
-                    )
+//                    NavigationRailItem(
+//                        icon = { Icon(AppRoutes.Settings.icon, null) },
+//                        label = { Text(AppRoutes.Settings.title) },
+//                        selected = currentRoute == AppRoutes.Settings.route,
+//                        onClick = { navigateToTab(navController, AppRoutes.Settings.route) }
+//                    )
                     NavigationRailItem(
                         icon = { Icon(AppRoutes.Profile.icon, null) },
                         label = { Text(AppRoutes.Profile.title) },
@@ -294,13 +294,13 @@ fun ExpandedLayout(
                             onClick = { navigateToTab(navController, AppRoutes.CourseList.route) },
                             modifier = Modifier.padding(horizontal = 12.dp)
                         )
-                        NavigationDrawerItem(
-                            icon = { Icon(AppRoutes.Settings.icon, null) },
-                            label = { Text(AppRoutes.Settings.title) },
-                            selected = currentRoute == AppRoutes.Settings.route,
-                            onClick = { navigateToTab(navController, AppRoutes.Settings.route) },
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
+//                        NavigationDrawerItem(
+//                            icon = { Icon(AppRoutes.Settings.icon, null) },
+//                            label = { Text(AppRoutes.Settings.title) },
+//                            selected = currentRoute == AppRoutes.Settings.route,
+//                            onClick = { navigateToTab(navController, AppRoutes.Settings.route) },
+//                            modifier = Modifier.padding(horizontal = 12.dp)
+//                        )
                         NavigationDrawerItem(
                             icon = { Icon(AppRoutes.Profile.icon, null) },
                             label = { Text(AppRoutes.Profile.title) },
