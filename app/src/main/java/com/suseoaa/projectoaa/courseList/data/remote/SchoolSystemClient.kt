@@ -75,7 +75,7 @@ class ReceivedCookiesInterceptorFixed : Interceptor {
     }
 }
 
-//TODO 对密码进行RSA加密
+// 对密码进行RSA加密
 object RSAEncryptorFixed {
     fun encrypt(plainText: String, modulusBase64: String, exponentBase64: String): String {
         try {
@@ -109,7 +109,7 @@ object RSAEncryptorFixed {
     }
 }
 
-//TODO 登录和课表查询
+// 登录和课表查询
 object SchoolSystem {
     // 使用单例Cookie拦截器，确保所有请求共享同一个Cookie存储
     private val cookieInterceptor = ReceivedCookiesInterceptorFixed()
@@ -183,7 +183,7 @@ object SchoolSystem {
     private val loginAPI = retrofit.create(LoginAPI::class.java)
     private val scheduleAPI = retrofit.create(ScheduleAPI::class.java)
 
-    // 修复后的登录功能
+    // 登录功能
     suspend fun login(username: String, password: String): Pair<Boolean, String> {
         try {
             var debugInfo = ""
@@ -339,8 +339,8 @@ object SchoolSystem {
         return null
     }
 
-    // 查询课表
-    suspend fun querySchedule(): Pair<String?, String> {
+    // 查询课表 (已修改，支持学年和学期参数)
+    suspend fun querySchedule(year: String, semester: String): Pair<String?, String> {
         var debugInfo = ""
         try {
             debugInfo += "开始课表查询流程\n"
@@ -363,12 +363,12 @@ object SchoolSystem {
                 return Pair(null, debugInfo)
             }
 
-//            val pageContent = pageResponse.body()?.string() ?: ""
-//            debugInfo += "✓ 课表页面访问成功，长度: ${pageContent.length}\n"
-
             // 2. 发送POST请求查询课表数据
-            debugInfo += "步骤2: 发送POST请求查询课表数据\n"
-            val response = scheduleAPI.querySchedule()
+            debugInfo += "步骤2: 发送POST请求查询课表数据 (xnm=$year, xqm=$semester)\n"
+            val response = scheduleAPI.querySchedule(
+                year = year,
+                semester = semester
+            )
 
             debugInfo += "课表查询响应状态码: ${response.code()}\n"
 
@@ -401,9 +401,9 @@ object SchoolSystem {
         }
     }
 
-    // 新增：解析课表数据的方法
-    suspend fun queryScheduleParsed(): Pair<CourseResponseJson?, String> {
-        val (rawData, debugInfo) = querySchedule()
+    // 解析课表数据 (已修改，支持学年和学期参数)
+    suspend fun queryScheduleParsed(year: String, semester: String): Pair<CourseResponseJson?, String> {
+        val (rawData, debugInfo) = querySchedule(year, semester)
 
         return if (rawData != null) {
             try {

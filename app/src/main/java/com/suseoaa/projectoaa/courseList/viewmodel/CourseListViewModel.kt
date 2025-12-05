@@ -6,9 +6,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.courseList.data.database.CourseDatabase
+import com.suseoaa.projectoaa.courseList.data.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.courseList.data.entity.CourseWithTimes
 import com.suseoaa.projectoaa.courseList.data.remote.SchoolSystem
 import com.suseoaa.projectoaa.courseList.data.repository.CourseRepository
@@ -17,49 +19,44 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import java.util.Calendar
 import androidx.core.content.edit
+
+data class TermOption(
+    val xnm: String, // 2024
+    val xqm: String, // 3 或 12
+    val label: String // "2024-2025 第1学期"
+)
 
 class CourseListViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = CourseDatabase.getInstance(application)
     private val repository = CourseRepository(database.courseDao())
+    private val PREFS_NAME = "course_prefs"
+    private val KEY_START_DATE = "semester_start_date"
 
-    // === 账号管理 ===
-    private val PREFS_ACCOUNT = "course_accounts"
-    private val KEY_ACCOUNTS = "saved_accounts"
-    private val KEY_CURRENT_ID = "current_student_id"
+    // === 状态管理 ===
 
-    private val _currentStudentId = MutableStateFlow(loadCurrentStudentId())
-    val currentStudentId: StateFlow<String> = _currentStudentId.asStateFlow()
+    private val _currentAccount = MutableStateFlow<CourseAccountEntity?>(null)
+    val currentAccount = _currentAccount.asStateFlow()
 
-    private val _savedAccounts = MutableStateFlow<Map<String, String>>(loadAccounts())
-    val savedAccounts: StateFlow<Map<String, String>> = _savedAccounts.asStateFlow()
+    val savedAccounts: StateFlow<List<CourseAccountEntity>> = repository.allAccounts
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _termOptions = MutableStateFlow<List<TermOption>>(emptyList())
+    val termOptions = _termOptions.asStateFlow()
+
+    var selectedXnm by mutableStateOf("2024")
+    var selectedXqm by mutableStateOf("3")
 
     var uiState by mutableStateOf(CourseListUiState())
         private set
 
-    // === 课程数据 ===
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val allCourses: StateFlow<List<CourseWithTimes>> = _currentStudentId
-        .flatMapLatest { id ->
-            if (id.isBlank()) flowOf(emptyList())
-            else repository.getCoursesByStudent(id)
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    // === 周次管理 ===
-    private val PREFS_NAME = "course_prefs"
-    private val KEY_START_DATE = "semester_start_date"
-
-    // 用户当前*查看*的周次（用于 UI 翻页）
     var currentDisplayWeek by mutableIntStateOf(1)
 
-    // 基于时间计算的*真实*当前周次（用于标红显示）
     var realCurrentWeek by mutableIntStateOf(1)
         private set
 
@@ -67,110 +64,174 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         MutableStateFlow<LocalDate>(LocalDate.now().with(DayOfWeek.MONDAY))
     val semesterStartDate: StateFlow<LocalDate> = _semesterStartDate
 
+    // === 课程数据流 ===
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val allCourses: StateFlow<List<CourseWithTimes>> = combine(
+        _currentAccount.filterNotNull(),
+        snapshotFlow { selectedXnm },
+        snapshotFlow { selectedXqm }
+    ) { account, xnm, xqm ->
+        Triple(account.studentId, xnm, xqm)
+    }.flatMapLatest { (studentId, xnm, xqm) ->
+        repository.getCourses(studentId, xnm, xqm)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+
     init {
         loadSemesterStart()
-    }
-
-    // === 账号逻辑 (保持不变) ===
-    private fun loadCurrentStudentId(): String {
-        val prefs =
-            getApplication<Application>().getSharedPreferences(PREFS_ACCOUNT, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_CURRENT_ID, "") ?: ""
-    }
-
-    private fun loadAccounts(): Map<String, String> {
-        val prefs =
-            getApplication<Application>().getSharedPreferences(PREFS_ACCOUNT, Context.MODE_PRIVATE)
-        val jsonStr = prefs.getString(KEY_ACCOUNTS, "[]")
-        val map = mutableMapOf<String, String>()
-        try {
-            val arr = JSONArray(jsonStr)
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                map[obj.getString("u")] = obj.getString("p")
+        viewModelScope.launch {
+            savedAccounts.collect { accounts ->
+                if (_currentAccount.value == null && accounts.isNotEmpty()) {
+                    switchUser(accounts.first())
+                }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
-        return map
     }
 
-    private fun saveAccount(username: String, password: String) {
-        val current = _savedAccounts.value.toMutableMap()
-        current[username] = password
-        _savedAccounts.value = current
-        val jsonArr = JSONArray()
-        current.forEach { (u, p) -> jsonArr.put(JSONObject().put("u", u).put("p", p)) }
-        val prefs =
-            getApplication<Application>().getSharedPreferences(PREFS_ACCOUNT, Context.MODE_PRIVATE)
-        prefs.edit { putString(KEY_ACCOUNTS, jsonArr.toString()) }
+    // === 业务逻辑 ===
+
+    fun switchUser(account: CourseAccountEntity, preserveSelection: Boolean = false) {
+        _currentAccount.value = account
+        generateTermOptions(account.njdmId)
+
+        // [修复] 如果不需要保留选择（例如初次加载或切换用户），则智能选中当前真实日期的学期
+        if (!preserveSelection) {
+            selectCurrentRealTerm()
+        }
     }
 
-    fun switchUser(studentId: String) {
-        _currentStudentId.value = studentId
-        val prefs =
-            getApplication<Application>().getSharedPreferences(PREFS_ACCOUNT, Context.MODE_PRIVATE)
-        prefs.edit { putString(KEY_CURRENT_ID, studentId) }
+    private fun generateTermOptions(startYearStr: String) {
+        val startYear =
+            startYearStr.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.YEAR) - 1)
+        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        val list = mutableListOf<TermOption>()
+
+        // 生成从入学年份到当前年份+1 的选项
+        for (y in startYear..currentYear + 1) {
+            list.add(TermOption(y.toString(), "3", "$y-${y + 1} 第1学期"))
+            list.add(TermOption(y.toString(), "12", "$y-${y + 1} 第2学期"))
+        }
+        _termOptions.value = list
     }
 
-    /**
-     * 刷新当前显示的账号课表
-     * 使用本地保存的密码进行更新
-     */
+    // [新增] 智能选择当前学期的逻辑
+    private fun selectCurrentRealTerm() {
+        val today = LocalDate.now()
+        val currentYear = today.year
+        val currentMonth = today.monthValue
+
+        // 简单规则：
+        // 2月-7月 -> 属于上一年的第2学期 (xqm=12, xnm=year-1)
+        // 8月-12月 -> 属于当年的第1学期 (xqm=3, xnm=year)
+        // 1月 -> 属于上一年的第1学期 (xqm=3, xnm=year-1) 寒假通常算在上学期末
+
+        val (targetXnm, targetXqm) = when (currentMonth) {
+            in 2..7 -> (currentYear - 1).toString() to "12"
+            1 -> (currentYear - 1).toString() to "3"
+            else -> currentYear.toString() to "3" // 8-12月
+        }
+
+        // 检查生成的选项里有没有这个学期，有这就选中，没有就选最后一个
+        val options = _termOptions.value
+        val match = options.find { it.xnm == targetXnm && it.xqm == targetXqm }
+
+        if (match != null) {
+            selectedXnm = match.xnm
+            selectedXqm = match.xqm
+        } else if (options.isNotEmpty()) {
+            // 兜底：如果没有匹配的（比如入学年份限制），选列表里最新的一个，但排除掉未来的年份（如果可能）
+            // 这里简单选最后一个
+            val last = options.last()
+            selectedXnm = last.xnm
+            selectedXqm = last.xqm
+        }
+    }
+
+    fun deleteAccount(account: CourseAccountEntity) {
+        viewModelScope.launch {
+            repository.deleteAccount(account.studentId)
+            if (_currentAccount.value == account) {
+                val remaining = savedAccounts.value.filter { it.studentId != account.studentId }
+                if (remaining.isNotEmpty()) {
+                    switchUser(remaining.first())
+                } else {
+                    _currentAccount.value = null
+                }
+            }
+        }
+    }
+
+    fun updateTermSelection(xnm: String, xqm: String) {
+        selectedXnm = xnm
+        selectedXqm = xqm
+    }
+
     fun refreshSchedule() {
-        val currentId = _currentStudentId.value
-        if (currentId.isBlank()) {
-            uiState = uiState.copy(errorMessage = "当前未选择账号，无法刷新")
+        val account = _currentAccount.value
+        if (account == null) {
+            uiState = uiState.copy(errorMessage = "当前无账号")
             return
         }
-
-        // 从保存的列表中查找当前账号的密码
-        val password = _savedAccounts.value[currentId]
-        if (password.isNullOrBlank()) {
-            uiState = uiState.copy(errorMessage = "未找到账号 $currentId 的保存密码，请尝试重新导入")
-            return
-        }
-
-        // 复用 fetchAndSaveCourseSchedule 进行更新
-        fetchAndSaveCourseSchedule(currentId, password)
+        fetchAndSaveCourseSchedule(account.studentId, account.password, selectedXnm, selectedXqm)
     }
 
-    fun fetchAndSaveCourseSchedule(username: String, password: String) {
+    fun fetchAndSaveCourseSchedule(
+        username: String,
+        pass: String,
+        xnm: String = "2024",
+        xqm: String = "3"
+    ) {
         viewModelScope.launch {
             try {
-                saveAccount(username, password)
-                switchUser(username)
                 uiState = uiState.copy(isLoading = true, statusMessage = "正在登录...")
+
                 val result = withContext(Dispatchers.IO) {
-                    val (loginSuccess, debugInfo) = SchoolSystem.login(username, password)
+                    val (loginSuccess, debugInfo) = SchoolSystem.login(username, pass)
                     if (!loginSuccess) return@withContext Triple(
                         null,
                         "登录失败: $debugInfo",
                         debugInfo
                     )
-                    uiState = uiState.copy(statusMessage = "正在获取课表...")
-                    val (parsedData, scheduleDebugInfo) = SchoolSystem.queryScheduleParsed()
+
+                    uiState =
+                        uiState.copy(statusMessage = "正在获取 ${xnm}学年 ${if (xqm == "3") "上" else "下"}学期 课表...")
+
+                    val (parsedData, scheduleDebugInfo) = SchoolSystem.queryScheduleParsed(xnm, xqm)
                     if (parsedData == null) return@withContext Triple(
                         null,
                         "解析失败: $scheduleDebugInfo",
                         scheduleDebugInfo
                     )
+
                     Triple(parsedData, null, "成功")
                 }
+
                 val (courseData, error, _) = result
                 if (courseData != null) {
                     uiState = uiState.copy(statusMessage = "正在保存...")
                     withContext(Dispatchers.IO) {
-                        repository.saveFromResponse(
-                            username,
-                            courseData
-                        )
+                        repository.saveFromResponse(username, pass, courseData)
                     }
                     uiState = uiState.copy(
                         isLoading = false,
                         successMessage = "更新成功",
                         statusMessage = null
                     )
+
+                    // [修复] 只有当切换了用户时才调用 switchUser，且如果是同一个用户，传入 preserveSelection=true
+                    val currentId = _currentAccount.value?.studentId
+                    val newAccount = savedAccounts.value.find { it.studentId == username }
+
+                    if (newAccount != null) {
+                        if (currentId != username) {
+                            // 导入了新用户，切换过去，使用默认学期逻辑
+                            switchUser(newAccount, preserveSelection = false)
+                        } else {
+                            // 仅仅是刷新当前用户，更新一下账户信息（如姓名），但保留当前选中的学期
+                            switchUser(newAccount, preserveSelection = true)
+                        }
+                    }
+
                 } else {
                     uiState =
                         uiState.copy(isLoading = false, errorMessage = error, statusMessage = null)
@@ -185,38 +246,55 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    // === 周次逻辑更新 ===
+    fun addCustomCourse(
+        name: String,
+        location: String,
+        teacher: String,
+        weekday: Int,
+        startNode: Int,
+        duration: Int,
+        weeks: String
+    ) {
+        val account = _currentAccount.value ?: return
+        viewModelScope.launch {
+            repository.saveCustomCourse(
+                studentId = account.studentId,
+                xnm = selectedXnm,
+                xqm = selectedXqm,
+                name = name,
+                location = location,
+                teacher = teacher,
+                weekday = weekday.toString(),
+                startNode = startNode,
+                duration = duration,
+                weeks = weeks
+            )
+            uiState = uiState.copy(successMessage = "自定义课程已添加")
+        }
+    }
+
     private fun loadSemesterStart() {
         val prefs =
             getApplication<Application>().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val epochDay = prefs.getLong(KEY_START_DATE, -1L)
         val today = LocalDate.now()
-
-        // 默认为本周一
         val start =
             if (epochDay != -1L) LocalDate.ofEpochDay(epochDay) else today.with(DayOfWeek.MONDAY)
         _semesterStartDate.value = start
-
-        // 计算真实周次
         val weeksBetween = ChronoUnit.WEEKS.between(start, today).toInt() + 1
         realCurrentWeek = weeksBetween
-
-        // 默认显示真实周次 (限制在1-25之间)
         currentDisplayWeek = weeksBetween.coerceIn(1, 25)
     }
 
     fun setSemesterStartDate(date: LocalDate) {
         val monday = date.with(DayOfWeek.MONDAY)
         viewModelScope.launch {
-            val prefs =
-                getApplication<Application>().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit { putLong(KEY_START_DATE, monday.toEpochDay()) }
+            getApplication<Application>().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit { putLong(KEY_START_DATE, monday.toEpochDay()) }
             _semesterStartDate.value = monday
-
             val today = LocalDate.now()
-            val weeksBetween = ChronoUnit.WEEKS.between(monday, today).toInt() + 1
-            realCurrentWeek = weeksBetween
-            currentDisplayWeek = weeksBetween.coerceIn(1, 25)
+            realCurrentWeek = ChronoUnit.WEEKS.between(monday, today).toInt() + 1
+            currentDisplayWeek = realCurrentWeek.coerceIn(1, 25)
         }
     }
 
@@ -229,10 +307,6 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
             }
             if (validTimes.isNotEmpty()) courseWithTimes.copy(times = validTimes) else null
         }
-    }
-
-    fun clearMessages() {
-        uiState = uiState.copy(successMessage = null, errorMessage = null, statusMessage = null)
     }
 }
 
