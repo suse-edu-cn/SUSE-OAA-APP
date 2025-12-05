@@ -20,7 +20,7 @@ data class OaaThemeConfig(
 )
 
 object ThemeManager {
-    // 默认使用升级后的高级白主题
+    // 默认使用高级白主题
     var currentTheme by mutableStateOf(MinimalistTheme)
 
     val themeList = listOf(
@@ -32,7 +32,7 @@ object ThemeManager {
     )
 }
 
-// ================== [升级] 高级白 (Premium White) ==================
+// ================== 高级白 (Premium White) ==================
 val MinimalistTheme = OaaThemeConfig(
     name = "高级白 (Premium)",
     colorScheme = lightColorScheme(
@@ -54,7 +54,7 @@ val MinimalistTheme = OaaThemeConfig(
         surface = PremiumSurface,       // 纯白卡片
         onSurface = PremiumTextMain,
 
-        surfaceVariant = PremiumSurface, // 也是纯白，用于某些变体卡片
+        surfaceVariant = PremiumSurface, // 纯白，用于某些变体卡片
         onSurfaceVariant = PremiumTextSub,
 
         outline = PremiumOutline,
@@ -69,7 +69,6 @@ val MinimalistTheme = OaaThemeConfig(
     isDark = false
 )
 
-// ... 其他主题保持不变 ...
 val MaterialDesignTheme = OaaThemeConfig(
     name = "Material Design (Standard)",
     colorScheme = lightColorScheme(primary = Purple40, secondary = PurpleGrey40, tertiary = Pink40),
