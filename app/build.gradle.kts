@@ -29,7 +29,7 @@ android {
             properties.load(FileInputStream(localPropertiesFile))
         }
         // val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://47.109.32.27:8080\""
-        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://47.109.32.27:8080\""
+        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://192.168.1.200:8080\""
 
         buildConfigField("String", "API_BASE_URL", baseUrl)
     }

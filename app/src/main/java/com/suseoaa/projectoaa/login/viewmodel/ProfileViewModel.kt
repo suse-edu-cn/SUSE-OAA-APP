@@ -1,26 +1,25 @@
 package com.suseoaa.projectoaa.login.viewmodel
 
-// [修复] 移除了 Context 导入
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.suseoaa.projectoaa.common.base.BaseViewModel
-// [修复] 导入 Hilt 和 Inject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-// [修复] 移除了 NetworkModule 导入
 import com.suseoaa.projectoaa.common.util.SessionManager
 import com.suseoaa.projectoaa.login.api.ApiService
 import com.suseoaa.projectoaa.login.model.UpdatePasswordRequest
 import com.suseoaa.projectoaa.login.model.UserInfoData
 import com.suseoaa.projectoaa.login.model.UpdateUserInfoRequest
+import com.suseoaa.projectoaa.login.repository.AuthRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-// [修复] 1. 添加 Hilt 注解
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    // [修复] 2. 注入 ApiService 和 SessionManager
     private val profileApi: ApiService,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager, // 用于管理 UI 状态 (如用户名/角色)
+    private val authRepository: AuthRepository   // 用于管理核心 Auth 数据 (如 UserID/Token)
 ) : BaseViewModel() {
 
     var userInfo by mutableStateOf<UserInfoData?>(null)
@@ -39,26 +38,38 @@ class ProfileViewModel @Inject constructor(
     var showPasswordDialog by mutableStateOf(false)
     var newPasswordInput by mutableStateOf("")
 
-    // [修复] 3. 移除了 profileApi 的 lazy 创建
-
     fun fetchUserInfo() {
         launchDataLoad {
-            // [修复] 4. 使用注入的 sessionManager
-            val token = sessionManager.jwtToken
-            if (token.isNullOrBlank()) throw IllegalStateException("Token失效，请重新登录")
+            //优先从 AuthRepository 获取 Token，因为它与 UserID 绑定更紧密
+            val token = authRepository.getToken() ?: sessionManager.jwtToken
 
-            // [修复] 5. 使用注入的 profileApi
+            if (token.isNullOrBlank()) {
+                // 如果没有 Token，说明未登录或状态异常，执行登出清理
+                logout()
+                return@launchDataLoad
+            }
+
             val response = profileApi.getUserInfo(token)
 
             if (response.isSuccessful && response.body()?.code == 200) {
-                userInfo = response.body()?.data
+                val data = response.body()?.data
+                userInfo = data
+                //获取最新信息后，顺便更新 SessionManager 的 UI 状态
+                data?.let {
+                    sessionManager.saveUserInfo(it.username, it.role)
+                }
             } else {
+                // Token 过期处理 (401)
+                if (response.code() == 401) {
+                    logout()
+                    throw Exception("登录已过期")
+                }
                 throw Exception(response.body()?.message ?: "获取信息失败")
             }
         }
     }
 
-    // 进入编辑模式 (不变)
+    // 进入编辑模式
     fun startEditing() {
         userInfo?.let {
             editName = it.name
@@ -70,32 +81,29 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    // 取消编辑 (不变)
+    // 取消编辑
     fun cancelEditing() {
         isEditing = false
     }
 
-    // [修复] 6. 移除了 context 参数
-    fun updatePassword(onSuccess:()-> Unit) {
+    fun updatePassword(onSuccess: () -> Unit) {
         if (newPasswordInput.isBlank()) {
             errorMessage = "密码不能为空"
             return
         }
 
         launchDataLoad {
-            // [修复] 7. 使用注入的 sessionManager
-            val token = sessionManager.jwtToken
+            val token = authRepository.getToken() ?: sessionManager.jwtToken
             if (token.isNullOrBlank()) throw IllegalStateException("Token失效")
 
             val request = UpdatePasswordRequest(oldPassword = "", newPassword = newPasswordInput)
-
-            // [修复] 8. 使用注入的 profileApi
             val response = profileApi.updatePassword(token, request)
 
             if (response.isSuccessful && response.body()?.code == 200) {
                 showPasswordDialog = false
                 newPasswordInput = ""
-                logout() // [修复] 9. 调用本地的 logout (无 context)
+                // 修改密码成功后，强制登出
+                logout()
                 onSuccess()
             } else {
                 throw Exception(response.body()?.message ?: "修改密码失败")
@@ -103,11 +111,9 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    // 提交保存
     fun saveUserInfo() {
         launchDataLoad {
-            // [修复] 10. 使用注入的 sessionManager
-            val token = sessionManager.jwtToken
+            val token = authRepository.getToken() ?: sessionManager.jwtToken
             if (token.isNullOrBlank()) throw IllegalStateException("Token失效")
 
             val request = UpdateUserInfoRequest(
@@ -117,7 +123,6 @@ class ProfileViewModel @Inject constructor(
                 department = editDepartment
             )
 
-            // [修复] 11. 使用注入的 profileApi
             val response = profileApi.updateUserInfo(token, request)
 
             if (response.isSuccessful && response.body()?.code == 200) {
@@ -129,11 +134,18 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    // [修复] 12. 移除了 context 参数
+    /**
+     * 登出逻辑
+     */
     fun logout() {
-        // 1. 清除本地所有 Token 和数据
-        sessionManager.clear() // [修复] 13. 使用注入的 sessionManager
-        // 2. 清空当前 ViewModel 的数据
+        //清除SessionManager (为了 UI 状态)
+        sessionManager.clear()
+
+        //清除AuthRepository (为了 UserID)
+        authRepository.clearSession()
+
+        //清空ViewModel状态
         userInfo = null
+        isEditing = false
     }
 }

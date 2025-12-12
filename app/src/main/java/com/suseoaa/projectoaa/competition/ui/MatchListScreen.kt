@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material3.*
@@ -35,7 +36,8 @@ import com.suseoaa.projectoaa.competition.viewmodel.MatchListViewModel
 @Composable
 fun MatchListScreen(
     viewModel: MatchListViewModel = hiltViewModel(),
-    onNavigateToDetail:(Int) -> Unit
+    onNavigateToDetail:(Int) -> Unit,
+    onNavigateBack: () -> Unit //接收返回回调
     //TODO:导航界面  onNavigateToCreate:() -> Unit
 ) {
     val matchList = viewModel.matchList
@@ -56,6 +58,15 @@ fun MatchListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("比赛列表") },
+                //导航图标配置
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "返回"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
@@ -84,7 +95,7 @@ fun MatchListScreen(
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // 修改点：无论是否有数据，都使用 LazyColumn，保证任何时候都能检测下滑手势
+                //无论是否有数据，都使用 LazyColumn，保证任何时候都能检测下滑手势
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
