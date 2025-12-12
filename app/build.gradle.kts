@@ -19,7 +19,7 @@ android {
         minSdk = 28
         targetSdk = 36
         versionCode = 2
-        versionName = "1.1.8"
+        versionName = "1.1.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -28,8 +28,7 @@ android {
         if (localPropertiesFile.exists()) {
             properties.load(FileInputStream(localPropertiesFile))
         }
-        // val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://47.109.32.27:8080\""
-        val baseUrl = properties.getProperty("BASE_URL") ?: "\"http://47.109.32.27:8080\""
+        val baseUrl = properties.getProperty("BASE_URL") ?: "\"https://api.suseoaa.com\""
 
         buildConfigField("String", "API_BASE_URL", baseUrl)
     }

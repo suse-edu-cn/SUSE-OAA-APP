@@ -31,7 +31,7 @@ interface ApiService {
         @Body request: UpdateUserInfoRequest
     ): Response<ApiResponse<Unit>>
 
-    @POST("user/password")
+    @POST("user/updatePassword")
     suspend fun updatePassword(
         @Header("Authorization") token: String,
         @Body request: UpdatePasswordRequest
