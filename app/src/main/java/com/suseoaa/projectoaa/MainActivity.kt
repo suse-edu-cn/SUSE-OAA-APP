@@ -53,9 +53,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // [关键修改] 开启 Edge-to-Edge，让应用内容能绘制到状态栏下方
         enableEdgeToEdge()
-
         super.onCreate(savedInstanceState)
-
         // 1. 异步初始化壁纸管理器：在IO线程执行，避免阻塞UI。
         lifecycleScope.launch(Dispatchers.IO) { WallpaperManager.initialize(applicationContext) }
 
