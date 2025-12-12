@@ -9,14 +9,14 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MatchDetail(
     val title: String,
-    val author: Author,
+    val author: Author? = null,
     val status: Int,  // API 新增：状态码 0-4
 
     @SerialName("reg_time")
-    val regTime: List<String>,
+    val regTime: List<String>? =null,
 
     @SerialName("match_time")
-    val matchTime: List<String>, // 统一命名
+    val matchTime: List<String>? =null, // 统一命名
 
     val content: String
 )
@@ -24,8 +24,8 @@ data class MatchDetail(
 
 @Serializable
 data class Author(
-    val id: Long,
-    val name: String
+    val id: Long? = 0,
+    val name: String? = ""
 )
 
 /**

@@ -91,6 +91,9 @@ fun AppNavigationGraph(
                 onNavigateToDetail = { matchId ->
                     // 导航到详情页
                     navController.navigate("${AppRoutes.Competition.route}/$matchId")
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

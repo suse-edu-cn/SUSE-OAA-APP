@@ -7,12 +7,12 @@ import kotlinx.serialization.Serializable
 data class MatchItem(
     val id: Int,
     val title: String,
-    val description: String,
+    val description: String? = null,
 
     @SerialName("reg_time")
-    val regTime: List<String>,
+    val regTime: List<String> = emptyList(),
 
     @SerialName("match_time")
-    val matchTime: List<String>,
+    val matchTime: List<String> = emptyList(),
     val status: Int
 )

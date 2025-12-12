@@ -180,7 +180,7 @@ const char *JSON_EMPTY_SUCCESS = "{\"code\":200,\"message\":\"请求成功\",\"d
 // 用户模块
 const char *JSON_LOGIN_SUCCESS = "{\"code\":200,\"message\":\"登录成功\",\"data\":{\"token\":\"mock_jwt_token_v2_xyz\"}}";
 const char *JSON_REGISTER_SUCCESS = "{\"code\":200,\"data\":null,\"message\":\"注册成功\"}";
-const char *JSON_USER_INFO = "{\"code\":\"200\",\"message\":\"success\",\"data\":{\"student_id\":24171040204,\"name\":\"浪凡\",\"username\":\"langfan\",\"role\":\"会员\",\"department\":\"软件工程系\"}}";
+const char *JSON_USER_INFO = "{\"code\":\"200\",\"message\":\"success\",\"data\":{\"student_id\":24171040204,\"name\":\"浪凡\",\"username\":\"langfan\",\"role\":\"会员\",\"department\":\"软件工程系\",\"avatar\":\"\"}}";
 
 // 申请表模块
 const char *JSON_APP_LIST =
