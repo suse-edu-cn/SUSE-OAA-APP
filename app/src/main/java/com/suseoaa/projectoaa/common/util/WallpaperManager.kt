@@ -241,12 +241,11 @@ object WallpaperManager {
         // --- 策略 4: 本地借用 (偷一张普通壁纸) ---
         if (newUri == null) {
             Log.w(TAG, "getCheckInImage: Network failed, trying local fallback.")
-            // 此时不调用 randomizeDisplay 以免影响 UI，而是直接读文件 (I/O)
             val randomWallpaper = getValidImageFiles(cacheDir).randomOrNull()
             if (randomWallpaper != null) {
                 try {
                     randomWallpaper.copyTo(finalFile, overwrite = true)
-                    finalFile.setLastModified(System.currentTimeMillis()) // 更新时间戳
+                    finalFile.setLastModified(System.currentTimeMillis())
                     newUri = Uri.fromFile(finalFile)
                 } catch (e: Exception) {
                     Log.e(TAG, "getCheckInImage: Fallback copy failed", e)

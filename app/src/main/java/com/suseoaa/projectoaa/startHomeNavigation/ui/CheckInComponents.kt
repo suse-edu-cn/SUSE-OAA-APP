@@ -44,6 +44,7 @@ fun CheckInCard(
 
     CheckInCardContent(
         checkInUiState = checkInUiState,
+        isLoading = checkInUiState.isLoading,
         homeUiState = homeUiState,
         onCheckIn = viewModel::onCheckIn,
         primaryColor = primaryColor,
@@ -58,6 +59,7 @@ fun CheckInCard(
 @Composable
 private fun CheckInCardContent(
     checkInUiState: CheckInUiState,
+    isLoading: Boolean, // [新增] 接收 Loading 状态
     homeUiState: HomeUiState,
     onCheckIn: () -> Unit,
     primaryColor: Color,
@@ -71,80 +73,120 @@ private fun CheckInCardContent(
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            val context = LocalContext.current
-            val imageUrl = checkInUiState.placeholderImageUrl
-
-            // 构建 ImageRequest 以禁用缓存
-            val imageRequest = remember(imageUrl) {
-                if (imageUrl == null) {
-                    null
-                } else {
-                    ImageRequest.Builder(context)
-                        .data(imageUrl)
-                        .memoryCachePolicy(CachePolicy.DISABLED)
-                        .diskCachePolicy(CachePolicy.DISABLED)
-                        .build()
-                }
-            }
-
-            if (imageRequest != null) {
-                AsyncImage(
-                    model = imageRequest,
-                    contentDescription = "每日打卡封面",
-                    alignment = Alignment.TopCenter,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                    onError = { android.util.Log.e("CheckInCard", "Image load failed: ${it.result.throwable}") },
-                    onSuccess = { android.util.Log.d("CheckInCard", "Image load success") }
-                )
-            }
-
-            // 渐变遮罩层
+        // [修改] 根据 isLoading 状态决定显示内容
+        if (isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.25f))
-            )
-
-            // 内容层
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
             ) {
-                // 上半部分 (签文)
-                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                    Crossfade(targetState = checkInUiState.isCheckedIn, label = "Fortune") { isChecked ->
-                        if (isChecked) {
-                            FortuneContent(
-                                checkInCount = checkInUiState.checkInCount,
-                                cspCountdown = homeUiState.cspCountdown,
-                                noipCountdown = homeUiState.noipCountdown,
-                                primaryColor, onSurfaceColor, onSurfaceVariantColor
-                            )
-                        } else {
-                            Box(Modifier.fillMaxSize())
-                        }
+                CircularProgressIndicator(
+                    color = primaryColor,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+        } else {
+            // 加载完成，显示正常 UI
+            CheckInCardLoadedContent(
+                checkInUiState = checkInUiState,
+                homeUiState = homeUiState,
+                onCheckIn = onCheckIn,
+                primaryColor = primaryColor,
+                onSurfaceColor = onSurfaceColor,
+                onSurfaceVariantColor = onSurfaceVariantColor
+            )
+        }
+    }
+}
+
+/**
+ * [新增] 将原有的主要内容抽取出来，保持代码整洁
+ */
+@Composable
+private fun CheckInCardLoadedContent(
+    checkInUiState: CheckInUiState,
+    homeUiState: HomeUiState,
+    onCheckIn: () -> Unit,
+    primaryColor: Color,
+    onSurfaceColor: Color,
+    onSurfaceVariantColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        val context = LocalContext.current
+        val imageUrl = checkInUiState.placeholderImageUrl
+
+        // 构建 ImageRequest 以禁用缓存 (保持原有逻辑)
+        val imageRequest = remember(imageUrl) {
+            if (imageUrl == null) {
+                null
+            } else {
+                ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .memoryCachePolicy(CachePolicy.DISABLED)
+                    .diskCachePolicy(CachePolicy.DISABLED)
+                    .build()
+            }
+        }
+
+        if (imageRequest != null) {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = "每日打卡封面",
+                alignment = Alignment.TopCenter,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                onError = { android.util.Log.e("CheckInCard", "Image load failed: ${it.result.throwable}") },
+                onSuccess = { android.util.Log.d("CheckInCard", "Image load success") }
+            )
+        }
+
+        // 渐变遮罩层
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.25f))
+        )
+
+        // 内容层
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // 上半部分 (签文)
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)) {
+                Crossfade(targetState = checkInUiState.isCheckedIn, label = "Fortune") { isChecked ->
+                    if (isChecked) {
+                        FortuneContent(
+                            checkInCount = checkInUiState.checkInCount,
+                            cspCountdown = homeUiState.cspCountdown,
+                            noipCountdown = homeUiState.noipCountdown,
+                            primaryColor, onSurfaceColor, onSurfaceVariantColor
+                        )
+                    } else {
+                        Box(Modifier.fillMaxSize())
                     }
                 }
-                // 下半部分 (操作)
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Crossfade(targetState = checkInUiState.isCheckedIn, label = "Action") { isChecked ->
-                        if (isChecked) {
-                            AfterCheckInInfo()
-                        } else {
-                            BeforeCheckInInfo(
-                                currentDate = homeUiState.currentDate,
-                                cspCountdown = homeUiState.cspCountdown,
-                                noipCountdown = homeUiState.noipCountdown,
-                                onCheckIn = onCheckIn,
-                                onSurfaceColor, onSurfaceVariantColor
-                            )
-                        }
+            }
+            // 下半部分 (操作)
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Crossfade(targetState = checkInUiState.isCheckedIn, label = "Action") { isChecked ->
+                    if (isChecked) {
+                        AfterCheckInInfo()
+                    } else {
+                        BeforeCheckInInfo(
+                            currentDate = homeUiState.currentDate,
+                            cspCountdown = homeUiState.cspCountdown,
+                            noipCountdown = homeUiState.noipCountdown,
+                            onCheckIn = onCheckIn,
+                            onSurfaceColor, onSurfaceVariantColor
+                        )
                     }
                 }
             }
@@ -153,7 +195,7 @@ private fun CheckInCardContent(
 }
 
 // ==========================================
-// 辅助组件
+// 辅助组件 (保持不变)
 // ==========================================
 
 @Composable
@@ -217,9 +259,7 @@ private fun FortuneContent(
                 }
             }
 
-            Spacer(Modifier.height(16.dp)) // [修复] 顶部和标题行之间的间隔
-
-            // --- [修复] “宜”和“忌”的新布局 ---
+            Spacer(Modifier.height(16.dp))
 
             // 1. 标题行
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -231,12 +271,12 @@ private fun FortuneContent(
                 }
             }
 
-            Spacer(Modifier.height(4.dp)) // 标题和条目之间的间隔
+            Spacer(Modifier.height(4.dp))
 
-            // 2. [修复] 所有 4 个条目在同一行
+            // 2. 所有 4 个条目在同一行
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp) // 条目间的最小间隔
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // "宜" 的条目
                 FortuneItem(
@@ -244,14 +284,14 @@ private fun FortuneContent(
                     subtitle = "AC+10",
                     onSurfaceColor,
                     onSurfaceVariantColor,
-                    modifier = Modifier.weight(1f) // Item 1
+                    modifier = Modifier.weight(1f)
                 )
                 FortuneItem(
                     title = "写文档",
                     subtitle = "思如泉涌",
                     onSurfaceColor,
                     onSurfaceVariantColor,
-                    modifier = Modifier.weight(1f) // Item 2
+                    modifier = Modifier.weight(1f)
                 )
 
                 // "忌" 的条目
@@ -260,14 +300,14 @@ private fun FortuneContent(
                     subtitle = "Bug++",
                     onSurfaceColor,
                     onSurfaceVariantColor,
-                    modifier = Modifier.weight(1f) // Item 3
+                    modifier = Modifier.weight(1f)
                 )
                 FortuneItem(
                     title = "熬夜",
                     subtitle = "头发--",
                     onSurfaceColor,
                     onSurfaceVariantColor,
-                    modifier = Modifier.weight(1f) // Item 4
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -310,7 +350,7 @@ private fun FortuneItem(
         Text(
             subtitle,
             color = onSurfaceVariantColor,
-            fontSize = 10.sp // [修复] 减小副标题字体大小以适应压缩
+            fontSize = 10.sp
         )
     }
 }
