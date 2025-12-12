@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,8 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.CheckInUiState
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.CheckInViewModel
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.DailyFortune
+import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.FortuneItem
 import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.HomeUiState
 
 /**
@@ -34,7 +37,7 @@ import com.suseoaa.projectoaa.startHomeNavigation.viewmodel.HomeUiState
  */
 @Composable
 fun CheckInCard(
-    homeUiState: HomeUiState, // 接收来自 HomeViewModel 的日期/倒计时
+    homeUiState: HomeUiState,
     primaryColor: Color,
     onSurfaceColor: Color,
     onSurfaceVariantColor: Color,
@@ -59,7 +62,7 @@ fun CheckInCard(
 @Composable
 private fun CheckInCardContent(
     checkInUiState: CheckInUiState,
-    isLoading: Boolean, // [新增] 接收 Loading 状态
+    isLoading: Boolean,
     homeUiState: HomeUiState,
     onCheckIn: () -> Unit,
     primaryColor: Color,
@@ -69,11 +72,10 @@ private fun CheckInCardContent(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(340.dp), // 整体高度不变
+            .height(340.dp),
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        // [修改] 根据 isLoading 状态决定显示内容
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -87,7 +89,6 @@ private fun CheckInCardContent(
                 )
             }
         } else {
-            // 加载完成，显示正常 UI
             CheckInCardLoadedContent(
                 checkInUiState = checkInUiState,
                 homeUiState = homeUiState,
@@ -101,7 +102,7 @@ private fun CheckInCardContent(
 }
 
 /**
- * [新增] 将原有的主要内容抽取出来，保持代码整洁
+ * 主要内容区域
  */
 @Composable
 private fun CheckInCardLoadedContent(
@@ -120,7 +121,6 @@ private fun CheckInCardLoadedContent(
         val context = LocalContext.current
         val imageUrl = checkInUiState.placeholderImageUrl
 
-        // 构建 ImageRequest 以禁用缓存 (保持原有逻辑)
         val imageRequest = remember(imageUrl) {
             if (imageUrl == null) {
                 null
@@ -140,33 +140,28 @@ private fun CheckInCardLoadedContent(
                 alignment = Alignment.TopCenter,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-                onError = { android.util.Log.e("CheckInCard", "Image load failed: ${it.result.throwable}") },
-                onSuccess = { android.util.Log.d("CheckInCard", "Image load success") }
+                onError = { android.util.Log.e("CheckInCard", "Image load failed: ${it.result.throwable}") }
             )
         }
 
-        // 渐变遮罩层
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.25f))
         )
 
-        // 内容层
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // 上半部分 (签文)
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 Crossfade(targetState = checkInUiState.isCheckedIn, label = "Fortune") { isChecked ->
                     if (isChecked) {
                         FortuneContent(
                             checkInCount = checkInUiState.checkInCount,
                             cspCountdown = homeUiState.cspCountdown,
                             noipCountdown = homeUiState.noipCountdown,
+                            dailyFortune = checkInUiState.dailyFortune,
                             primaryColor, onSurfaceColor, onSurfaceVariantColor
                         )
                     } else {
@@ -174,7 +169,6 @@ private fun CheckInCardLoadedContent(
                     }
                 }
             }
-            // 下半部分 (操作)
             Box(modifier = Modifier.fillMaxWidth()) {
                 Crossfade(targetState = checkInUiState.isCheckedIn, label = "Action") { isChecked ->
                     if (isChecked) {
@@ -195,7 +189,7 @@ private fun CheckInCardLoadedContent(
 }
 
 // ==========================================
-// 辅助组件 (保持不变)
+// 运势展示逻辑 (核心修改区域)
 // ==========================================
 
 @Composable
@@ -203,11 +197,11 @@ private fun FortuneContent(
     checkInCount: Int,
     cspCountdown: String,
     noipCountdown: String,
+    dailyFortune: DailyFortune?,
     primaryColor: Color,
     onSurfaceColor: Color,
     onSurfaceVariantColor: Color
 ) {
-    // 强制此区域内的字体不缩放 (fontScale = 1.0f)
     CompositionLocalProvider(
         LocalDensity provides Density(
             density = LocalDensity.current.density,
@@ -220,14 +214,14 @@ private fun FortuneContent(
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
                 .padding(vertical = 8.dp, horizontal = 20.dp),
         ) {
-            // --- 顶部信息 (中吉, 连续打卡) ---
+            // --- 顶部信息 ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
-                    "中吉",
+                    text = dailyFortune?.luckLevel ?: "计算中...",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     color = primaryColor
@@ -246,73 +240,103 @@ private fun FortuneContent(
                         lineHeight = 40.sp
                     )
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        cspCountdown,
-                        color = onSurfaceVariantColor,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        noipCountdown,
-                        color = onSurfaceVariantColor,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Text(cspCountdown, color = onSurfaceVariantColor, style = MaterialTheme.typography.bodySmall)
+                    Text(noipCountdown, color = onSurfaceVariantColor, style = MaterialTheme.typography.bodySmall)
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
 
-            // 1. 标题行
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.weight(1f)) {
-                    FortuneHeader(isGood = true) // "宜"
+            // --- 宜忌详情区域 (4列2行布局) ---
+            if (dailyFortune != null) {
+                // 固定显示2行
+                val rows = 2
+
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    for (i in 0 until rows) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // -------------------------
+                            // 第一组：宜 (Col 1 & Col 2)
+                            // -------------------------
+
+                            // Col 1: 宜 Header (固定宽度占位，确保上下对齐)
+                            Box(
+                                modifier = Modifier.width(42.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                // 仅在第一行显示图标，保持页面清爽
+                                if (i == 0) FortuneHeader(isGood = true)
+                            }
+
+                            // Col 2: 宜 内容
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (dailyFortune.goodList.isEmpty()) {
+                                    // 列表为空 -> 诸事不宜
+                                    if (i == 0) {
+                                        SpecialFortuneText(
+                                            text = "诸事不宜",
+                                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                } else {
+                                    val item = dailyFortune.goodList.getOrNull(i)
+                                    if (item != null) {
+                                        FortuneItemView(item, onSurfaceColor, onSurfaceVariantColor)
+                                    }
+                                }
+                            }
+
+                            // 组间距
+                            Spacer(Modifier.width(12.dp))
+
+                            // -------------------------
+                            // 第二组：忌 (Col 3 & Col 4)
+                            // -------------------------
+
+                            // Col 3: 忌 Header (固定宽度占位)
+                            Box(
+                                modifier = Modifier.width(42.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                if (i == 0) FortuneHeader(isGood = false)
+                            }
+
+                            // Col 4: 忌 内容
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (dailyFortune.badList.isEmpty()) {
+                                    // 列表为空 -> 万事皆宜
+                                    if (i == 0) {
+                                        SpecialFortuneText(
+                                            text = "万事皆宜",
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else {
+                                    val item = dailyFortune.badList.getOrNull(i)
+                                    if (item != null) {
+                                        FortuneItemView(item, onSurfaceColor, onSurfaceVariantColor)
+                                    }
+                                }
+                            }
+                        }
+
+                        // 行间距
+                        if (i < rows - 1) {
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
                 }
-                Box(modifier = Modifier.weight(1f)) {
-                    FortuneHeader(isGood = false) // "忌"
-                }
-            }
-
-            Spacer(Modifier.height(4.dp))
-
-            // 2. 所有 4 个条目在同一行
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                // "宜" 的条目
-                FortuneItem(
-                    title = "刷算法",
-                    subtitle = "AC+10",
-                    onSurfaceColor,
-                    onSurfaceVariantColor,
-                    modifier = Modifier.weight(1f)
-                )
-                FortuneItem(
-                    title = "写文档",
-                    subtitle = "思如泉涌",
-                    onSurfaceColor,
-                    onSurfaceVariantColor,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // "忌" 的条目
-                FortuneItem(
-                    title = "重构代码",
-                    subtitle = "Bug++",
-                    onSurfaceColor,
-                    onSurfaceVariantColor,
-                    modifier = Modifier.weight(1f)
-                )
-                FortuneItem(
-                    title = "熬夜",
-                    subtitle = "头发--",
-                    onSurfaceColor,
-                    onSurfaceVariantColor,
-                    modifier = Modifier.weight(1f)
-                )
             }
         }
     }
 }
+
+// ==========================================
+// 辅助组件
+// ==========================================
 
 @Composable
 private fun FortuneHeader(isGood: Boolean) {
@@ -333,24 +357,41 @@ private fun FortuneHeader(isGood: Boolean) {
 }
 
 @Composable
-private fun FortuneItem(
-    title: String,
-    subtitle: String,
+private fun FortuneItemView(
+    item: FortuneItem,
     onSurfaceColor: Color,
     onSurfaceVariantColor: Color,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
         Text(
-            title,
+            item.title,
             color = onSurfaceColor,
             fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
         )
         Text(
-            subtitle,
+            item.subtitle,
             color = onSurfaceVariantColor,
-            fontSize = 10.sp
+            fontSize = 10.sp,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun SpecialFortuneText(text: String, color: Color) {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            text = text,
+            color = color,
+            fontSize = 18.sp, // 稍微调大一点点，但不至于破坏布局
+            fontWeight = FontWeight.Bold,
+            fontStyle = FontStyle.Italic
         )
     }
 }

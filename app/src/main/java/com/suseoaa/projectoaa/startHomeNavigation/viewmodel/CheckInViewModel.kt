@@ -27,7 +27,8 @@ data class CheckInUiState(
     val isCheckedIn: Boolean = false,
     val checkInCount: Int = 0,
     val placeholderImageUrl: Uri? = null,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val dailyFortune: DailyFortune? = null
 )
 
 /**
@@ -50,16 +51,31 @@ class CheckInViewModel @Inject constructor(
     private fun loadData() {
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true)
-
-            // 并行加载图片，不依赖 UserID，解决头图丢失问题
+            val userId = resolveUserId()
             val imageUriDeferred = withContext(Dispatchers.IO) {
                 fetchDailyImage(LocalDate.now().toString())
             }
 
-            // 尝试获取 student_id (即 userId)
-            val userId = resolveUserId()
+            // [TODO] API对接: 替换为 "网络优先，本地降级" 策略
+            // 修改建议如下：
+            /*
+            val fortune = withContext(Dispatchers.IO) {
+                // 1. 调用 Repository 获取 (Repository 负责处理 API -> DTO -> Domain Model 的转换)
+                // val result = userDataRepository.getDailyFortune(userId)
 
-            // 根据 ID 读取本地打卡记录
+                // 2. 处理 Result: 如果网络成功用网络数据，失败则回退到本地逻辑
+                // result.getOrElse { e ->
+                //    Log.w("CheckInVM", "API请求失败，降级为本地算法: ${e.message}")
+                //    FortuneLogic.generateFortuneForToday(userId)
+                // }
+            }
+            */
+
+            // 当前逻辑（纯本地）：
+            val fortune = withContext(Dispatchers.Default) {
+                FortuneLogic.generateFortuneForToday(userId)
+            }
+
             var isChecked = false
             var count = 0
 
@@ -71,8 +87,10 @@ class CheckInViewModel @Inject constructor(
                     val storedDate = userDataRepository.getLastCheckInDate(userId)
                     val storedCount = userDataRepository.getCheckInCount(userId)
 
-                    // TODO: 如果将来要从后端同步打卡数据，就在这里调用 API
-                    // val remoteData = api.getCheckInStatus(userId) ...
+                    // [TODO] API对接: 调用 API 获取服务端最新的打卡状态
+                    // 用于防止用户换手机后打卡记录丢失
+                    // val remoteStatus = apiService.getCheckInStatus(userId)
+                    // if (remoteStatus.isSuccessful) { ... 更新本地 storedDate 和 storedCount ... }
 
                     Pair(todayString == storedDate, storedCount)
                 }
@@ -82,12 +100,13 @@ class CheckInViewModel @Inject constructor(
                 Log.w("CheckInVM", "未获取到 student_id，进入访客/未登录模式")
             }
 
-            //更新 UI
+            // 更新 UI
             uiState = uiState.copy(
                 isCheckedIn = isChecked,
                 checkInCount = count,
                 placeholderImageUrl = imageUriDeferred,
-                isLoading = false
+                isLoading = false,
+                dailyFortune = fortune
             )
         }
     }
@@ -157,8 +176,16 @@ class CheckInViewModel @Inject constructor(
                 userDataRepository.saveCheckInDate(userId, todayString)
                 userDataRepository.saveCheckInCount(userId, newCount)
 
-                // TODO: 预留后端接口
-                // api.submitCheckIn(userId)
+                // [TODO] API对接: 调用 API 提交打卡
+                // try {
+                //     val request = CheckInRequest(userId = userId, date = todayString)
+                //     val response = apiService.submitCheckIn(request)
+                //     if (!response.isSuccess) {
+                //         // 处理提交失败的情况，例如加入本地待重试队列 WorkManager
+                //     }
+                // } catch (e: Exception) {
+                //     Log.e("CheckInVM", "打卡上传失败", e)
+                // }
             }
         }
     }
