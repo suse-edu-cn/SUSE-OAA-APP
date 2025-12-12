@@ -42,9 +42,9 @@ class MatchDetailViewModel @Inject constructor(
             matchDetail = MatchDetailUiItem(
                 id = matchId,
                 title = rawDetail.title,
-                organizerName = rawDetail.author.name,
-                regTime = rawDetail.regTime,
-                matchTime = rawDetail.matchTime,
+                organizerName = rawDetail.author?.name ?: "Null",
+                regTime = rawDetail.regTime ?: emptyList(),
+                matchTime = rawDetail.matchTime ?: emptyList(),
                 content = rawDetail.content,
                 status = statusEnum
             )
