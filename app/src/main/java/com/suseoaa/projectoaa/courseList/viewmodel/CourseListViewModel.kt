@@ -9,9 +9,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.common.util.NativeHelper // [注意] 请确保创建了这个文件
 import com.suseoaa.projectoaa.courseList.data.database.CourseDatabase
 import com.suseoaa.projectoaa.courseList.data.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.courseList.data.entity.CourseWithTimes
+import com.suseoaa.projectoaa.courseList.data.remote.ReceivedCookiesInterceptorFixed
 import com.suseoaa.projectoaa.courseList.data.remote.SchoolSystem
 import com.suseoaa.projectoaa.courseList.data.repository.CourseRepository
 import kotlinx.coroutines.Dispatchers
@@ -246,6 +248,84 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    // === [新增] 一键评教功能 ===
+    fun startOneClickEvaluation() {
+        viewModelScope.launch {
+            // 0) 必须有当前账号
+            val account = _currentAccount.value
+            if (account == null) {
+                uiState = uiState.copy(errorMessage = "当前无账号，无法评教")
+                return@launch
+            }
+
+            val targetYear = selectedXnm
+            val targetSemester = selectedXqm
+
+            // 1) 强制走“登录 + 查询课表”同一路径，确保拿到与课表相同的 Cookie
+            val (cookieString, cookieError) = withContext(Dispatchers.IO) {
+                uiState = uiState.copy(statusMessage = "正在获取评教凭据(自动登录+查询课表)...")
+                ReceivedCookiesInterceptorFixed.clearCookies()
+
+                val (loginSuccess, debugInfo) = SchoolSystem.login(account.studentId, account.password)
+                if (!loginSuccess) return@withContext Pair<String?, String?>(null, "获取评教凭据失败: $debugInfo")
+
+                val (parsedData, scheduleDebug) = SchoolSystem.queryScheduleParsed(targetYear, targetSemester)
+                val cookies = ReceivedCookiesInterceptorFixed.cookies
+                if (cookies.isEmpty()) {
+                    return@withContext Pair<String?, String?>(null, "课表查询/登录后未获取到Cookie: $scheduleDebug")
+                }
+                // 即便课表解析失败，只要 Cookie 有值也可继续评教，但带上提示
+                val warn = if (parsedData == null) "课表解析失败: $scheduleDebug" else null
+                // [修改] 使用 fullCookieString 获取完整的 "key=value; key=value" 格式字符串
+                Pair(ReceivedCookiesInterceptorFixed.fullCookieString, warn)
+            }
+
+            if (cookieString.isNullOrBlank()) {
+                uiState = uiState.copy(errorMessage = cookieError ?: "未获取到评教凭据，请重试或重新登录")
+                return@launch
+            }
+
+            // 2) 调用 native 评教
+            uiState = uiState.copy(
+                isLoading = true,
+                statusMessage = "已获取评教凭据，正在一键评教...",
+                errorMessage = cookieError // 如果课表解析失败但有Cookie，给一个提示
+            )
+
+            try {
+                val logResult = withContext(Dispatchers.IO) {
+                    try {
+                        NativeHelper.startEvaluation(cookieString)
+                    } catch (e: UnsatisfiedLinkError) {
+                        "调用失败: 找不到 C++ 库 (oaa-native)。\\n错误信息: ${e.message}"
+                    } catch (e: Exception) {
+                        "调用异常: ${e.message}"
+                    }
+                }
+
+                uiState = uiState.copy(
+                    isLoading = false,
+                    statusMessage = null,
+                    successMessage = "评教流程结束",
+                    evaluationLog = logResult
+                )
+
+            } catch (e: Exception) {
+                uiState = uiState.copy(
+                    isLoading = false,
+                    errorMessage = "评教过程发生错误: ${e.message}",
+                    statusMessage = null
+                )
+            }
+        }
+    }
+
+    // 用于在 UI 关闭弹窗后清除日志状态
+    fun clearEvaluationLog() {
+        uiState = uiState.copy(evaluationLog = null)
+    }
+    // ========================
+
     fun addCustomCourse(
         name: String,
         location: String,
@@ -310,9 +390,11 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
     }
 }
 
+// 更新 State，增加 evaluationLog 用于展示详细日志
 data class CourseListUiState(
     val isLoading: Boolean = false,
     val successMessage: String? = null,
     val errorMessage: String? = null,
-    val statusMessage: String? = null
+    val statusMessage: String? = null,
+    val evaluationLog: String? = null // [新增] 用于存储评教结果日志
 )

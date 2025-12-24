@@ -31,9 +31,33 @@ android {
         val baseUrl = properties.getProperty("BASE_URL") ?: "\"https://api.suseoaa.com\""
 
         buildConfigField("String", "API_BASE_URL", baseUrl)
+
+
+
+        externalNativeBuild {
+            cmake {
+                // 指定 C++ 标准
+                cppFlags("-std=c++17")
+                // [关键] 指定只编译这两种架构，必须和 libs 文件夹里的对应！
+                // 如果你只下载了 arm64-v8a，就只写这一个，否则编译会报错找不到文件
+                abiFilters("arm64-v8a")
+            }
+        }
+    }
+
+
+    // 指定 CMakeLists.txt 的路径
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.31.6" // 或者你安装的 CMake 版本
+        }
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true // ✅ Correct syntax
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(

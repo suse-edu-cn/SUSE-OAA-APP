@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -20,6 +21,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import coil.compose.rememberAsyncImagePainter
 import com.suseoaa.projectoaa.common.util.WallpaperManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @Composable
@@ -72,10 +75,18 @@ fun ProjectOAATheme(
         Box(modifier = Modifier.fillMaxSize()) {
 
             val apiWallpaper by WallpaperManager.currentWallpaper.collectAsState()
-            val file = apiWallpaper?.path?.let { File(it) }
 
-            // 判断：文件有效
-            val isFileValid = file?.exists() == true && file.length() > 0
+            // [Fix] Move file I/O off the main thread using produceState
+            val isFileValid by produceState(initialValue = false, key1 = apiWallpaper) {
+                if (apiWallpaper?.path != null) {
+                    value = withContext(Dispatchers.IO) {
+                        val file = File(apiWallpaper!!.path!!)
+                        file.exists() && file.length() > 0
+                    }
+                } else {
+                    value = false
+                }
+            }
 
             // === 恢复核心逻辑：必须是二次元主题 && 文件有效 才显示 ===
             val showWallpaper = themeConfig.name.contains("二次元") && isFileValid

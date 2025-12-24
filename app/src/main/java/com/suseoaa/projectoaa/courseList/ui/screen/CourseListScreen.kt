@@ -190,6 +190,33 @@ fun CourseListScreen(
         )
     }
 
+    // [修改] 监听评教日志，使用 Dialog 显示完整日志，而不是 Toast
+    var evaluationLogDialogContent by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(uiState.evaluationLog) {
+        uiState.evaluationLog?.let { log ->
+            evaluationLogDialogContent = log
+            viewModel.clearEvaluationLog()
+        }
+    }
+
+    if (evaluationLogDialogContent != null) {
+        AlertDialog(
+            onDismissRequest = { evaluationLogDialogContent = null },
+            title = { Text("评教结果") },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(evaluationLogDialogContent ?: "")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { evaluationLogDialogContent = null }) {
+                    Text("关闭")
+                }
+            }
+        )
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -282,6 +309,13 @@ fun CourseListScreen(
                                 DropdownMenuItem(
                                     text = { Text("导入新课表") },
                                     onClick = { menuExpanded = false; showLoginDialog = true })
+                                DropdownMenuItem(
+                                    text = { Text("一键评教") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.startOneClickEvaluation()
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text("添加自定义课程") },
                                     onClick = {

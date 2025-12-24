@@ -1,0 +1,20 @@
+# ninja log v6
+1	1153	1766248182927104039	CMakeFiles/oaa-native.dir/native-lib.cpp.o	4e0e4907bca919ff
+6	13295	1766251509898013945	CMakeFiles/oaa-native.dir/Evaluator.cpp.o	4716dc6a4f25cc1e
+13296	13620	1766251523188042547	/Users/vincent/ProjectOAA/app/build/intermediates/cxx/Debug/h1n6j3n1/obj/arm64-v8a/liboaa-native.so	73da4ecd9300ff75
+3	18	1766252398815444105	clean	df1045b8ec675a73
+6	2266	1766252416057905082	CMakeFiles/oaa-native.dir/native-lib.cpp.o	4e0e4907bca919ff
+8	7412	1766252416059777204	CMakeFiles/oaa-native.dir/Evaluator.cpp.o	4716dc6a4f25cc1e
+7412	7594	1766252423463926079	/Users/vincent/ProjectOAA/app/build/intermediates/cxx/Debug/h1n6j3n1/obj/arm64-v8a/liboaa-native.so	73da4ecd9300ff75
+9	5746	1766254816599464638	CMakeFiles/oaa-native.dir/Evaluator.cpp.o	4716dc6a4f25cc1e
+5746	5920	1766254822337509485	/Users/vincent/ProjectOAA/app/build/intermediates/cxx/Debug/h1n6j3n1/obj/arm64-v8a/liboaa-native.so	73da4ecd9300ff75
+6	5823	1766255446919171280	CMakeFiles/oaa-native.dir/Evaluator.cpp.o	4716dc6a4f25cc1e
+5823	5991	1766255452736777891	/Users/vincent/ProjectOAA/app/build/intermediates/cxx/Debug/h1n6j3n1/obj/arm64-v8a/liboaa-native.so	73da4ecd9300ff75
+6	7451	1766255638734869032	CMakeFiles/oaa-native.dir/Evaluator.cpp.o	4716dc6a4f25cc1e
+7451	7665	1766255646179920011	/Users/vincent/ProjectOAA/app/build/intermediates/cxx/Debug/h1n6j3n1/obj/arm64-v8a/liboaa-native.so	73da4ecd9300ff75
+24	7277	1766299649872848523	CMakeFiles/oaa-native.dir/Evaluator.cpp.o	4716dc6a4f25cc1e
+7277	7478	1766299657125571242	/Users/vincent/ProjectOAA/app/build/intermediates/cxx/Debug/h1n6j3n1/obj/arm64-v8a/liboaa-native.so	73da4ecd9300ff75
+7	5789	1766301148594258703	CMakeFiles/oaa-native.dir/Evaluator.cpp.o	4716dc6a4f25cc1e
+5789	5997	1766301154375529162	/Users/vincent/ProjectOAA/app/build/intermediates/cxx/Debug/h1n6j3n1/obj/arm64-v8a/liboaa-native.so	73da4ecd9300ff75
+9	6102	1766301460213776753	CMakeFiles/oaa-native.dir/Evaluator.cpp.o	4716dc6a4f25cc1e
+6102	6288	1766301466306475183	/Users/vincent/ProjectOAA/app/build/intermediates/cxx/Debug/h1n6j3n1/obj/arm64-v8a/liboaa-native.so	73da4ecd9300ff75

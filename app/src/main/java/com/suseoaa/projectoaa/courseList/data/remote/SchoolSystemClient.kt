@@ -25,9 +25,30 @@ import javax.crypto.Cipher
 class ReceivedCookiesInterceptorFixed : Interceptor {
     companion object {
         // 使用MutableMap来存储Cookie，避免重复和覆盖
-        private val cookieMap: MutableMap<String, String> = mutableMapOf()
+        // [修改] 使用 LinkedHashMap 保持插入顺序，确保 route 在前（如果它是先被添加的）
+        // 或者我们可以在 fullCookieString 中强制排序
+        private val cookieMap: MutableMap<String, String> = java.util.LinkedHashMap()
         val cookies: List<String>
             get() = cookieMap.map { "${it.key}=${it.value}" }
+
+        // [修改] 强制 route 在前，JSESSIONID 在后，以匹配 C++ 接口的预期格式
+        val fullCookieString: String
+            get() {
+                val route = cookieMap["route"]
+                val jsessionid = cookieMap["JSESSIONID"]
+                // 过滤掉 rememberMe，因为它会导致评教失败
+                val otherCookies = cookieMap.filterKeys {
+                    it != "route" && it != "JSESSIONID" && it != "rememberMe"
+                }
+
+                val parts = mutableListOf<String>()
+                if (route != null) parts.add("route=$route")
+                if (jsessionid != null) parts.add("JSESSIONID=$jsessionid")
+                parts.addAll(otherCookies.map { "${it.key}=${it.value}" })
+
+                return parts.joinToString("; ")
+            }
+
         fun clearCookies() {
             cookieMap.clear()
         }
