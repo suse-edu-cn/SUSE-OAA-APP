@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.app
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -30,15 +31,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
-
-            // 1. 获取 ViewModel 计算出的起始页状态
             val startDest by mainViewModel.startDestination.collectAsStateWithLifecycle()
-
+//            手机不允许自动旋转
+            val isPhone = resources.configuration.smallestScreenWidthDp < 600
+            requestedOrientation = if (isPhone) {
+                // 手机：强制竖屏
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            } else {
+                // 平板：跟随用户/传感器
+                ActivityInfo.SCREEN_ORIENTATION_USER
+            }
             CompositionLocalProvider(LocalWindowSizeClass provides windowSizeClass) {
                 ProjectOAATheme {
-                    // 2. 只有当状态确定（不是 loading）时，才加载 UI
                     if (startDest != "loading_route") {
-                        // 3. 只调用一次 OaaApp，并传入 startDestination
                         OaaApp(
                             windowSizeClass = windowSizeClass.widthSizeClass,
                             startDestination = startDest

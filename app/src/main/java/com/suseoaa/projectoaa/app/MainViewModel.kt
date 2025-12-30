@@ -23,6 +23,6 @@ class MainViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = "loading_route" // 初始状态，可以显示一个空白页或 Splash
+            initialValue = "loading_route"
         )
 }
