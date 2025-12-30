@@ -15,7 +15,7 @@ gen/
 out/
 build/
 captures/
-
+release/
 # Gradle
 .gradle/
 **/gradle/wrapper/gradle-wrapper.properties  # 保留这个文件！不要忽略
