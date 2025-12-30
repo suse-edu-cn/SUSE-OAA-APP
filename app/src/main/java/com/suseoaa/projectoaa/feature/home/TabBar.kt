@@ -44,13 +44,15 @@ enum class MainTab(
 @Composable
 fun OaaApp(
     windowSizeClass: WindowWidthSizeClass,
+    startDestination: String
 ) {
     // 这里的 navController 是整个 App 的根控制器（用于 Login -> Main 的跳转）
     val navController = androidx.navigation.compose.rememberNavController()
 
     AppNavHost(
         navController = navController,
-        windowSizeClass = windowSizeClass
+        windowSizeClass = windowSizeClass,
+        startDestination = startDestination
     )
 }
 

@@ -19,13 +19,12 @@ import com.suseoaa.projectoaa.feature.register.registerScreen
 fun AppNavHost(
     navController: NavHostController,
     windowSizeClass: WindowWidthSizeClass,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    startDestination: String = LOGIN_ROUTE
 ) {
     NavHost(
         navController = navController,
-        // 这里根据你的需求，如果是已登录状态，可以设为 MAIN_SCREEN_ROUTE
-        // 如果需要先登录，设为 LOGIN_ROUTE
-        startDestination = LOGIN_ROUTE,
+        startDestination = startDestination,
         modifier = modifier,
         enterTransition = { EnterTransition.None },
         exitTransition = { ExitTransition.None },
@@ -52,7 +51,7 @@ fun AppNavHost(
             }
         )
 
-        // 3. 主容器页 (包含 4 个 Tab 的 Pager)
+        // 3. 主容器页
         composable(MAIN_SCREEN_ROUTE) {
             MainScreen(windowSizeClass = windowSizeClass)
         }

@@ -90,4 +90,6 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.volley)
     implementation(libs.play.services.maps)
+//    DataStore相关依赖
+    implementation(libs.androidx.datastore.preferences)
 }

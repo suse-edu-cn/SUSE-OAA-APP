@@ -5,11 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.core.dataStore.TokenManager
 import com.suseoaa.projectoaa.core.network.model.login.LoginRequest
 import com.suseoaa.projectoaa.core.network.login.LoginClient
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class LoginViewModel : ViewModel() {
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val tokenManager: TokenManager
+) : ViewModel() {
     //    UI状态
     var account by mutableStateOf("")
     var password by mutableStateOf("")
@@ -30,6 +36,7 @@ class LoginViewModel : ViewModel() {
                 val response = LoginClient.apiService.login(request)
                 if (response.code == 200 && response.data?.token != null) {
                     val token = response.data.token
+                    tokenManager.saveToken(token)
                     onSuccess(token)
                 } else {
                     onError(response.message)

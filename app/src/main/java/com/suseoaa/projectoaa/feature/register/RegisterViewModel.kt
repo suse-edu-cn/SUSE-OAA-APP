@@ -7,7 +7,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.core.network.model.register.RegisterErrorResponse
 import com.suseoaa.projectoaa.core.network.model.register.RegisterRequest
-import com.suseoaa.projectoaa.core.network.model.register.RegisterResponse
 import com.suseoaa.projectoaa.core.network.register.RegisterClient
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
