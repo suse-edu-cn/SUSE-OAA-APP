@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.suseoaa.projectoaa.feature.changePassword.changePasswordScreen
 import com.suseoaa.projectoaa.feature.home.MAIN_SCREEN_ROUTE
 import com.suseoaa.projectoaa.feature.home.MainScreen
 import com.suseoaa.projectoaa.feature.login.LOGIN_ROUTE
@@ -31,10 +32,8 @@ fun AppNavHost(
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None }
     ) {
-        // 1. 登录页
         loginScreen(
             onLoginSuccess = {
-                // 登录成功 -> 跳转到主容器页
                 navController.navigate(MAIN_SCREEN_ROUTE) {
                     popUpTo(LOGIN_ROUTE) { inclusive = true }
                 }
@@ -43,15 +42,11 @@ fun AppNavHost(
                 navController.navigateToRegister()
             }
         )
-
-        // 2. 注册页
         registerScreen(
             onRegisterSuccess = {
                 navController.popBackStack()
             }
         )
-
-        // 3. 主容器页
         composable(MAIN_SCREEN_ROUTE) {
             MainScreen(windowSizeClass = windowSizeClass)
         }
