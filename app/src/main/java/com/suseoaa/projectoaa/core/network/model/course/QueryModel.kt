@@ -1,10 +1,12 @@
 package com.suseoaa.projectoaa.core.network.model.course
 
 
+import androidx.annotation.Keep
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
+@Keep
 @Serializable
 data class QueryModel(
     @SerialName("currentPage")

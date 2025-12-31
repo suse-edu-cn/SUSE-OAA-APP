@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.core.database.entity
 
+import androidx.annotation.Keep
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -8,6 +9,7 @@ import androidx.room.PrimaryKey
 /**
  * 账号信息表
  */
+@Keep
 @Entity(tableName = "course_accounts")
 data class CourseAccountEntity(
     @PrimaryKey val studentId: String,
@@ -21,6 +23,7 @@ data class CourseAccountEntity(
 /**
  * 课程表实体
  */
+@Keep
 @Entity(
     tableName = "courses",
     primaryKeys = ["studentId", "courseName", "xnm", "xqm", "isCustom"]
@@ -42,6 +45,7 @@ data class CourseEntity(
 /**
  * 课程时间表实体
  */
+@Keep
 @Entity(
     tableName = "class_times",
     foreignKeys = [

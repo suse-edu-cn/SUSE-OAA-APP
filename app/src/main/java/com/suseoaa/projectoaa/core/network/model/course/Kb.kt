@@ -1,9 +1,11 @@
 package com.suseoaa.projectoaa.core.network.model.course
 
 
+import androidx.annotation.Keep
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+@Keep
 @Serializable
 data class Kb(
     @SerialName("kcmc") val courseName: String? = null,         // 课程名
