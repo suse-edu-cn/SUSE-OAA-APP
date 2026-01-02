@@ -24,7 +24,8 @@ fun MainScreen(
     windowSizeClass: WindowWidthSizeClass
 ) {
     // 1. 定义 Pager 状态，总共 4 页
-    val pagerState = rememberPagerState(pageCount = { 4 })
+//    现在改为了3
+    val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
 
     // 2. 判断屏幕布局模式（平板 vs 手机）
@@ -70,16 +71,16 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                beyondViewportPageCount = 3
+                beyondViewportPageCount = 2
             ) { page ->
                 // 根据页码渲染不同的页面
                 // 注意：这里我们直接调用 Screen Composable，而不是通过 NavHost
                 Box(modifier = Modifier.fillMaxSize()) {
                     when (page) {
                         0 -> HomeScreen()
-                        1 -> CourseScreen() // 你的课程表页面
-                        2 -> ChatScreen()
-                        3 -> PersonScreen()
+                        1 -> CourseScreen()
+//                        2 -> ChatScreen()
+                        2 -> PersonScreen()
                     }
                 }
             }

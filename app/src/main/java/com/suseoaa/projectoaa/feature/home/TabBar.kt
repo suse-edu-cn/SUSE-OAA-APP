@@ -34,8 +34,8 @@ enum class MainTab(
 ) {
     HOME(0, Icons.Default.Home, "首页"),
     COURSE(1, Icons.Default.Book, "课程"),
-    CHAT(2, Icons.Default.ChatBubble, "日记"),
-    PERSON(3, Icons.Default.Person, "个人");
+//    CHAT(2, Icons.Default.ChatBubble, "日记"),
+    PERSON(2, Icons.Default.Person, "个人");
 
     companion object {
         fun getByIndex(index: Int): MainTab = entries.getOrElse(index) { HOME }
