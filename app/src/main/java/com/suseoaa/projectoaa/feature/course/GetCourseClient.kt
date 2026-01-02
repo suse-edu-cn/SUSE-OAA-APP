@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.feature.course
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import com.suseoaa.projectoaa.core.network.course.CalendarAPI
 import com.suseoaa.projectoaa.core.network.course.GetCSRFToken
 import com.suseoaa.projectoaa.core.network.course.LoginAPI
 import com.suseoaa.projectoaa.core.network.course.RedirectAPI
@@ -29,9 +30,11 @@ class ReceivedCookiesInterceptorFixed : Interceptor {
         private val cookieMap: MutableMap<String, String> = mutableMapOf()
         val cookies: List<String>
             get() = cookieMap.map { "${it.key}=${it.value}" }
+
         fun clearCookies() {
             cookieMap.clear()
         }
+
         fun addCookie(name: String, value: String) {
             cookieMap[name] = value
         }
@@ -118,8 +121,14 @@ object SchoolSystem {
     private val headerInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
         val newRequest = originalRequest.newBuilder()
-            .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-            .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+            .addHeader(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            )
+            .addHeader(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+            )
             .addHeader("Accept-Language", "zh-CN,zh;q=0.9")
             .addHeader("Connection", "keep-alive")
             .addHeader("Upgrade-Insecure-Requests", "1")
@@ -152,7 +161,10 @@ object SchoolSystem {
             val newRequest = originalRequest.newBuilder()
                 .addHeader("Content-Type", "application/x-www-form-urlencoded")
                 .addHeader("X-Requested-With", "XMLHttpRequest")
-                .addHeader("Referer", "https://jwgl.suse.edu.cn/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151")
+                .addHeader(
+                    "Referer",
+                    "https://jwgl.suse.edu.cn/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151"
+                )
                 .addHeader("Accept", "application/json, text/javascript, */*; q=0.01")
                 .build()
             chain.proceed(newRequest)
@@ -200,7 +212,8 @@ object SchoolSystem {
             val rsaKeyAPI = retrofit.create(RsaKeyAPI::class.java)
             val rsaKey = rsaKeyAPI.getrsaKey()
             // 4. 加密密码
-            val encryptedPassword = RSAEncryptorFixed.encrypt(password, rsaKey.modulus, rsaKey.exponent)
+            val encryptedPassword =
+                RSAEncryptorFixed.encrypt(password, rsaKey.modulus, rsaKey.exponent)
             // 5. 发送登录请求
             val timestamp = System.currentTimeMillis().toString()
             val response = loginAPI.login(timestamp, username, encryptedPassword, csrfToken)
@@ -235,7 +248,8 @@ object SchoolSystem {
                         val redirectContent = redirectResponse.string()
                         // 检查最终页面内容，确保不是错误页面
                         if (redirectContent.contains("登录", ignoreCase = true) &&
-                            redirectContent.contains("用户名", ignoreCase = true)) {
+                            redirectContent.contains("用户名", ignoreCase = true)
+                        ) {
                             return Pair(false, "登录验证失败")
                         }
 
@@ -318,7 +332,10 @@ object SchoolSystem {
     }
 
     // 解析课表数据
-    suspend fun queryScheduleParsed(year: String, semester: String): Pair<CourseResponseJson?, String> {
+    suspend fun queryScheduleParsed(
+        year: String,
+        semester: String
+    ): Pair<CourseResponseJson?, String> {
         val (rawData, debugInfo) = querySchedule(year, semester)
 
         return if (rawData != null) {
@@ -330,6 +347,37 @@ object SchoolSystem {
             }
         } else {
             Pair(null, debugInfo)
+        }
+    }
+
+    private val calendarAPI = retrofit.create(CalendarAPI::class.java)
+
+    //    获取当前学期的起始日期
+    suspend fun fetchSemesterStart(): String? {
+        try {
+            val response = calendarAPI.getCalendar()
+//            获取校历失败
+            if (!response.isSuccessful) {
+                return null
+            }
+            val html = response.body()?.string() ?: ""
+//            使用正则表达式提取
+            // 目标文本：2025-2026学年1学期(2025-09-08至2026-01-25)
+            // 我们的策略：寻找 "(xxxx-xx-xx至" 这样的结构
+
+            // Regex 解释：
+            // \(          -> 匹配左括号
+            // (\d{4}-\d{2}-\d{2}) -> 核心捕获组：匹配 2025-09-08 这种格式
+            // 至          -> 匹配中文"至"
+            val regex = Regex("""\((\d{4}-\d{2}-\d{2})至""")
+//            搜索符合规则的文本
+            val matchResult = regex.find(html)
+            // groupValues[0] 是整个匹配到的字符串 "(2025-09-08至"
+            // groupValues[1] 是我们在括号里捕获的日期 "2025-09-08"
+            val dateStr = matchResult?.groupValues?.get(1)
+            return dateStr
+        } catch (e: Exception) {
+            return null
         }
     }
 }

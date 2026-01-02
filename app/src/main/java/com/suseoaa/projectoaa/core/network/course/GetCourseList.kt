@@ -9,6 +9,7 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 import retrofit2.http.Url
 import okhttp3.ResponseBody
+import retrofit2.http.Headers
 
 
 interface RsaKeyAPI {
@@ -52,4 +53,14 @@ interface ScheduleAPI {
 interface RedirectAPI {
     @GET
     suspend fun visitUrl(@Url url: String): ResponseBody
+}
+
+//获取校历
+interface CalendarAPI {
+    @Headers("X-Requested-With: XMLHttpRequest")
+    @POST("/xtgl/index_cxAreaSix.html")
+    suspend fun getCalendar(
+        @Query("localeKey") localeKey: String = "zh_CN",
+        @Query("gnmkdm") gnmkdm: String = "index"
+    ): Response<ResponseBody>
 }

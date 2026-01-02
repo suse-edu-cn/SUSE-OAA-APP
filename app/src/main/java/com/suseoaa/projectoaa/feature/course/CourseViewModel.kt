@@ -22,6 +22,7 @@ import androidx.core.content.edit
 import com.suseoaa.projectoaa.core.database.CourseDatabase
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseWithTimes
+import com.suseoaa.projectoaa.feature.course.SchoolSystem.fetchSemesterStart
 
 data class TermOption(
     val xnm: String, // 2024
@@ -217,6 +218,25 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
                     uiState = uiState.copy(statusMessage = "正在保存...")
                     withContext(Dispatchers.IO) {
                         repository.saveFromResponse(username, pass, courseData)
+                    }
+
+//                    同步校历
+                    uiState = uiState.copy(statusMessage = "正在同步校历...")
+//                    自动获取
+                    val startDateStr = withContext(Dispatchers.IO) {
+                        fetchSemesterStart()
+                    }
+                    // 如果获取到了，保存到 SharedPreferences
+                    if (startDateStr != null) {
+                        try {
+                            // 解析字符串 "2025-09-08" 为 LocalDate 对象
+                            val date = LocalDate.parse(startDateStr)
+                            // 调用你现有的方法保存
+                            setSemesterStartDate(date)
+                            println("自动设置起始周成功: $startDateStr")
+                        } catch (e: Exception) {
+                            println("日期格式解析错误: $e")
+                        }
                     }
                     uiState = uiState.copy(
                         isLoading = false,
