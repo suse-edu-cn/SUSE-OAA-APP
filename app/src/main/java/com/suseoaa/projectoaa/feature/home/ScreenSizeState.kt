@@ -8,7 +8,7 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.suseoaa.projectoaa.feature.chat.CHAT_ROUTE
+import com.suseoaa.projectoaa.feature.academicPortal.ACADEMIC_ROUTE
 import com.suseoaa.projectoaa.feature.course.COURSE_ROUTE
 import com.suseoaa.projectoaa.feature.login.LOGIN_ROUTE
 import com.suseoaa.projectoaa.feature.person.PERSON_ROUTE
@@ -23,7 +23,7 @@ class OaaAppState(
     private val topLevelDestination = setOf(
         HOME_ROUTE,
         COURSE_ROUTE,
-        CHAT_ROUTE,
+        ACADEMIC_ROUTE,
         PERSON_ROUTE
     )
 

@@ -11,7 +11,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import com.suseoaa.projectoaa.feature.chat.ChatScreen
+import com.suseoaa.projectoaa.feature.academicPortal.AcademicScreen
 import com.suseoaa.projectoaa.feature.course.CourseScreen
 import com.suseoaa.projectoaa.feature.person.PersonScreen
 import kotlinx.coroutines.launch
@@ -24,11 +24,10 @@ fun MainScreen(
     windowSizeClass: WindowWidthSizeClass
 ) {
     // 1. 定义 Pager 状态，总共 4 页
-//    现在改为了3
-    val pagerState = rememberPagerState(pageCount = { 3 })
+    val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
 
-    // 2. 判断屏幕布局模式（平板 vs 手机）
+    // 2. 判断屏幕布局模式
     val isCompact = windowSizeClass == WindowWidthSizeClass.Compact
 
     // 3. 当前选中的 Tab 索引（由 Pager 状态决定）
@@ -64,8 +63,7 @@ fun MainScreen(
         ) { padding ->
             // 4. 核心容器：HorizontalPager
             // 这里使用了 userScrollEnabled = true 允许手势滑动
-            // beyondViewportPageCount = 3 意味着预加载并保持所有 4 个页面的状态！
-            // 这彻底解决了你之前提到的“页面销毁导致卡顿”的问题。
+            // beyondViewportPageCount = 3 意味着预加载并保持所有 4 个页面的状态
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -74,13 +72,12 @@ fun MainScreen(
                 beyondViewportPageCount = 2
             ) { page ->
                 // 根据页码渲染不同的页面
-                // 注意：这里我们直接调用 Screen Composable，而不是通过 NavHost
                 Box(modifier = Modifier.fillMaxSize()) {
                     when (page) {
                         0 -> HomeScreen()
                         1 -> CourseScreen()
-//                        2 -> ChatScreen()
-                        2 -> PersonScreen()
+                        2 -> AcademicScreen()
+                        3 -> PersonScreen()
                     }
                 }
             }

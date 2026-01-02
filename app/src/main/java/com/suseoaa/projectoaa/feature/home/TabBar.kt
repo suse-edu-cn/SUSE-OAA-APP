@@ -21,10 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.app.AppNavHost
-import com.suseoaa.projectoaa.feature.chat.CHAT_ROUTE
-import com.suseoaa.projectoaa.feature.course.COURSE_ROUTE
 import com.suseoaa.projectoaa.feature.home.component.NavigationItemForPad
-import com.suseoaa.projectoaa.feature.person.PERSON_ROUTE
 
 // 定义 Tab 的顺序和元数据
 enum class MainTab(
@@ -34,8 +31,8 @@ enum class MainTab(
 ) {
     HOME(0, Icons.Default.Home, "首页"),
     COURSE(1, Icons.Default.Book, "课程"),
-//    CHAT(2, Icons.Default.ChatBubble, "日记"),
-    PERSON(2, Icons.Default.Person, "个人");
+    ACADEMIC(2, Icons.Default.ChatBubble, "教务信息"),
+    PERSON(3, Icons.Default.Person, "个人");
 
     companion object {
         fun getByIndex(index: Int): MainTab = entries.getOrElse(index) { HOME }
