@@ -7,8 +7,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.core.data.repository.SchoolRepository
+import com.suseoaa.projectoaa.core.database.CourseDatabase
+import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
+import com.suseoaa.projectoaa.core.database.entity.CourseWithTimes
+import com.suseoaa.projectoaa.core.data.repository.CourseRepository // 引用 Core 层的本地仓库
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -18,11 +25,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.Calendar
-import androidx.core.content.edit
-import com.suseoaa.projectoaa.core.database.CourseDatabase
-import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
-import com.suseoaa.projectoaa.core.database.entity.CourseWithTimes
-import com.suseoaa.projectoaa.feature.course.SchoolSystem.fetchSemesterStart
+import javax.inject.Inject
 
 data class TermOption(
     val xnm: String, // 2024
@@ -30,10 +33,17 @@ data class TermOption(
     val label: String // "2024-2025 第1学期"
 )
 
-class CourseListViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class CourseListViewModel @Inject constructor(
+    application: Application,
+    // 注入新写的网络仓库
+    private val schoolRepository: SchoolRepository
+) : AndroidViewModel(application) {
 
+    // 初始化本地数据库仓库 (保持原有逻辑，避免引入额外的 DI 模块复杂度)
     private val database = CourseDatabase.getInstance(application)
-    private val repository = CourseRepository(database.courseDao())
+    private val localRepository = CourseRepository(database.courseDao())
+
     private val PREFS_NAME = "course_prefs"
     private val KEY_START_DATE = "semester_start_date"
 
@@ -42,7 +52,8 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
     private val _currentAccount = MutableStateFlow<CourseAccountEntity?>(null)
     val currentAccount = _currentAccount.asStateFlow()
 
-    val savedAccounts: StateFlow<List<CourseAccountEntity>> = repository.allAccounts
+    // 监听本地数据库中的所有账号
+    val savedAccounts: StateFlow<List<CourseAccountEntity>> = localRepository.allAccounts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _termOptions = MutableStateFlow<List<TermOption>>(emptyList())
@@ -64,6 +75,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
     val semesterStartDate: StateFlow<LocalDate> = _semesterStartDate
 
     // === 课程数据流 ===
+    // 当账号、学年(xnm)、学期(xqm)变化时，自动从本地数据库重新查询
     @OptIn(ExperimentalCoroutinesApi::class)
     val allCourses: StateFlow<List<CourseWithTimes>> = combine(
         _currentAccount.filterNotNull(),
@@ -72,23 +84,24 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
     ) { account, xnm, xqm ->
         Triple(account.studentId, xnm, xqm)
     }.flatMapLatest { (studentId, xnm, xqm) ->
-        repository.getCourses(studentId, xnm, xqm)
+        localRepository.getCourses(studentId, xnm, xqm)
     }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    // 预计算所有周次的课表，优化 UI 性能
     val weekScheduleMap: StateFlow<Map<Int, List<CourseWithTimes>>> = allCourses
         .map { list ->
             (1..25).associateWith { week ->
                 calculateCoursesForWeek(week, list)
             }
         }
-        // 在后台计算
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
 
     init {
         loadSemesterStart()
+        // 自动选择第一个账号
         viewModelScope.launch {
             savedAccounts.collect { accounts ->
                 if (_currentAccount.value == null && accounts.isNotEmpty()) {
@@ -127,6 +140,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         val currentYear = today.year
         val currentMonth = today.monthValue
 
+        // 简单的学期推断逻辑：2-7月为下学期(12)，其他为上学期(3)
         val (targetXnm, targetXqm) = when (currentMonth) {
             in 2..7 -> (currentYear - 1).toString() to "12"
             1 -> (currentYear - 1).toString() to "3"
@@ -148,7 +162,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
 
     fun deleteAccount(account: CourseAccountEntity) {
         viewModelScope.launch {
-            repository.deleteAccount(account.studentId)
+            localRepository.deleteAccount(account.studentId)
             if (_currentAccount.value == account) {
                 val remaining = savedAccounts.value.filter { it.studentId != account.studentId }
                 if (remaining.isNotEmpty()) {
@@ -163,6 +177,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
     fun updateTermSelection(xnm: String, xqm: String) {
         selectedXnm = xnm
         selectedXqm = xqm
+        // 切换学期后，可以考虑是否自动刷新，目前逻辑是手动刷新
     }
 
     fun refreshSchedule() {
@@ -174,6 +189,13 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         fetchAndSaveCourseSchedule(account.studentId, account.password, selectedXnm, selectedXqm)
     }
 
+    /**
+     * 核心功能：获取并保存课表
+     * 1. 登录
+     * 2. 获取课表数据
+     * 3. 存入本地数据库
+     * 4. 尝试获取校历并更新开学日期
+     */
     fun fetchAndSaveCourseSchedule(
         username: String,
         pass: String,
@@ -181,88 +203,68 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         xqm: String = "3"
     ) {
         viewModelScope.launch {
-            try {
-                uiState = uiState.copy(isLoading = true, statusMessage = "正在登录...")
+            uiState = uiState.copy(isLoading = true, statusMessage = "正在登录...")
 
-                val result = withContext(Dispatchers.IO) {
-                    val (loginSuccess, debugInfo) = try {
-                        com.suseoaa.projectoaa.feature.course.SchoolSystem.login(username, pass)
-                    } catch (e: Exception) {
-                        false to e.message
-                    }
+            // 1. 调用 SchoolRepository 登录
+            val loginResult = schoolRepository.login(username, pass)
 
-                    if (!loginSuccess) return@withContext Triple(
-                        null,
-                        "登录失败: $debugInfo",
-                        debugInfo
-                    )
-
-                    uiState =
-                        uiState.copy(statusMessage = "正在获取 ${xnm}学年 ${if (xqm == "3") "上" else "下"}学期 课表...")
-
-                    val (parsedData, scheduleDebugInfo) = com.suseoaa.projectoaa.feature.course.SchoolSystem.queryScheduleParsed(
-                        xnm,
-                        xqm
-                    )
-                    if (parsedData == null) return@withContext Triple(
-                        null,
-                        "解析失败: $scheduleDebugInfo",
-                        scheduleDebugInfo
-                    )
-
-                    Triple(parsedData, null, "成功")
-                }
-
-                val (courseData, error, _) = result
-                if (courseData != null) {
-                    uiState = uiState.copy(statusMessage = "正在保存...")
-                    withContext(Dispatchers.IO) {
-                        repository.saveFromResponse(username, pass, courseData)
-                    }
-
-//                    同步校历
-                    uiState = uiState.copy(statusMessage = "正在同步校历...")
-//                    自动获取
-                    val startDateStr = withContext(Dispatchers.IO) {
-                        fetchSemesterStart()
-                    }
-                    // 如果获取到了，保存到 SharedPreferences
-                    if (startDateStr != null) {
-                        try {
-                            // 解析字符串 "2025-09-08" 为 LocalDate 对象
-                            val date = LocalDate.parse(startDateStr)
-                            // 调用你现有的方法保存
-                            setSemesterStartDate(date)
-                            println("自动设置起始周成功: $startDateStr")
-                        } catch (e: Exception) {
-                            println("日期格式解析错误: $e")
-                        }
-                    }
-                    uiState = uiState.copy(
-                        isLoading = false,
-                        successMessage = "更新成功",
-                        statusMessage = null
-                    )
-
-                    val currentId = _currentAccount.value?.studentId
-                    val newAccount = savedAccounts.value.find { it.studentId == username }
-
-                    if (newAccount != null) {
-                        if (currentId != username) {
-                            switchUser(newAccount, preserveSelection = false)
-                        } else {
-                            switchUser(newAccount, preserveSelection = true)
-                        }
-                    }
-
-                } else {
-                    uiState =
-                        uiState.copy(isLoading = false, errorMessage = error, statusMessage = null)
-                }
-            } catch (e: Exception) {
+            if (loginResult.isFailure) {
+                val errorMsg = loginResult.exceptionOrNull()?.message ?: "登录失败"
                 uiState = uiState.copy(
                     isLoading = false,
-                    errorMessage = "异常: ${e.message}",
+                    errorMessage = errorMsg,
+                    statusMessage = null
+                )
+                return@launch
+            }
+
+            uiState =
+                uiState.copy(statusMessage = "正在获取 ${xnm}学年 ${if (xqm == "3") "上" else "下"}学期 课表...")
+
+            // 2. 登录成功，获取课表数据
+            val courseResult = schoolRepository.getCourseSchedule(xnm, xqm)
+
+            courseResult.onSuccess { courseData ->
+                uiState = uiState.copy(statusMessage = "正在保存...")
+
+                // 3. 保存到本地数据库 (IO 线程)
+                withContext(Dispatchers.IO) {
+                    localRepository.saveFromResponse(username, pass, courseData)
+                }
+
+                // 4. 尝试自动同步校历
+                uiState = uiState.copy(statusMessage = "正在同步校历...")
+                val startDateStr = schoolRepository.fetchSemesterStart()
+
+                if (startDateStr != null) {
+                    try {
+                        val date = LocalDate.parse(startDateStr)
+                        setSemesterStartDate(date)
+                        println("自动设置起始周成功: $startDateStr")
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                } else {
+                    println("未能自动获取到起始周")
+                }
+
+                uiState = uiState.copy(
+                    isLoading = false,
+                    successMessage = "更新成功",
+                    statusMessage = null
+                )
+
+                // 刷新当前用户选中状态
+                val newAccount = savedAccounts.value.find { it.studentId == username }
+                if (newAccount != null) {
+                    val isSameUser = _currentAccount.value?.studentId == username
+                    switchUser(newAccount, preserveSelection = isSameUser)
+                }
+
+            }.onFailure { e ->
+                uiState = uiState.copy(
+                    isLoading = false,
+                    errorMessage = "获取课表失败: ${e.message}",
                     statusMessage = null
                 )
             }
@@ -280,7 +282,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
     ) {
         val account = _currentAccount.value ?: return
         viewModelScope.launch {
-            repository.saveCustomCourse(
+            localRepository.saveCustomCourse(
                 studentId = account.studentId,
                 xnm = selectedXnm,
                 xqm = selectedXqm,
@@ -319,11 +321,6 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
             realCurrentWeek = ChronoUnit.WEEKS.between(monday, today).toInt() + 1
             currentDisplayWeek = realCurrentWeek.coerceIn(1, 25)
         }
-    }
-
-    // 以前是给 UI 调用的，现在变成 ViewModel 内部的计算函数
-    fun getCoursesForWeek(week: Int, allData: List<CourseWithTimes>): List<CourseWithTimes> {
-        return calculateCoursesForWeek(week, allData)
     }
 
     private fun calculateCoursesForWeek(

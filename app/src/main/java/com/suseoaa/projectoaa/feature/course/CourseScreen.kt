@@ -288,9 +288,9 @@ fun CourseScreen(
                                     onClick = {
                                         menuExpanded = false; showCustomCourseDialog = true
                                     })
-                                DropdownMenuItem(
-                                    text = { Text("设置起始周") },
-                                    onClick = { menuExpanded = false; datePickerDialog.show() })
+//                                DropdownMenuItem(
+//                                    text = { Text("设置起始周") },
+//                                    onClick = { menuExpanded = false; datePickerDialog.show() })
                                 DropdownMenuItem(
                                     text = { Text("查看他人课表") },
                                     onClick = { menuExpanded = false; showAccountDialog = true })
