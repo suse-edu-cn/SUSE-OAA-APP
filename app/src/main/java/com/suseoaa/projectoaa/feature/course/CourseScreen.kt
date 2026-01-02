@@ -397,7 +397,6 @@ fun CourseScreen(
                 }
             }
 
-            // [修改] 手机端使用居中 Dialog 代替 ModalBottomSheet
             if (!isTablet && selectedCourses != null) {
                 Dialog(onDismissRequest = { selectedCourses = null }) {
                     // 使用 Card 包裹以获得圆角和背景，适配暗黑模式
@@ -1241,7 +1240,7 @@ fun parseWeekday(day: String): Int = when {
 
 fun parsePeriod(period: String): Pair<Int, Int> {
     try {
-        val clean = period.replace("节", "");
+        val clean = period.replace("节", "")
         val parts =
             clean.split("-"); if (parts.size == 2) return parts[0].toInt() to (parts[1].toInt() - parts[0].toInt() + 1); clean.toIntOrNull()
             ?.let { return it to 1 }

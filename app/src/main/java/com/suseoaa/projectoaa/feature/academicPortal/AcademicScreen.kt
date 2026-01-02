@@ -5,5 +5,5 @@ import androidx.compose.runtime.Composable
 
 @Composable
 fun AcademicScreen() {
-    Text("这是协会日记页面")
+    Text("这是教务系统信息页面")
 }

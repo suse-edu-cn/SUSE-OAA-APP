@@ -38,6 +38,7 @@ enum class MainTab(
         fun getByIndex(index: Int): MainTab = entries.getOrElse(index) { HOME }
     }
 }
+
 @Composable
 fun OaaApp(
     windowSizeClass: WindowWidthSizeClass,

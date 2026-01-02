@@ -187,68 +187,33 @@ object SchoolSystem {
     // 登录功能
     suspend fun login(username: String, password: String): Pair<Boolean, String> {
         try {
-            var debugInfo = ""
-
             // 1. 清除之前的Cookie
             ReceivedCookiesInterceptorFixed.clearCookies()
-            debugInfo += "步骤1: 清除旧Cookie\n"
-
-            // 2. 获取登录页面和CSRF Token（完全模拟Python的session.get()）
-            debugInfo += "步骤2: 获取登录页面和CSRF Token\n"
+            // 2. 获取登录页面和CSRF Token
             val tempCSRFAPI = retrofit.create(GetCSRFToken::class.java)
             val csrfResponse = tempCSRFAPI.getCSRFToken()
 
             val htmlContent = csrfResponse.string()
-            val csrfToken = extractCSRFToken(htmlContent)
-
-            debugInfo += "登录页面访问成功\n"
-            debugInfo += "CSRF Token: ${csrfToken?.take(20)}...\n"
-            debugInfo += "获取登录页面后的Cookies: ${ReceivedCookiesInterceptorFixed.cookies}\n"
-
-            if (csrfToken == null) {
-                return Pair(false, "$debugInfo✗ 未找到CSRF Token")
-            }
+            val csrfToken = extractCSRFToken(htmlContent) ?: return Pair(false, "")
 
             // 3. 获取RSA公钥（使用同一个session）
-            debugInfo += "步骤3: 获取RSA公钥\n"
             val rsaKeyAPI = retrofit.create(RsaKeyAPI::class.java)
             val rsaKey = rsaKeyAPI.getrsaKey()
-            debugInfo += "RSA公钥获取成功\n"
-            debugInfo += "获取公钥后的Cookies: ${ReceivedCookiesInterceptorFixed.cookies}\n"
-
             // 4. 加密密码
-            debugInfo += "步骤4: 加密密码\n"
             val encryptedPassword = RSAEncryptorFixed.encrypt(password, rsaKey.modulus, rsaKey.exponent)
-            debugInfo += "密码加密成功\n"
-
-            // 5. 发送登录请求（完全模拟Python的session.post()）
+            // 5. 发送登录请求
             val timestamp = System.currentTimeMillis().toString()
-            debugInfo += "步骤5: 发送登录请求\n"
-            debugInfo += "登录前的Cookies: ${ReceivedCookiesInterceptorFixed.cookies}\n"
-
             val response = loginAPI.login(timestamp, username, encryptedPassword, csrfToken)
-
-            debugInfo += "登录响应状态码: ${response.code()}\n"
-            debugInfo += "登录响应头: ${response.headers()}\n"
-
             // 6. 检查登录结果
             if (response.code() == 302) {
-                debugInfo += "✓ 收到302重定向，登录成功\n"
-
-                // 7. 处理重定向（完全模拟Python的session.get(redirect_url)）
+                // 7. 处理重定向
                 val location = response.headers()["Location"]
-                debugInfo += "重定向地址: $location\n"
-                debugInfo += "登录后收到的Cookies: ${ReceivedCookiesInterceptorFixed.cookies}\n"
-
                 if (location != null) {
                     val redirectUrl = if (location.startsWith("/")) {
                         "https://jwgl.suse.edu.cn$location"
                     } else {
                         location
                     }
-
-                    debugInfo += "访问重定向URL: $redirectUrl\n"
-
                     try {
                         // 创建一个允许跟随重定向的临时客户端
                         val redirectClient = OkHttpClient.Builder()
@@ -268,46 +233,21 @@ object SchoolSystem {
                         val redirectResponse = redirectAPI.visitUrl(redirectUrl)
 
                         val redirectContent = redirectResponse.string()
-                        debugInfo += "✓ 重定向页面访问成功（已跟随重定向链）\n"
-                        debugInfo += "最终页面长度: ${redirectContent.length}\n"
-                        debugInfo += "访问重定向页面后的Cookies: ${ReceivedCookiesInterceptorFixed.cookies}\n"
-
                         // 检查最终页面内容，确保不是错误页面
                         if (redirectContent.contains("登录", ignoreCase = true) &&
                             redirectContent.contains("用户名", ignoreCase = true)) {
-                            debugInfo += "⚠ 最终页面似乎还是登录页面，可能登录失败\n"
-                            debugInfo += "页面内容片段: ${redirectContent.take(200)}\n"
-                            return Pair(false, "$debugInfo✗ 登录验证失败")
+                            return Pair(false, "登录验证失败")
                         }
 
                         // 关键：等待足够长的时间确保会话完全建立
                         delay(3000)
-                        debugInfo += "等待3秒确保会话完全生效\n"
-                        debugInfo += "最终Cookie状态: ${ReceivedCookiesInterceptorFixed.cookies}\n"
-
-                        return Pair(true, "$debugInfo✓ 登录流程完成")
+                        return Pair(true, "")
 
                     } catch (e: Exception) {
-                        debugInfo += "重定向访问异常: ${e.message}\n"
-                        debugInfo += "异常类型: ${e::class.java.simpleName}\n"
-
-                        // 如果是HTTP异常，尝试获取更多信息
-                        if (e is HttpException) {
-                            debugInfo += "HTTP错误码: ${e.code()}\n"
-                            debugInfo += "HTTP错误消息: ${e.message()}\n"
-                        }
-
-                        debugInfo += "异常堆栈: ${e.stackTraceToString()}\n"
-
-                        // 重定向失败可能是正常的，登录可能仍然成功
-                        // 继续尝试而不是直接返回失败
-                        debugInfo += "⚠ 重定向处理失败，但登录可能已成功，继续尝试\n"
-                        delay(2000)
-                        return Pair(true, "$debugInfo⚠ 登录可能成功（重定向异常但继续）")
+                        return Pair(true, "$e 登录可能成功")
                     }
                 } else {
-                    debugInfo += "⚠ 没有重定向地址\n"
-                    return Pair(true, "$debugInfo⚠ 登录成功但无重定向")
+                    return Pair(true, "登录成功但无重定向")
                 }
             } else {
                 val responseBody = try {
@@ -315,8 +255,7 @@ object SchoolSystem {
                 } catch (e: Exception) {
                     "读取响应内容异常: ${e.message}"
                 }
-                debugInfo += "登录失败，响应内容前300字符: ${responseBody.take(300)}\n"
-                return Pair(false, "$debugInfo✗ 登录失败，状态码: ${response.code()}")
+                return Pair(false, "登录失败，状态码: ${response.code()}")
             }
 
         } catch (e: Exception) {
@@ -340,69 +279,45 @@ object SchoolSystem {
         return null
     }
 
-    // 查询课表 (已修改，支持学年和学期参数)
+    // 查询课表
     suspend fun querySchedule(year: String, semester: String): Pair<String?, String> {
-        var debugInfo = ""
         try {
-            debugInfo += "开始课表查询流程\n"
-            debugInfo += "当前Cookies: ${ReceivedCookiesInterceptorFixed.cookies}\n"
-
             // 1. 访问课表页面
-            debugInfo += "步骤1: 访问课表查询页面\n"
             val pageResponse = scheduleAPI.getSchedulePage()
-
-            debugInfo += "课表页面响应状态码: ${pageResponse.code()}\n"
-
             if (pageResponse.code() == 302) {
-                val location = pageResponse.headers()["Location"]
-                debugInfo += "✗ 访问课表页面被重定向到: $location\n"
-                return Pair(null, debugInfo)
+                return Pair(null, "")
             }
 
             if (!pageResponse.isSuccessful) {
-                debugInfo += "✗ 课表页面访问失败，状态码: ${pageResponse.code()}\n"
-                return Pair(null, debugInfo)
+                return Pair(null, "")
             }
 
             // 2. 发送POST请求查询课表数据
-            debugInfo += "步骤2: 发送POST请求查询课表数据 (xnm=$year, xqm=$semester)\n"
             val response = scheduleAPI.querySchedule(
                 year = year,
                 semester = semester
             )
-
-            debugInfo += "课表查询响应状态码: ${response.code()}\n"
-
             if (response.code() == 302) {
-                val location = response.headers()["Location"]
-                debugInfo += "✗ 课表查询被重定向到: $location\n"
-                return Pair(null, debugInfo)
+                return Pair(null, "")
             }
 
             if (!response.isSuccessful) {
-                debugInfo += "✗ 课表查询失败，状态码: ${response.code()}\n"
-                return Pair(null, debugInfo)
+                return Pair(null, "")
             }
 
             val responseText = response.body()?.string() ?: ""
-            debugInfo += "课表查询响应长度: ${responseText.length}\n"
-            debugInfo += "课表查询响应内容: ${responseText}\n"
-
             return if (responseText.trim().isNotEmpty()) {
-                debugInfo += "✓ 成功获取课表数据\n"
-                Pair(responseText, debugInfo)
+                Pair(responseText, "")
             } else {
-                debugInfo += "✗ 课表数据为空\n"
-                Pair(null, debugInfo)
+                Pair(null, "")
             }
 
         } catch (e: Exception) {
-            debugInfo += "课表查询异常: ${e.message}\n"
-            return Pair(null, debugInfo)
+            return Pair(null, "$e")
         }
     }
 
-    // 解析课表数据 (已修改，支持学年和学期参数)
+    // 解析课表数据
     suspend fun queryScheduleParsed(year: String, semester: String): Pair<CourseResponseJson?, String> {
         val (rawData, debugInfo) = querySchedule(year, semester)
 

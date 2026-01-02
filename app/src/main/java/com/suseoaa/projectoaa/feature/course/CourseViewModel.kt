@@ -73,20 +73,16 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
     }.flatMapLatest { (studentId, xnm, xqm) ->
         repository.getCourses(studentId, xnm, xqm)
     }
-        // [优化1] 使用 Lazily 策略，只要 ViewModel 活着（App不杀），数据就一直保持在内存中，
-        // 切换 Tab 回来时不需要重新查库，真正实现“保留页面内容”的感觉。
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // [优化2] 预计算所有周的数据。
-    // 当总课程数据变化时，在后台线程一次性把 1-25 周的数据都切分好放入 Map。
-    // 这样 UI 翻页时直接取值，不再进行任何过滤计算，彻底解决翻页卡顿。
     val weekScheduleMap: StateFlow<Map<Int, List<CourseWithTimes>>> = allCourses
         .map { list ->
             (1..25).associateWith { week ->
                 calculateCoursesForWeek(week, list)
             }
         }
-        .flowOn(Dispatchers.Default) // 在后台计算
+        // 在后台计算
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
 
@@ -188,12 +184,7 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
                 uiState = uiState.copy(isLoading = true, statusMessage = "正在登录...")
 
                 val result = withContext(Dispatchers.IO) {
-                    // SchoolSystem 的调用保持原样，假设 SchoolSystem 已存在
-                    // 如果这里报错，请确保你有 SchoolSystem 类，或者像之前一样处理
-                    // 这里为了保持逻辑完整，保留调用结构
                     val (loginSuccess, debugInfo) = try {
-                        // 这里的 SchoolSystem 应该是你项目里的单例对象
-                        // 假设它在 com.suseoaa.projectoaa.feature.course 包下或已导入
                         com.suseoaa.projectoaa.feature.course.SchoolSystem.login(username, pass)
                     } catch (e: Exception) {
                         false to e.message
@@ -208,7 +199,10 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
                     uiState =
                         uiState.copy(statusMessage = "正在获取 ${xnm}学年 ${if (xqm == "3") "上" else "下"}学期 课表...")
 
-                    val (parsedData, scheduleDebugInfo) = com.suseoaa.projectoaa.feature.course.SchoolSystem.queryScheduleParsed(xnm, xqm)
+                    val (parsedData, scheduleDebugInfo) = com.suseoaa.projectoaa.feature.course.SchoolSystem.queryScheduleParsed(
+                        xnm,
+                        xqm
+                    )
                     if (parsedData == null) return@withContext Triple(
                         null,
                         "解析失败: $scheduleDebugInfo",
@@ -312,7 +306,10 @@ class CourseListViewModel(application: Application) : AndroidViewModel(applicati
         return calculateCoursesForWeek(week, allData)
     }
 
-    private fun calculateCoursesForWeek(week: Int, allData: List<CourseWithTimes>): List<CourseWithTimes> {
+    private fun calculateCoursesForWeek(
+        week: Int,
+        allData: List<CourseWithTimes>
+    ): List<CourseWithTimes> {
         if (allData.isEmpty()) return emptyList()
         return allData.mapNotNull { courseWithTimes ->
             val validTimes = courseWithTimes.times.filter { time ->
