@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.core.network.school
 
+import com.suseoaa.projectoaa.core.network.model.academic.studentGrade.StudentGradeResponse
 import com.suseoaa.projectoaa.core.network.model.course.RSAKey
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -46,4 +47,13 @@ interface SchoolApiService {
     // === 辅助：重定向访问 ===
     @GET
     suspend fun visitUrl(@Url url: String): ResponseBody
+
+    //成绩查询
+    @FormUrlEncoded
+    @Headers("X-Requested-With: XMLHttpRequest")
+    @POST("/cjcx/cjcx_cxDgXscj.html?doType=query&gnmkdm=N305005")
+    suspend fun getStudentGrade(
+        @Field("xnm") year: String,
+        @Field("xqm") semester: String
+    ): Response<ResponseBody>
 }
