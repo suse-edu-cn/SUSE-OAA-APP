@@ -16,9 +16,9 @@ import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicScreen
 import com.suseoaa.projectoaa.feature.course.CourseScreen
 import com.suseoaa.projectoaa.feature.person.PersonScreen
-import com.suseoaa.projectoaa.feature.home.HomeScreen
 import kotlinx.coroutines.launch
 
+// 保持定义在顶层，确保 AppNavHost 能引用到它
 const val MAIN_SCREEN_ROUTE = "main_screen_route"
 
 @Composable
@@ -28,7 +28,11 @@ fun MainScreen(
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
+
+    // 判断设备类型
     val isCompact = windowSizeClass == WindowWidthSizeClass.Compact
+    val isTablet = !isCompact // 如果不是紧凑型（手机），就认为是平板/大屏
+
     val currentDestinationIndex = pagerState.currentPage
 
     Row(modifier = Modifier.fillMaxSize()) {
@@ -39,14 +43,11 @@ fun MainScreen(
             )
         }
         Scaffold { padding ->
-            // 使用 Box 来实现层叠布局 (Overlay)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    // 这里只处理系统状态栏等 padding，不再包含 bottomBar 高度
                     .padding(padding)
             ) {
-                // 1. 底层：页面内容
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
@@ -56,20 +57,22 @@ fun MainScreen(
                         when (page) {
                             0 -> HomeScreen()
                             1 -> CourseScreen()
-                            2 -> AcademicScreen(onNavigate = onAcademicEvent)
+                            // 【修复点】这里传入 isTablet 参数
+                            2 -> AcademicScreen(
+                                isTablet = isTablet,
+                                onNavigate = onAcademicEvent
+                            )
                             3 -> PersonScreen()
                         }
                     }
                 }
 
-                // 2. 顶层：悬浮的底部导航栏
                 if (isCompact) {
                     OaaBottomBar(
                         selectedIndex = currentDestinationIndex,
                         onNavigate = { index ->
                             scope.launch { pagerState.animateScrollToPage(index) }
                         },
-                        // 将它对齐到底部
                         modifier = Modifier.align(Alignment.BottomCenter)
                     )
                 }

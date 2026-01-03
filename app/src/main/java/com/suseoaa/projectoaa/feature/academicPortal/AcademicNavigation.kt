@@ -16,6 +16,7 @@ fun NavGraphBuilder.academicScreen(
 ) {
     composable(route = ACADEMIC_ROUTE) {
         AcademicScreen(
+            isTablet = false,
             onNavigate = onNavigate
         )
     }

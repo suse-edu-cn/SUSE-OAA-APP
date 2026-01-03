@@ -1,8 +1,6 @@
 package com.suseoaa.projectoaa.app
 
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -10,10 +8,11 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.suseoaa.projectoaa.feature.academicPortal.AcademicDestinations
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
+import com.suseoaa.projectoaa.feature.academicPortal.getGrades.GradesScreen
 import com.suseoaa.projectoaa.feature.academicPortal.getGrades.gradesScreen
 import com.suseoaa.projectoaa.feature.academicPortal.getGrades.navigateToGrades
-import com.suseoaa.projectoaa.feature.changePassword.changePasswordScreen
 import com.suseoaa.projectoaa.feature.home.MAIN_SCREEN_ROUTE
 import com.suseoaa.projectoaa.feature.home.MainScreen
 import com.suseoaa.projectoaa.feature.login.LOGIN_ROUTE
@@ -87,14 +86,16 @@ fun AppNavHost(
                 windowSizeClass = windowSizeClass,
                 onAcademicEvent = { event ->
                     when (event) {
-                        is AcademicPortalEvent.ToGrades -> {
-                            navController.navigateToGrades()
+                        is AcademicPortalEvent.NavigateTo -> {
+                            navController.navigate(event.destination.route)
                         }
                     }
                 }
             )
         }
         //教务信息-成绩查询
-        gradesScreen()
+        composable(AcademicDestinations.Grades.route) {
+            GradesScreen(onBack = { navController.popBackStack() })
+        }
     }
 }
