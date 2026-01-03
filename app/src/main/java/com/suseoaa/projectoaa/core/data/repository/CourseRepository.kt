@@ -10,10 +10,13 @@ import com.suseoaa.projectoaa.core.network.model.course.CourseResponseJson
 import com.suseoaa.projectoaa.core.network.model.course.Kb
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import javax.inject.Inject
 import kotlin.collections.filter
 import kotlin.collections.map
 
-class CourseRepository(private val dao: CourseDao) {
+class CourseRepository @Inject constructor(
+    private val dao: CourseDao
+) {
 
     val allAccounts: Flow<List<CourseAccountEntity>> = dao.getAllAccounts()
 
@@ -188,7 +191,9 @@ class CourseRepository(private val dao: CourseDao) {
                     }
                 }
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         return mask
     }
 
