@@ -57,10 +57,10 @@ fun AppNavHost(
                     when (event) {
                         is AcademicPortalEvent.ToGrades -> { navController.navigateToGrades() }
                     }
-                    //教务信息-成绩查询
-                    gradesScreen()
                 }
             )
         }
+        //教务信息-成绩查询
+        gradesScreen()
     }
 }
