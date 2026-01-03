@@ -329,144 +329,73 @@ data class StudentGradeResponse(
     @Keep
     @Serializable
     data class Item(
-        @SerialName("bfzcj")
-        val bfzcj: String,
-        @SerialName("bh")
-        val bh: String,
-        @SerialName("bh_id")
-        val bhId: String,
-        @SerialName("bj")
-        val bj: String,
-        @SerialName("cj")
-        val cj: String,
-        @SerialName("cjbdczr")
-        val cjbdczr: String,
-        @SerialName("cjbdsj")
-        val cjbdsj: String,
-        @SerialName("cjsfzf")
-        val cjsfzf: String,
-        @SerialName("czr")
-        val czr: String?,
-        @SerialName("date")
-        val date: String,
-        @SerialName("dateDigit")
-        val dateDigit: String,
-        @SerialName("dateDigitSeparator")
-        val dateDigitSeparator: String,
-        @SerialName("day")
-        val day: String,
-        @SerialName("jd")
-        val jd: String,
-        @SerialName("jg_id")
-        val jgId: String,
-        @SerialName("jgmc")
-        val jgmc: String,
-        @SerialName("jgpxzd")
-        val jgpxzd: String,
-        @SerialName("jsxm")
-        val jsxm: String,
-        @SerialName("jxb_id")
-        val jxbId: String,
-        @SerialName("jxbmc")
-        val jxbmc: String,
-        @SerialName("kcbj")
-        val kcbj: String,
-        @SerialName("kch")
-        val kch: String,
-        @SerialName("kch_id")
-        val kchId: String,
-        @SerialName("kclbmc")
-        val kclbmc: String,
-        @SerialName("kcmc")
-        val kcmc: String,
-        @SerialName("kcxzdm")
-        val kcxzdm: String,
-        @SerialName("kcxzmc")
-        val kcxzmc: String,
-        @SerialName("key")
-        val key: String,
-        @SerialName("khfsmc")
-        val khfsmc: String,
-        @SerialName("kkbmmc")
-        val kkbmmc: String,
-        @SerialName("ksxz")
-        val ksxz: String,
-        @SerialName("ksxzdm")
-        val ksxzdm: String,
-        @SerialName("listnav")
-        val listnav: String,
-        @SerialName("localeKey")
-        val localeKey: String,
-        @SerialName("month")
-        val month: String,
-        @SerialName("njdm_id")
-        val njdmId: String,
-        @SerialName("njmc")
-        val njmc: String,
-        @SerialName("pageTotal")
-        val pageTotal: Int,
-        @SerialName("pageable")
-        val pageable: Boolean,
-        @SerialName("queryModel")
-        val queryModel: QueryModel,
-        @SerialName("rangeable")
-        val rangeable: Boolean,
-        @SerialName("row_id")
-        val rowId: String,
-        @SerialName("rwzxs")
-        val rwzxs: String?,
-        @SerialName("sfdkbcx")
-        val sfdkbcx: String,
-        @SerialName("sfkj")
-        val sfkj: String,
-        @SerialName("sfpk")
-        val sfpk: String,
-        @SerialName("sfxwkc")
-        val sfxwkc: String,
-        @SerialName("sfzx")
-        val sfzx: String,
-        @SerialName("tjrxm")
-        val tjrxm: String,
-        @SerialName("tjsj")
-        val tjsj: String,
-        @SerialName("totalResult")
-        val totalResult: String,
-        @SerialName("userModel")
-        val userModel: UserModel,
-        @SerialName("xb")
-        val xb: String,
-        @SerialName("xbm")
-        val xbm: String,
-        @SerialName("xf")
-        val xf: String,
-        @SerialName("xfjd")
-        val xfjd: String,
-        @SerialName("xh")
-        val xh: String,
-        @SerialName("xh_id")
-        val xhId: String,
-        @SerialName("xm")
-        val xm: String,
-        @SerialName("xnm")
-        val xnm: String,
-        @SerialName("xnmmc")
-        val xnmmc: String,
-        @SerialName("xqm")
-        val xqm: String,
-        @SerialName("xqmmc")
-        val xqmmc: String,
-        @SerialName("xslb")
-        val xslb: String,
-        @SerialName("xz")
-        val xz: String,
-        @SerialName("year")
-        val year: String,
-        @SerialName("zxs")
-        val zxs: String,
-        @SerialName("zyh_id")
-        val zyhId: String,
-        @SerialName("zymc")
-        val zymc: String
+        @SerialName("bfzcj") val bfzcj: String? = null,
+        @SerialName("bh") val bh: String? = null,
+        @SerialName("bh_id") val bhId: String? = null,
+        @SerialName("bj") val bj: String? = null,
+        @SerialName("cj") val cj: String? = null,
+        @SerialName("cjbdczr") val cjbdczr: String? = null,
+        @SerialName("cjbdsj") val cjbdsj: String? = null,
+        @SerialName("cjsfzf") val cjsfzf: String? = null,
+        @SerialName("czr") val czr: String? = null, // 关键修复
+        @SerialName("date") val date: String? = null,
+        @SerialName("dateDigit") val dateDigit: String? = null,
+        @SerialName("dateDigitSeparator") val dateDigitSeparator: String? = null,
+        @SerialName("day") val day: String? = null,
+        @SerialName("jd") val jd: String? = null,
+        @SerialName("jg_id") val jgId: String? = null,
+        @SerialName("jgmc") val jgmc: String? = null,
+        @SerialName("jgpxzd") val jgpxzd: String? = null,
+        @SerialName("jsxm") val jsxm: String? = null,
+        @SerialName("jxb_id") val jxbId: String? = null,
+        @SerialName("jxbmc") val jxbmc: String? = null,
+        @SerialName("kcbj") val kcbj: String? = null,
+        @SerialName("kch") val kch: String? = null,
+        @SerialName("kch_id") val kchId: String? = null,
+        @SerialName("kclbmc") val kclbmc: String? = null,
+        @SerialName("kcmc") val kcmc: String? = null,
+        @SerialName("kcxzdm") val kcxzdm: String? = null,
+        @SerialName("kcxzmc") val kcxzmc: String? = null,
+        @SerialName("key") val key: String? = null,
+        @SerialName("khfsmc") val khfsmc: String? = null,
+        @SerialName("kkbmmc") val kkbmmc: String? = null,
+        @SerialName("ksxz") val ksxz: String? = null,
+        @SerialName("ksxzdm") val ksxzdm: String? = null,
+        @SerialName("listnav") val listnav: String? = null,
+        @SerialName("localeKey") val localeKey: String? = null,
+        @SerialName("month") val month: String? = null,
+        @SerialName("njdm_id") val njdmId: String? = null,
+        @SerialName("njmc") val njmc: String? = null,
+        @SerialName("pageTotal") val pageTotal: Int? = null,
+        @SerialName("pageable") val pageable: Boolean? = null,
+        @SerialName("rangeable") val rangeable: Boolean? = null,
+        @SerialName("row_id") val rowId: String? = null,
+        @SerialName("rwzxs") val rwzxs: String? = null, // 关键修复
+        @SerialName("sfdkbcx") val sfdkbcx: String? = null,
+        @SerialName("sfkj") val sfkj: String? = null,
+        @SerialName("sfpk") val sfpk: String? = null,
+        @SerialName("sfxwkc") val sfxwkc: String? = null,
+        @SerialName("sfzx") val sfzx: String? = null,
+        @SerialName("tjrxm") val tjrxm: String? = null,
+        @SerialName("tjsj") val tjsj: String? = null,
+        @SerialName("totalResult") val totalResult: String? = null,
+        @SerialName("xb") val xb: String? = null,
+        @SerialName("xbm") val xbm: String? = null,
+        @SerialName("xf") val xf: String? = null,
+        @SerialName("xfjd") val xfjd: String? = null,
+        @SerialName("xh") val xh: String? = null,
+        @SerialName("xh_id") val xhId: String? = null,
+        @SerialName("xm") val xm: String? = null,
+        @SerialName("xnm") val xnm: String? = null,
+        @SerialName("xnmmc") val xnmmc: String? = null,
+        @SerialName("xqm") val xqm: String? = null,
+        @SerialName("xqmmc") val xqmmc: String? = null,
+        @SerialName("xslb") val xslb: String? = null,
+        @SerialName("xz") val xz: String? = null,
+        @SerialName("year") val year: String? = null,
+        @SerialName("zxs") val zxs: String? = null,
+        @SerialName("zyh_id") val zyhId: String? = null,
+        @SerialName("zymc") val zymc: String? = null
     ) {
         @Keep
         @Serializable

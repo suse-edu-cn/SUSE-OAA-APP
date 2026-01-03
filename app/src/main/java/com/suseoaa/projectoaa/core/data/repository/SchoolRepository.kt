@@ -198,7 +198,12 @@ class SchoolRepository @Inject constructor(
                         }
                     }
                 } else {
-                    Result.failure(Exception("HTTP请求失败: ${response.code()}"))
+                    if (response.code() == 901) {
+                        // 抛出 SessionExpiredException，触发外层的自动重试登录逻辑
+                        Result.failure(SessionExpiredException())
+                    } else {
+                        Result.failure(Exception("HTTP请求失败: ${response.code()}"))
+                    }
                 }
             } catch (e: Exception) {
                 Result.failure(e)

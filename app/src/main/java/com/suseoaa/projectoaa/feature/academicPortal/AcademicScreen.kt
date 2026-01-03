@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -84,12 +83,14 @@ fun GradeItemCard(item: StudentGradeResponse.Item) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = item.kcmc, // 课程名称
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
+                item.kcmc?.let {
+                    Text(
+                        text = it, // 课程名称
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 Text(
                     text = "${item.cj} 分", // 成绩
                     style = MaterialTheme.typography.titleLarge,
@@ -119,7 +120,7 @@ fun GradeItemCard(item: StudentGradeResponse.Item) {
 }
 
 @Composable
-fun LabelValueText(label: String, value: String) {
+fun LabelValueText(label: String, value: String?) {
     Text(
         text = "$label: $value",
         style = MaterialTheme.typography.bodySmall,
