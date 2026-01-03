@@ -53,7 +53,18 @@ interface SchoolApiService {
     @Headers("X-Requested-With: XMLHttpRequest")
     @POST("/cjcx/cjcx_cxDgXscj.html?doType=query&gnmkdm=N305005")
     suspend fun getStudentGrade(
+        // 学年
         @Field("xnm") year: String,
-        @Field("xqm") semester: String
+        // 学期
+        @Field("xqm") semester: String,
+        // 一页显示多少条，直接设大点，不用分页了
+        @Field("queryModel.showCount") showCount: Int = 100,
+        @Field("queryModel.currentPage") currentPage: Int = 1,
+        @Field("queryModel.sortName") sortName: String = "",
+        @Field("queryModel.sortOrder") sortOrder: String = "asc",
+        @Field("_search") search: String = "false",
+        // 当前时间戳
+        @Field("nd") nd: Long = System.currentTimeMillis(),
+        @Field("time") time: Int = 0
     ): Response<ResponseBody>
 }

@@ -19,17 +19,12 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AcademicViewModel @Inject constructor(
-    application: Application,
     private val schoolRepository: SchoolRepository,
     private val localRepository: CourseRepository
 ) : ViewModel() {
     private val _grades = MutableStateFlow<List<StudentGradeResponse.Item>>(emptyList())
     val grades = _grades.asStateFlow()
-
-    private val _currentAccount = MutableStateFlow<CourseAccountEntity?>(null)
-
     val currentAccount: StateFlow<CourseAccountEntity?> = localRepository.allAccounts
-        // 取列表第一个作为当前账号
         .map { accounts -> accounts.firstOrNull() }
         .stateIn(
             scope = viewModelScope,
@@ -41,6 +36,8 @@ class AcademicViewModel @Inject constructor(
         viewModelScope.launch {
             val account = currentAccount.value
             if (account != null) {
+                // 打印日志确认
+                println("当前登录账号: ${account.name}")
                 val result = schoolRepository.getGrades(account, "2025", "3")
                 result.onSuccess { list ->
                     _grades.value = list

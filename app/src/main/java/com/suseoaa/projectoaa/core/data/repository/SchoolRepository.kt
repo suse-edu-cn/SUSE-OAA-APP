@@ -171,7 +171,11 @@ class SchoolRepository @Inject constructor(
         return executeWithAutoRetry(account) {
             try {
                 // 1. 发起请求
-                val response = api.getStudentGrade(year, semester)
+                val response = api.getStudentGrade(
+                    year = year,
+                    semester = semester,
+                    showCount = 100
+                )
 
                 if (response.isSuccessful) {
                     val bodyString = response.body()?.string() ?: ""
