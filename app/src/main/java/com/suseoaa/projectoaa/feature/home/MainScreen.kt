@@ -10,75 +10,65 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicScreen
 import com.suseoaa.projectoaa.feature.course.CourseScreen
 import com.suseoaa.projectoaa.feature.person.PersonScreen
+import com.suseoaa.projectoaa.feature.home.HomeScreen
 import kotlinx.coroutines.launch
 
-// 定义主页面的路由常量
 const val MAIN_SCREEN_ROUTE = "main_screen_route"
 
 @Composable
 fun MainScreen(
     windowSizeClass: WindowWidthSizeClass
 ) {
-    // 1. 定义 Pager 状态，总共 4 页
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
-
-    // 2. 判断屏幕布局模式
     val isCompact = windowSizeClass == WindowWidthSizeClass.Compact
-
-    // 3. 当前选中的 Tab 索引（由 Pager 状态决定）
     val currentDestinationIndex = pagerState.currentPage
 
     Row(modifier = Modifier.fillMaxSize()) {
-        // [平板布局] 左侧导航栏
         if (!isCompact) {
             OaaNavRail(
                 selectedIndex = currentDestinationIndex,
-                onNavigate = { index ->
-                    scope.launch { pagerState.scrollToPage(index) }
-                }
+                onNavigate = { index -> scope.launch { pagerState.scrollToPage(index) } }
             )
         }
+        Scaffold{ padding ->
+            // 使用 Box 来实现层叠布局 (Overlay)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding) // 这里只处理系统状态栏等 padding，不再包含 bottomBar 高度
+            ) {
+                // 1. 底层：页面内容
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 2
+                ) { page ->
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when (page) {
+                            0 -> HomeScreen()
+                            1 -> CourseScreen()
+                            2 -> AcademicScreen()
+                            3 -> PersonScreen()
+                        }
+                    }
+                }
 
-        Scaffold(
-            // [手机布局] 底部导航栏
-            bottomBar = {
+                // 2. 顶层：悬浮的底部导航栏
                 if (isCompact) {
                     OaaBottomBar(
                         selectedIndex = currentDestinationIndex,
                         onNavigate = { index ->
-                            // 点击底部栏时，Pager 切换页面
-                            scope.launch {
-                                // 使用 animateScrollToPage 有动画，scrollToPage 是瞬切
-                                pagerState.animateScrollToPage(index)
-                            }
-                        }
+                            scope.launch { pagerState.animateScrollToPage(index) }
+                        },
+                        // 将它对齐到底部
+                        modifier = Modifier.align(Alignment.BottomCenter)
                     )
-                }
-            }
-        ) { padding ->
-            // 4. 核心容器：HorizontalPager
-            // 这里使用了 userScrollEnabled = true 允许手势滑动
-            // beyondViewportPageCount = 3 意味着预加载并保持所有 4 个页面的状态
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                beyondViewportPageCount = 2
-            ) { page ->
-                // 根据页码渲染不同的页面
-                Box(modifier = Modifier.fillMaxSize()) {
-                    when (page) {
-                        0 -> HomeScreen()
-                        1 -> CourseScreen()
-                        2 -> AcademicScreen()
-                        3 -> PersonScreen()
-                    }
                 }
             }
         }

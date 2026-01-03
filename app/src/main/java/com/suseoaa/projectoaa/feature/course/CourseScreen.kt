@@ -155,7 +155,9 @@ fun CourseScreen(
         initialPage = (viewModel.currentDisplayWeek - 1).coerceAtLeast(0),
         pageCount = { 25 }
     )
-
+//    由于修改了TabBar的呈现方式，所以需要对课程页面的高度进行单独判断
+    val isPhone = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
+    val bottomPadding = if (isPhone) 90.dp else 0.dp
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
             val newWeek = page + 1
@@ -344,6 +346,7 @@ fun CourseScreen(
         Box(
             modifier = Modifier
                 .padding(padding)
+                .padding(bottom = bottomPadding)
                 .fillMaxSize()
         ) {
             if (allCourses.isEmpty() && !uiState.isLoading) {

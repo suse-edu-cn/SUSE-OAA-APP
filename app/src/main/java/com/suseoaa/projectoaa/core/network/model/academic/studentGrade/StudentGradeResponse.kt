@@ -370,7 +370,7 @@ data class StudentGradeResponse(
         @SerialName("pageable") val pageable: Boolean? = null,
         @SerialName("rangeable") val rangeable: Boolean? = null,
         @SerialName("row_id") val rowId: String? = null,
-        @SerialName("rwzxs") val rwzxs: String? = null, // 关键修复
+        @SerialName("rwzxs") val rwzxs: String? = null,
         @SerialName("sfdkbcx") val sfdkbcx: String? = null,
         @SerialName("sfkj") val sfkj: String? = null,
         @SerialName("sfpk") val sfpk: String? = null,

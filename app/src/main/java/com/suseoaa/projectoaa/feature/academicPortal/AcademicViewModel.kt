@@ -40,7 +40,14 @@ class AcademicViewModel @Inject constructor(
             if (account != null) {
                 // 打印日志确认
                 println("当前登录账号: ${account.name}")
-                val result = schoolRepository.getGrades(account, "2025", "3")
+                /**
+                 * 需要注意的是，四川轻化工大学使用的学期表示很诡异
+                 * 3代表第一学期
+                 * 12代表第二学期
+                 * 16代表一个更诡异的第三学期？
+                 * 屎山代码这一块，很权威
+                 */
+                val result = schoolRepository.getGrades(account, "2024", "12")
                 result.onSuccess { list ->
                     _grades.value = list
                 }.onFailure { e ->
