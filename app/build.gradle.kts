@@ -81,7 +81,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    // === Hilt 依赖 ===
+    // Hilt 依赖
     implementation(libs.hilt.android)
     // 使用 ksp 处理注解
     ksp(libs.hilt.compiler)

@@ -8,6 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
+import com.suseoaa.projectoaa.feature.academicPortal.getGrades.gradesScreen
+import com.suseoaa.projectoaa.feature.academicPortal.getGrades.navigateToGrades
 import com.suseoaa.projectoaa.feature.changePassword.changePasswordScreen
 import com.suseoaa.projectoaa.feature.home.MAIN_SCREEN_ROUTE
 import com.suseoaa.projectoaa.feature.home.MainScreen
@@ -48,7 +51,16 @@ fun AppNavHost(
             }
         )
         composable(MAIN_SCREEN_ROUTE) {
-            MainScreen(windowSizeClass = windowSizeClass)
+            MainScreen(
+                windowSizeClass = windowSizeClass,
+                onAcademicEvent = { event ->
+                    when (event) {
+                        is AcademicPortalEvent.ToGrades -> { navController.navigateToGrades() }
+                    }
+                    //教务信息-成绩查询
+                    gradesScreen()
+                }
+            )
         }
     }
 }

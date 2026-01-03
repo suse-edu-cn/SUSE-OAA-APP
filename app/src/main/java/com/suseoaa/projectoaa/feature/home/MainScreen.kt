@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicScreen
 import com.suseoaa.projectoaa.feature.course.CourseScreen
 import com.suseoaa.projectoaa.feature.person.PersonScreen
@@ -22,7 +23,8 @@ const val MAIN_SCREEN_ROUTE = "main_screen_route"
 
 @Composable
 fun MainScreen(
-    windowSizeClass: WindowWidthSizeClass
+    windowSizeClass: WindowWidthSizeClass,
+    onAcademicEvent: (AcademicPortalEvent) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
@@ -36,12 +38,13 @@ fun MainScreen(
                 onNavigate = { index -> scope.launch { pagerState.scrollToPage(index) } }
             )
         }
-        Scaffold{ padding ->
+        Scaffold { padding ->
             // 使用 Box 来实现层叠布局 (Overlay)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding) // 这里只处理系统状态栏等 padding，不再包含 bottomBar 高度
+                    // 这里只处理系统状态栏等 padding，不再包含 bottomBar 高度
+                    .padding(padding)
             ) {
                 // 1. 底层：页面内容
                 HorizontalPager(
@@ -53,7 +56,7 @@ fun MainScreen(
                         when (page) {
                             0 -> HomeScreen()
                             1 -> CourseScreen()
-                            2 -> AcademicScreen()
+                            2 -> AcademicScreen(onNavigate = onAcademicEvent)
                             3 -> PersonScreen()
                         }
                     }

@@ -1,6 +1,5 @@
-package com.suseoaa.projectoaa.feature.academicPortal
+package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
-import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.core.data.repository.CourseRepository
@@ -19,7 +18,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class AcademicViewModel @Inject constructor(
+class GradesViewModel @Inject constructor(
     private val schoolRepository: SchoolRepository,
     private val localRepository: CourseRepository
 ) : ViewModel() {
@@ -29,7 +28,7 @@ class AcademicViewModel @Inject constructor(
         .map { accounts -> accounts.firstOrNull() }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.Companion.WhileSubscribed(5000),
             initialValue = null
         )
 
@@ -39,7 +38,7 @@ class AcademicViewModel @Inject constructor(
             val account = accounts.firstOrNull()
             if (account != null) {
                 // 打印日志确认
-                println("当前登录账号: ${account.name}")
+//                println("当前登录账号: ${account.name}")
                 /**
                  * 需要注意的是，四川轻化工大学使用的学期表示很诡异
                  * 3代表第一学期

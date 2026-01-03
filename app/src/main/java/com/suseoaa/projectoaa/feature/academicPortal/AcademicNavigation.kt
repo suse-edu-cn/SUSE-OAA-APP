@@ -11,8 +11,12 @@ fun NavController.navigateToAcademic(navOptions: NavOptions? = null) {
     this.navigate(ACADEMIC_ROUTE, navOptions)
 }
 
-fun NavGraphBuilder.chatScreen() {
+fun NavGraphBuilder.academicScreen(
+    onNavigate: (AcademicPortalEvent) -> Unit
+) {
     composable(route = ACADEMIC_ROUTE) {
-        AcademicScreen()
+        AcademicScreen(
+            onNavigate = onNavigate
+        )
     }
 }
