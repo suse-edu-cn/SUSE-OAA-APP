@@ -1,7 +1,9 @@
 package com.suseoaa.projectoaa.app
 
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -30,10 +32,40 @@ fun AppNavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier,
-        enterTransition = { EnterTransition.None },
-        exitTransition = { ExitTransition.None },
-        popEnterTransition = { EnterTransition.None },
-        popExitTransition = { ExitTransition.None }
+        // 1. 进场动画：新页面从右边滑入 (Towards Start)
+        enterTransition = {
+            slideIntoContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                animationSpec = tween(300)
+            )
+        },
+        // 2. 出场动画：旧页面向左边滑出 (Towards Start)
+        exitTransition = {
+            slideOutOfContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                animationSpec = tween(300)
+            )
+        },
+        // 3. 返回-进场动画：上一页从左边滑回来 (Towards End)
+        popEnterTransition = {
+            slideIntoContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.End,
+                animationSpec = tween(300)
+            )
+        },
+        // 4. 返回-出场动画：当前页向右边滑走 (Towards End)
+        popExitTransition = {
+            slideOutOfContainer(
+                towards = AnimatedContentTransitionScope.SlideDirection.End,
+                animationSpec = tween(300)
+            )
+        }
+//        无动画
+//        enterTransition = { EnterTransition.None },
+//        exitTransition = { ExitTransition.None },
+//        popEnterTransition = { EnterTransition.None },
+//        popExitTransition = { ExitTransition.None }
+
     ) {
         loginScreen(
             onLoginSuccess = {
@@ -55,7 +87,9 @@ fun AppNavHost(
                 windowSizeClass = windowSizeClass,
                 onAcademicEvent = { event ->
                     when (event) {
-                        is AcademicPortalEvent.ToGrades -> { navController.navigateToGrades() }
+                        is AcademicPortalEvent.ToGrades -> {
+                            navController.navigateToGrades()
+                        }
                     }
                 }
             )

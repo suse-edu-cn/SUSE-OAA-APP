@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ fun GradesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+//                .background(color = MaterialTheme.colorScheme.background)
         ){
             if (grades.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
