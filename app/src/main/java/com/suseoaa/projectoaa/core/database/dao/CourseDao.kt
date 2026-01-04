@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CourseDao {
 
-    // === 账号操作 (保持不变) ===
+    // 账号操作
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAccount(account: CourseAccountEntity)
 
@@ -19,7 +19,7 @@ interface CourseDao {
     @Query("DELETE FROM course_accounts WHERE studentId = :studentId")
     suspend fun deleteAccount(studentId: String)
 
-    // === 课程操作 (保持不变) ===
+    // 课程操作
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCourse(course: CourseEntity)
 
@@ -45,7 +45,7 @@ interface CourseDao {
         insertClassTimes(listOf(time))
     }
 
-    // === [修复] 查询部分 ===
+    // 查询部分
 
     // 1. 只查课程本体
     @Query("SELECT * FROM courses WHERE studentId = :studentId AND xnm = :xnm AND xqm = :xqm")

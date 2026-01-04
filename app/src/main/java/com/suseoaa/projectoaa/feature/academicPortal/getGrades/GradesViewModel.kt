@@ -1,9 +1,11 @@
 package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.core.data.repository.CourseRepository
 import com.suseoaa.projectoaa.core.data.repository.SchoolRepository
+import com.suseoaa.projectoaa.core.database.dao.CourseDao
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.network.model.academic.studentGrade.StudentGradeResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +22,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class GradesViewModel @Inject constructor(
     private val schoolRepository: SchoolRepository,
-    private val localRepository: CourseRepository
+    private val localRepository: CourseRepository,
+    private val dao: CourseDao
 ) : ViewModel() {
     private val _grades = MutableStateFlow<List<StudentGradeResponse.Item>>(emptyList())
     val grades = _grades.asStateFlow()
