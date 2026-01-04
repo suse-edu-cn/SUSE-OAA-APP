@@ -5,22 +5,26 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.suseoaa.projectoaa.core.database.dao.CourseDao
-import com.suseoaa.projectoaa.core.database.entity.CourseEntity
+import com.suseoaa.projectoaa.core.database.dao.GradeDao // [新增]
 import com.suseoaa.projectoaa.core.database.entity.ClassTimeEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
+import com.suseoaa.projectoaa.core.database.entity.CourseEntity
+import com.suseoaa.projectoaa.core.database.entity.GradeEntity // [新增]
 
-// 升级数据库版本
+// [修改] version 升级为 7，entities 加入 GradeEntity
 @Database(
     entities = [
         CourseEntity::class,
         ClassTimeEntity::class,
-        CourseAccountEntity::class
+        CourseAccountEntity::class,
+        GradeEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class CourseDatabase : RoomDatabase() {
     abstract fun courseDao(): CourseDao
+    abstract fun gradeDao(): GradeDao // [新增] 暴露 DAO
 
     companion object {
         @Volatile
@@ -38,7 +42,7 @@ abstract class CourseDatabase : RoomDatabase() {
                 CourseDatabase::class.java,
                 "course_schedule.db"
             )
-                .fallbackToDestructiveMigration(true) // 允许破坏性迁移
+                .fallbackToDestructiveMigration(true) // 允许破坏性迁移 (升级时清空旧数据)
                 .build()
         }
     }

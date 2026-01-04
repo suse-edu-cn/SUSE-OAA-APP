@@ -1,6 +1,8 @@
 package com.suseoaa.projectoaa.core.data.repository
 
+import com.suseoaa.projectoaa.core.database.dao.GradeDao
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
+import com.suseoaa.projectoaa.core.database.entity.GradeEntity
 import com.suseoaa.projectoaa.core.network.model.academic.studentGrade.StudentGradeResponse
 import com.suseoaa.projectoaa.core.network.model.course.CourseResponseJson
 import com.suseoaa.projectoaa.core.network.school.SchoolApiService
@@ -8,8 +10,10 @@ import com.suseoaa.projectoaa.core.network.school.SchoolCookieJar
 import com.suseoaa.projectoaa.core.utils.RSAEncryptor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,7 +22,8 @@ class SchoolRepository @Inject constructor(
     private val api: SchoolApiService,
     private val cookieJar: SchoolCookieJar,
     // 注入全局 Json 实例
-    private val json: Json
+    private val json: Json,
+    private val gradeDao: GradeDao
 ) {
     //    通用自动重试请求执行器
     private suspend fun <T> executeWithAutoRetry(
@@ -209,5 +214,109 @@ class SchoolRepository @Inject constructor(
                 Result.failure(e)
             }
         }
+    }
+
+
+    /**
+     * [新增功能] 批量同步历史成绩
+     * 1. 根据 account.njdmId (入学年份) 确定起点
+     * 2. 循环直到当前年份+1
+     * 3. 遍历每个学年的 "3"(上) 和 "12"(下) 学期
+     */
+    suspend fun fetchAllHistoryGrades(account: CourseAccountEntity): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                // 1. 计算时间范围
+                val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                // 如果 njdmId 为空或解析失败，默认倒推4年
+                val startYear = account.njdmId.toIntOrNull() ?: (currentYear - 4)
+                val endYear = currentYear + 1 // 多查一年，防止学期跨度问题
+
+                var successCount = 0
+                var requestCount = 0
+
+                // 2. 双重循环：年份 -> 学期
+                for (year in startYear..endYear) {
+                    val semesters = listOf("3", "12") // 3=上学期, 12=下学期
+
+                    for (semester in semesters) {
+                        requestCount++
+                        // 调用单次抓取
+                        val result = fetchAndSaveGrades(account, year.toString(), semester)
+
+                        if (result.isSuccess) {
+                            successCount++
+                        }
+
+                        // [关键] 每次请求间隔 300ms，防止被服务器判定为攻击
+                        delay(300)
+                    }
+                }
+                Result.success("同步完成：请求 $requestCount 次，更新 $successCount 个学期")
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    /**
+     * [修改] 获取单学期成绩 -> 解析 -> 存入数据库
+     */
+    private suspend fun fetchAndSaveGrades(
+        account: CourseAccountEntity,
+        year: String,
+        semester: String
+    ): Result<Unit> {
+        return executeWithAutoRetry(account) {
+            try {
+                val response = api.getStudentGrade(year = year, semester = semester)
+
+                if (response.isSuccessful) {
+                    val bodyString = response.body()?.string() ?: ""
+                    // 检查 Session
+                    if (bodyString.contains("用户登录") || bodyString.contains("/xtgl/login_slogin.html")) {
+                        Result.failure(SessionExpiredException())
+                    } else {
+                        // 解析
+                        val gradeResponse = json.decodeFromString<StudentGradeResponse>(bodyString)
+
+                        // 映射为 Entity
+                        val entities = gradeResponse.items.map { item ->
+                            GradeEntity(
+                                studentId = account.studentId, // 绑定当前用户
+                                xnm = item.xnm ?: year,
+                                xqm = item.xqm ?: semester,
+                                courseId = item.kchId ?: item.kch ?: "unknown_${item.hashCode()}",
+                                courseName = item.kcmc ?: "未知课程",
+                                score = item.cj ?: "-",
+                                credit = item.xf ?: "0",
+                                gpa = item.jd ?: "0",
+                                courseType = item.kcxzmc ?: "",
+                                examType = item.khfsmc ?: "",
+                                teacher = item.jsxm ?: item.cjbdczr ?: "",
+                                examNature = item.ksxz ?: ""
+                            )
+                        }
+
+                        // 写入数据库 (仅当有数据时)
+                        if (entities.isNotEmpty()) {
+                            gradeDao.updateGrades(account.studentId, year, semester, entities)
+                        }
+                        Result.success(Unit)
+                    }
+                } else {
+                    if (response.code() == 901) Result.failure(SessionExpiredException())
+                    else Result.failure(Exception("HTTP Error: ${response.code()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
+     * [新增] 观察数据库数据 (供 ViewModel 使用)
+     */
+    fun observeGrades(studentId: String, xnm: String, xqm: String): Flow<List<GradeEntity>> {
+        return gradeDao.getGradesFlow(studentId, xnm, xqm)
     }
 }

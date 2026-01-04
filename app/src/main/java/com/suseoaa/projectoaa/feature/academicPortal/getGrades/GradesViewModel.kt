@@ -1,63 +1,92 @@
 package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.core.data.repository.CourseRepository
 import com.suseoaa.projectoaa.core.data.repository.SchoolRepository
-import com.suseoaa.projectoaa.core.database.dao.CourseDao
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
-import com.suseoaa.projectoaa.core.network.model.academic.studentGrade.StudentGradeResponse
+import com.suseoaa.projectoaa.core.database.entity.GradeEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jakarta.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import javax.inject.Inject
 
 @HiltViewModel
 class GradesViewModel @Inject constructor(
     private val schoolRepository: SchoolRepository,
-    private val localRepository: CourseRepository,
-    private val dao: CourseDao
+    private val localRepository: CourseRepository
 ) : ViewModel() {
-    private val _grades = MutableStateFlow<List<StudentGradeResponse.Item>>(emptyList())
-    val grades = _grades.asStateFlow()
-    val currentAccount: StateFlow<CourseAccountEntity?> = localRepository.allAccounts
-        .map { accounts -> accounts.firstOrNull() }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Companion.WhileSubscribed(5000),
-            initialValue = null
-        )
 
-    fun loadGrades() {
+    // 1. 获取当前账号 (从数据库流式获取)
+    val currentAccount: StateFlow<CourseAccountEntity?> = localRepository.allAccounts
+        .map { it.firstOrNull() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    // 2. UI 筛选状态
+    var selectedXnm by mutableStateOf(Calendar.getInstance().get(Calendar.YEAR).toString())
+    var selectedXqm by mutableStateOf("3") // 默认上学期
+
+    // 3. 刷新状态与消息
+    var isRefreshing by mutableStateOf(false)
+        private set
+    var refreshMessage by mutableStateOf<String?>(null)
+        private set
+
+    // 4. [核心] 数据流：观察数据库
+    // 只要 账号 或 年份 或 学期 变化，Flow 就会自动切换查询
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val grades: StateFlow<List<GradeEntity>> = combine(
+        currentAccount.filterNotNull(),
+        snapshotFlow { selectedXnm },
+        snapshotFlow { selectedXqm }
+    ) { account, xnm, xqm ->
+        Triple(account.studentId, xnm, xqm)
+    }.flatMapLatest { (studentId, xnm, xqm) ->
+        schoolRepository.observeGrades(studentId, xnm, xqm)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Lazily,
+        initialValue = emptyList()
+    )
+
+    // 更新筛选条件 (纯 UI 动作，不触发网络)
+    fun updateFilter(xnm: String, xqm: String) {
+        selectedXnm = xnm
+        selectedXqm = xqm
+    }
+
+    // [核心] 刷新所有历史成绩
+    fun refreshGrades() {
+        val account = currentAccount.value ?: return
+
         viewModelScope.launch {
-            val accounts = localRepository.allAccounts.first()
-            val account = accounts.firstOrNull()
-            if (account != null) {
-                // 打印日志确认
-//                println("当前登录账号: ${account.name}")
-                /**
-                 * 需要注意的是，四川轻化工大学使用的学期表示很诡异
-                 * 3代表第一学期
-                 * 12代表第二学期
-                 * 16代表一个更诡异的第三学期？
-                 * 屎山代码这一块，很权威
-                 */
-                val result = schoolRepository.getGrades(account, "2024", "12")
-                result.onSuccess { list ->
-                    _grades.value = list
+            isRefreshing = true
+            refreshMessage = "正在全量同步成绩..."
+
+            try {
+                // 调用 Repository 的批量同步
+                val result = schoolRepository.fetchAllHistoryGrades(account)
+
+                result.onSuccess { msg ->
+                    refreshMessage = msg // 显示成功消息
                 }.onFailure { e ->
-                    println("获取成绩失败：${e.message}")
+                    refreshMessage = "更新失败: ${e.message}"
                 }
-            } else {
-                println("当前没有登录账号")
+            } catch (e: Exception) {
+                refreshMessage = "未知错误: ${e.message}"
+            } finally {
+                isRefreshing = false
             }
         }
+    }
+
+    fun clearMessage() {
+        refreshMessage = null
     }
 }
