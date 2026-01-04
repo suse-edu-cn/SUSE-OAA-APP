@@ -42,7 +42,8 @@ abstract class CourseDatabase : RoomDatabase() {
                 CourseDatabase::class.java,
                 "course_schedule.db"
             )
-                .fallbackToDestructiveMigration(true) // 允许破坏性迁移 (升级时清空旧数据)
+                // 允许破坏性迁移 (升级时清空旧数据)
+                .fallbackToDestructiveMigration(false)
                 .build()
         }
     }

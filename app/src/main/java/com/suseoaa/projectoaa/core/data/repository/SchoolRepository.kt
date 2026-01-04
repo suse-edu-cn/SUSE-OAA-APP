@@ -21,7 +21,6 @@ import javax.inject.Singleton
 class SchoolRepository @Inject constructor(
     private val api: SchoolApiService,
     private val cookieJar: SchoolCookieJar,
-    // 注入全局 Json 实例
     private val json: Json,
     private val gradeDao: GradeDao
 ) {
@@ -30,15 +29,10 @@ class SchoolRepository @Inject constructor(
         account: CourseAccountEntity,
         block: suspend () -> Result<T>
     ): Result<T> {
-//优先尝试使用现有的cookie进行尝试
         val firstResult = block()
-
-//        检查结果,如果是session是失效而引起的失败，则触发重试
         if (firstResult.isFailure) {
             val error = firstResult.exceptionOrNull()
-//            判断是否为登录实效
             if (isSessionExpired(error)) {
-//执行自动登录
                 val loginResult = login(account.studentId, account.password)
                 return if (loginResult.isSuccess) {
                     block()
@@ -47,61 +41,45 @@ class SchoolRepository @Inject constructor(
                 }
             }
         }
-//        如果第一次成功，或者失败原因不是Session失效，直接返回结果
         return firstResult
     }
 
-    // 辅助方法：判断是否是 Session 失效异常
     private fun isSessionExpired(e: Throwable?): Boolean {
         return e is SessionExpiredException
     }
 
-    // 自定义异常类
     class SessionExpiredException : Exception("Session Expired")
 
-    /**
-     * 登录教务系统
-     * @return Result<String> 成功返回成功消息，失败返回异常
-     */
     suspend fun login(username: String, password: String): Result<String> =
         withContext(Dispatchers.IO) {
             try {
-                // 1. 清空旧 Cookie
                 cookieJar.clear()
-
-                // 2. 获取 CSRF Token
                 val csrfHtml = api.getCSRFToken().string()
                 val csrfToken = extractCSRFToken(csrfHtml)
                     ?: return@withContext Result.failure(Exception("无法获取 CSRF Token"))
 
-                // 3. 获取 RSA 公钥并加密
                 val rsaKey = api.getRSAKey()
                 val encryptedPwd = RSAEncryptor.encrypt(password, rsaKey.modulus, rsaKey.exponent)
 
-                // 4. 发送登录请求
                 val timestamp = System.currentTimeMillis().toString()
                 val response = api.login(timestamp, username, encryptedPwd, csrfToken)
 
-                // 5. 处理 302 重定向 (标志登录成功)
                 if (response.code() == 302) {
                     val location = response.headers()["Location"]
                     if (location != null) {
                         val targetUrl =
                             if (location.startsWith("/")) "https://jwgl.suse.edu.cn$location" else location
                         try {
-                            // 访问重定向地址以激活 Session
                             api.visitUrl(targetUrl)
-                            delay(500) // 稍作等待确保 Session 生效
+                            delay(500)
                             Result.success("登录成功")
                         } catch (e: Exception) {
-                            // 即使重定向访问出错，Session 可能已经建立，姑且认为成功
                             Result.success("登录成功 (重定向异常: ${e.message})")
                         }
                     } else {
                         Result.success("登录成功 (无跳转)")
                     }
                 } else {
-                    // 如果返回 200，通常是登录失败停留在原页面，尝试解析错误信息
                     val body = response.errorBody()?.string() ?: response.body()?.string() ?: ""
                     val msg =
                         if (body.contains("用户名或密码不正确")) "用户名或密码错误" else "登录失败，状态码: ${response.code()}"
@@ -112,9 +90,6 @@ class SchoolRepository @Inject constructor(
             }
         }
 
-    /**
-     * 获取课表数据 (已解析为对象)
-     */
     suspend fun getCourseSchedule(year: String, semester: String): Result<CourseResponseJson> =
         withContext(Dispatchers.IO) {
             try {
@@ -135,16 +110,11 @@ class SchoolRepository @Inject constructor(
             }
         }
 
-    /**
-     * 获取开学日期 (YYYY-MM-DD)
-     */
     suspend fun fetchSemesterStart(): String? = withContext(Dispatchers.IO) {
         try {
             val response = api.getCalendar()
             if (!response.isSuccessful) return@withContext null
-
             val html = response.body()?.string() ?: ""
-            // 优化后的正则：匹配 "2025-09-08 至" 格式
             val regex = Regex("""(\d{4}-\d{2}-\d{2})\s*至""")
             regex.find(html)?.groupValues?.get(1)
         } catch (e: Exception) {
@@ -154,7 +124,6 @@ class SchoolRepository @Inject constructor(
     }
 
     private fun extractCSRFToken(html: String): String? {
-        // 尝试多种正则匹配
         val patterns = listOf(
             Regex("""<input\s+type="hidden"\s+id="csrftoken"\s+name="csrftoken"\s+value="([^"]+)"\s*/>"""),
             Regex("""name="csrftoken"\s+value="([^"]+)""""),
@@ -167,7 +136,6 @@ class SchoolRepository @Inject constructor(
         return null
     }
 
-    //    成绩查询
     suspend fun getGrades(
         account: CourseAccountEntity,
         year: String,
@@ -175,7 +143,6 @@ class SchoolRepository @Inject constructor(
     ): Result<List<StudentGradeResponse.Item>> {
         return executeWithAutoRetry(account) {
             try {
-                // 1. 发起请求
                 val response = api.getStudentGrade(
                     year = year,
                     semester = semester,
@@ -184,27 +151,19 @@ class SchoolRepository @Inject constructor(
 
                 if (response.isSuccessful) {
                     val bodyString = response.body()?.string() ?: ""
-
-                    // 2. 检查 Session 是否失效
                     if (bodyString.contains("用户登录") || bodyString.contains("/xtgl/login_slogin.html")) {
                         Result.failure(SessionExpiredException())
                     } else {
-                        // 3. 核心解析逻辑
                         try {
-                            // 使用你的 data class 进行解析
                             val gradeResponse =
                                 json.decodeFromString<StudentGradeResponse>(bodyString)
-
-                            // 提取成绩列表
-                            val grades = gradeResponse.items
-                            Result.success(grades)
+                            Result.success(gradeResponse.items)
                         } catch (e: Exception) {
                             Result.failure(Exception("解析成绩失败: ${e.message}"))
                         }
                     }
                 } else {
                     if (response.code() == 901) {
-                        // 抛出 SessionExpiredException，触发外层的自动重试登录逻辑
                         Result.failure(SessionExpiredException())
                     } else {
                         Result.failure(Exception("HTTP请求失败: ${response.code()}"))
@@ -216,39 +175,27 @@ class SchoolRepository @Inject constructor(
         }
     }
 
-
     /**
-     * [新增功能] 批量同步历史成绩
-     * 1. 根据 account.njdmId (入学年份) 确定起点
-     * 2. 循环直到当前年份+1
-     * 3. 遍历每个学年的 "3"(上) 和 "12"(下) 学期
+     * 批量同步该用户的所有历史成绩
      */
     suspend fun fetchAllHistoryGrades(account: CourseAccountEntity): Result<String> =
         withContext(Dispatchers.IO) {
             try {
-                // 1. 计算时间范围
                 val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-                // 如果 njdmId 为空或解析失败，默认倒推4年
                 val startYear = account.njdmId.toIntOrNull() ?: (currentYear - 4)
-                val endYear = currentYear + 1 // 多查一年，防止学期跨度问题
+                val endYear = currentYear + 1
 
                 var successCount = 0
                 var requestCount = 0
 
-                // 2. 双重循环：年份 -> 学期
                 for (year in startYear..endYear) {
-                    val semesters = listOf("3", "12") // 3=上学期, 12=下学期
-
+                    val semesters = listOf("3", "12")
                     for (semester in semesters) {
                         requestCount++
-                        // 调用单次抓取
                         val result = fetchAndSaveGrades(account, year.toString(), semester)
-
                         if (result.isSuccess) {
                             successCount++
                         }
-
-                        // [关键] 每次请求间隔 300ms，防止被服务器判定为攻击
                         delay(300)
                     }
                 }
@@ -258,9 +205,6 @@ class SchoolRepository @Inject constructor(
             }
         }
 
-    /**
-     * [修改] 获取单学期成绩 -> 解析 -> 存入数据库
-     */
     private suspend fun fetchAndSaveGrades(
         account: CourseAccountEntity,
         year: String,
@@ -272,17 +216,14 @@ class SchoolRepository @Inject constructor(
 
                 if (response.isSuccessful) {
                     val bodyString = response.body()?.string() ?: ""
-                    // 检查 Session
                     if (bodyString.contains("用户登录") || bodyString.contains("/xtgl/login_slogin.html")) {
                         Result.failure(SessionExpiredException())
                     } else {
-                        // 解析
                         val gradeResponse = json.decodeFromString<StudentGradeResponse>(bodyString)
 
-                        // 映射为 Entity
                         val entities = gradeResponse.items.map { item ->
                             GradeEntity(
-                                studentId = account.studentId, // 绑定当前用户
+                                studentId = account.studentId,
                                 xnm = item.xnm ?: year,
                                 xqm = item.xqm ?: semester,
                                 courseId = item.kchId ?: item.kch ?: "unknown_${item.hashCode()}",
@@ -297,10 +238,9 @@ class SchoolRepository @Inject constructor(
                             )
                         }
 
-                        // 写入数据库 (仅当有数据时)
-                        if (entities.isNotEmpty()) {
-                            gradeDao.updateGrades(account.studentId, year, semester, entities)
-                        }
+                        // 无论列表是否为空，都执行更新（先删后存），确保本地数据与服务器一致
+                        gradeDao.updateGrades(account.studentId, year, semester, entities)
+
                         Result.success(Unit)
                     }
                 } else {
@@ -313,9 +253,6 @@ class SchoolRepository @Inject constructor(
         }
     }
 
-    /**
-     * [新增] 观察数据库数据 (供 ViewModel 使用)
-     */
     fun observeGrades(studentId: String, xnm: String, xqm: String): Flow<List<GradeEntity>> {
         return gradeDao.getGradesFlow(studentId, xnm, xqm)
     }

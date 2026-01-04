@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,12 +26,11 @@ fun GradesScreen(
     viewModel: GradesViewModel = hiltViewModel(),
     onBack: () -> Unit = {}
 ) {
-    // 1. 收集状态
     val grades by viewModel.grades.collectAsStateWithLifecycle()
     val currentAccount by viewModel.currentAccount.collectAsStateWithLifecycle()
     val isRefreshing = viewModel.isRefreshing
 
-    // 2. 处理 SnackBar 消息
+    // 处理 SnackBar
     val snackbarHostState = remember { SnackbarHostState() }
     val message = viewModel.refreshMessage
     LaunchedEffect(message) {
@@ -40,8 +40,7 @@ fun GradesScreen(
         }
     }
 
-    // 3. 计算入学年份 (用于生成下拉框)
-    // 如果数据库还没查到入学年份，默认显示最近4年
+    // 计算入学年份
     val startYear = remember(currentAccount) {
         currentAccount?.njdmId?.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.YEAR) - 4)
     }
@@ -56,7 +55,6 @@ fun GradesScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
-                // 右上角刷新按钮
                 actions = {
                     IconButton(onClick = { viewModel.refreshGrades() }, enabled = !isRefreshing) {
                         if (isRefreshing) {
@@ -78,7 +76,6 @@ fun GradesScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // 4. 筛选器组件 (无状态，只负责显示和回调)
             SelectOption(
                 selectedYear = viewModel.selectedXnm,
                 selectedSemester = viewModel.selectedXqm,
@@ -88,7 +85,6 @@ fun GradesScreen(
                 }
             )
 
-            // 5. 列表内容
             if (grades.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -99,7 +95,7 @@ fun GradesScreen(
                         )
                         if (!isRefreshing) {
                             TextButton(onClick = { viewModel.refreshGrades() }) {
-                                Text("点击右上角按钮刷新")
+                                Text("点击右上角刷新")
                             }
                         }
                     }
@@ -118,7 +114,6 @@ fun GradesScreen(
     }
 }
 
-// 下拉框组件
 @Composable
 fun SelectOption(
     selectedYear: String,
@@ -126,12 +121,10 @@ fun SelectOption(
     startYear: Int,
     onFilterChange: (String, String) -> Unit
 ) {
-    // 动态生成年份列表：从入学年 -> 当前年+1
     val yearOptions = remember(startYear) {
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val endYear = currentYear + 1
         val list = mutableListOf<Pair<String, String>>()
-        // 倒序：最近的年份在最上面
         for (y in endYear downTo startYear) {
             list.add("$y-${y + 1} 学年" to y.toString())
         }
@@ -139,8 +132,6 @@ fun SelectOption(
     }
 
     val semesterOptions = listOf("上学期" to "3", "下学期" to "12")
-
-    // 获取当前显示的文字
     val currentYearLabel = yearOptions.find { it.second == selectedYear }?.first ?: "${selectedYear}学年"
     val currentSemesterLabel = semesterOptions.find { it.second == selectedSemester }?.first ?: "未知学期"
 
@@ -148,7 +139,6 @@ fun SelectOption(
     var expandedSemester by remember { mutableStateOf(false) }
 
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        // 年份
         Box(modifier = Modifier.weight(1f)) {
             FilterButton(text = currentYearLabel, onClick = { expandedYear = true })
             DropdownMenu(
@@ -170,7 +160,6 @@ fun SelectOption(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // 学期
         Box(modifier = Modifier.weight(1f)) {
             FilterButton(text = currentSemesterLabel, onClick = { expandedSemester = true })
             DropdownMenu(
@@ -192,7 +181,6 @@ fun SelectOption(
     }
 }
 
-// 统一按钮样式
 @Composable
 fun FilterButton(text: String, onClick: () -> Unit) {
     Surface(
@@ -211,7 +199,6 @@ fun FilterButton(text: String, onClick: () -> Unit) {
     }
 }
 
-// 卡片组件 (直接使用 Entity)
 @Composable
 fun GradeItemCard(item: GradeEntity) {
     Card(

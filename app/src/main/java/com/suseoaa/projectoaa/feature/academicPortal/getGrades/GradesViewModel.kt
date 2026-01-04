@@ -23,23 +23,33 @@ class GradesViewModel @Inject constructor(
     private val localRepository: CourseRepository
 ) : ViewModel() {
 
-    // 1. 获取当前账号 (从数据库流式获取)
+    // 1. 获取当前账号
     val currentAccount: StateFlow<CourseAccountEntity?> = localRepository.allAccounts
         .map { it.firstOrNull() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    // 2. UI 筛选状态
-    var selectedXnm by mutableStateOf(Calendar.getInstance().get(Calendar.YEAR).toString())
-    var selectedXqm by mutableStateOf("3") // 默认上学期
+    // 智能计算默认学年
+    private val defaultSelection: Pair<String, String>
+        get() {
+            val calendar = Calendar.getInstance()
+            val month = calendar.get(Calendar.MONTH) + 1
+            val year = calendar.get(Calendar.YEAR)
 
-    // 3. 刷新状态与消息
+            return when (month) {
+                1, 2 -> (year - 1).toString() to "3"
+                in 3..7 -> (year - 1).toString() to "12"
+                else -> year.toString() to "3"
+            }
+        }
+
+    var selectedXnm by mutableStateOf(defaultSelection.first)
+    var selectedXqm by mutableStateOf(defaultSelection.second)
+
     var isRefreshing by mutableStateOf(false)
         private set
     var refreshMessage by mutableStateOf<String?>(null)
         private set
 
-    // 4. [核心] 数据流：观察数据库
-    // 只要 账号 或 年份 或 学期 变化，Flow 就会自动切换查询
     @OptIn(ExperimentalCoroutinesApi::class)
     val grades: StateFlow<List<GradeEntity>> = combine(
         currentAccount.filterNotNull(),
@@ -55,13 +65,11 @@ class GradesViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    // 更新筛选条件 (纯 UI 动作，不触发网络)
     fun updateFilter(xnm: String, xqm: String) {
         selectedXnm = xnm
         selectedXqm = xqm
     }
 
-    // [核心] 刷新所有历史成绩
     fun refreshGrades() {
         val account = currentAccount.value ?: return
 
@@ -70,11 +78,9 @@ class GradesViewModel @Inject constructor(
             refreshMessage = "正在全量同步成绩..."
 
             try {
-                // 调用 Repository 的批量同步
                 val result = schoolRepository.fetchAllHistoryGrades(account)
-
                 result.onSuccess { msg ->
-                    refreshMessage = msg // 显示成功消息
+                    refreshMessage = msg
                 }.onFailure { e ->
                     refreshMessage = "更新失败: ${e.message}"
                 }
