@@ -11,14 +11,13 @@ import androidx.navigation.compose.composable
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicDestinations
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.getGrades.GradesScreen
-import com.suseoaa.projectoaa.feature.academicPortal.getGrades.gradesScreen
-import com.suseoaa.projectoaa.feature.academicPortal.getGrades.navigateToGrades
 import com.suseoaa.projectoaa.feature.home.MAIN_SCREEN_ROUTE
 import com.suseoaa.projectoaa.feature.home.MainScreen
 import com.suseoaa.projectoaa.feature.login.LOGIN_ROUTE
 import com.suseoaa.projectoaa.feature.login.loginScreen
 import com.suseoaa.projectoaa.feature.register.navigateToRegister
 import com.suseoaa.projectoaa.feature.register.registerScreen
+import com.suseoaa.projectoaa.feature.testScreen.TestScreen
 
 @Composable
 fun AppNavHost(
@@ -97,5 +96,11 @@ fun AppNavHost(
         composable(AcademicDestinations.Grades.route) {
             GradesScreen(onBack = { navController.popBackStack() })
         }
+//       测试页面
+        composable(AcademicDestinations.Test.route) {
+            TestScreen()
+        }
+
+
     }
 }

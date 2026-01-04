@@ -29,6 +29,7 @@ fun AcademicScreen(
                 is AcademicDestinations.Grades -> {
                     GradesScreen(onBack = { currentDest = AcademicDestinations.Menu })
                 }
+                is AcademicDestinations.Test -> {}
                 // 未来新增页面：
                 // is AcademicDestinations.Exams -> ExamsScreen(...)
                 else -> { /* 兜底 */ }
@@ -62,6 +63,9 @@ fun AcademicMenuContent(
     ) {
         Button(onClick = { onItemClick(AcademicDestinations.Grades) }) {
             Text("跳转到成绩页面")
+        }
+        Button(onClick = { onItemClick(AcademicDestinations.Test) }) {
+            Text("跳转到测试页面")
         }
     }
 }

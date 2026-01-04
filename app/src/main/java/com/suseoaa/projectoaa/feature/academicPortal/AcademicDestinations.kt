@@ -23,7 +23,7 @@ sealed class AcademicDestinations(val route: String, val title: String) {
 
     // 2. 成绩页
     data object Grades : AcademicDestinations("academic_grades", "成绩查询")
-
+    data object Test : AcademicDestinations("test", "测试页面")
     // 3. 未来新增的考场页
     // data object Exams : AcademicDestinations("academic_exams", "考场查询")
 }

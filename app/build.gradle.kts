@@ -92,4 +92,6 @@ dependencies {
     implementation(libs.play.services.maps)
 //    DataStore相关依赖
     implementation(libs.androidx.datastore.preferences)
+//    动画
+    implementation(libs.androidx.compose.animation)
 }
