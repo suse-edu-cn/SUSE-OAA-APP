@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -26,6 +28,7 @@ fun GradesScreen(
     viewModel: GradesViewModel = hiltViewModel(),
     onBack: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val grades by viewModel.grades.collectAsStateWithLifecycle()
     val currentAccount by viewModel.currentAccount.collectAsStateWithLifecycle()
     val isRefreshing = viewModel.isRefreshing
@@ -35,7 +38,7 @@ fun GradesScreen(
     val message = viewModel.refreshMessage
     LaunchedEffect(message) {
         if (message != null) {
-            snackbarHostState.showSnackbar(message)
+            Toast.makeText(context,message, Toast.LENGTH_SHORT).show()
             viewModel.clearMessage()
         }
     }
