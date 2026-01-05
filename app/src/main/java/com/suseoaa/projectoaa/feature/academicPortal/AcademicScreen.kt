@@ -1,71 +1,98 @@
 package com.suseoaa.projectoaa.feature.academicPortal
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.feature.academicPortal.getGrades.GradesScreen
+import com.suseoaa.projectoaa.feature.testScreen.ScreenState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+
+enum class ScreenState { List, Detail }
 
 @Composable
 fun AcademicScreen(
     isTablet: Boolean,
     onNavigate: (AcademicPortalEvent) -> Unit
 ) {
-    // 1. [平板状态] 直接使用统一的 AcademicDestinations，默认是 Menu
-    var currentDest by remember { mutableStateOf<AcademicDestinations>(AcademicDestinations.Menu) }
+    var currentScreen by remember { mutableStateOf(ScreenState.List) }
+    SharedTransitionLayout {
+        AnimatedContent(targetState = currentScreen, label = "screen_transition") { targetState ->
 
-    // 2. [平板返回]
-    BackHandler(enabled = isTablet && currentDest != AcademicDestinations.Menu) {
-        currentDest = AcademicDestinations.Menu
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        // 3. [平板内容渲染] 使用 when 遍历 Sealed Class
-        if (isTablet && currentDest != AcademicDestinations.Menu) {
-            when (currentDest) {
-                is AcademicDestinations.Grades -> {
-                    GradesScreen(onBack = { currentDest = AcademicDestinations.Menu })
-                }
-                is AcademicDestinations.Test -> {}
-                // 未来新增页面：
-                // is AcademicDestinations.Exams -> ExamsScreen(...)
-                else -> { /* 兜底 */ }
-            }
-        } else {
-            // 4. [菜单显示]
-            AcademicMenuContent(
-                onItemClick = { dest ->
-                    if (isTablet) {
-                        // 平板：切状态
-                        currentDest = dest
-                    } else {
-                        // 手机：发通用事件
-                        onNavigate(AcademicPortalEvent.NavigateTo(dest))
+            when (targetState) {
+                ScreenState.List -> {
+                    // === 列表页 (出发点) ===
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(20.dp)
+                    ) {
+                        // 这里的 Row 就是我们要点击的小卡片
+                        Row(
+                            modifier = Modifier
+                                // 3. 【关键】使用 sharedBounds 标记这个元素
+                                // key = "my-card-id" 是身份证，必须和详情页的一样
+                                .sharedBounds(
+                                    sharedContentState = rememberSharedContentState(key = "my-card-id"),
+                                    animatedVisibilityScope = this@AnimatedContent
+                                )
+                                .size(100.dp, 60.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.background,
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { currentScreen = ScreenState.Detail } // 点击切换状态
+                        ) {
+                            Text("点击我", color = Color.White, modifier = Modifier.padding(8.dp))
+                        }
                     }
                 }
-            )
-        }
-    }
-}
 
-@Composable
-fun AcademicMenuContent(
-    // 接收统一的对象
-    onItemClick: (AcademicDestinations) -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Button(onClick = { onItemClick(AcademicDestinations.Grades) }) {
-            Text("跳转到成绩页面")
-        }
-        Button(onClick = { onItemClick(AcademicDestinations.Test) }) {
-            Text("跳转到测试页面")
+                ScreenState.Detail -> {
+                    // === 详情页 (目的地) ===
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                // 4. 【关键】给详情页的容器也加上同样的标记
+                                // 系统发现两个地方都有 "my-card-id"，就会自动计算变形动画
+                                .sharedBounds(
+                                    sharedContentState = rememberSharedContentState(key = "my-card-id"),
+                                    animatedVisibilityScope = this@AnimatedContent
+                                )
+                                .fillMaxSize() // 详情页通常是全屏的
+                                .background(color = MaterialTheme.colorScheme.primaryContainer) // 保持颜色一致，或者系统会自动渐变颜色
+                        ) {
+                            GradesScreen(onBack = { currentScreen = ScreenState.List })
+                        }
+                    }
+                }
+            }
         }
     }
 }

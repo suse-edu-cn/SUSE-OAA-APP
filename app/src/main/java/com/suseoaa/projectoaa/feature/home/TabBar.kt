@@ -62,11 +62,11 @@ fun OaaBottomBar(
     modifier: Modifier
 ) {
     NavigationBar(
-        modifier = modifier // [修改点 2] 应用传入的 modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp, vertical = 4.dp),
-        containerColor = Color.Transparent, // 确保外层透明
-        tonalElevation = 0.dp // 去除 Material3 默认的色调
+        containerColor = Color.Transparent,
+        tonalElevation = 0.dp
     ) {
         Surface(
             tonalElevation = 2.dp,
