@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
 
 @Composable
 fun AcademicScreen(
@@ -56,14 +57,8 @@ fun AcademicScreen(
                     .sharedBounds(
                         sharedContentState = rememberSharedContentState(key = "grades_card_key"),
                         animatedVisibilityScope = animatedVisibilityScope,
-                        boundsTransform = { initialBounds, targetBounds ->
-                            tween(
-                                // 这里设置时间 (默认是 300左右)
-                                durationMillis = 400,
-                                // 缓动曲线：先快后慢，很优雅
-                                easing = FastOutSlowInEasing
-                            )
-                        },
+//                    使用复用的动画预设
+                        boundsTransform = AcademicSharedTransitionSpec,
                         // 让圆角变化更自然
                         resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
                     )

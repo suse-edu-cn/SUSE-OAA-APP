@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.core.database.entity.GradeEntity
+import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,14 +60,8 @@ fun GradesScreen(
                 .sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "grades_card_key"),
                     animatedVisibilityScope = animatedVisibilityScope,
-                    boundsTransform = { initialBounds, targetBounds ->
-                        tween(
-                            // 这里设置时间 (默认是 300左右)
-                            durationMillis = 400,
-                            // 缓动曲线：先快后慢，很优雅
-                            easing = FastOutSlowInEasing
-                        )
-                    }
+//                    使用复用的动画预设
+                    boundsTransform = AcademicSharedTransitionSpec
                 ),
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
