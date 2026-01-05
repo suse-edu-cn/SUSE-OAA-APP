@@ -3,6 +3,8 @@ package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -57,6 +59,14 @@ fun GradesScreen(
                 .sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "grades_card_key"),
                     animatedVisibilityScope = animatedVisibilityScope,
+                    boundsTransform = { initialBounds, targetBounds ->
+                        tween(
+                            // 这里设置时间 (默认是 300左右)
+                            durationMillis = 400,
+                            // 缓动曲线：先快后慢，很优雅
+                            easing = FastOutSlowInEasing
+                        )
+                    }
                 ),
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
@@ -151,9 +161,11 @@ fun SelectOption(
     var expandedYear by remember { mutableStateOf(false) }
     var expandedSemester by remember { mutableStateOf(false) }
 
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
         Box(modifier = Modifier.weight(1f)) {
             FilterButton(text = currentYearLabel, onClick = { expandedYear = true })
             DropdownMenu(
@@ -225,9 +237,11 @@ fun GradeItemCard(item: GradeEntity) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

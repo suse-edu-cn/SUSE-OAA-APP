@@ -5,6 +5,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -54,7 +56,15 @@ fun AcademicScreen(
                     .sharedBounds(
                         sharedContentState = rememberSharedContentState(key = "grades_card_key"),
                         animatedVisibilityScope = animatedVisibilityScope,
-                        // 可选：让圆角变化更自然
+                        boundsTransform = { initialBounds, targetBounds ->
+                            tween(
+                                // 这里设置时间 (默认是 300左右)
+                                durationMillis = 400,
+                                // 缓动曲线：先快后慢，很优雅
+                                easing = FastOutSlowInEasing
+                            )
+                        },
+                        // 让圆角变化更自然
                         resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
                     )
                     .size(120.dp, 80.dp)
