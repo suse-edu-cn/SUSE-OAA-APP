@@ -1,8 +1,9 @@
 package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,7 +27,9 @@ import java.util.Calendar
 @Composable
 fun GradesScreen(
     viewModel: GradesViewModel = hiltViewModel(),
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val context = LocalContext.current
     val grades by viewModel.grades.collectAsStateWithLifecycle()
@@ -38,7 +41,7 @@ fun GradesScreen(
     val message = viewModel.refreshMessage
     LaunchedEffect(message) {
         if (message != null) {
-            Toast.makeText(context,message, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             viewModel.clearMessage()
         }
     }
@@ -48,68 +51,73 @@ fun GradesScreen(
         currentAccount?.njdmId?.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.YEAR) - 4)
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("成绩查询") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.refreshGrades() }, enabled = !isRefreshing) {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Icon(Icons.Default.Refresh, contentDescription = "全量更新")
-                        }
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Column(
+    with(sharedTransitionScope) {
+        Scaffold(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            SelectOption(
-                selectedYear = viewModel.selectedXnm,
-                selectedSemester = viewModel.selectedXqm,
-                startYear = startYear,
-                onFilterChange = { year, semester ->
-                    viewModel.updateFilter(year, semester)
-                }
-            )
-
-            if (grades.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            if (isRefreshing) "正在同步所有学期成绩..." else "暂无本地数据",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (!isRefreshing) {
-                            TextButton(onClick = { viewModel.refreshGrades() }) {
-                                Text("点击右上角刷新")
+                .sharedBounds(
+                    sharedContentState = rememberSharedContentState(key = "grades_card_key"),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                ),
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = { Text("成绩查询") },
+                    actions = {
+                        IconButton(
+                            onClick = { viewModel.refreshGrades() },
+                            enabled = !isRefreshing
+                        ) {
+                            if (isRefreshing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Icon(Icons.Default.Refresh, contentDescription = "全量更新")
                             }
                         }
                     }
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(grades) { item ->
-                        GradeItemCard(item)
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                SelectOption(
+                    selectedYear = viewModel.selectedXnm,
+                    selectedSemester = viewModel.selectedXqm,
+                    startYear = startYear,
+                    onFilterChange = { year, semester ->
+                        viewModel.updateFilter(year, semester)
+                    }
+                )
+
+                if (grades.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                if (isRefreshing) "正在同步所有学期成绩..." else "暂无本地数据",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (!isRefreshing) {
+                                TextButton(onClick = { viewModel.refreshGrades() }) {
+                                    Text("点击右上角刷新")
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(grades) { item ->
+                            GradeItemCard(item)
+                        }
                     }
                 }
             }
@@ -135,13 +143,17 @@ fun SelectOption(
     }
 
     val semesterOptions = listOf("上学期" to "3", "下学期" to "12")
-    val currentYearLabel = yearOptions.find { it.second == selectedYear }?.first ?: "${selectedYear}学年"
-    val currentSemesterLabel = semesterOptions.find { it.second == selectedSemester }?.first ?: "未知学期"
+    val currentYearLabel =
+        yearOptions.find { it.second == selectedYear }?.first ?: "${selectedYear}学年"
+    val currentSemesterLabel =
+        semesterOptions.find { it.second == selectedSemester }?.first ?: "未知学期"
 
     var expandedYear by remember { mutableStateOf(false) }
     var expandedSemester by remember { mutableStateOf(false) }
 
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 8.dp)) {
         Box(modifier = Modifier.weight(1f)) {
             FilterButton(text = currentYearLabel, onClick = { expandedYear = true })
             DropdownMenu(
@@ -197,7 +209,11 @@ fun FilterButton(text: String, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ArrowDropDown, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(
+                Icons.Default.ArrowDropDown,
+                null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -209,7 +225,9 @@ fun GradeItemCard(item: GradeEntity) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+        Column(modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

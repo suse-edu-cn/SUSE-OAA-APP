@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.feature.academicPortal
 
+import androidx.compose.animation.SharedTransitionScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
@@ -12,12 +13,15 @@ fun NavController.navigateToAcademic(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.academicScreen(
-    onNavigate: (AcademicPortalEvent) -> Unit
+    onNavigate: (AcademicPortalEvent) -> Unit,
+    sharedTransitionScope: SharedTransitionScope
 ) {
     composable(route = ACADEMIC_ROUTE) {
         AcademicScreen(
             isTablet = false,
-            onNavigate = onNavigate
+            onNavigate = onNavigate,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this
         )
     }
 }

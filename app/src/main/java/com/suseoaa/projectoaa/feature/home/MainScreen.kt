@@ -1,5 +1,7 @@
 package com.suseoaa.projectoaa.feature.home
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +26,9 @@ const val MAIN_SCREEN_ROUTE = "main_screen_route"
 @Composable
 fun MainScreen(
     windowSizeClass: WindowWidthSizeClass,
-    onAcademicEvent: (AcademicPortalEvent) -> Unit
+    onAcademicEvent: (AcademicPortalEvent) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
@@ -57,10 +61,11 @@ fun MainScreen(
                         when (page) {
                             0 -> HomeScreen()
                             1 -> CourseScreen()
-                            // 【修复点】这里传入 isTablet 参数
                             2 -> AcademicScreen(
                                 isTablet = isTablet,
-                                onNavigate = onAcademicEvent
+                                onNavigate = onAcademicEvent,
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope
                             )
                             3 -> PersonScreen()
                         }

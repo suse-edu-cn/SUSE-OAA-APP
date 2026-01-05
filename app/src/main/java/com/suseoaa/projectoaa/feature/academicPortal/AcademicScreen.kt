@@ -2,7 +2,9 @@ package com.suseoaa.projectoaa.feature.academicPortal
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,67 +33,45 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
-enum class ScreenState { List, Detail }
-
 @Composable
 fun AcademicScreen(
     isTablet: Boolean,
-    onNavigate: (AcademicPortalEvent) -> Unit
+    onNavigate: (AcademicPortalEvent) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    var currentScreen by remember { mutableStateOf(ScreenState.List) }
-    SharedTransitionLayout {
-        AnimatedContent(targetState = currentScreen, label = "screen_transition") { targetState ->
-
-            when (targetState) {
-                ScreenState.List -> {
-                    // === 列表页 (出发点) ===
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp)
-                    ) {
-                        // 这里的 Row 就是我们要点击的小卡片
-                        Row(
-                            modifier = Modifier
-                                // 3. 【关键】使用 sharedBounds 标记这个元素
-                                // key = "my-card-id" 是身份证，必须和详情页的一样
-                                .sharedBounds(
-                                    sharedContentState = rememberSharedContentState(key = "my-card-id"),
-                                    animatedVisibilityScope = this@AnimatedContent
-                                )
-                                .size(100.dp, 60.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.background,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .clickable { currentScreen = ScreenState.Detail } // 点击切换状态
-                        ) {
-                            Text("点击我", color = Color.White, modifier = Modifier.padding(8.dp))
-                        }
+    with(sharedTransitionScope) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    // 核心动画代码
+                    // 1. 给这个卡片一个唯一的身份证号 (key)
+                    // 2. 告诉它是属于哪个页面范围的 (animatedVisibilityScope)
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(key = "grades_card_key"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        // 可选：让圆角变化更自然
+                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                    )
+                    .size(120.dp, 80.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .clickable {
+                        onNavigate(AcademicPortalEvent.NavigateTo(AcademicDestinations.Grades))
                     }
-                }
-
-                ScreenState.Detail -> {
-                    // === 详情页 (目的地) ===
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                // 4. 【关键】给详情页的容器也加上同样的标记
-                                // 系统发现两个地方都有 "my-card-id"，就会自动计算变形动画
-                                .sharedBounds(
-                                    sharedContentState = rememberSharedContentState(key = "my-card-id"),
-                                    animatedVisibilityScope = this@AnimatedContent
-                                )
-                                .fillMaxSize() // 详情页通常是全屏的
-                                .background(color = MaterialTheme.colorScheme.primaryContainer) // 保持颜色一致，或者系统会自动渐变颜色
-                        ) {
-                            GradesScreen(onBack = { currentScreen = ScreenState.List })
-                        }
-                    }
-                }
+            ) {
+                Text(
+                    text = "成绩查询",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
     }

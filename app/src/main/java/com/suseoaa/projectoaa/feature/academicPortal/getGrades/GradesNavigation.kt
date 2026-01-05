@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
+import androidx.compose.animation.SharedTransitionScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
@@ -11,8 +12,13 @@ fun NavController.navigateToGrades(navOptions: NavOptions? = null) {
     this.navigate(GRADES_ROUTE, navOptions)
 }
 
-fun NavGraphBuilder.gradesScreen() {
+fun NavGraphBuilder.gradesScreen(
+    sharedTransitionScope: SharedTransitionScope
+) {
     composable(route = GRADES_ROUTE) {
-        GradesScreen()
+        GradesScreen(
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this
+        )
     }
 }
