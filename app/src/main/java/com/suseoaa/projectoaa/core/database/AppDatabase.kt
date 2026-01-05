@@ -19,12 +19,12 @@ import com.suseoaa.projectoaa.core.database.entity.GradeEntity // [新增]
         CourseAccountEntity::class,
         GradeEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class CourseDatabase : RoomDatabase() {
     abstract fun courseDao(): CourseDao
-    abstract fun gradeDao(): GradeDao // [新增] 暴露 DAO
+    abstract fun gradeDao(): GradeDao
 
     companion object {
         @Volatile

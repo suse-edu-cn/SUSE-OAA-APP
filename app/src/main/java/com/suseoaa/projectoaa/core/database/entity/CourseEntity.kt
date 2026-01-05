@@ -17,7 +17,8 @@ data class CourseAccountEntity(
     val name: String,
     val className: String,
     val njdmId: String,
-    val major: String
+    val major: String,
+    val sortIndex: Int = 0
 )
 
 /**

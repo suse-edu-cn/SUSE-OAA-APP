@@ -16,33 +16,25 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 // 1. 定义 DataStore 的扩展属性
-// 这里使用 private，确保只有 TokenManager 能直接操作这个具体的 DataStore 文件
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_prefs")
 
-@Singleton // 2. 标记为单例：整个 App 只有一份实例，生命周期跟随 App
+@Singleton
 class TokenManager @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {
-    // 定义 Key (类似 Map 的 Key)
+    // 定义 Key
     companion object {
         private val TOKEN_KEY = stringPreferencesKey("jwt_token")
+
+        // 存储当前选中的学生学号
+        private val CURRENT_STUDENT_ID_KEY = stringPreferencesKey("current_student_id")
     }
-    /**
-     * 存Token
-     * 使用 TOKEN_KEY 作为索引
-     * preferences[TOKEN_KEY] = "eyJhGci..."
-     * 取Token
-     * 使用 TOKEN_KEY 作为索引
-     * val savedToken = preferences[TOKEN_KEY]
-     */
 
     /**
      * 读取 Token
-     * 返回的是 Flow，这意味着每当 Token 变化，观察者都会自动收到最新值
      */
     val tokenFlow: Flow<String?> = context.dataStore.data
         .catch { exception ->
-            // 处理读取时的 IO 异常
             if (exception is IOException) {
                 emit(emptyPreferences())
             } else {
@@ -50,12 +42,27 @@ class TokenManager @Inject constructor(
             }
         }
         .map { preferences ->
-            preferences[TOKEN_KEY] // 如果没有值，这里会自动返回 null
+            preferences[TOKEN_KEY]
+        }
+
+    /**
+     * 读取当前选中的学号
+     * 返回 Flow，任何地方修改了 ID，这里都会收到通知
+     */
+    val currentStudentId: Flow<String?> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[CURRENT_STUDENT_ID_KEY]
         }
 
     /**
      * 保存 Token
-     * suspend 函数，必须在协程中调用
      */
     suspend fun saveToken(token: String) {
         context.dataStore.edit { preferences ->
@@ -64,12 +71,20 @@ class TokenManager @Inject constructor(
     }
 
     /**
-     * 清除 Token (退出登录时调用)
+     * 保存当前选中的学号
+     */
+    suspend fun saveCurrentStudentId(studentId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[CURRENT_STUDENT_ID_KEY] = studentId
+        }
+    }
+
+    /**
+     * 清除 Token
      */
     suspend fun clearToken() {
         context.dataStore.edit { preferences ->
             preferences.remove(TOKEN_KEY)
-            // 或者使用 preferences.clear() 清除所有数据
         }
     }
 }

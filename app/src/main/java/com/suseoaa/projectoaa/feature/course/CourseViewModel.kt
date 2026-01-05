@@ -14,7 +14,8 @@ import com.suseoaa.projectoaa.core.data.repository.SchoolRepository
 import com.suseoaa.projectoaa.core.database.CourseDatabase
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseWithTimes
-import com.suseoaa.projectoaa.core.data.repository.CourseRepository // 引用 Core 层的本地仓库
+import com.suseoaa.projectoaa.core.data.repository.CourseRepository
+import com.suseoaa.projectoaa.core.dataStore.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,33 +29,36 @@ import java.util.Calendar
 import javax.inject.Inject
 
 data class TermOption(
-    val xnm: String, // 2024
-    val xqm: String, // 3 或 12
-    val label: String // "2024-2025 第1学期"
+    val xnm: String,
+    val xqm: String,
+    val label: String
 )
 
 @HiltViewModel
 class CourseListViewModel @Inject constructor(
     application: Application,
-    // 注入新写的网络仓库
-    private val schoolRepository: SchoolRepository
+    private val schoolRepository: SchoolRepository,
+    private val tokenManager: TokenManager
 ) : AndroidViewModel(application) {
 
-    // 初始化本地数据库仓库 (保持原有逻辑，避免引入额外的 DI 模块复杂度)
     private val database = CourseDatabase.getInstance(application)
     private val localRepository = CourseRepository(database.courseDao())
 
     private val PREFS_NAME = "course_prefs"
     private val KEY_START_DATE = "semester_start_date"
 
-    // === 状态管理 ===
-
-    private val _currentAccount = MutableStateFlow<CourseAccountEntity?>(null)
-    val currentAccount = _currentAccount.asStateFlow()
-
-    // 监听本地数据库中的所有账号
+    // 监听本地数据库中的所有账号 (按 sortIndex 排序)
     val savedAccounts: StateFlow<List<CourseAccountEntity>> = localRepository.allAccounts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // 核心：CurrentAccount 响应式跟随 TokenManager 变化
+    val currentAccount: StateFlow<CourseAccountEntity?> = combine(
+        savedAccounts,
+        tokenManager.currentStudentId
+    ) { accounts, selectedId ->
+        if (accounts.isEmpty()) null
+        else accounts.find { it.studentId == selectedId } ?: accounts.first()
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _termOptions = MutableStateFlow<List<TermOption>>(emptyList())
     val termOptions = _termOptions.asStateFlow()
@@ -66,7 +70,6 @@ class CourseListViewModel @Inject constructor(
         private set
 
     var currentDisplayWeek by mutableIntStateOf(1)
-
     var realCurrentWeek by mutableIntStateOf(1)
         private set
 
@@ -74,51 +77,41 @@ class CourseListViewModel @Inject constructor(
         MutableStateFlow<LocalDate>(LocalDate.now().with(DayOfWeek.MONDAY))
     val semesterStartDate: StateFlow<LocalDate> = _semesterStartDate
 
-    // === 课程数据流 ===
-    // 当账号、学年(xnm)、学期(xqm)变化时，自动从本地数据库重新查询
+    // 课程数据流
     @OptIn(ExperimentalCoroutinesApi::class)
     val allCourses: StateFlow<List<CourseWithTimes>> = combine(
-        _currentAccount.filterNotNull(),
+        currentAccount.filterNotNull(),
         snapshotFlow { selectedXnm },
         snapshotFlow { selectedXqm }
     ) { account, xnm, xqm ->
         Triple(account.studentId, xnm, xqm)
     }.flatMapLatest { (studentId, xnm, xqm) ->
         localRepository.getCourses(studentId, xnm, xqm)
-    }
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // 预计算所有周次的课表，优化 UI 性能
     val weekScheduleMap: StateFlow<Map<Int, List<CourseWithTimes>>> = allCourses
         .map { list ->
-            (1..25).associateWith { week ->
-                calculateCoursesForWeek(week, list)
-            }
+            (1..25).associateWith { week -> calculateCoursesForWeek(week, list) }
         }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
-
     init {
         loadSemesterStart()
-        // 自动选择第一个账号
         viewModelScope.launch {
-            savedAccounts.collect { accounts ->
-                if (_currentAccount.value == null && accounts.isNotEmpty()) {
-                    switchUser(accounts.first())
+            currentAccount.collect { account ->
+                if (account != null) {
+                    generateTermOptions(account.njdmId)
+                    selectCurrentRealTerm()
                 }
             }
         }
     }
 
-    // === 业务逻辑 ===
-
-    fun switchUser(account: CourseAccountEntity, preserveSelection: Boolean = false) {
-        _currentAccount.value = account
-        generateTermOptions(account.njdmId)
-
-        if (!preserveSelection) {
-            selectCurrentRealTerm()
+    // 核心：切换用户时，只负责更新 DataStore
+    fun switchUser(account: CourseAccountEntity) {
+        viewModelScope.launch {
+            tokenManager.saveCurrentStudentId(account.studentId)
         }
     }
 
@@ -127,7 +120,6 @@ class CourseListViewModel @Inject constructor(
             startYearStr.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.YEAR) - 1)
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val list = mutableListOf<TermOption>()
-
         for (y in startYear..currentYear + 1) {
             list.add(TermOption(y.toString(), "3", "$y-${y + 1} 第1学期"))
             list.add(TermOption(y.toString(), "12", "$y-${y + 1} 第2学期"))
@@ -139,17 +131,13 @@ class CourseListViewModel @Inject constructor(
         val today = LocalDate.now()
         val currentYear = today.year
         val currentMonth = today.monthValue
-
-        // 简单的学期推断逻辑：2-7月为下学期(12)，其他为上学期(3)
         val (targetXnm, targetXqm) = when (currentMonth) {
             in 2..7 -> (currentYear - 1).toString() to "12"
             1 -> (currentYear - 1).toString() to "3"
             else -> currentYear.toString() to "3"
         }
-
         val options = _termOptions.value
         val match = options.find { it.xnm == targetXnm && it.xqm == targetXqm }
-
         if (match != null) {
             selectedXnm = match.xnm
             selectedXqm = match.xqm
@@ -163,25 +151,16 @@ class CourseListViewModel @Inject constructor(
     fun deleteAccount(account: CourseAccountEntity) {
         viewModelScope.launch {
             localRepository.deleteAccount(account.studentId)
-            if (_currentAccount.value == account) {
-                val remaining = savedAccounts.value.filter { it.studentId != account.studentId }
-                if (remaining.isNotEmpty()) {
-                    switchUser(remaining.first())
-                } else {
-                    _currentAccount.value = null
-                }
-            }
         }
     }
 
     fun updateTermSelection(xnm: String, xqm: String) {
         selectedXnm = xnm
         selectedXqm = xqm
-        // 切换学期后，可以考虑是否自动刷新，目前逻辑是手动刷新
     }
 
     fun refreshSchedule() {
-        val account = _currentAccount.value
+        val account = currentAccount.value
         if (account == null) {
             uiState = uiState.copy(errorMessage = "当前无账号")
             return
@@ -189,13 +168,6 @@ class CourseListViewModel @Inject constructor(
         fetchAndSaveCourseSchedule(account.studentId, account.password, selectedXnm, selectedXqm)
     }
 
-    /**
-     * 核心功能：获取并保存课表
-     * 1. 登录
-     * 2. 获取课表数据
-     * 3. 存入本地数据库
-     * 4. 尝试获取校历并更新开学日期
-     */
     fun fetchAndSaveCourseSchedule(
         username: String,
         pass: String,
@@ -204,48 +176,32 @@ class CourseListViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true, statusMessage = "正在登录...")
-
-            // 1. 调用 SchoolRepository 登录
             val loginResult = schoolRepository.login(username, pass)
 
             if (loginResult.isFailure) {
                 val errorMsg = loginResult.exceptionOrNull()?.message ?: "登录失败"
-                uiState = uiState.copy(
-                    isLoading = false,
-                    errorMessage = errorMsg,
-                    statusMessage = null
-                )
+                uiState =
+                    uiState.copy(isLoading = false, errorMessage = errorMsg, statusMessage = null)
                 return@launch
             }
 
-            uiState =
-                uiState.copy(statusMessage = "正在获取 ${xnm}学年 ${if (xqm == "3") "上" else "下"}学期 课表...")
-
-            // 2. 登录成功，获取课表数据
+            uiState = uiState.copy(statusMessage = "正在获取课表...")
             val courseResult = schoolRepository.getCourseSchedule(xnm, xqm)
 
             courseResult.onSuccess { courseData ->
                 uiState = uiState.copy(statusMessage = "正在保存...")
-
-                // 3. 保存到本地数据库 (IO 线程)
                 withContext(Dispatchers.IO) {
                     localRepository.saveFromResponse(username, pass, courseData)
                 }
 
-                // 4. 尝试自动同步校历
                 uiState = uiState.copy(statusMessage = "正在同步校历...")
                 val startDateStr = schoolRepository.fetchSemesterStart()
-
                 if (startDateStr != null) {
                     try {
-                        val date = LocalDate.parse(startDateStr)
-                        setSemesterStartDate(date)
-                        println("自动设置起始周成功: $startDateStr")
+                        setSemesterStartDate(LocalDate.parse(startDateStr))
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                } else {
-                    println("未能自动获取到起始周")
                 }
 
                 uiState = uiState.copy(
@@ -253,18 +209,12 @@ class CourseListViewModel @Inject constructor(
                     successMessage = "更新成功",
                     statusMessage = null
                 )
-
-                // 刷新当前用户选中状态
-                val newAccount = savedAccounts.value.find { it.studentId == username }
-                if (newAccount != null) {
-                    val isSameUser = _currentAccount.value?.studentId == username
-                    switchUser(newAccount, preserveSelection = isSameUser)
-                }
+                tokenManager.saveCurrentStudentId(username)
 
             }.onFailure { e ->
                 uiState = uiState.copy(
                     isLoading = false,
-                    errorMessage = "获取课表失败: ${e.message}",
+                    errorMessage = "获取失败: ${e.message}",
                     statusMessage = null
                 )
             }
@@ -280,7 +230,7 @@ class CourseListViewModel @Inject constructor(
         duration: Int,
         weeks: String
     ) {
-        val account = _currentAccount.value ?: return
+        val account = currentAccount.value ?: return
         viewModelScope.launch {
             localRepository.saveCustomCourse(
                 studentId = account.studentId,

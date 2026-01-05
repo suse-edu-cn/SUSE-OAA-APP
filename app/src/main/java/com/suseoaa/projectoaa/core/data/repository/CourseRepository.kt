@@ -1,6 +1,5 @@
 package com.suseoaa.projectoaa.core.data.repository
 
-
 import com.suseoaa.projectoaa.core.database.dao.CourseDao
 import com.suseoaa.projectoaa.core.database.entity.ClassTimeEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
@@ -8,8 +7,10 @@ import com.suseoaa.projectoaa.core.database.entity.CourseEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseWithTimes
 import com.suseoaa.projectoaa.core.network.model.course.CourseResponseJson
 import com.suseoaa.projectoaa.core.network.model.course.Kb
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.collections.filter
 import kotlin.collections.map
@@ -20,6 +21,20 @@ class CourseRepository @Inject constructor(
 
     val allAccounts: Flow<List<CourseAccountEntity>> = dao.getAllAccounts()
 
+    // 处理列表排序交换
+    // fromIndex 和 toIndex 是 UI 列表中的位置，currentList 是当前的列表数据
+    suspend fun swapAccountOrder(fromIndex: Int, toIndex: Int, currentList: List<CourseAccountEntity>) = withContext(Dispatchers.IO) {
+        if (fromIndex == toIndex) return@withContext
+        if (fromIndex !in currentList.indices || toIndex !in currentList.indices) return@withContext
+
+        // 1. 在内存中交换顺序
+        val mutableList = currentList.toMutableList()
+        java.util.Collections.swap(mutableList, fromIndex, toIndex)
+
+        // 2. 将新的顺序索引写入数据库
+        // 注意：这里会重新分配 0, 1, 2... 的 sortIndex 给调整后的列表
+        dao.updateAllSortIndices(mutableList)
+    }
 
     fun getCourses(studentId: String, xnm: String, xqm: String): Flow<List<CourseWithTimes>> {
         val coursesFlow = dao.getCourseEntities(studentId, xnm, xqm)
@@ -27,8 +42,6 @@ class CourseRepository @Inject constructor(
 
         return coursesFlow.combine(timesFlow) { courses, allTimes ->
             courses.map { course ->
-                // 在内存中过滤，确保只包含属于当前课程的时间
-                // 由于 SQL 已经过滤了 studentId, xnm, xqm，这里只需要匹配 courseName 和 isCustom
                 val matchingTimes = allTimes.filter { time ->
                     time.courseOwnerName == course.courseName &&
                             time.isCustom == course.isCustom
@@ -42,7 +55,6 @@ class CourseRepository @Inject constructor(
         dao.deleteAccount(studentId)
         dao.deleteAllCoursesByStudent(studentId)
     }
-
 
     suspend fun saveCustomCourse(
         studentId: String,
@@ -90,17 +102,26 @@ class CourseRepository @Inject constructor(
         val xqm = xsxx?.xQM ?: "3"
 
         if (xsxx != null) {
+            // [关键修改] 保存账户前，先检查旧数据，为了保留 sortIndex
+            val oldAccount = dao.getAccountById(studentId)
+
+            // 如果是老用户，沿用旧的 sortIndex；如果是新用户，放到末尾 (max + 1)
+            val newSortIndex = oldAccount?.sortIndex ?: ((dao.getMaxSortIndex() ?: -1) + 1)
+
             val account = CourseAccountEntity(
                 studentId = studentId,
                 password = password,
                 name = xsxx.xM ?: "未知姓名",
                 className = xsxx.bJMC ?: "未知班级",
                 njdmId = xsxx.nJDMID ?: xnm,
-                major = xsxx.zYMC ?: ""
+                major = xsxx.zYMC ?: "",
+                // 确保这里传入了计算好的 sortIndex
+                sortIndex = newSortIndex
             )
             dao.insertAccount(account)
         }
 
+        // 下面是保存课程的代码，保持不变
         val rawList = resp.kbList ?: emptyList()
         val validList = rawList.filterNotNull().filter { !it.courseName.isNullOrBlank() }
         val groups: Map<String, List<Kb>> = validList.groupBy { it.courseName!! }

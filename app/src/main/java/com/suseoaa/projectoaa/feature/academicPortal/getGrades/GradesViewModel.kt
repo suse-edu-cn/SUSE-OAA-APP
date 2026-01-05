@@ -6,10 +6,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.core.data.repository.CourseRepository
 import com.suseoaa.projectoaa.core.data.repository.SchoolRepository
+import com.suseoaa.projectoaa.core.database.dao.CourseDao
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.GradeEntity
+import com.suseoaa.projectoaa.core.dataStore.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -20,21 +21,30 @@ import javax.inject.Inject
 @HiltViewModel
 class GradesViewModel @Inject constructor(
     private val schoolRepository: SchoolRepository,
-    private val localRepository: CourseRepository
+    private val tokenManager: TokenManager,
+    private val courseDao: CourseDao
 ) : ViewModel() {
 
-    // 1. 获取当前账号
-    val currentAccount: StateFlow<CourseAccountEntity?> = localRepository.allAccounts
-        .map { it.firstOrNull() }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    // 监听全局选中的学生 ID，自动加载该学生信息
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val currentAccount: StateFlow<CourseAccountEntity?> = tokenManager.currentStudentId
+        .filterNotNull()
+        .flatMapLatest { studentId ->
+            flow {
+                emit(courseDao.getAccountById(studentId))
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null
+        )
 
-    // 智能计算默认学年
     private val defaultSelection: Pair<String, String>
         get() {
             val calendar = Calendar.getInstance()
             val month = calendar.get(Calendar.MONTH) + 1
             val year = calendar.get(Calendar.YEAR)
-
             return when (month) {
                 1, 2 -> (year - 1).toString() to "3"
                 in 3..7 -> (year - 1).toString() to "12"
@@ -72,11 +82,9 @@ class GradesViewModel @Inject constructor(
 
     fun refreshGrades() {
         val account = currentAccount.value ?: return
-
         viewModelScope.launch {
             isRefreshing = true
             refreshMessage = "正在全量同步成绩..."
-
             try {
                 val result = schoolRepository.fetchAllHistoryGrades(account)
                 result.onSuccess { msg ->
