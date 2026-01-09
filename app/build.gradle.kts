@@ -95,4 +95,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 //    动画
     implementation(libs.androidx.compose.animation)
+//    解析请求的HTML代码
+    implementation(libs.jsoup)
 }
