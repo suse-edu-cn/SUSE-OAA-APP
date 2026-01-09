@@ -793,7 +793,7 @@ fun StaticTimeAxis(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Float, hei
                 val slotHeight = slot.weight * unitHeightPx
                 val x = (constraints.maxWidth - placeable.width) / 2
                 val yPos = y + (slotHeight - placeable.height) / 2
-                placeable.place(x.toInt(), yPos.toInt())
+                placeable.place(x, yPos.toInt())
                 y += slotHeight
             }
         }
