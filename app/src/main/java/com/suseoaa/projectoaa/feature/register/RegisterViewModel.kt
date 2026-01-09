@@ -1,17 +1,23 @@
 package com.suseoaa.projectoaa.feature.register
 
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.core.network.model.register.RegisterErrorResponse
 import com.suseoaa.projectoaa.core.network.model.register.RegisterRequest
-import com.suseoaa.projectoaa.core.network.register.RegisterClient
+import com.suseoaa.projectoaa.core.network.register.RegisterService
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
 
-class RegisterViewModel : ViewModel() {
+@HiltViewModel
+class RegisterViewModel @Inject constructor(
+    private val registerService: RegisterService
+) : ViewModel() {
+
     var studentID by mutableStateOf("")
     var realName by mutableStateOf("")
     var userName by mutableStateOf("")
@@ -24,6 +30,7 @@ class RegisterViewModel : ViewModel() {
             onError("请填写所有选项")
             return
         }
+
         viewModelScope.launch {
             isLoading = true
             try {
@@ -33,7 +40,9 @@ class RegisterViewModel : ViewModel() {
                     username = userName,
                     password = password
                 )
-                val response = RegisterClient.apiService.register(request)
+                // [修改] 使用注入的 Service
+                val response = registerService.register(request)
+
                 if (response.isSuccessful) {
                     val body = response.body()
                     if (body != null && body.code == 200) {
@@ -42,18 +51,21 @@ class RegisterViewModel : ViewModel() {
                         onError(body?.message ?: "注册失败")
                     }
                 } else {
-                    val errorBody=response.errorBody()?.string()
-                    if (!errorBody.isNullOrBlank()){
+                    val errorBody = response.errorBody()?.string()
+                    if (!errorBody.isNullOrBlank()) {
                         try {
-                            val errorObj=Json.decodeFromString<RegisterErrorResponse>(errorBody)
+                            // 尝试解析标准错误格式
+                            val errorObj = Json.decodeFromString<RegisterErrorResponse>(errorBody)
                             onError(errorObj.message)
-                        }catch (e: Exception){
-                            onError("服务器异常:$e")
+                        } catch (e: Exception) {
+                            onError("服务器返回错误: ${response.code()}")
                         }
+                    } else {
+                        onError("注册失败: ${response.code()}")
                     }
                 }
             } catch (e: Exception) {
-                onError("网络异常")
+                onError("网络异常: ${e.message}")
             } finally {
                 isLoading = false
             }

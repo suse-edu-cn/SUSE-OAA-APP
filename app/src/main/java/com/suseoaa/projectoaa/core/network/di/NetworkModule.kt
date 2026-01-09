@@ -3,6 +3,8 @@ package com.suseoaa.projectoaa.core.network.di
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.suseoaa.projectoaa.core.network.AuthInterceptor
 import com.suseoaa.projectoaa.core.network.BASE_URL_FOR_SUSE_OAA
+import com.suseoaa.projectoaa.core.network.login.LoginService
+import com.suseoaa.projectoaa.core.network.register.RegisterService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,6 +25,7 @@ object NetworkModule {
     fun provideJson(): Json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
+        encodeDefaults = true
         isLenient = true
     }
 
@@ -52,6 +55,17 @@ object NetworkModule {
             .build()
     }
 
-    // @Provides fun provideApiService(...)
-    // 这里你需要提供你具体的 ApiService 接口
+    // 4. 提供 LoginService
+    @Provides
+    @Singleton
+    fun provideLoginService(retrofit: Retrofit): LoginService {
+        return retrofit.create(LoginService::class.java)
+    }
+
+    // 5. 提供 RegisterService
+    @Provides
+    @Singleton
+    fun provideRegisterService(retrofit: Retrofit): RegisterService {
+        return retrofit.create(RegisterService::class.java)
+    }
 }

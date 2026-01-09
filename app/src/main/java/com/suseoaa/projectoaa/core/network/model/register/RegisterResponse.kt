@@ -10,7 +10,7 @@ data class RegisterResponse(
     @SerialName("code")
     val code: Int,
     @SerialName("data")
-    val `data`: Data,
+    val `data`: Data? = null,
     @SerialName("message")
     val message: String
 ) {
