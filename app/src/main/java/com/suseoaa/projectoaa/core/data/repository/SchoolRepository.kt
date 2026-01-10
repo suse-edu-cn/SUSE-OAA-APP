@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.core.data.repository
 
+import android.util.Log
 import com.suseoaa.projectoaa.core.database.dao.GradeDao
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.GradeEntity
@@ -13,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import org.jsoup.Jsoup
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -261,16 +263,41 @@ class SchoolRepository @Inject constructor(
     //    获取教务系统页面的课表更新信息
     suspend fun getAcademicCourseInfo(
         account: CourseAccountEntity
-    ): Result<String> {
+    ): Result<List<String>> {
         return executeWithAutoRetry(account) {
             try {
                 val response = api.getAcademicCourseInfo()
+
+                // 1. 检查 Session 失效
+                if (response.code() == 901 || response.code() == 302) {
+                    return@executeWithAutoRetry Result.failure(SessionExpiredException())
+                }
+
                 if (response.isSuccessful) {
-                    Result.success(response.message())
+                    val html = response.body()?.string() ?: ""
+
+                    // 2. 检查 HTML 是否是登录页
+                    if (html.contains("用户登录") || html.contains("/xtgl/login_slogin.html")) {
+                        return@executeWithAutoRetry Result.failure(SessionExpiredException())
+                    }
+
+                    val doc = Jsoup.parse(html)
+                    // 找到所有列表项
+                    val messages = doc.select("div#kbDiv a.list-group-item")
+                        .map { element ->
+                            // 提取 span class="title" 里面的文字
+                            // .trim() 用于去除前后的换行符和空格
+                            element.select("span.title").text().trim()
+                        }
+                        // 过滤掉空行
+                        .filter { it.isNotEmpty() }
+
+                    Result.success(messages)
                 } else {
-                    Result.failure(Exception("请求失败"))
+                    Result.failure(Exception("请求失败，状态码: ${response.code()}"))
                 }
             } catch (e: Exception) {
+                e.printStackTrace()
                 Result.failure(e)
             }
         }

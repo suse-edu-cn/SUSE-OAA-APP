@@ -69,9 +69,14 @@ interface SchoolApiService {
     ): Response<ResponseBody>
 
     //    获取教务系统首页的课表更新消息
-    @POST("/xtgl/index_cxAreaOne.html?localeKey=zh_CN&gnmkdm=index")
+    // 获取教务系统首页的通知区域 (AreaOne)
+    // 1. 使用 @POST
+    // 2. 添加必须的 Header: X-Requested-With
+    // 3. 返回 Response<ResponseBody> 以避开 JSON 解析错误，返回的是HTML，直接全部获取
+    @Headers("X-Requested-With: XMLHttpRequest")
+    @POST("/xtgl/index_cxAreaOne.html")
     suspend fun getAcademicCourseInfo(
-        localeKey: String = "zh_CN",
-        gnmkdm: String = "index"
-    ): Response<String>
+        @Query("localeKey") localeKey: String = "zh_CN",
+        @Query("gnmkdm") gnmkdm: String = "index"
+    ): Response<ResponseBody>
 }
