@@ -8,6 +8,7 @@ import com.suseoaa.projectoaa.core.network.model.academic.studentGrade.StudentGr
 import com.suseoaa.projectoaa.core.network.model.course.CourseResponseJson
 import com.suseoaa.projectoaa.core.network.school.SchoolApiService
 import com.suseoaa.projectoaa.core.network.school.SchoolCookieJar
+import com.suseoaa.projectoaa.core.util.HtmlParser.htmlParse
 import com.suseoaa.projectoaa.core.utils.RSAEncryptor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -281,18 +282,18 @@ class SchoolRepository @Inject constructor(
                         return@executeWithAutoRetry Result.failure(SessionExpiredException())
                     }
 
-                    val doc = Jsoup.parse(html)
-                    // 找到所有列表项
-                    val messages = doc.select("div#kbDiv a.list-group-item")
-                        .map { element ->
-                            // 提取 span class="title" 里面的文字
-                            // .trim() 用于去除前后的换行符和空格
-                            element.select("span.title").text().trim()
-                        }
-                        // 过滤掉空行
-                        .filter { it.isNotEmpty() }
+//                    val doc = Jsoup.parse(html)
+//                    // 找到所有列表项
+//                    val messages = doc.select("div#kbDiv a.list-group-item")
+//                        .map { element ->
+//                            // 提取 span class="title" 里面的文字
+//                            // .trim() 用于去除前后的换行符和空格
+//                            element.select("span.title").text().trim()
+//                        }
+//                        // 过滤掉空行
+//                        .filter { it.isNotEmpty() }
 
-                    Result.success(messages)
+                    Result.success(htmlParse(html))
                 } else {
                     Result.failure(Exception("请求失败，状态码: ${response.code()}"))
                 }
