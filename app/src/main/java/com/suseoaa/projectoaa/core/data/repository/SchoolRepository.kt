@@ -8,6 +8,7 @@ import com.suseoaa.projectoaa.core.network.model.academic.studentGrade.StudentGr
 import com.suseoaa.projectoaa.core.network.model.course.CourseResponseJson
 import com.suseoaa.projectoaa.core.network.school.SchoolApiService
 import com.suseoaa.projectoaa.core.network.school.SchoolCookieJar
+import com.suseoaa.projectoaa.core.util.HtmlParser
 import com.suseoaa.projectoaa.core.util.HtmlParser.htmlParse
 import com.suseoaa.projectoaa.core.utils.RSAEncryptor
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +16,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import okhttp3.Response
+import okhttp3.ResponseBody
 import org.jsoup.Jsoup
 import java.util.Calendar
 import javax.inject.Inject
@@ -261,15 +264,24 @@ class SchoolRepository @Inject constructor(
     }
 
 
-    //    获取教务系统页面的课表更新信息
-    suspend fun getAcademicCourseInfo(
-        account: CourseAccountEntity
-    ): Result<List<String>> {
+    //    获取教务系统首页信息通用函数
+    /**
+     * 通用的 HTML 获取与解析器
+     * @param account 用户账号（用于重试登录）
+     * @param request 发起网络请求的函数（例如：{ api.getAreaOne() }）
+     * @param parser  HTML 解析逻辑（例如：{ html -> HtmlParser.parseNotices(html) }）
+     */
+    private suspend fun <T> fetchHtml(
+        account: CourseAccountEntity,
+        request: suspend () -> retrofit2.Response<ResponseBody>,
+        parser: (String) -> T
+    ): Result<T> {
         return executeWithAutoRetry(account) {
             try {
-                val response = api.getAcademicCourseInfo()
+                // 1. 在这里调用 request()，这样每次重试都会真正发起新的网络请求
+                val response = request()
 
-                // 1. 检查 Session 失效
+                // 2. 检查 Session 失效 (状态码)
                 if (response.code() == 901 || response.code() == 302) {
                     return@executeWithAutoRetry Result.failure(SessionExpiredException())
                 }
@@ -277,23 +289,14 @@ class SchoolRepository @Inject constructor(
                 if (response.isSuccessful) {
                     val html = response.body()?.string() ?: ""
 
-                    // 2. 检查 HTML 是否是登录页
+                    // 3. 检查 HTML 内容是否是登录页
                     if (html.contains("用户登录") || html.contains("/xtgl/login_slogin.html")) {
                         return@executeWithAutoRetry Result.failure(SessionExpiredException())
                     }
 
-//                    val doc = Jsoup.parse(html)
-//                    // 找到所有列表项
-//                    val messages = doc.select("div#kbDiv a.list-group-item")
-//                        .map { element ->
-//                            // 提取 span class="title" 里面的文字
-//                            // .trim() 用于去除前后的换行符和空格
-//                            element.select("span.title").text().trim()
-//                        }
-//                        // 过滤掉空行
-//                        .filter { it.isNotEmpty() }
-
-                    Result.success(htmlParse(html))
+                    // 4. 调用传入的解析器进行解析
+                    val result = parser(html)
+                    Result.success(result)
                 } else {
                     Result.failure(Exception("请求失败，状态码: ${response.code()}"))
                 }
@@ -303,4 +306,17 @@ class SchoolRepository @Inject constructor(
             }
         }
     }
+
+    //    获取教务系统页面的课表更新信息
+    suspend fun getAcademicCourseInfo(
+        account: CourseAccountEntity
+    ): Result<List<String>> {
+        return fetchHtml(
+            account = account,
+            request = { api.getAcademicCourseInfo() },
+            parser = { html -> htmlParse(html) }
+        )
+    }
+
+//    获取
 }
