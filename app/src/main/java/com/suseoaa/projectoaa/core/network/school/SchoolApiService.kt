@@ -79,4 +79,12 @@ interface SchoolApiService {
         @Query("localeKey") localeKey: String = "zh_CN",
         @Query("gnmkdm") gnmkdm: String = "index"
     ): Response<ResponseBody>
+
+    //    获取教务系统首页消息更新
+    @Headers("X-Requested-With: XMLHttpRequest")
+    @POST("/xtgl/index_cxAreaThree.html")
+    suspend fun getAcademicMessageInfo(
+        @Query("localeKey") localeKey: String = "zh_CN",
+        @Query("gnmkdm") gnmkdm: String = "index"
+    ): Response<ResponseBody>
 }

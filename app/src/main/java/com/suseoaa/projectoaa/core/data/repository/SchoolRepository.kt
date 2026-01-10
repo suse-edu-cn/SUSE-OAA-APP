@@ -39,11 +39,15 @@ class SchoolRepository @Inject constructor(
         if (firstResult.isFailure) {
             val error = firstResult.exceptionOrNull()
             if (isSessionExpired(error)) {
+                // 尝试自动登录
                 val loginResult = login(account.studentId, account.password)
                 return if (loginResult.isSuccess) {
+                    // 登录成功，重试原请求
                     block()
                 } else {
-                    Result.failure(Exception("自动重登失败，请检查密码"))
+                    // 返回真实的登录错误原因，方便调试
+                    val loginError = loginResult.exceptionOrNull()?.message ?: "未知原因"
+                    Result.failure(Exception("自动重登失败: $loginError"))
                 }
             }
         }
@@ -318,5 +322,14 @@ class SchoolRepository @Inject constructor(
         )
     }
 
-//    获取
+    //    获取教务系统首页消息更新
+    suspend fun getAcademicMessageInfo(
+        account: CourseAccountEntity
+    ): Result<List<String>> {
+        return fetchHtml(
+            account = account,
+            request = { api.getAcademicMessageInfo() },
+            parser = { html -> htmlParse(html) }
+        )
+    }
 }

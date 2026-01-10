@@ -10,12 +10,12 @@ object HtmlParser {
     fun htmlParse(html: String): List<String> {
         val doc = Jsoup.parse(html)
 
-        // 策略 1：尝试新版课表预览区的结构
+        // 策略 1：获取课程更新信息
         val strategy1 = doc.select("div#kbDiv a.list-group-item span.title")
             .map { it.text().trim() }
         if (strategy1.isNotEmpty()) return strategy1
 
-        // 策略 2：尝试旧版 data-tkxx 属性
+        // 策略 2：获取调课信息
         val strategy2 = doc.select("a[data-tkxx]")
             .map { it.attr("data-tkxx").trim() }
         if (strategy2.isNotEmpty()) return strategy2
