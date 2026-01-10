@@ -256,4 +256,23 @@ class SchoolRepository @Inject constructor(
     fun observeGrades(studentId: String, xnm: String, xqm: String): Flow<List<GradeEntity>> {
         return gradeDao.getGradesFlow(studentId, xnm, xqm)
     }
+
+
+    //    获取教务系统页面的课表更新信息
+    suspend fun getAcademicCourseInfo(
+        account: CourseAccountEntity
+    ): Result<String> {
+        return executeWithAutoRetry(account) {
+            try {
+                val response = api.getAcademicCourseInfo()
+                if (response.isSuccessful) {
+                    Result.success(response.message())
+                } else {
+                    Result.failure(Exception("请求失败"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
 }

@@ -67,4 +67,11 @@ interface SchoolApiService {
         @Field("nd") nd: Long = System.currentTimeMillis(),
         @Field("time") time: Int = 0
     ): Response<ResponseBody>
+
+    //    获取教务系统首页的课表更新消息
+    @POST("/xtgl/index_cxAreaOne.html?localeKey=zh_CN&gnmkdm=index")
+    suspend fun getAcademicCourseInfo(
+        localeKey: String = "zh_CN",
+        gnmkdm: String = "index"
+    ): Response<String>
 }
