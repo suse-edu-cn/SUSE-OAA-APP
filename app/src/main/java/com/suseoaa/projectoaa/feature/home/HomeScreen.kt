@@ -1,7 +1,12 @@
 package com.suseoaa.projectoaa.feature.home
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
@@ -415,7 +420,16 @@ val HtmlResponse = """
 </script>
 """.trimIndent()
 val doc: Document = Jsoup.parse(HtmlResponse)
+val MessageInfo = doc.select("div.list-group.dtsx a[data-tkxx]")
+    .map { it.attr("data-tkxx") }
 @Composable
 fun HomeScreen() {
-    Text("这里是首页")
+    LazyColumn(
+        modifier = Modifier
+            .padding(16.dp)
+    ) {
+        items(MessageInfo) {
+            Text(it)
+        }
+    }
 }
