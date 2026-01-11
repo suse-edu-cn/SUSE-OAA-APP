@@ -16,8 +16,12 @@ object HtmlParser {
         if (strategy1.isNotEmpty()) return strategy1
 
         // 策略 2：获取调课信息
-        val strategy2 = doc.select("a[data-tkxx]")
-            .map { it.attr("data-tkxx").trim() }
+        val strategy2 = doc.select("div#home a.list-group-item")
+            .map { elements ->
+                val time = elements.select("span.fraction").text().trim()
+                val info = elements.attr("data-tkxx").trim()
+                if (time.isNotEmpty()) "$time\n$info" else info
+            }
         if (strategy2.isNotEmpty()) return strategy2
 
         return emptyList()
