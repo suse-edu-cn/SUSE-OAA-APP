@@ -8,5 +8,5 @@ import org.jsoup.nodes.Document
 
 @Composable
 fun HomeScreen() {
-    GetCourseInfo()
+//    GetCourseInfo()
 }

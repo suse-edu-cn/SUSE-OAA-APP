@@ -79,7 +79,7 @@ fun GetCourseInfo() {
 @Composable
 fun CommonInfoListScreen(
     viewModel: BaseInfoViewModel<List<String>>,
-    modifier: Modifier = Modifier // [关键] 接收外部传入的 Modifier
+    modifier: Modifier = Modifier
 ) {
     val list by viewModel.dataList.collectAsStateWithLifecycle()
     val loading by viewModel.isLoading.collectAsStateWithLifecycle()

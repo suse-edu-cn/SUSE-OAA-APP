@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -23,18 +22,31 @@ import com.suseoaa.projectoaa.feature.testScreen.ScreenState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
+import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicMessageInfoViewModel
+import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun AcademicScreen(
@@ -43,23 +55,35 @@ fun AcademicScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    // 1. 在父层获取 ViewModel
+    val messageVM: GetAcademicMessageInfoViewModel = hiltViewModel()
+    // 2. 收集数据状态
+    val messageList by messageVM.dataList.collectAsStateWithLifecycle()
+
+
+
     with(sharedTransitionScope) {
-        Box(
+        // 4. 使用 Column 确保垂直排列
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp) // 组件间距
         ) {
+
+            // --- 信息列表卡片 ---
+            // 这里把拿到的 list 传进去
+            InfoCards(
+                title = "调课信息",
+                infoList = messageList
+            )
+            // --- 成绩查询卡片 ---
             Row(
                 modifier = Modifier
-                    // 核心动画代码
-                    // 1. 给这个卡片一个唯一的身份证号 (key)
-                    // 2. 告诉它是属于哪个页面范围的 (animatedVisibilityScope)
                     .sharedBounds(
                         sharedContentState = rememberSharedContentState(key = "grades_card_key"),
                         animatedVisibilityScope = animatedVisibilityScope,
-//                    使用复用的动画预设
                         boundsTransform = AcademicSharedTransitionSpec,
-                        // 让圆角变化更自然
                         resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
                     )
                     .size(120.dp, 80.dp)
@@ -78,6 +102,71 @@ fun AcademicScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
             }
+
+
         }
     }
+}
+
+@Composable
+fun InfoCards(
+    title: String,
+    infoList: List<String>?, // 允许为空
+    modifier: Modifier = Modifier // 允许外部控制大小位置
+) {
+
+    Card(
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(250.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 标题区域
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+
+            // 列表区域
+            if (infoList.isNullOrEmpty()) {
+                // 处理空状态
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("暂无数据", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f) // 关键：占据剩余高度
+                ) {
+                    items(infoList) { item ->
+                        Text(
+                            text = item,
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+fun Preview() {
+    val list = listOf("aaaaaaa", "bbbbbbbbb", "ccccccccccc")
+    InfoCards("调课通知", list)
 }

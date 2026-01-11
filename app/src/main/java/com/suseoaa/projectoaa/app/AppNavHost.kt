@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicDestinations
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
+import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoScreen
 import com.suseoaa.projectoaa.feature.academicPortal.getGrades.GradesScreen
 import com.suseoaa.projectoaa.feature.home.MAIN_SCREEN_ROUTE
 import com.suseoaa.projectoaa.feature.home.MainScreen
@@ -71,6 +72,15 @@ fun AppNavHost(
             //教务信息-成绩查询
             composable(AcademicDestinations.Grades.route) {
                 GradesScreen(
+                    onBack = { navController.popBackStack() },
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this@composable
+                )
+            }
+
+//            考试信息查询
+            composable(AcademicDestinations.Exams.route) {
+                GetExamInfoScreen(
                     onBack = { navController.popBackStack() },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@composable
