@@ -23,6 +23,12 @@ object HtmlParser {
                 if (time.isNotEmpty()) "$time\n$info" else info
             }
         if (strategy2.isNotEmpty()) return strategy2
+        //策略3:获取考试信息
+        val strategy3 = doc.select("div#exam a.list-group-item span.title")
+            .map { it.text().trim() }
+            // 过滤掉空行
+            .filter { it.isNotEmpty() }
+        if (strategy3.isNotEmpty()) return strategy3
 
         return emptyList()
     }

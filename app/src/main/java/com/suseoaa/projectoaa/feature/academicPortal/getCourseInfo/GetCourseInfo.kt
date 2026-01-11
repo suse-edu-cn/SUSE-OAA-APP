@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.core.ui.BaseInfoViewModel
+import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoViewModel
 import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicMessageInfoViewModel
 
 @Composable
@@ -43,10 +44,26 @@ fun GetCourseInfo() {
         HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.surfaceVariant)
 
         // 下半部分：AreaThree (消息/AreaFour)
-        val areaFourVM: GetAcademicMessageInfoViewModel = hiltViewModel()
+        val areaThreeVM: GetAcademicMessageInfoViewModel = hiltViewModel()
 
         Text(
-            "其他消息",
+            "调课信息",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(16.dp),
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        CommonInfoListScreen(
+            viewModel = areaThreeVM,
+            modifier = Modifier.weight(1f) // [关键] 分配 50% 高度
+        )
+
+        HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.surfaceVariant)
+
+
+        val areaFourVM: GetExamInfoViewModel = hiltViewModel()
+        Text(
+            "考试信息",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(16.dp),
             color = MaterialTheme.colorScheme.primary

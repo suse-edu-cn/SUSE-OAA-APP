@@ -332,4 +332,14 @@ class SchoolRepository @Inject constructor(
             parser = { html -> htmlParse(html) }
         )
     }
+
+    suspend fun getAcademicExamInfo(
+        account: CourseAccountEntity
+    ): Result<List<String>> {
+        return fetchHtml(
+            account = account,
+            request = { api.getAcademicExamInfo() },
+            parser = { html -> htmlParse(html) }
+        )
+    }
 }

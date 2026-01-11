@@ -87,4 +87,12 @@ interface SchoolApiService {
         @Query("localeKey") localeKey: String = "zh_CN",
         @Query("gnmkdm") gnmkdm: String = "index"
     ): Response<ResponseBody>
+
+    //    获取教务系统的考试信息
+    @Headers("X-Requested-With: XMLHttpRequest")
+    @POST("/xtgl/index_cxAreaFour.html")
+    suspend fun getAcademicExamInfo(
+        @Query("localeKey") localeKey: String = "zh_CN",
+        @Query("gnmkdm") gnmkdm: String = "index"
+    ): Response<ResponseBody>
 }

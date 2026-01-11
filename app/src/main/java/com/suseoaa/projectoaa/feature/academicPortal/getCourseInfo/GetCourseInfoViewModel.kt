@@ -28,7 +28,6 @@ class GetCourseInfoViewModel @Inject constructor(
     private val tokenManager: TokenManager,
 ) : BaseInfoViewModel<List<String>>(tokenManager, courseDao) {
     override suspend fun executeRequest(account: CourseAccountEntity): Result<List<String>> {
-        // 这里调用具体的 AreaOne 接口
         return schoolRepository.getAcademicCourseInfo(account)
     }
 }
