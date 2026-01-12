@@ -61,18 +61,18 @@ fun GetCourseInfo() {
         HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.surfaceVariant)
 
 
-        val areaFourVM: GetExamInfoViewModel = hiltViewModel()
-        Text(
-            "考试信息",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(16.dp),
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        CommonInfoListScreen(
-            viewModel = areaFourVM,
-            modifier = Modifier.weight(1f) // [关键] 分配 50% 高度
-        )
+//        val areaFourVM: GetExamInfoViewModel = hiltViewModel()
+//        Text(
+//            "考试信息",
+//            style = MaterialTheme.typography.titleMedium,
+//            modifier = Modifier.padding(16.dp),
+//            color = MaterialTheme.colorScheme.primary
+//        )
+//
+//        CommonInfoListScreen(
+//            viewModel = areaFourVM,
+//            modifier = Modifier.weight(1f) // [关键] 分配 50% 高度
+//        )
     }
 }
 

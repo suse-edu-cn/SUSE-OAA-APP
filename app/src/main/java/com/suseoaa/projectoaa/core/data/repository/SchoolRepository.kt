@@ -333,6 +333,7 @@ class SchoolRepository @Inject constructor(
         )
     }
 
+    //获取考试信息
     suspend fun getAcademicExamInfo(
         account: CourseAccountEntity
     ): Result<List<String>> {
