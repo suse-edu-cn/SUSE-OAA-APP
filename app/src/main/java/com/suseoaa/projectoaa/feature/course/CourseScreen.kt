@@ -512,7 +512,7 @@ fun CourseScheduleLayout(
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
-                        beyondViewportPageCount = 25,
+                        beyondViewportPageCount = 4,
                         pageSpacing = 0.dp
                     ) { page ->
                         val weekIndex = page + 1

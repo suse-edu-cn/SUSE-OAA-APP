@@ -44,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.suseoaa.projectoaa.core.ui.BaseInfoViewModel
 import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
 import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicMessageInfoViewModel
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +62,6 @@ fun AcademicScreen(
     val messageList by messageVM.dataList.collectAsStateWithLifecycle()
 
 
-
     with(sharedTransitionScope) {
         // 4. 使用 Column 确保垂直排列
         Column(
@@ -75,7 +75,8 @@ fun AcademicScreen(
             // 这里把拿到的 list 传进去
             InfoCards(
                 title = "调课信息",
-                infoList = messageList
+                infoList = messageList,
+                viewModel = messageVM
             )
             // --- 成绩查询卡片 ---
             Row(
@@ -111,10 +112,13 @@ fun AcademicScreen(
 @Composable
 fun InfoCards(
     title: String,
+    viewModel: BaseInfoViewModel<List<String>>,
     infoList: List<String>?, // 允许为空
     modifier: Modifier = Modifier // 允许外部控制大小位置
 ) {
-
+    LaunchedEffect(Unit) {
+        viewModel.fetchData()
+    }
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -164,9 +168,9 @@ fun InfoCards(
     }
 }
 
-@Preview
-@Composable
-fun Preview() {
-    val list = listOf("aaaaaaa", "bbbbbbbbb", "ccccccccccc")
-    InfoCards("调课通知", list)
-}
+//@Preview
+//@Composable
+//fun Preview() {
+//    val list = listOf("aaaaaaa", "bbbbbbbbb", "ccccccccccc")
+//    InfoCards("调课通知", list)
+//}
