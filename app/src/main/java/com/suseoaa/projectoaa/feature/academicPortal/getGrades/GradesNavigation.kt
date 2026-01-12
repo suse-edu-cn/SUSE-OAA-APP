@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
@@ -13,10 +14,12 @@ fun NavController.navigateToGrades(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.gradesScreen(
+    windowSizeClass: WindowWidthSizeClass,
     sharedTransitionScope: SharedTransitionScope
 ) {
     composable(route = GRADES_ROUTE) {
         GradesScreen(
+            windowSizeClass = windowSizeClass,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = this
         )

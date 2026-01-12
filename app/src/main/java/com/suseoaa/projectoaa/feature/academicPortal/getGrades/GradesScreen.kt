@@ -8,12 +8,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,10 +28,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.core.database.entity.GradeEntity
 import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
 import java.util.Calendar
+import androidx.compose.foundation.lazy.grid.items
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GradesScreen(
+    windowSizeClass: WindowWidthSizeClass,
     viewModel: GradesViewModel = hiltViewModel(),
     onBack: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
@@ -116,10 +121,20 @@ fun GradesScreen(
                         }
                     }
                 } else {
-                    LazyColumn(
+                    // [修改 2] 核心逻辑：判断列数
+                    // 手机 (Compact) -> 1 列
+                    // 平板/桌面 (Medium/Expanded) -> 2 列
+                    val columns = if (windowSizeClass == WindowWidthSizeClass.Compact) 1 else 2
+
+                    // [修改 3] 使用 LazyVerticalGrid 替换原来的 LazyColumn
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(columns),
                         contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp), // [新增] 左右间距
+                        verticalArrangement = Arrangement.spacedBy(12.dp),   // 上下间距
+                        modifier = Modifier.fillMaxSize()
                     ) {
+                        // 注意：items 来自 androidx.compose.foundation.lazy.grid.items
                         items(grades) { item ->
                             GradeItemCard(item)
                         }

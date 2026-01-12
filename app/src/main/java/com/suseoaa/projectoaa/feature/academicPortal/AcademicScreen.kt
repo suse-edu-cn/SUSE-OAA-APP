@@ -1,30 +1,19 @@
 package com.suseoaa.projectoaa.feature.academicPortal
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
+
 import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.suseoaa.projectoaa.feature.academicPortal.getGrades.GradesScreen
-import com.suseoaa.projectoaa.feature.testScreen.ScreenState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,18 +25,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.core.ui.BaseInfoViewModel
 import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
 import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicMessageInfoViewModel
-import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun AcademicScreen(
@@ -68,7 +51,7 @@ fun AcademicScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp) // 组件间距
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
             // --- 信息列表卡片 ---
@@ -137,8 +120,8 @@ fun AcademicScreen(
 fun InfoCards(
     title: String,
     viewModel: BaseInfoViewModel<List<String>>,
-    infoList: List<String>?, // 允许为空
-    modifier: Modifier = Modifier // 允许外部控制大小位置
+    infoList: List<String>?,
+    modifier: Modifier = Modifier
 ) {
     LaunchedEffect(Unit) {
         viewModel.fetchData()
@@ -172,7 +155,7 @@ fun InfoCards(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.weight(1f) // 关键：占据剩余高度
+                    modifier = Modifier.weight(1f)
                 ) {
                     items(infoList) { item ->
                         Text(

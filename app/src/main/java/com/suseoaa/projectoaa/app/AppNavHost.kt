@@ -72,6 +72,7 @@ fun AppNavHost(
             //教务信息-成绩查询
             composable(AcademicDestinations.Grades.route) {
                 GradesScreen(
+                    windowSizeClass = windowSizeClass,
                     onBack = { navController.popBackStack() },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@composable
@@ -81,6 +82,7 @@ fun AppNavHost(
 //            考试信息查询
             composable(AcademicDestinations.Exams.route) {
                 GetExamInfoScreen(
+                    windowSizeClass = windowSizeClass,
                     onBack = { navController.popBackStack() },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@composable

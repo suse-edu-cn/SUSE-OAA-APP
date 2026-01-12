@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,6 +60,7 @@ import com.suseoaa.projectoaa.core.util.getExamCountDown
 
 @Composable
 fun GetExamInfoScreen(
+    windowSizeClass: WindowWidthSizeClass,
     viewModel: GetExamInfoViewModel = hiltViewModel(),
     onBack: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
@@ -74,27 +81,35 @@ fun GetExamInfoScreen(
                     boundsTransform = AcademicSharedTransitionSpec
                 ),
         ) { innerPadding ->
-            Column(
+            //判断是否为平板
+            val columns = if (windowSizeClass == WindowWidthSizeClass.Compact) 1 else 2
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columns),
+                contentPadding = PaddingValues(16.dp), // 统一内边距
+                horizontalArrangement = Arrangement.spacedBy(12.dp), // 卡片左右间距
+                verticalArrangement = Arrangement.spacedBy(12.dp),   // 卡片上下间距
                 modifier = Modifier
-                    .fillMaxSize()
                     .padding(innerPadding)
+                    .fillMaxSize() // 确保占满屏幕，自带滚动
             ) {
-                Text(
-                    text = "考试时间查询",
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.headlineLarge
-                )
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(examList ?: emptyList()) { exam ->
-                        ExamCard(
-                            exam = exam
-                        )
-                    }
+                // 标题 (让它横跨所有列，即占据一整行)
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "考试信息查询",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.headlineLarge
+                    )
+                }
+
+                // 考试列表
+                items(examList ?: emptyList()) { exam ->
+                    ExamCard(
+                        exam = exam,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
