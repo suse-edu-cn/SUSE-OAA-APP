@@ -11,7 +11,7 @@ import androidx.core.content.edit
 
 @Singleton
 class SchoolCookieJar @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : Interceptor {
 
     // 2. 使用 SharedPreferences 持久化存储
@@ -31,7 +31,10 @@ class SchoolCookieJar @Inject constructor(
         }
 
         // 添加伪装头 (保持不变)
-        requestBuilder.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+        requestBuilder.addHeader(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        )
         requestBuilder.addHeader("Accept-Language", "zh-CN,zh;q=0.9")
         requestBuilder.addHeader("Connection", "keep-alive")
 
