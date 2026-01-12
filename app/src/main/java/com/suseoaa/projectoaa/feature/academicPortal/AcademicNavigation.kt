@@ -21,7 +21,7 @@ fun NavGraphBuilder.academicScreen(
             isTablet = false,
             onNavigate = onNavigate,
             sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = this
+            animatedVisibilityScope = this,
         )
     }
 }

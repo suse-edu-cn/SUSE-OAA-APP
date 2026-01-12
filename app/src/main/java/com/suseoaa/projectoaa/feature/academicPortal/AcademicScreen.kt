@@ -103,7 +103,31 @@ fun AcademicScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
             }
-
+            // --- 考试信息查询卡片 ---
+            Row(
+                modifier = Modifier
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(key = "exam_card_key"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = AcademicSharedTransitionSpec,
+                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                    )
+                    .size(120.dp, 80.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .clickable {
+                        onNavigate(AcademicPortalEvent.NavigateTo(AcademicDestinations.Exams))
+                    }
+            ) {
+                Text(
+                    text = "考试信息",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
 
         }
     }
@@ -167,10 +191,3 @@ fun InfoCards(
         }
     }
 }
-
-//@Preview
-//@Composable
-//fun Preview() {
-//    val list = listOf("aaaaaaa", "bbbbbbbbb", "ccccccccccc")
-//    InfoCards("调课通知", list)
-//}
