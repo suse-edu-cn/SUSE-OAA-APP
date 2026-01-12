@@ -68,7 +68,8 @@ fun AcademicScreen(
                         sharedContentState = rememberSharedContentState(key = "grades_card_key"),
                         animatedVisibilityScope = animatedVisibilityScope,
                         boundsTransform = AcademicSharedTransitionSpec,
-                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                        zIndexInOverlay = 1f
                     )
                     .size(120.dp, 80.dp)
                     .background(

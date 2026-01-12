@@ -1,14 +1,23 @@
 package com.suseoaa.projectoaa.app
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.suseoaa.projectoaa.core.util.containerVisualPhysics
+import com.suseoaa.projectoaa.core.util.keepAlivePhysics
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicDestinations
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoScreen
@@ -28,16 +37,58 @@ fun AppNavHost(
     modifier: Modifier = Modifier,
     startDestination: String = LOGIN_ROUTE
 ) {
-    SharedTransitionLayout {
+    SharedTransitionLayout(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            modifier = modifier,
-//        无动画
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None }
+
+            // 1. 进场
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = containerVisualPhysics()
+                )
+            },
+
+            // 2. 普通离场 (正向跳转时也要保活，防止平板主页闪烁)
+            exitTransition = {
+                scaleOut(
+                    targetScale = 0.9f,
+                    animationSpec = containerVisualPhysics()
+                ) + fadeOut(
+                    animationSpec = keepAlivePhysics()
+                )
+            },
+
+            // 3. 返回手势 - 顶层页面
+            popExitTransition = {
+                // 动作A：缩放 (500ms) - 露出底层页面
+                scaleOut(
+                    targetScale = 0.85f,
+                    animationSpec = containerVisualPhysics()
+                ) +
+                        // 动作B：保活淡出 (750ms) - 防止过早销毁
+                        fadeOut(
+                            animationSpec = keepAlivePhysics()
+                        ) +
+                        // 动作C：1像素锚点位移 (750ms) - 防止平板渲染引擎偷懒丢动画
+                        slideOutHorizontally(
+                            targetOffsetX = { 1 },
+                            animationSpec = keepAlivePhysics()
+                        )
+            },
+
+            // 4. 返回手势 - 底层页面
+            popEnterTransition = {
+                scaleIn(
+                    initialScale = 0.96f, // 微微缩放，增加景深
+                    animationSpec = containerVisualPhysics()
+                )
+            }
 
         ) {
             loginScreen(
@@ -69,7 +120,8 @@ fun AppNavHost(
                     animatedVisibilityScope = this@composable
                 )
             }
-            //教务信息-成绩查询
+
+            // 教务信息-成绩查询
             composable(AcademicDestinations.Grades.route) {
                 GradesScreen(
                     windowSizeClass = windowSizeClass,
@@ -79,7 +131,7 @@ fun AppNavHost(
                 )
             }
 
-//            考试信息查询
+            // 考试信息查询
             composable(AcademicDestinations.Exams.route) {
                 GetExamInfoScreen(
                     windowSizeClass = windowSizeClass,
@@ -88,7 +140,7 @@ fun AppNavHost(
                     animatedVisibilityScope = this@composable
                 )
             }
-//       测试页面
+            // 测试页面
             composable(AcademicDestinations.Test.route) {
                 TestScreen()
             }

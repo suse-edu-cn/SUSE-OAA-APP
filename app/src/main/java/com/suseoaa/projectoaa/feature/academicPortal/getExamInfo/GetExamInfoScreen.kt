@@ -78,7 +78,8 @@ fun GetExamInfoScreen(
                     sharedContentState = rememberSharedContentState(key = "exam_card_key"),
                     animatedVisibilityScope = animatedVisibilityScope,
 //                    使用复用的动画预设
-                    boundsTransform = AcademicSharedTransitionSpec
+                    boundsTransform = AcademicSharedTransitionSpec,
+                    zIndexInOverlay = 1f
                 ),
         ) { innerPadding ->
             //判断是否为平板

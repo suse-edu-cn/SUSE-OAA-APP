@@ -3,16 +3,12 @@ package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -28,7 +24,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.core.database.entity.GradeEntity
 import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
 import java.util.Calendar
-import androidx.compose.foundation.lazy.grid.items
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +39,6 @@ fun GradesScreen(
     val currentAccount by viewModel.currentAccount.collectAsStateWithLifecycle()
     val isRefreshing = viewModel.isRefreshing
 
-    // 处理 SnackBar
     val snackbarHostState = remember { SnackbarHostState() }
     val message = viewModel.refreshMessage
     LaunchedEffect(message) {
@@ -54,7 +48,6 @@ fun GradesScreen(
         }
     }
 
-    // 计算入学年份
     val startYear = remember(currentAccount) {
         currentAccount?.njdmId?.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.YEAR) - 4)
     }
@@ -65,8 +58,8 @@ fun GradesScreen(
                 .sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "grades_card_key"),
                     animatedVisibilityScope = animatedVisibilityScope,
-//                    使用复用的动画预设
-                    boundsTransform = AcademicSharedTransitionSpec
+                    boundsTransform = AcademicSharedTransitionSpec,
+                    zIndexInOverlay = 1f
                 ),
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
@@ -121,20 +114,15 @@ fun GradesScreen(
                         }
                     }
                 } else {
-                    // [修改 2] 核心逻辑：判断列数
-                    // 手机 (Compact) -> 1 列
-                    // 平板/桌面 (Medium/Expanded) -> 2 列
                     val columns = if (windowSizeClass == WindowWidthSizeClass.Compact) 1 else 2
 
-                    // [修改 3] 使用 LazyVerticalGrid 替换原来的 LazyColumn
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(columns),
                         contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp), // [新增] 左右间距
-                        verticalArrangement = Arrangement.spacedBy(12.dp),   // 上下间距
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // 注意：items 来自 androidx.compose.foundation.lazy.grid.items
                         items(grades) { item ->
                             GradeItemCard(item)
                         }
