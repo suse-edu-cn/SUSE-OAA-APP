@@ -22,6 +22,7 @@ import com.suseoaa.projectoaa.feature.academicPortal.AcademicDestinations
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoScreen
 import com.suseoaa.projectoaa.feature.academicPortal.getGrades.GradesScreen
+import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicMessageInfoScreen
 import com.suseoaa.projectoaa.feature.home.MAIN_SCREEN_ROUTE
 import com.suseoaa.projectoaa.feature.home.MainScreen
 import com.suseoaa.projectoaa.feature.login.LOGIN_ROUTE
@@ -134,6 +135,16 @@ fun AppNavHost(
             // 考试信息查询
             composable(AcademicDestinations.Exams.route) {
                 GetExamInfoScreen(
+                    windowSizeClass = windowSizeClass,
+                    onBack = { navController.popBackStack() },
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this@composable
+                )
+            }
+
+            // 调课通知列表
+            composable(AcademicDestinations.Messages.route) {
+                GetAcademicMessageInfoScreen(
                     windowSizeClass = windowSizeClass,
                     onBack = { navController.popBackStack() },
                     sharedTransitionScope = this@SharedTransitionLayout,

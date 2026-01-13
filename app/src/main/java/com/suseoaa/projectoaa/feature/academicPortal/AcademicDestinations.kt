@@ -27,4 +27,6 @@ sealed class AcademicDestinations(val route: String, val title: String) {
 
     // 3. 考试查询
     data object Exams : AcademicDestinations("academic_exams", "考场查询")
+//    调课通知
+    data object Messages : AcademicDestinations("academic_messages", "调课通知")
 }
