@@ -1,97 +1,72 @@
 
 ---
 
-# 青蟹
+# 青蟹 (Project OAA)
 
 **青蟹** 是专为 **四川轻化工大学开放原子开源协会 (SUSE Open Atom Open Source Association)** 开发的校园服务客户端。
 
-本项目采用现代 Android 开发技术栈（Jetpack Compose, MVVM, Hilt, Coroutines），旨在为学生提供便捷的课表查询、成绩查询以及协会信息获取服务。项目架构清晰，不仅对接了学校教务系统，还包含了协会内部的用户管理功能。
+本项目采用现代 Android 开发技术栈（Jetpack Compose, MVVM, Hilt, Coroutines），旨在为学生提供便捷的课表查询、成绩查询、考试信息获取以及协会内部服务。项目深度对接学校教务系统，并实现了优雅的响应式布局与转场动画。
 
 ## 🛠 技术栈 (Tech Stack)
 
-本项目使用 100% Kotlin 编写，采用单一 Activity (Single Activity) 架构。
-
 * **UI 框架**: [Jetpack Compose](https://developer.android.com/jetpack/compose) (Material Design 3)
-* **架构模式**: MVVM (Model-View-ViewModel) + Clean Architecture (Core/Feature 分层)
+* **架构模式**: MVVM + Clean Architecture (Core/Feature 分层)
 * **依赖注入**: [Dagger Hilt](https://dagger.dev/hilt/)
-* **网络请求**:
-* [Retrofit2](https://square.github.io/retrofit/) & [OkHttp3](https://square.github.io/okhttp/)
-* **Kotlin Serialization**: 用于 JSON 解析
-* **CookieJar**: 自定义 `SchoolCookieJar` 实现教务系统会话保持
-
-
-* **本地数据**:
-* [Room Database](https://developer.android.com/training/data-storage/room): 存储课表、成绩、多账号信息
-* [DataStore](https://developer.android.com/topic/libraries/architecture/datastore): 存储 Token 和用户配置
-
-
-* **导航**: [Jetpack Navigation Compose](https://www.google.com/search?q=https://developer.android.com/guide/navigation/navigation-compose)
-* **异步处理**: Kotlin Coroutines & Flow
-* **动画**: Compose Shared Element Transitions (`SharedTransitionLayout`)
+* **网络请求**: [Retrofit2](https://square.github.io/retrofit/) & [OkHttp3](https://square.github.io/okhttp/)
+* **解析工具**: [Kotlin Serialization](https://kotlinlang.org/docs/serialization.html) (JSON) & [Jsoup](https://jsoup.org/) (HTML 爬虫)
+* **本地存储**: [Room Database](https://developer.android.com/training/data-storage/room) (课程/成绩) & [DataStore](https://developer.android.com/topic/libraries/architecture/datastore) (Token/配置)
+* **导航与动画**: Navigation Compose + **Shared Element Transitions** (共享元素转场)
 
 ## 📂 项目结构 (Project Structure)
 
-项目采用按功能分包 (Package by Feature) 的策略，主要分为 `app`、`core` 和 `feature` 三大板块。
-
 ```text
 com.suseoaa.projectoaa
-├── app                 # 应用程序入口 (MainActivity, Application, NavHost)
-├── core                # 核心通用模块
-│   ├── database        # Room 数据库 (Dao, Entity, Di)
-│   ├── network         # 网络层 (API Service, Interceptor, Model)
-│   ├── data            # 数据仓库 (Repository)
-│   ├── datastore       # 键值对存储 (TokenManager)
-│   ├── designsystem    # 设计系统 (Theme, Color, Type)
-│   └── util            # 工具类 (RSA加密, 动画常量)
+├── app                 # 入口：MainActivity, AppNavHost, 全局 ViewModel
+├── core                # 核心通用层
+│   ├── data            # Repository 实现，处理网络与本地数据同步
+│   ├── database        # Room 数据库定义 (Entity, Dao)
+│   ├── datastore       # TokenManager (JWT 与当前学号存储)
+│   ├── designsystem    # 统一主题 (Theme, Color, Type)
+│   ├── network         # 网络层 (Service, Interceptor, CookieJar)
+│   ├── ui              # 基类 UI 组件 (BaseInfoViewModel)
+│   └── util            # 工具类 (RSA 加密、Html 解析、倒计时计算)
 └── feature             # 业务功能模块
-    ├── login           # 登录功能 (LoginScreen, ViewModel)
-    ├── register        # 注册功能
-    ├── home            # 主页容器 (BottomBar, NavRail, MainScreen)
-    ├── course          # 课表功能 (核心功能：课表展示、多用户切换、自定义课程)
-    ├── academicPortal  # 教务门户
-    │   ├── getGrades   # 成绩查询
-    │   └── ...
+    ├── login/register  # 用户鉴权模块
+    ├── home            # 主页容器与响应式导航 (BottomBar/NavRail)
+    ├── course          # 智能课表 (多时间轴适配、自定义课程、多账号)
+    ├── academicPortal  # 教务门户 (功能聚合页)
+    │   ├── getGrades   # 成绩查询 (全量同步、绩点计算)
+    │   ├── getExamInfo # 考试查询 (倒计时提醒、考场定位)
+    │   └── getMessageInfo # 调课通知 (HTML 动态解析展示)
     ├── person          # 个人中心
-    ├── changePassword  # 修改密码
-    └── testScreen      # 测试/实验室页面
+    └── changePassword  # 密码管理
 
 ```
 
 ## ✨ 功能特性 (Features)
 
-### ✅ 已实现功能 (Implemented)
+### ✅ 已实现功能
 
-1. **多端适配 UI**
-* 根据屏幕宽度自动切换布局：手机端显示底部导航栏 (BottomNavigation)，平板/折叠屏显示侧边导航栏 (NavigationRail)。
-* 支持横竖屏切换与深色模式 (Dark Mode)。
-
-
-2. **教务系统对接**
-* **模拟登录**: 实现教务系统的模拟登录，处理 CSRF Token 和 RSA 密码加密。
-* **课表查询**:
-* 自动拉取并解析学期课表。
-* 支持 2025 年前后的不同作息时间表自动适配。
-* 本地数据库缓存，无网也可查看。
-* **多账号管理**: 支持添加多个学生账号并快速切换。
-* **自定义课程**: 支持手动添加非教务系统的课程。
-* **桌面端视图**: 平板模式下支持右侧查看课程详情。
+1. **智能课表系统 (Course Schedule)**
+* **多版本时间轴**: 自动识别 2025 年前后校区作息时间调整。
+* **可视化布局**: 采用自定义 Layout 实现重叠课程处理与非线性时间轴展示。
+* **高度自定义**: 支持手动添加非教务系统课程，支持多学生账号快速切换。
 
 
-* **成绩查询**:
-* 全量同步历史成绩。
-* 按学年、学期筛选展示。
-* 计算绩点、学分，显示考试性质（正常/补考）。
+2. **教务门户 (Academic Portal)**
+* **成绩查询**: 自动计算学期绩点，支持按学年学期筛选，具备全量同步功能。
+* **考试信息 (New)**: 实时拉取考试安排，内置**考试倒计时**算法，自动区分考试状态（进行中/已结束）。
+* **调课通知 (New)**: 通过 Jsoup 解析教务系统首页动态，第一时间获取停课、补课、教室变动信息。
 
 
+3. **极致视觉体验**
+* **共享元素动画**: 门户首页卡片跳转至详情页时，使用 `SharedTransitionLayout` 实现无缝缩放转场。
+* **响应式布局**: 自动适配手机（底部栏）与平板（侧边栏/分屏详情）模式。
 
 
-3. **用户系统**
-* 协会内部账号注册与登录。
-* JWT Token 认证与拦截器自动添加 Header。
-
-
-4. **动画效果**
-* 页面跳转使用共享元素转场 (Shared Element Transition)，提供丝滑的视觉体验。
+4. **安全机制**
+* **模拟登录**: 处理教务系统复杂的 CSRF Token 校验与 RSA 密码公钥加密。
+* **会话保持**: 自定义 `SchoolCookieJar` 实现教务系统 Session 持久化，减少频繁登录。
 
 
 
@@ -99,56 +74,27 @@ com.suseoaa.projectoaa
 
 ### 🚀 待开发计划 (Roadmap)
 
-根据项目规划，后续将逐步完善以下模块：
-
 #### 1. 🏠 首页模块 (Home)
 
-* [ ] **协会介绍**: 展示开放原子开源协会的简介、历史与愿景。
-* [ ] **部门介绍**: 详细展示各部门职能及风采。
-* [ ] **招新/换届申请**: 提供在线表单提交申请，对接后台审核流程。
+* [ ] **协会风采**: 协会简介、部门职责展示。
+* [ ] **动态墙**: 展示协会最新活动快讯。
 
-#### 2. 🎓 教务信息模块 (Academic Portal)
+#### 2. 🎓 教务增强
 
-* [x] **成绩查询**: (已完成)
-* [ ] **教务通知**: 爬取并展示学校教务处的最新公告。
-* [ ] **学业信息查询**: 查询培养方案、学籍信息等。
-* [ ] **个人教务信息查询**: 查询考试安排、考场信息。
-* [ ] **一键教评**: 实现自动或快捷的教学质量评价功能。
+* [ ] **一键评教**: 自动化处理期末教学评价。
+* [ ] **学业预警**: 根据成绩自动汇总未修满学分。
 
-#### 3. 👤 个人中心模块 (Person)
+#### 3. 👤 个人中心
 
-* [ ] **个人信息查询**: 展示协会账号及绑定的教务账号信息。
-* [ ] **修改密码**:
-* 修改 App 登录密码。
-* 提供修改教务系统密码的入口或指引。
+* [ ] **账号关联**: 协会账号与多个教务账号的一键绑定与管理。
+* [ ] **个人资料修改**: 支持修改头像及昵称（对接协会后台）。
 
+## 🔨 开发与贡献
 
-* [ ] **修改个人信息**: 更新头像、昵称、联系方式等资料。
+1. **环境要求**: Android Studio Ladybug+ / Kotlin 2.0+。
+2. **API 配置**: 协会内部 API 地址定义在 `core/network/BASE_URL.kt`。
+3. **运行**: 项目支持 `fallbackToDestructiveMigration`，数据库升级时会自动处理迁移。
 
-## 🔨 构建与运行 (Build & Run)
+---
 
-1. 克隆仓库到本地：
-```bash
-git clone https://github.com/YourUsername/projectoaa.git
-
-```
-
-
-2. 使用 Android Studio (推荐 Ladybug 或更新版本) 打开项目。
-3. 同步 Gradle 依赖。
-4. 连接 Android 设备或模拟器（建议 Android 10+）。
-5. 点击 `Run`。
-
-## 🤝 贡献 (Contribution)
-
-欢迎加入 **四川轻化工大学开放原子开源协会** 并参与项目贡献！
-
-1. Fork 本仓库。
-2. 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)。
-3. 提交你的修改 (`git commit -m 'Add some AmazingFeature'`)。
-4. 推送到分支 (`git push origin feature/AmazingFeature`)。
-5. 开启一个 Pull Request。
-
-## 📄 开源协议 (License)
-
-[MIT License](https://www.google.com/search?q=LICENSE)
+**四川轻化工大学开放原子开源协会 (SUSE-OAA) 出品**
