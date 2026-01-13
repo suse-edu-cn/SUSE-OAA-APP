@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Notifications
@@ -66,12 +66,12 @@ fun AcademicScreen(
     val functions = listOf(
         PortalFunction(
             "成绩查询",
-            Icons.Default.Assignment,
+            Icons.AutoMirrored.Filled.Assignment,
             AcademicDestinations.Grades,
             MaterialTheme.colorScheme.primary
         ),
         PortalFunction(
-            "考场查询",
+            "考试查询",
             Icons.Default.Event,
             AcademicDestinations.Exams,
             MaterialTheme.colorScheme.tertiary
@@ -86,7 +86,7 @@ fun AcademicScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            // === 1. 调课信息 (Key: academic_messages_card) ===
+            // 1. 调课信息 (Key: academic_messages_card)
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Box(
                     modifier = Modifier.sharedBounds(
@@ -104,7 +104,7 @@ fun AcademicScreen(
                 }
             }
 
-            // === 2. 考试信息 (Key: academic_exams_card) ===
+            // 2. 考试信息 (Key: academic_exams_card)
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Box(
                     modifier = Modifier.sharedBounds(
@@ -122,7 +122,7 @@ fun AcademicScreen(
                 }
             }
 
-            // === 标题 ===
+            //  标题
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = "常用功能",
@@ -132,7 +132,7 @@ fun AcademicScreen(
                 )
             }
 
-            // === 3. 功能按钮 ===
+            // 3. 功能按钮
             items(functions) { func ->
                 val cardKey = "${func.destination.route}_card"
                 // 冲突处理：如果是 Exams，不加 SharedBounds，避免与大卡片冲突
@@ -165,7 +165,7 @@ fun AcademicScreen(
     }
 }
 
-// --- 组件：最新调课卡片 ---
+// 组件：最新调课卡片
 @Composable
 fun ReschedulingCard(
     messageList: List<String>?,
@@ -205,7 +205,6 @@ fun ReschedulingCard(
                 modifier = Modifier.padding(vertical = 12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
             )
-            // [修改点]：移除了 maxLines 和 overflow，确保完整显示第一条信息，允许换行
             Text(
                 text = latestMessage,
                 style = MaterialTheme.typography.bodyMedium,
@@ -216,7 +215,7 @@ fun ReschedulingCard(
     }
 }
 
-// --- 组件：近期考试卡片 ---
+// 组件：近期考试卡片
 @Composable
 fun UpcomingExamsCard(
     examList: List<ExamUiState>?,
@@ -345,7 +344,6 @@ fun ExamRowItem(exam: ExamUiState) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // [修改点]：使用 modifier.weight(1f) 占据剩余空间，实现右侧对齐
                 Text(
                     text = exam.courseName,
                     style = MaterialTheme.typography.bodyMedium,
@@ -387,7 +385,7 @@ fun ExamRowItem(exam: ExamUiState) {
     }
 }
 
-// --- 组件：功能按钮卡片 ---
+// 组件：功能按钮卡片
 @Composable
 fun FunctionCard(
     function: PortalFunction,

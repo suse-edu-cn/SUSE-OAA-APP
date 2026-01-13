@@ -1,7 +1,6 @@
 package com.suseoaa.projectoaa.core.network
 
 import com.suseoaa.projectoaa.core.dataStore.TokenManager
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -12,14 +11,25 @@ class AuthInterceptor @Inject constructor(
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        // 直接从内存读取，不再阻塞线程
+        // 优先使用内存缓存 (Volatile)，这是非阻塞的
         val token = tokenManager.cachedToken
-        // 只有当内存为空时（极少情况），才回退到 runBlocking，或者你可以选择接受空 token
-            ?: runBlocking { tokenManager.tokenFlow.first() }
+
+        // 仅当内存缓存为空时，才尝试同步读取。
+        // 注意：DataStore 首次读取需要磁盘 IO。在 App 启动页 (MainActivity)
+        // 最好预先调用一次 tokenManager.tokenFlow.first() 来预热缓存。
+        val finalToken = token ?: runBlocking {
+            // 这里依然使用 runBlocking 作为兜底，但因为有 cachedToken 存在，
+            // 只有 App 冷启动后的前几个毫秒会走到这里。
+            try {
+                tokenManager.getTokenSynchronously()
+            } catch (e: Exception) {
+                null
+            }
+        }
 
         val requestBuilder = chain.request().newBuilder()
-        if (!token.isNullOrBlank()) {
-            requestBuilder.addHeader("Authorization", "Bearer $token")
+        if (!finalToken.isNullOrBlank()) {
+            requestBuilder.addHeader("Authorization", "Bearer $finalToken")
         }
         return chain.proceed(requestBuilder.build())
     }

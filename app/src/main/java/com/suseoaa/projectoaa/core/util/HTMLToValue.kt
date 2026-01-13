@@ -5,7 +5,6 @@ import org.jsoup.Jsoup
 object HtmlParser {
     /**
      * 通用通知解析器
-     * 目的：不管教务系统怎么变，我都要尽力挖出文字信息
      */
     fun htmlParse(html: String): List<String> {
         val doc = Jsoup.parse(html)
@@ -24,11 +23,32 @@ object HtmlParser {
             }
         if (strategy2.isNotEmpty()) return strategy2
 
-        //策略3:获取考试信息
-        val strategy3 = doc.select("div#exam a.list-group-item span.title")
-            .map { it.text().trim() }
-            // 过滤掉空行
-            .filter { it.isNotEmpty() }
+        // 策略 3: 获取考试信息
+        val strategy3 = doc.select("div#exam a.list-group-item").mapNotNull { element ->
+            val title = element.select("span.title").text().trim()
+            if (title.isEmpty()) return@mapNotNull null
+
+            // 步骤 A: 优先尝试查找 span.fraction
+            var details = element.select("span.fraction").text().trim()
+
+            // 步骤 B: 如果没有，尝试 p.list-group-item-text
+            if (details.isEmpty()) {
+                details = element.select("p.list-group-item-text").text().trim()
+            }
+
+            // 步骤 C: 最后的兜底，纯文本替换
+            if (details.isEmpty()) {
+                val fullText = element.text().trim()
+                // 移除标题，移除可能存在的 "考试安排" 等多余标签文本
+                details = fullText.replace(title, "")
+                    .replace("考试安排", "")
+                    .trim()
+            }
+
+            // 返回 "课程名###详情" 的格式
+            "$title###$details"
+        }
+
         if (strategy3.isNotEmpty()) return strategy3
 
         return emptyList()

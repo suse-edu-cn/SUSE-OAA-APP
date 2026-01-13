@@ -23,7 +23,6 @@ abstract class BaseInfoViewModel<T>(
     private val courseDao: CourseDao
 ) : ViewModel() {
 
-    // 通用的状态管理
     private val _dataList = MutableStateFlow<T?>(null)
     val dataList: StateFlow<T?> = _dataList.asStateFlow()
 
@@ -33,7 +32,6 @@ abstract class BaseInfoViewModel<T>(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage = _errorMessage.asStateFlow()
 
-    // 通用的账号获取逻辑
     @OptIn(ExperimentalCoroutinesApi::class)
     val currentAccount: StateFlow<CourseAccountEntity?> = tokenManager.currentStudentId
         .filterNotNull()
@@ -42,30 +40,40 @@ abstract class BaseInfoViewModel<T>(
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    // 抽象方法：留给子类去实现的“填空题”
-    // 子类必须告诉父类：具体的网络请求该怎么发？
     protected abstract suspend fun executeRequest(account: CourseAccountEntity): Result<T>
 
-    // 通用的获取逻辑
-    // 这个方法是父类写好的，子类直接继承就有，不用重写
     fun fetchData() {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
 
-            // 等待账号
-            val account = currentAccount.filterNotNull().first()
+            try {
+                // 主动检查，而不是 filterNotNull().first() 死等
+                val studentId = tokenManager.currentStudentId.first()
+                if (studentId.isNullOrEmpty()) {
+                    _errorMessage.value = "未登录"
+                    return@launch
+                }
 
-            // 调用抽象方法 (执行子类的逻辑)
-            val result = executeRequest(account)
+                val account = courseDao.getAccountById(studentId)
+                if (account == null) {
+                    _errorMessage.value = "账号信息缺失"
+                    return@launch
+                }
 
-            result.onSuccess { data ->
-                _dataList.value = data
-            }.onFailure { e ->
-                _errorMessage.value = e.message ?: "未知错误"
+                val result = executeRequest(account)
+
+                result.onSuccess { data ->
+                    _dataList.value = data
+                }.onFailure { e ->
+                    _errorMessage.value = e.message ?: "未知错误"
+                }
+
+            } catch (e: Exception) {
+                _errorMessage.value = "发生错误: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
-
-            _isLoading.value = false
         }
     }
 }

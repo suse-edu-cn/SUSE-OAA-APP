@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.core.data.repository.SchoolRepository
+import com.suseoaa.projectoaa.core.data.repository.SchoolGradeRepository
 import com.suseoaa.projectoaa.core.database.dao.CourseDao
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.GradeEntity
@@ -20,7 +20,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class GradesViewModel @Inject constructor(
-    private val schoolRepository: SchoolRepository,
+    private val gradeRepository: SchoolGradeRepository,
     private val tokenManager: TokenManager,
     private val courseDao: CourseDao
 ) : ViewModel() {
@@ -68,7 +68,7 @@ class GradesViewModel @Inject constructor(
     ) { account, xnm, xqm ->
         Triple(account.studentId, xnm, xqm)
     }.flatMapLatest { (studentId, xnm, xqm) ->
-        schoolRepository.observeGrades(studentId, xnm, xqm)
+        gradeRepository.observeGrades(studentId, xnm, xqm)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Lazily,
@@ -86,7 +86,7 @@ class GradesViewModel @Inject constructor(
             isRefreshing = true
             refreshMessage = "正在全量同步成绩..."
             try {
-                val result = schoolRepository.fetchAllHistoryGrades(account)
+                val result = gradeRepository.fetchAllHistoryGrades(account)
                 result.onSuccess { msg ->
                     refreshMessage = msg
                 }.onFailure { e ->

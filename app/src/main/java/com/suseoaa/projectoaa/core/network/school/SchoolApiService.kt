@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.core.network.school
 
+import com.suseoaa.projectoaa.core.network.model.academic.exam.ExamResponse
 import com.suseoaa.projectoaa.core.network.model.academic.studentGrade.StudentGradeResponse
 import com.suseoaa.projectoaa.core.network.model.course.RSAKey
 import okhttp3.ResponseBody
@@ -88,11 +89,17 @@ interface SchoolApiService {
         @Query("gnmkdm") gnmkdm: String = "index"
     ): Response<ResponseBody>
 
-    //    获取教务系统的考试信息
-    @Headers("X-Requested-With: XMLHttpRequest")
-    @POST("/xtgl/index_cxAreaFour.html")
-    suspend fun getAcademicExamInfo(
-        @Query("localeKey") localeKey: String = "zh_CN",
-        @Query("gnmkdm") gnmkdm: String = "index"
-    ): Response<ResponseBody>
+
+    // 获取考试信息列表 JSON
+    @POST("kwgl/kscx_cxXsksxxIndex.html?doType=query&gnmkdm=N358105")
+    @FormUrlEncoded
+    suspend fun getExamList(
+        @Field("xnm") xnm: String, // 学年 e.g. "2025"
+        @Field("xqm") xqm: String, // 学期 e.g. "3" (第一学期) or "12" (第二学期)
+        @Field("queryModel.showCount") showCount: Int = 100, // 一次拉取100条，确保够用
+        @Field("queryModel.currentPage") currentPage: Int = 1,
+        @Field("queryModel.sortName") sortName: String = "",
+        @Field("queryModel.sortOrder") sortOrder: String = "asc",
+        @Field("time") time: Int = 1
+    ): retrofit2.Response<ExamResponse>
 }

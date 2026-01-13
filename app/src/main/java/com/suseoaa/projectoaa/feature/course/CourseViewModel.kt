@@ -10,11 +10,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.core.data.repository.SchoolRepository
+import com.suseoaa.projectoaa.core.data.repository.CourseRepository
+import com.suseoaa.projectoaa.core.data.repository.SchoolAuthRepository
+import com.suseoaa.projectoaa.core.data.repository.SchoolCourseRepository
 import com.suseoaa.projectoaa.core.database.CourseDatabase
+import com.suseoaa.projectoaa.core.database.entity.ClassTimeEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseWithTimes
-import com.suseoaa.projectoaa.core.data.repository.CourseRepository
 import com.suseoaa.projectoaa.core.dataStore.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -28,16 +30,83 @@ import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import javax.inject.Inject
 
+// 数据结构
 data class TermOption(
     val xnm: String,
     val xqm: String,
     val label: String
 )
 
+data class TimeSlotConfig(
+    val sectionName: String,
+    val startTime: String,
+    val endTime: String,
+    val type: SlotType,
+    val weight: Float
+)
+
+enum class SlotType { CLASS, BREAK_SMALL, BREAK_LUNCH, BREAK_DINNER }
+
+data class ScheduleLayoutItem(
+    val course: CourseWithTimes,
+    val time: ClassTimeEntity,
+    val startNodeIndex: Int,
+    val endNodeIndex: Int,
+    val dayIndex: Int
+)
+
+data class CourseListUiState(
+    val isLoading: Boolean = false,
+    val successMessage: String? = null,
+    val errorMessage: String? = null,
+    val statusMessage: String? = null
+)
+
+// --- 作息时间表常量 ---
+val DailySchedulePost2025 = listOf(
+    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
+    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("午餐", "12:00", "14:00", SlotType.BREAK_LUNCH, 0.5f),
+    TimeSlotConfig("午休", "", "", SlotType.BREAK_LUNCH, 0.5f),
+    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
+    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_DINNER, 0.4f),
+    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.2f)
+)
+
+val DailySchedulePre2025 = listOf(
+    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
+    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("午餐", "12:00", "14:00", SlotType.BREAK_LUNCH, 0.5f),
+    TimeSlotConfig("午休", "", "", SlotType.BREAK_LUNCH, 0.5f),
+    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
+    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_DINNER, 0.4f),
+    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("12", "21:30", "22:15", SlotType.CLASS, 1.2f)
+)
+
 @HiltViewModel
 class CourseListViewModel @Inject constructor(
     application: Application,
-    private val schoolRepository: SchoolRepository,
+    private val schoolCourseRepository: SchoolCourseRepository,
+    private val schoolAuthRepository: SchoolAuthRepository,
     private val tokenManager: TokenManager
 ) : AndroidViewModel(application) {
 
@@ -47,11 +116,9 @@ class CourseListViewModel @Inject constructor(
     private val PREFS_NAME = "course_prefs"
     private val KEY_START_DATE = "semester_start_date"
 
-    // 监听本地数据库中的所有账号 (按 sortIndex 排序)
     val savedAccounts: StateFlow<List<CourseAccountEntity>> = localRepository.allAccounts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // 核心：CurrentAccount 响应式跟随 TokenManager 变化
     val currentAccount: StateFlow<CourseAccountEntity?> = combine(
         savedAccounts,
         tokenManager.currentStudentId
@@ -73,11 +140,10 @@ class CourseListViewModel @Inject constructor(
     var realCurrentWeek by mutableIntStateOf(1)
         private set
 
-    private var _semesterStartDate =
-        MutableStateFlow<LocalDate>(LocalDate.now().with(DayOfWeek.MONDAY))
+    private var _semesterStartDate = MutableStateFlow<LocalDate>(LocalDate.now().with(DayOfWeek.MONDAY))
     val semesterStartDate: StateFlow<LocalDate> = _semesterStartDate
 
-    // 课程数据流
+    // [修复] 修改为 public
     @OptIn(ExperimentalCoroutinesApi::class)
     val allCourses: StateFlow<List<CourseWithTimes>> = combine(
         currentAccount.filterNotNull(),
@@ -89,12 +155,29 @@ class CourseListViewModel @Inject constructor(
         localRepository.getCourses(studentId, xnm, xqm)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    // [修复] 修改为 public
     val weekScheduleMap: StateFlow<Map<Int, List<CourseWithTimes>>> = allCourses
         .map { list ->
             (1..25).associateWith { week -> calculateCoursesForWeek(week, list) }
         }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
+    val currentWeekLayoutData: StateFlow<List<ScheduleLayoutItem>> = combine(
+        weekScheduleMap,
+        snapshotFlow { currentDisplayWeek },
+        snapshotFlow { selectedXnm }
+    ) { map, week, xnm ->
+        val courses = map[week] ?: emptyList()
+        val dailySchedule = getDailySchedule(xnm)
+        calculateLayoutItems(courses, dailySchedule)
+    }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val currentDailySchedule: StateFlow<List<TimeSlotConfig>> = snapshotFlow { selectedXnm }
+        .map { getDailySchedule(it) }
+        .stateIn(viewModelScope, SharingStarted.Lazily, DailySchedulePost2025)
 
     init {
         loadSemesterStart()
@@ -108,16 +191,193 @@ class CourseListViewModel @Inject constructor(
         }
     }
 
-    // 核心：切换用户时，只负责更新 DataStore
     fun switchUser(account: CourseAccountEntity) {
         viewModelScope.launch {
             tokenManager.saveCurrentStudentId(account.studentId)
         }
     }
 
+    fun refreshSchedule() {
+        val account = currentAccount.value
+        if (account == null) {
+            uiState = uiState.copy(errorMessage = "当前无账号")
+            return
+        }
+        fetchAndSaveCourseSchedule(account.studentId, account.password, selectedXnm, selectedXqm)
+    }
+
+    fun fetchAndSaveCourseSchedule(
+        username: String,
+        pass: String,
+        xnm: String = "2024",
+        xqm: String = "3"
+    ) {
+        viewModelScope.launch {
+            uiState = uiState.copy(isLoading = true, statusMessage = "正在登录...")
+
+            val loginResult = schoolAuthRepository.login(username, pass)
+
+            if (loginResult.isFailure) {
+                val errorMsg = loginResult.exceptionOrNull()?.message ?: "登录失败"
+                uiState = uiState.copy(isLoading = false, errorMessage = errorMsg, statusMessage = null)
+                return@launch
+            }
+
+            uiState = uiState.copy(statusMessage = "正在获取课表...")
+            val courseResult = schoolCourseRepository.getCourseSchedule(xnm, xqm)
+
+            courseResult.onSuccess { courseData ->
+                uiState = uiState.copy(statusMessage = "正在保存...")
+                withContext(Dispatchers.IO) {
+                    localRepository.saveFromResponse(username, pass, courseData)
+                }
+
+                uiState = uiState.copy(statusMessage = "正在同步校历...")
+                val startDateStr = schoolCourseRepository.fetchSemesterStart()
+                if (startDateStr != null) {
+                    try {
+                        setSemesterStartDate(LocalDate.parse(startDateStr))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+
+                uiState = uiState.copy(
+                    isLoading = false,
+                    successMessage = "更新成功",
+                    statusMessage = null
+                )
+                tokenManager.saveCurrentStudentId(username)
+
+            }.onFailure { e ->
+                uiState = uiState.copy(
+                    isLoading = false,
+                    errorMessage = "获取失败: ${e.message}",
+                    statusMessage = null
+                )
+            }
+        }
+    }
+
+    fun addCustomCourse(
+        name: String, location: String, teacher: String,
+        weekday: Int, startNode: Int, duration: Int, weeks: String
+    ) {
+        val account = currentAccount.value ?: return
+        viewModelScope.launch {
+            localRepository.saveCustomCourse(
+                studentId = account.studentId,
+                xnm = selectedXnm,
+                xqm = selectedXqm,
+                name = name,
+                location = location,
+                teacher = teacher,
+                weekday = weekday.toString(),
+                startNode = startNode,
+                duration = duration,
+                weeks = weeks
+            )
+            uiState = uiState.copy(successMessage = "自定义课程已添加")
+        }
+    }
+
+    fun deleteAccount(account: CourseAccountEntity) {
+        viewModelScope.launch {
+            localRepository.deleteAccount(account.studentId)
+        }
+    }
+
+    fun updateTermSelection(xnm: String, xqm: String) {
+        selectedXnm = xnm
+        selectedXqm = xqm
+    }
+
+    private fun getDailySchedule(yearStr: String): List<TimeSlotConfig> {
+        val year = yearStr.toIntOrNull() ?: 2025
+        return if (year >= 2025) DailySchedulePost2025 else DailySchedulePre2025
+    }
+
+    private fun calculateLayoutItems(
+        courses: List<CourseWithTimes>,
+        dailySchedule: List<TimeSlotConfig>
+    ): List<ScheduleLayoutItem> {
+        val layoutItems = mutableListOf<ScheduleLayoutItem>()
+
+        val sectionIndexMap = dailySchedule.mapIndexedNotNull { index, slot ->
+            if (slot.sectionName.isNotEmpty()) slot.sectionName to index else null
+        }.toMap()
+
+        courses.forEach { course ->
+            course.times.forEach { time ->
+                val dayIndex = parseWeekday(time.weekday) - 1
+                if (dayIndex in 0..6) {
+                    val (startPeriod, span) = parsePeriod(time.period)
+                    val startIndex = sectionIndexMap[startPeriod.toString()] ?: -1
+                    if (startIndex != -1) {
+                        var spanCounter = 0
+                        var endIndex = startIndex
+                        while (spanCounter < span && endIndex < dailySchedule.size) {
+                            if (dailySchedule[endIndex].type == SlotType.CLASS) {
+                                spanCounter++
+                            }
+                            endIndex++
+                        }
+                        layoutItems.add(
+                            ScheduleLayoutItem(
+                                course = course,
+                                time = time,
+                                startNodeIndex = startIndex,
+                                endNodeIndex = endIndex,
+                                dayIndex = dayIndex
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        return layoutItems
+    }
+
+    private fun parseWeekday(day: String): Int = when {
+        day.contains("一") || day == "1" -> 1
+        day.contains("二") || day == "2" -> 2
+        day.contains("三") || day == "3" -> 3
+        day.contains("四") || day == "4" -> 4
+        day.contains("五") || day == "5" -> 5
+        day.contains("六") || day == "6" -> 6
+        day.contains("日") || day == "7" -> 7
+        else -> 1
+    }
+
+    private fun parsePeriod(period: String): Pair<Int, Int> {
+        try {
+            val clean = period.replace("节", "")
+            val parts = clean.split("-")
+            if (parts.size == 2) {
+                val start = parts[0].toInt()
+                val end = parts[1].toInt()
+                return start to (end - start + 1)
+            }
+            clean.toIntOrNull()?.let { return it to 1 }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return 1 to 2
+    }
+
+    private fun calculateCoursesForWeek(week: Int, allData: List<CourseWithTimes>): List<CourseWithTimes> {
+        if (allData.isEmpty()) return emptyList()
+        return allData.mapNotNull { courseWithTimes ->
+            val validTimes = courseWithTimes.times.filter { time ->
+                val weekBit = 1L shl (week - 1)
+                (time.weeksMask and weekBit) != 0L
+            }
+            if (validTimes.isNotEmpty()) courseWithTimes.copy(times = validTimes) else null
+        }
+    }
+
     private fun generateTermOptions(startYearStr: String) {
-        val startYear =
-            startYearStr.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.YEAR) - 1)
+        val startYear = startYearStr.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.YEAR) - 1)
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val list = mutableListOf<TermOption>()
         for (y in startYear..currentYear + 1) {
@@ -148,113 +408,11 @@ class CourseListViewModel @Inject constructor(
         }
     }
 
-    fun deleteAccount(account: CourseAccountEntity) {
-        viewModelScope.launch {
-            localRepository.deleteAccount(account.studentId)
-        }
-    }
-
-    fun updateTermSelection(xnm: String, xqm: String) {
-        selectedXnm = xnm
-        selectedXqm = xqm
-    }
-
-    fun refreshSchedule() {
-        val account = currentAccount.value
-        if (account == null) {
-            uiState = uiState.copy(errorMessage = "当前无账号")
-            return
-        }
-        fetchAndSaveCourseSchedule(account.studentId, account.password, selectedXnm, selectedXqm)
-    }
-
-    fun fetchAndSaveCourseSchedule(
-        username: String,
-        pass: String,
-        xnm: String = "2024",
-        xqm: String = "3"
-    ) {
-        viewModelScope.launch {
-            uiState = uiState.copy(isLoading = true, statusMessage = "正在登录...")
-            val loginResult = schoolRepository.login(username, pass)
-
-            if (loginResult.isFailure) {
-                val errorMsg = loginResult.exceptionOrNull()?.message ?: "登录失败"
-                uiState =
-                    uiState.copy(isLoading = false, errorMessage = errorMsg, statusMessage = null)
-                return@launch
-            }
-
-            uiState = uiState.copy(statusMessage = "正在获取课表...")
-            val courseResult = schoolRepository.getCourseSchedule(xnm, xqm)
-
-            courseResult.onSuccess { courseData ->
-                uiState = uiState.copy(statusMessage = "正在保存...")
-                withContext(Dispatchers.IO) {
-                    localRepository.saveFromResponse(username, pass, courseData)
-                }
-
-                uiState = uiState.copy(statusMessage = "正在同步校历...")
-                val startDateStr = schoolRepository.fetchSemesterStart()
-                if (startDateStr != null) {
-                    try {
-                        setSemesterStartDate(LocalDate.parse(startDateStr))
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-
-                uiState = uiState.copy(
-                    isLoading = false,
-                    successMessage = "更新成功",
-                    statusMessage = null
-                )
-                tokenManager.saveCurrentStudentId(username)
-
-            }.onFailure { e ->
-                uiState = uiState.copy(
-                    isLoading = false,
-                    errorMessage = "获取失败: ${e.message}",
-                    statusMessage = null
-                )
-            }
-        }
-    }
-
-    fun addCustomCourse(
-        name: String,
-        location: String,
-        teacher: String,
-        weekday: Int,
-        startNode: Int,
-        duration: Int,
-        weeks: String
-    ) {
-        val account = currentAccount.value ?: return
-        viewModelScope.launch {
-            localRepository.saveCustomCourse(
-                studentId = account.studentId,
-                xnm = selectedXnm,
-                xqm = selectedXqm,
-                name = name,
-                location = location,
-                teacher = teacher,
-                weekday = weekday.toString(),
-                startNode = startNode,
-                duration = duration,
-                weeks = weeks
-            )
-            uiState = uiState.copy(successMessage = "自定义课程已添加")
-        }
-    }
-
     private fun loadSemesterStart() {
-        val prefs =
-            getApplication<Application>().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = getApplication<Application>().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val epochDay = prefs.getLong(KEY_START_DATE, -1L)
         val today = LocalDate.now()
-        val start =
-            if (epochDay != -1L) LocalDate.ofEpochDay(epochDay) else today.with(DayOfWeek.MONDAY)
+        val start = if (epochDay != -1L) LocalDate.ofEpochDay(epochDay) else today.with(DayOfWeek.MONDAY)
         _semesterStartDate.value = start
         val weeksBetween = ChronoUnit.WEEKS.between(start, today).toInt() + 1
         realCurrentWeek = weeksBetween
@@ -272,25 +430,4 @@ class CourseListViewModel @Inject constructor(
             currentDisplayWeek = realCurrentWeek.coerceIn(1, 25)
         }
     }
-
-    private fun calculateCoursesForWeek(
-        week: Int,
-        allData: List<CourseWithTimes>
-    ): List<CourseWithTimes> {
-        if (allData.isEmpty()) return emptyList()
-        return allData.mapNotNull { courseWithTimes ->
-            val validTimes = courseWithTimes.times.filter { time ->
-                val weekBit = 1L shl (week - 1)
-                (time.weeksMask and weekBit) != 0L
-            }
-            if (validTimes.isNotEmpty()) courseWithTimes.copy(times = validTimes) else null
-        }
-    }
 }
-
-data class CourseListUiState(
-    val isLoading: Boolean = false,
-    val successMessage: String? = null,
-    val errorMessage: String? = null,
-    val statusMessage: String? = null
-)

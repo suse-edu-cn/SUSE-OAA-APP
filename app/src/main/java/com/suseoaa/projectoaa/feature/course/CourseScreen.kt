@@ -41,12 +41,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.app.LocalWindowSizeClass
 import com.suseoaa.projectoaa.core.database.entity.ClassTimeEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseWithTimes
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
@@ -55,62 +55,6 @@ private val CourseColors = listOf(
     Color(0xFF5C6BC0), Color(0xFFAB47BC), Color(0xFF42A5F5), Color(0xFF26A69A),
     Color(0xFFFFCA28), Color(0xFF9CCC65), Color(0xFF7E57C2), Color(0xFF29B6F6)
 )
-
-data class TimeSlotConfig(
-    val sectionName: String,
-    val startTime: String,
-    val endTime: String,
-    val type: SlotType,
-    val weight: Float
-)
-
-enum class SlotType { CLASS, BREAK_SMALL, BREAK_LUNCH, BREAK_DINNER }
-
-// 2025年及以后的作息 (11节课)
-private val DailySchedulePost2025 = listOf(
-    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("午餐", "12:00", "14:00", SlotType.BREAK_LUNCH, 0.5f),
-    TimeSlotConfig("午休", "", "", SlotType.BREAK_LUNCH, 0.5f),
-    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_DINNER, 0.4f),
-    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.2f)
-)
-
-// 2025年以前的旧作息 (12节课)
-private val DailySchedulePre2025 = listOf(
-    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("午餐", "12:00", "14:00", SlotType.BREAK_LUNCH, 0.5f),
-    TimeSlotConfig("午休", "", "", SlotType.BREAK_LUNCH, 0.5f),
-    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_DINNER, 0.4f),
-    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("12", "21:30", "22:15", SlotType.CLASS, 1.2f)
-)
-
-private fun getDailySchedule(yearStr: String): List<TimeSlotConfig> {
-    val year = yearStr.toIntOrNull() ?: 2025
-    return if (year >= 2025) DailySchedulePost2025 else DailySchedulePre2025
-}
 
 private val DateHeaderHeight = 32.dp
 
@@ -124,22 +68,19 @@ fun CourseScreen(
     val windowSizeClass = LocalWindowSizeClass.current
     val context = LocalContext.current
 
+    // 从 ViewModel 收集状态
     val allCourses by viewModel.allCourses.collectAsStateWithLifecycle()
-    // 监听预计算好的所有周数据，Map 读取 O(1)
     val weekScheduleMap by viewModel.weekScheduleMap.collectAsStateWithLifecycle()
-
     val startDate by viewModel.semesterStartDate.collectAsStateWithLifecycle()
     val savedAccounts by viewModel.savedAccounts.collectAsStateWithLifecycle()
     val currentAccount by viewModel.currentAccount.collectAsStateWithLifecycle()
     val termOptions by viewModel.termOptions.collectAsStateWithLifecycle()
+    // 获取当前适用的作息时间表
+    val currentDailySchedule by viewModel.currentDailySchedule.collectAsStateWithLifecycle()
     val uiState = viewModel.uiState
 
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp > 600
-
-    val currentDailySchedule = remember(viewModel.selectedXnm) {
-        getDailySchedule(viewModel.selectedXnm)
-    }
 
     var selectedCourses by remember {
         mutableStateOf<List<Pair<CourseWithTimes, ClassTimeEntity>>?>(null)
@@ -155,9 +96,11 @@ fun CourseScreen(
         initialPage = (viewModel.currentDisplayWeek - 1).coerceAtLeast(0),
         pageCount = { 25 }
     )
-//    由于修改了TabBar的呈现方式，所以需要对课程页面的高度进行单独判断
+
     val isPhone = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
     val bottomPadding = if (isPhone) 90.dp else 0.dp
+
+    // 监听 Pager 滑动，更新 ViewModel 中的当前周
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
             val newWeek = page + 1
@@ -167,6 +110,7 @@ fun CourseScreen(
         }
     }
 
+    // 监听 ViewModel 中的当前周变化（如通过Tab点击），同步 Pager
     LaunchedEffect(viewModel.currentDisplayWeek) {
         val targetPage = viewModel.currentDisplayWeek - 1
         if (pagerState.currentPage != targetPage && targetPage in 0..24 && !pagerState.isScrollInProgress) {
@@ -246,7 +190,7 @@ fun CourseScreen(
                                 )
                                 Icon(Icons.Default.ArrowDropDown, null)
                             }
-//                            选择学期
+                            // 选择学期
                             DropdownMenu(
                                 modifier = Modifier
                                     .background(color = MaterialTheme.colorScheme.surface),
@@ -290,9 +234,6 @@ fun CourseScreen(
                                     onClick = {
                                         menuExpanded = false; showCustomCourseDialog = true
                                     })
-//                                DropdownMenuItem(
-//                                    text = { Text("设置起始周") },
-//                                    onClick = { menuExpanded = false; datePickerDialog.show() })
                                 DropdownMenuItem(
                                     text = { Text("查看他人课表") },
                                     onClick = { menuExpanded = false; showAccountDialog = true })
@@ -402,7 +343,6 @@ fun CourseScreen(
 
             if (!isTablet && selectedCourses != null) {
                 Dialog(onDismissRequest = { selectedCourses = null }) {
-                    // 使用 Card 包裹以获得圆角和背景，适配暗黑模式
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1233,21 +1173,26 @@ fun AddCustomCourseDialog(
     }
 }
 
-fun parseWeekday(day: String): Int = when {
-    day.contains("一") || day == "1" -> 1; day.contains("二") || day == "2" -> 2; day.contains("三") || day == "3" -> 3; day.contains(
-        "四"
-    ) || day == "4" -> 4; day.contains("五") || day == "5" -> 5; day.contains("六") || day == "6" -> 6; day.contains(
-        "日"
-    ) || day == "7" -> 7; else -> 1
+// 辅助函数，文件私有，防止与 VM 中的冲突
+private fun parseWeekday(day: String): Int = when {
+    day.contains("一") || day == "1" -> 1
+    day.contains("二") || day == "2" -> 2
+    day.contains("三") || day == "3" -> 3
+    day.contains("四") || day == "4" -> 4
+    day.contains("五") || day == "5" -> 5
+    day.contains("六") || day == "6" -> 6
+    day.contains("日") || day == "7" -> 7
+    else -> 1
 }
 
-fun parsePeriod(period: String): Pair<Int, Int> {
+private fun parsePeriod(period: String): Pair<Int, Int> {
     try {
         val clean = period.replace("节", "")
-        val parts =
-            clean.split("-"); if (parts.size == 2) return parts[0].toInt() to (parts[1].toInt() - parts[0].toInt() + 1); clean.toIntOrNull()
-            ?.let { return it to 1 }
+        val parts = clean.split("-")
+        if (parts.size == 2) return parts[0].toInt() to (parts[1].toInt() - parts[0].toInt() + 1)
+        clean.toIntOrNull()?.let { return it to 1 }
     } catch (e: Exception) {
         e.printStackTrace()
-    }; return 1 to 2
+    }
+    return 1 to 2
 }
