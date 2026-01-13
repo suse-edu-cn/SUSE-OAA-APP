@@ -30,19 +30,22 @@ class TokenManager @Inject constructor(
         private val CURRENT_STUDENT_ID_KEY = stringPreferencesKey("current_student_id")
     }
 
+//    内存缓存，使用 @Volatile 保证线程可见性
+    @Volatile
+    var cachedToken: String? = null
+        private set
+
     /**
      * 读取 Token
      */
     val tokenFlow: Flow<String?> = context.dataStore.data
         .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
         }
         .map { preferences ->
-            preferences[TOKEN_KEY]
+            val token = preferences[TOKEN_KEY]
+            cachedToken = token // 更新缓存
+            token
         }
 
     /**

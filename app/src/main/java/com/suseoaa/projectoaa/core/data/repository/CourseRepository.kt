@@ -10,6 +10,7 @@ import com.suseoaa.projectoaa.core.network.model.course.Kb
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.collections.filter
@@ -23,7 +24,11 @@ class CourseRepository @Inject constructor(
 
     // 处理列表排序交换
     // fromIndex 和 toIndex 是 UI 列表中的位置，currentList 是当前的列表数据
-    suspend fun swapAccountOrder(fromIndex: Int, toIndex: Int, currentList: List<CourseAccountEntity>) = withContext(Dispatchers.IO) {
+    suspend fun swapAccountOrder(
+        fromIndex: Int,
+        toIndex: Int,
+        currentList: List<CourseAccountEntity>
+    ) = withContext(Dispatchers.IO) {
         if (fromIndex == toIndex) return@withContext
         if (fromIndex !in currentList.indices || toIndex !in currentList.indices) return@withContext
 
@@ -49,6 +54,8 @@ class CourseRepository @Inject constructor(
                 CourseWithTimes(course, matchingTimes)
             }
         }
+//        确保上述组合逻辑在计算线程执行
+            .flowOn(Dispatchers.Default)
     }
 
     suspend fun deleteAccount(studentId: String) {

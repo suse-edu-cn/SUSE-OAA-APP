@@ -23,7 +23,7 @@ abstract class BaseInfoViewModel<T>(
     private val courseDao: CourseDao
 ) : ViewModel() {
 
-    // === 1. 通用的状态管理 ===
+    // 通用的状态管理
     private val _dataList = MutableStateFlow<T?>(null)
     val dataList: StateFlow<T?> = _dataList.asStateFlow()
 
@@ -42,11 +42,11 @@ abstract class BaseInfoViewModel<T>(
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    // === 2. 抽象方法：留给子类去实现的“填空题” ===
+    // 抽象方法：留给子类去实现的“填空题”
     // 子类必须告诉父类：具体的网络请求该怎么发？
     protected abstract suspend fun executeRequest(account: CourseAccountEntity): Result<T>
 
-    // === 3. 通用的获取逻辑 ===
+    // 通用的获取逻辑
     // 这个方法是父类写好的，子类直接继承就有，不用重写
     fun fetchData() {
         viewModelScope.launch {
@@ -63,7 +63,6 @@ abstract class BaseInfoViewModel<T>(
                 _dataList.value = data
             }.onFailure { e ->
                 _errorMessage.value = e.message ?: "未知错误"
-                // 可以考虑把错误塞进一个专门的 error list 或者用 toast channel
             }
 
             _isLoading.value = false

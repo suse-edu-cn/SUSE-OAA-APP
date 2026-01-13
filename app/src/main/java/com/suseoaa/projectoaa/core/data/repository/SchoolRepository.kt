@@ -268,12 +268,8 @@ class SchoolRepository @Inject constructor(
     }
 
 
-    //    获取教务系统首页信息通用函数
     /**
      * 通用的 HTML 获取与解析器
-     * @param account 用户账号（用于重试登录）
-     * @param request 发起网络请求的函数（例如：{ api.getAreaOne() }）
-     * @param parser  HTML 解析逻辑（例如：{ html -> HtmlParser.parseNotices(html) }）
      */
     private suspend fun <T> fetchHtml(
         account: CourseAccountEntity,
@@ -282,10 +278,9 @@ class SchoolRepository @Inject constructor(
     ): Result<T> {
         return executeWithAutoRetry(account) {
             try {
-                // 1. 在这里调用 request()，这样每次重试都会真正发起新的网络请求
+                // 1. 网络请求 (IO 挂起，不阻塞)
                 val response = request()
 
-                // 2. 检查 Session 失效 (状态码)
                 if (response.code() == 901 || response.code() == 302) {
                     return@executeWithAutoRetry Result.failure(SessionExpiredException())
                 }
@@ -293,13 +288,15 @@ class SchoolRepository @Inject constructor(
                 if (response.isSuccessful) {
                     val html = response.body()?.string() ?: ""
 
-                    // 3. 检查 HTML 内容是否是登录页
                     if (html.contains("用户登录") || html.contains("/xtgl/login_slogin.html")) {
                         return@executeWithAutoRetry Result.failure(SessionExpiredException())
                     }
 
-                    // 4. 调用传入的解析器进行解析
-                    val result = parser(html)
+                    // 将 Jsoup 解析切换到 Default 线程 (计算密集型线程池)
+                    val result = withContext(Dispatchers.Default) {
+                        parser(html)
+                    }
+
                     Result.success(result)
                 } else {
                     Result.failure(Exception("请求失败，状态码: ${response.code()}"))
