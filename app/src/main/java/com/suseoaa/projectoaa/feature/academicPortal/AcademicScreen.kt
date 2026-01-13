@@ -29,6 +29,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.app.LocalWindowSizeClass
 import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
+import com.suseoaa.projectoaa.core.util.getExamCountDown
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.ExamUiState
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoViewModel
 import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicMessageInfoViewModel
@@ -48,27 +49,20 @@ fun AcademicScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    // 1. 获取 ViewModel
     val messageVM: GetAcademicMessageInfoViewModel = hiltViewModel()
     val examVM: GetExamInfoViewModel = hiltViewModel()
-
-    // 2. 收集数据状态
     val messageList by messageVM.dataList.collectAsStateWithLifecycle()
     val examList by examVM.dataList.collectAsStateWithLifecycle()
 
-    // 3. 触发数据加载
     LaunchedEffect(Unit) {
         messageVM.fetchData()
         examVM.fetchData()
     }
 
-    // 4. 获取窗口大小以决定列数
     val windowSizeClass = LocalWindowSizeClass.current
     val isPhone = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
-    // 手机一行2个，平板一行4个
     val gridColumns = if (isPhone) 2 else 4
 
-    // 5. 定义功能按钮列表
     val functions = listOf(
         PortalFunction(
             "成绩查询",
@@ -82,8 +76,6 @@ fun AcademicScreen(
             AcademicDestinations.Exams,
             MaterialTheme.colorScheme.tertiary
         ),
-        // 可以在这里添加更多功能，布局会自动适配
-        // PortalFunction("空教室", Icons.Default.MeetingRoom, ...),
     )
 
     with(sharedTransitionScope) {
@@ -94,9 +86,8 @@ fun AcademicScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            // === 第一部分：调课信息 (占满整行) ===
+            // === 1. 调课信息 (Key: academic_messages_card) ===
             item(span = { GridItemSpan(maxLineSpan) }) {
-                // 外层Box用于承载共享元素转场动画
                 Box(
                     modifier = Modifier.sharedBounds(
                         sharedContentState = rememberSharedContentState(key = "academic_messages_card"),
@@ -108,20 +99,20 @@ fun AcademicScreen(
                 ) {
                     ReschedulingCard(
                         messageList = messageList,
-                        // 点击跳转到所有消息列表页
                         onClick = { onNavigate(AcademicPortalEvent.NavigateTo(AcademicDestinations.Messages)) }
                     )
                 }
             }
 
-            // === 第二部分：考试信息 (占满整行) ===
+            // === 2. 考试信息 (Key: academic_exams_card) ===
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Box(
                     modifier = Modifier.sharedBounds(
-                        sharedContentState = rememberSharedContentState(key = "exam_card_key"),
+                        sharedContentState = rememberSharedContentState(key = "academic_exams_card"),
                         animatedVisibilityScope = animatedVisibilityScope,
                         boundsTransform = AcademicSharedTransitionSpec,
-                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                        zIndexInOverlay = 1f
                     )
                 ) {
                     UpcomingExamsCard(
@@ -131,7 +122,7 @@ fun AcademicScreen(
                 }
             }
 
-            // === 第三部分：功能栏标题 ===
+            // === 标题 ===
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = "常用功能",
@@ -141,24 +132,32 @@ fun AcademicScreen(
                 )
             }
 
-            // === 第四部分：功能按钮网格 ===
+            // === 3. 功能按钮 ===
             items(functions) { func ->
-                Box(
-                    modifier = Modifier.sharedBounds(
-                        sharedContentState = rememberSharedContentState(key = "${func.destination.route}_card"),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        boundsTransform = AcademicSharedTransitionSpec,
-                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
-                    )
-                ) {
+                val cardKey = "${func.destination.route}_card"
+                // 冲突处理：如果是 Exams，不加 SharedBounds，避免与大卡片冲突
+                if (func.destination == AcademicDestinations.Exams) {
                     FunctionCard(
                         function = func,
                         onClick = { onNavigate(AcademicPortalEvent.NavigateTo(func.destination)) }
                     )
+                } else {
+                    Box(
+                        modifier = Modifier.sharedBounds(
+                            sharedContentState = rememberSharedContentState(key = cardKey),
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            boundsTransform = AcademicSharedTransitionSpec,
+                            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                        )
+                    ) {
+                        FunctionCard(
+                            function = func,
+                            onClick = { onNavigate(AcademicPortalEvent.NavigateTo(func.destination)) }
+                        )
+                    }
                 }
             }
 
-            // 底部留白，防止被 BottomBar 遮挡
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Spacer(modifier = Modifier.height(80.dp))
             }
@@ -206,13 +205,12 @@ fun ReschedulingCard(
                 modifier = Modifier.padding(vertical = 12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
             )
+            // [修改点]：移除了 maxLines 和 overflow，确保完整显示第一条信息，允许换行
             Text(
                 text = latestMessage,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (messageList.isNullOrEmpty()) Color.Gray else MaterialTheme.colorScheme.onSurface,
-                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
             )
         }
     }
@@ -224,7 +222,6 @@ fun UpcomingExamsCard(
     examList: List<ExamUiState>?,
     onClick: () -> Unit
 ) {
-    // 排序逻辑：按时间字符串排序 (yyyy-MM-dd 格式字符串排序等同于时间排序)
     val sortedExams = remember(examList) {
         examList?.sortedBy { it.time } ?: emptyList()
     }
@@ -280,7 +277,6 @@ fun UpcomingExamsCard(
                     Text("暂无考试安排", color = Color.Gray)
                 }
             } else {
-                // 显示列表，最多显示前 5 条以保证美观
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     sortedExams.take(5).forEach { exam ->
                         ExamRowItem(exam)
@@ -301,11 +297,16 @@ fun UpcomingExamsCard(
 
 @Composable
 fun ExamRowItem(exam: ExamUiState) {
+    // 1. 获取考试倒计时和状态颜色
+    val (countDownText, countColor) = remember(exam.time) {
+        getExamCountDown(exam.time)
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 左侧：时间块
+        // 左侧：时间块（月/日）
         Surface(
             color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
             shape = RoundedCornerShape(8.dp),
@@ -315,8 +316,6 @@ fun ExamRowItem(exam: ExamUiState) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 简单提取日期中的 "月-日"
-                // 假设格式为 "2026-01-08(09:30-11:30)"
                 val datePart = exam.time.substringBefore("(")
                 val parts = datePart.split("-")
                 if (parts.size >= 3) {
@@ -341,14 +340,42 @@ fun ExamRowItem(exam: ExamUiState) {
 
         // 右侧：详情
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = exam.courseName,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            // 第一行：课程名 + 状态标签（右对齐）
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // [修改点]：使用 modifier.weight(1f) 占据剩余空间，实现右侧对齐
+                Text(
+                    text = exam.courseName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // 状态标签
+                if (countDownText.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        color = countColor.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(4.dp),
+                    ) {
+                        Text(
+                            text = countDownText,
+                            color = countColor,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(2.dp))
+
+            // 第二行：时间点和地点
             Text(
                 text = "${exam.time.substringAfter("(").substringBefore(")")} @ ${exam.location}",
                 style = MaterialTheme.typography.labelMedium,
@@ -370,7 +397,7 @@ fun FunctionCard(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = function.color.copy(alpha = 0.1f), // 浅色背景
+        color = function.color.copy(alpha = 0.1f),
         modifier = modifier
             .fillMaxWidth()
             .height(80.dp)
@@ -379,7 +406,6 @@ fun FunctionCard(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 圆形图标背景
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = function.color,

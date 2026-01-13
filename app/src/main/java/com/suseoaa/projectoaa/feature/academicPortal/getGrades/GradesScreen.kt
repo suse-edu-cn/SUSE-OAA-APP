@@ -56,7 +56,8 @@ fun GradesScreen(
         Scaffold(
             modifier = Modifier
                 .sharedBounds(
-                    sharedContentState = rememberSharedContentState(key = "grades_card_key"),
+                    // 【关键修改】统一Key：academic_grades_card
+                    sharedContentState = rememberSharedContentState(key = "academic_grades_card"),
                     animatedVisibilityScope = animatedVisibilityScope,
                     boundsTransform = AcademicSharedTransitionSpec,
                     zIndexInOverlay = 1f
@@ -133,6 +134,7 @@ fun GradesScreen(
     }
 }
 
+// --- 以下组件保持不变 (SelectOption, FilterButton, GradeItemCard, LabelValueText) ---
 @Composable
 fun SelectOption(
     selectedYear: String,
