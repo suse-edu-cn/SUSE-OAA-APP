@@ -1,11 +1,15 @@
 package com.suseoaa.projectoaa.feature.home
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
@@ -18,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicScreen
 import com.suseoaa.projectoaa.feature.course.CourseScreen
@@ -27,6 +32,7 @@ import kotlinx.coroutines.launch
 // 保持定义在顶层，确保 AppNavHost 能引用到它
 const val MAIN_SCREEN_ROUTE = "main_screen_route"
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(
     windowSizeClass: WindowWidthSizeClass,
@@ -54,11 +60,12 @@ fun MainScreen(
                 onNavigate = { index -> scope.launch { pagerState.scrollToPage(index) } }
             )
         }
-        Scaffold { padding ->
+        Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        ) { _ ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
             ) {
                 HorizontalPager(
                     state = pagerState,
@@ -92,7 +99,10 @@ fun MainScreen(
                         onNavigate = { index ->
                             scope.launch { pagerState.animateScrollToPage(index) }
                         },
-                        modifier = Modifier.align(Alignment.BottomCenter)
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .windowInsetsPadding(WindowInsets.navigationBars)
+                            .padding(bottom = 8.dp)
                     )
                 }
             }

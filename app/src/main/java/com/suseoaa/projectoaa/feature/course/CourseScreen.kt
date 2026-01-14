@@ -101,9 +101,9 @@ fun CourseScreen(
     )
 
     val isPhone = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
-    val bottomPadding = if (isPhone) 90.dp else 0.dp
-
-    // [优化] 监听 Pager 静止状态 (settledPage)，防止滑动过程中频繁触发 ViewModel 计算
+    val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bottomPadding = if (isPhone) 90.dp + navBarHeight else 0.dp
+    // 监听 Pager 静止状态 (settledPage)，防止滑动过程中频繁触发 ViewModel 计算
     LaunchedEffect(pagerState.settledPage) {
         val newWeek = pagerState.settledPage + 1
         if (viewModel.currentDisplayWeek != newWeek) {
@@ -134,9 +134,9 @@ fun CourseScreen(
             today.dayOfMonth
         )
     }
-
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Surface(
                 color = MaterialTheme.colorScheme.background,
@@ -147,15 +147,17 @@ fun CourseScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(
-                                when (windowSizeClass.widthSizeClass) {
-                                    WindowWidthSizeClass.Compact -> Modifier.padding(8.dp)
-                                    WindowWidthSizeClass.Expanded -> Modifier.statusBarsPadding()
-                                    WindowWidthSizeClass.Medium -> Modifier.statusBarsPadding()
-                                    else -> Modifier.statusBarsPadding()
-                                }
-                            )
-                            .padding(horizontal = 8.dp),
+//                            .then(
+//                                when (windowSizeClass.widthSizeClass) {
+//                                    WindowWidthSizeClass.Compact -> Modifier.padding(8.dp)
+//                                    WindowWidthSizeClass.Expanded -> Modifier.statusBarsPadding()
+//                                    WindowWidthSizeClass.Medium -> Modifier.statusBarsPadding()
+//                                    else -> Modifier.statusBarsPadding()
+//                                }
+//                            )
+                            .statusBarsPadding()
+                            .padding(horizontal = 8.dp)
+                            .padding(top = 8.dp, bottom = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -292,9 +294,10 @@ fun CourseScreen(
         Box(
             modifier = Modifier
                 .padding(padding)
+                // 底部留白，防止被 BottomBar 遮挡
                 .padding(bottom = bottomPadding)
                 .fillMaxSize()
-                // [优化] 开启 GPU 硬件层加速，滑动时只进行纹理位移，不重绘内容
+//                开启硬件加速
                 .graphicsLayer { clip = true }
         ) {
             if (allCourses.isEmpty() && !uiState.isLoading) {

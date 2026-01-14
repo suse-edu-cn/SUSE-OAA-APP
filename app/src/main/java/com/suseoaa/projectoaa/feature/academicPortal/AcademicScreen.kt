@@ -53,6 +53,10 @@ fun AcademicScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    // 获取系统栏高度
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bottomContentPadding = if (!isTablet) 80.dp + navBarHeight else 16.dp
     val messageVM: GetAcademicMessageInfoViewModel = hiltViewModel()
     val examVM: GetExamInfoViewModel = hiltViewModel()
 
@@ -101,7 +105,12 @@ fun AcademicScreen(
         with(sharedTransitionScope) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(gridColumns),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(
+                    top = 16.dp + statusBarHeight,
+                    bottom = 16.dp + bottomContentPadding,
+                    start = 16.dp,
+                    end = 16.dp
+                ),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
