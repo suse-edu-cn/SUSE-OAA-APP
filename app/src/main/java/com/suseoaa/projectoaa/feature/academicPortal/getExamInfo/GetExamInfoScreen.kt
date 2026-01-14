@@ -1,4 +1,3 @@
-// 文件名: projectoaa/feature/academicPortal/getExamInfo/GetExamInfoScreen.kt
 package com.suseoaa.projectoaa.feature.academicPortal.getExamInfo
 
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -39,7 +38,6 @@ fun GetExamInfoScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    // [修复] 调用 refreshData() 而不是 fetchData()
     LaunchedEffect(Unit) {
         delay(300)
         // 如果数据为空，可以自动刷新一次
@@ -48,7 +46,6 @@ fun GetExamInfoScreen(
         }
     }
 
-    // [修复] 使用 examList 替换 dataList
     val examList by viewModel.examList.collectAsStateWithLifecycle()
 
     with(sharedTransitionScope) {
@@ -93,7 +90,6 @@ fun GetExamInfoScreen(
         }
     }
 }
-// ExamCard 组件保持不变...
 @Composable
 fun ExamCard(
     exam: ExamUiState,

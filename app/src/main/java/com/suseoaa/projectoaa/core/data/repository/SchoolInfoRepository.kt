@@ -1,4 +1,3 @@
-// 文件名: projectoaa/core/data/repository/SchoolInfoRepository.kt
 package com.suseoaa.projectoaa.core.data.repository
 
 import com.suseoaa.projectoaa.core.database.dao.AcademicDao
@@ -21,7 +20,7 @@ class SchoolInfoRepository @Inject constructor(
     private val academicDao: AcademicDao
 ) {
 
-    // === 考试信息 (缓存+网络) ===
+    // 考试信息 (缓存+网络)
 
     fun observeExams(studentId: String): Flow<List<ExamCacheEntity>> {
         return academicDao.getExamsFlow(studentId)
@@ -71,7 +70,7 @@ class SchoolInfoRepository @Inject constructor(
             }
         }
 
-    // === 调课通知 (缓存+网络) ===
+    //调课通知 (缓存+网络)
 
     fun observeMessages(studentId: String): Flow<List<MessageCacheEntity>> {
         return academicDao.getMessagesFlow(studentId)
@@ -111,7 +110,6 @@ class SchoolInfoRepository @Inject constructor(
         }
     }
 
-    // === [修复] 补回：教务/课程信息 (目前仍使用直连，未做缓存) ===
     // 这里的返回值仍保持 List<String>，以兼容 GetCourseInfoViewModel
     suspend fun getAcademicCourseInfo(account: CourseAccountEntity): Result<List<String>> =
         fetchAndParseHtml(account) { api.getAcademicCourseInfo() }
@@ -146,7 +144,7 @@ class SchoolInfoRepository @Inject constructor(
     }
 
 
-    // === 辅助 ===
+    // 辅助
 
     private fun isLoginRequired(html: String?): Boolean =
         html != null && (html.contains("用户登录") || html.contains("/xtgl/login_slogin.html"))

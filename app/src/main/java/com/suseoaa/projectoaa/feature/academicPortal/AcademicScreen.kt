@@ -1,6 +1,5 @@
 package com.suseoaa.projectoaa.feature.academicPortal
 
-
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.clickable
@@ -57,18 +56,16 @@ fun AcademicScreen(
     val messageVM: GetAcademicMessageInfoViewModel = hiltViewModel()
     val examVM: GetExamInfoViewModel = hiltViewModel()
 
-    // 使用 Flow 收集数据，现在这些数据来自数据库，读取极快，不会阻塞
-    // 注意：请确保你的 ViewModel 已经改成了 StateFlow 暴露数据
+    // 使用 Flow 收集数据
     val messageList by messageVM.dataList.collectAsStateWithLifecycle()
-    val examList by examVM.examList.collectAsStateWithLifecycle() // 假设你改名为 examList
+    val examList by examVM.examList.collectAsStateWithLifecycle()
 
     val isRefreshing = examVM.isRefreshing || messageVM.isRefreshing
     val pullState = rememberPullToRefreshState()
 
-    // 错峰加载策略：进入页面后，稍微延迟再静默刷新一次，不阻塞 UI
+    // 错峰加载策略
     LaunchedEffect(Unit) {
-        delay(800) // 等待页面转场动画和数据库读取完成
-        // 只有当数据为空时才自动刷新，或者静默刷新
+        delay(800)
         if (examList.isEmpty()) examVM.refreshData()
         if (messageList.isEmpty()) messageVM.refreshData()
     }
@@ -92,7 +89,6 @@ fun AcademicScreen(
         ),
     )
 
-    // 使用 PullToRefreshBox 包裹内容
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         state = pullState,
@@ -110,7 +106,6 @@ fun AcademicScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                // ... 保持原本的 item 内容不变 ...
                 // 1. 调课信息
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Box(
@@ -123,7 +118,7 @@ fun AcademicScreen(
                         )
                     ) {
                         ReschedulingCard(
-                            messageList = messageList, // 确保 VM 这里的类型匹配
+                            messageList = messageList,
                             onClick = {
                                 onNavigate(
                                     AcademicPortalEvent.NavigateTo(
@@ -159,7 +154,6 @@ fun AcademicScreen(
                     }
                 }
 
-                // 标题和功能按钮部分保持不变...
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
                         text = "常用功能",
@@ -199,7 +193,6 @@ fun AcademicScreen(
     }
 }
 
-// ... ReschedulingCard, UpcomingExamsCard 等组件保持不变 ...
 // 组件：最新调课卡片
 @Composable
 fun ReschedulingCard(
@@ -250,14 +243,15 @@ fun ReschedulingCard(
     }
 }
 
-// 组件：近期考试卡片
+// 组件：近期考试卡片 (关键修改处)
 @Composable
 fun UpcomingExamsCard(
     examList: List<ExamUiState>?,
     onClick: () -> Unit
 ) {
+    // [修改] 移除 sortedBy，直接使用 ViewModel 传来的已排序列表
     val sortedExams = remember(examList) {
-        examList?.sortedBy { it.time } ?: emptyList()
+        examList ?: emptyList()
     }
 
     Card(
@@ -312,6 +306,7 @@ fun UpcomingExamsCard(
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // 只展示前5个（因为已经按优先级排好了：未开始的在前，已结束的在最后）
                     sortedExams.take(5).forEach { exam ->
                         ExamRowItem(exam)
                     }
@@ -331,7 +326,6 @@ fun UpcomingExamsCard(
 
 @Composable
 fun ExamRowItem(exam: ExamUiState) {
-    // 1. 获取考试倒计时和状态颜色
     val (countDownText, countColor) = remember(exam.time) {
         getExamCountDown(exam.time)
     }
@@ -374,7 +368,6 @@ fun ExamRowItem(exam: ExamUiState) {
 
         // 右侧：详情
         Column(modifier = Modifier.weight(1f)) {
-            // 第一行：课程名 + 状态标签（右对齐）
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -388,7 +381,6 @@ fun ExamRowItem(exam: ExamUiState) {
                     modifier = Modifier.weight(1f)
                 )
 
-                // 状态标签
                 if (countDownText.isNotEmpty()) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
@@ -408,7 +400,6 @@ fun ExamRowItem(exam: ExamUiState) {
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            // 第二行：时间点和地点
             Text(
                 text = "${exam.time.substringAfter("(").substringBefore(")")} @ ${exam.location}",
                 style = MaterialTheme.typography.labelMedium,
@@ -453,9 +444,7 @@ fun FunctionCard(
                     )
                 }
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Text(
                 text = function.title,
                 style = MaterialTheme.typography.titleMedium,

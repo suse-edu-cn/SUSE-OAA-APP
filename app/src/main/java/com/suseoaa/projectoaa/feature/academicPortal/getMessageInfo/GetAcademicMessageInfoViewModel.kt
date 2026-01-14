@@ -56,7 +56,7 @@ class GetAcademicMessageInfoViewModel @Inject constructor(
         .flatMapLatest { id -> flow { emit(courseDao.getAccountById(id)) } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    // === 3. 手动刷新逻辑 ===
+    // 3. 手动刷新逻辑
     fun refreshData() {
         val account = currentAccount.value ?: return
 
