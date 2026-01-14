@@ -4,6 +4,7 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 import com.suseoaa.projectoaa.core.network.AuthInterceptor
 import com.suseoaa.projectoaa.core.network.BASE_URL_FOR_SUSE_OAA
 import com.suseoaa.projectoaa.core.network.login.LoginService
+import com.suseoaa.projectoaa.core.network.person.PersonService
 import com.suseoaa.projectoaa.core.network.register.RegisterService
 import dagger.Module
 import dagger.Provides
@@ -13,6 +14,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
+import retrofit2.create
 import javax.inject.Singleton
 
 @Module
@@ -67,5 +69,12 @@ object NetworkModule {
     @Singleton
     fun provideRegisterService(retrofit: Retrofit): RegisterService {
         return retrofit.create(RegisterService::class.java)
+    }
+
+    //    6.提供PersonService
+    @Provides
+    @Singleton
+    fun providePersonService(retrofit: Retrofit): PersonService {
+        return retrofit.create(PersonService::class.java)
     }
 }

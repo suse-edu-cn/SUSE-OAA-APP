@@ -38,7 +38,7 @@ class LoginViewModel @Inject constructor(
             isLoading = true
             try {
                 val request = LoginRequest(username = cleanAccount, password = cleanPassword)
-                // [修改] 使用注入的 Service
+                // 使用注入的 Service
                 val response = loginService.login(request)
 
                 if (response.isSuccessful) {
@@ -51,7 +51,7 @@ class LoginViewModel @Inject constructor(
                         onError(body?.message ?: "登录失败: 未知错误")
                     }
                 } else {
-                    // [修改] 处理 401 或其他错误码
+                    // 处理 401 或其他错误码
                     if (response.code() == 401) {
                         onError("登录失败：账号或密码错误")
                     } else {

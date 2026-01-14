@@ -97,4 +97,6 @@ dependencies {
     implementation(libs.androidx.compose.animation)
 //    解析请求的HTML代码
     implementation(libs.jsoup)
+//    Coil图片库
+    implementation(libs.coil.compose)
 }

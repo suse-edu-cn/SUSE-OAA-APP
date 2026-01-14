@@ -33,7 +33,7 @@ fun MainScreen(
     onAcademicEvent: (AcademicPortalEvent) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    modifier: Modifier = Modifier // [新增] 接收外部 Modifier
+    modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
@@ -42,7 +42,7 @@ fun MainScreen(
     val isCompact = windowSizeClass == WindowWidthSizeClass.Compact
     val isTablet = !isCompact
 
-    // [优化] 延迟状态读取，防止页面微动时触发全屏重组
+    // 延迟状态读取，防止页面微动时触发全屏重组
     val currentDestinationIndex by remember {
         derivedStateOf { pagerState.currentPage }
     }
@@ -63,12 +63,12 @@ fun MainScreen(
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    beyondViewportPageCount = 1, // [优化] 减少预加载页数，节省内存
+                    beyondViewportPageCount = 2,
                 ) { page ->
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            // [优化] 开启硬件层裁剪，提升滑动帧率
+                            // 开启硬件层裁剪，提升滑动帧率
                             .graphicsLayer { clip = true }
                     ) {
                         when (page) {

@@ -9,11 +9,9 @@ data class Data(
     @SerialName("avatar")
     val avatar: String,
     @SerialName("department")
-    val department: String,
+    val department: String?,
     @SerialName("name")
     val name: String,
-    @SerialName("object_key")
-    val objectKey: String,
     @SerialName("role")
     val role: String,
     @SerialName("student_id")

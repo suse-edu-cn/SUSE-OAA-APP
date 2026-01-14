@@ -459,7 +459,7 @@ fun CourseScheduleLayout(
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
-                        beyondViewportPageCount = 1, // [优化] 减少预加载以降低内存占用
+                        beyondViewportPageCount = 4, // 减少预加载以降低内存占用
                         pageSpacing = 0.dp
                     ) { page ->
                         val weekIndex = page + 1
