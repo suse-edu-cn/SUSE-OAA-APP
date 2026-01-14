@@ -1,5 +1,7 @@
 package com.suseoaa.projectoaa.app
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -47,40 +49,10 @@ fun AppNavHost(
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            enterTransition = {
-                slideInHorizontally(
-                    initialOffsetX = { it },
-                    animationSpec = containerVisualPhysics()
-                )
-            },
-            exitTransition = {
-                scaleOut(
-                    targetScale = 0.9f,
-                    animationSpec = containerVisualPhysics()
-                ) + fadeOut(
-                    animationSpec = keepAlivePhysics()
-                )
-            },
-            popExitTransition = {
-                scaleOut(
-                    targetScale = 0.85f,
-                    animationSpec = containerVisualPhysics()
-                ) +
-                        fadeOut(
-                            animationSpec = keepAlivePhysics()
-                        ) +
-                        slideOutHorizontally(
-                            targetOffsetX = { 1 },
-                            animationSpec = keepAlivePhysics()
-                        )
-            },
-            popEnterTransition = {
-                scaleIn(
-                    initialScale = 0.96f,
-                    animationSpec = containerVisualPhysics()
-                )
-            }
-
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
         ) {
             loginScreen(
                 onLoginSuccess = {

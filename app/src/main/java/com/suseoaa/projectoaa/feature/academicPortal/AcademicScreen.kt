@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.feature.academicPortal
 
+
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.clickable
@@ -15,6 +16,8 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,8 +36,9 @@ import com.suseoaa.projectoaa.core.util.getExamCountDown
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.ExamUiState
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoViewModel
 import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicMessageInfoViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-// 定义功能按钮的数据结构
 data class PortalFunction(
     val title: String,
     val icon: ImageVector,
@@ -42,6 +46,7 @@ data class PortalFunction(
     val color: Color
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AcademicScreen(
     isTablet: Boolean,
@@ -51,12 +56,21 @@ fun AcademicScreen(
 ) {
     val messageVM: GetAcademicMessageInfoViewModel = hiltViewModel()
     val examVM: GetExamInfoViewModel = hiltViewModel()
-    val messageList by messageVM.dataList.collectAsStateWithLifecycle()
-    val examList by examVM.dataList.collectAsStateWithLifecycle()
 
+    // 使用 Flow 收集数据，现在这些数据来自数据库，读取极快，不会阻塞
+    // 注意：请确保你的 ViewModel 已经改成了 StateFlow 暴露数据
+    val messageList by messageVM.dataList.collectAsStateWithLifecycle()
+    val examList by examVM.examList.collectAsStateWithLifecycle() // 假设你改名为 examList
+
+    val isRefreshing = examVM.isRefreshing || messageVM.isRefreshing
+    val pullState = rememberPullToRefreshState()
+
+    // 错峰加载策略：进入页面后，稍微延迟再静默刷新一次，不阻塞 UI
     LaunchedEffect(Unit) {
-        messageVM.fetchData()
-        examVM.fetchData()
+        delay(800) // 等待页面转场动画和数据库读取完成
+        // 只有当数据为空时才自动刷新，或者静默刷新
+        if (examList.isEmpty()) examVM.refreshData()
+        if (messageList.isEmpty()) messageVM.refreshData()
     }
 
     val windowSizeClass = LocalWindowSizeClass.current
@@ -78,93 +92,114 @@ fun AcademicScreen(
         ),
     )
 
-    with(sharedTransitionScope) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(gridColumns),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // 1. 调课信息 (Key: academic_messages_card)
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Box(
-                    modifier = Modifier.sharedBounds(
-                        sharedContentState = rememberSharedContentState(key = "academic_messages_card"),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        boundsTransform = AcademicSharedTransitionSpec,
-                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
-                        zIndexInOverlay = 1f
-                    )
-                ) {
-                    ReschedulingCard(
-                        messageList = messageList,
-                        onClick = { onNavigate(AcademicPortalEvent.NavigateTo(AcademicDestinations.Messages)) }
-                    )
-                }
-            }
-
-            // 2. 考试信息 (Key: academic_exams_card)
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Box(
-                    modifier = Modifier.sharedBounds(
-                        sharedContentState = rememberSharedContentState(key = "academic_exams_card"),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        boundsTransform = AcademicSharedTransitionSpec,
-                        resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
-                        zIndexInOverlay = 1f
-                    )
-                ) {
-                    UpcomingExamsCard(
-                        examList = examList,
-                        onClick = { onNavigate(AcademicPortalEvent.NavigateTo(AcademicDestinations.Exams)) }
-                    )
-                }
-            }
-
-            //  标题
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    text = "常用功能",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                )
-            }
-
-            // 3. 功能按钮
-            items(functions) { func ->
-                val cardKey = "${func.destination.route}_card"
-                // 冲突处理：如果是 Exams，不加 SharedBounds，避免与大卡片冲突
-                if (func.destination == AcademicDestinations.Exams) {
-                    FunctionCard(
-                        function = func,
-                        onClick = { onNavigate(AcademicPortalEvent.NavigateTo(func.destination)) }
-                    )
-                } else {
+    // 使用 PullToRefreshBox 包裹内容
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        state = pullState,
+        onRefresh = {
+            examVM.refreshData()
+            messageVM.refreshData()
+        },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        with(sharedTransitionScope) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(gridColumns),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // ... 保持原本的 item 内容不变 ...
+                // 1. 调课信息
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Box(
                         modifier = Modifier.sharedBounds(
-                            sharedContentState = rememberSharedContentState(key = cardKey),
+                            sharedContentState = rememberSharedContentState(key = "academic_messages_card"),
                             animatedVisibilityScope = animatedVisibilityScope,
                             boundsTransform = AcademicSharedTransitionSpec,
-                            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                            zIndexInOverlay = 1f
                         )
                     ) {
-                        FunctionCard(
-                            function = func,
-                            onClick = { onNavigate(AcademicPortalEvent.NavigateTo(func.destination)) }
+                        ReschedulingCard(
+                            messageList = messageList, // 确保 VM 这里的类型匹配
+                            onClick = {
+                                onNavigate(
+                                    AcademicPortalEvent.NavigateTo(
+                                        AcademicDestinations.Messages
+                                    )
+                                )
+                            }
                         )
                     }
                 }
-            }
 
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Spacer(modifier = Modifier.height(80.dp))
+                // 2. 考试信息
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier.sharedBounds(
+                            sharedContentState = rememberSharedContentState(key = "academic_exams_card"),
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            boundsTransform = AcademicSharedTransitionSpec,
+                            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                            zIndexInOverlay = 1f
+                        )
+                    ) {
+                        UpcomingExamsCard(
+                            examList = examList,
+                            onClick = {
+                                onNavigate(
+                                    AcademicPortalEvent.NavigateTo(
+                                        AcademicDestinations.Exams
+                                    )
+                                )
+                            }
+                        )
+                    }
+                }
+
+                // 标题和功能按钮部分保持不变...
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "常用功能",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+
+                items(functions) { func ->
+                    val cardKey = "${func.destination.route}_card"
+                    if (func.destination == AcademicDestinations.Exams) {
+                        FunctionCard(
+                            func,
+                            { onNavigate(AcademicPortalEvent.NavigateTo(func.destination)) })
+                    } else {
+                        Box(
+                            modifier = Modifier.sharedBounds(
+                                sharedContentState = rememberSharedContentState(key = cardKey),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                boundsTransform = AcademicSharedTransitionSpec,
+                                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+                            )
+                        ) {
+                            FunctionCard(
+                                func,
+                                { onNavigate(AcademicPortalEvent.NavigateTo(func.destination)) })
+                        }
+                    }
+                }
+
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
             }
         }
     }
 }
 
+// ... ReschedulingCard, UpcomingExamsCard 等组件保持不变 ...
 // 组件：最新调课卡片
 @Composable
 fun ReschedulingCard(

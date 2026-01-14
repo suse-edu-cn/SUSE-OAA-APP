@@ -2,6 +2,7 @@ package com.suseoaa.projectoaa.core.database.di
 
 import android.content.Context
 import com.suseoaa.projectoaa.core.database.CourseDatabase
+import com.suseoaa.projectoaa.core.database.dao.AcademicDao
 import com.suseoaa.projectoaa.core.database.dao.CourseDao
 import com.suseoaa.projectoaa.core.database.dao.GradeDao // [新增]
 import dagger.Module
@@ -28,9 +29,14 @@ object DatabaseModule {
         return database.courseDao()
     }
 
-    // [新增] 提供 GradeDao 实例
+    // 提供 GradeDao 实例
     @Provides
     fun provideGradeDao(database: CourseDatabase): GradeDao {
         return database.gradeDao()
+    }
+
+    @Provides
+    fun provideAcademicDao(database: CourseDatabase): AcademicDao {
+        return database.academicDao()
     }
 }

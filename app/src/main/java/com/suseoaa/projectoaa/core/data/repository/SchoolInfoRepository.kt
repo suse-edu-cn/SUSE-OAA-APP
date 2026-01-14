@@ -1,9 +1,14 @@
+// 文件名: projectoaa/core/data/repository/SchoolInfoRepository.kt
 package com.suseoaa.projectoaa.core.data.repository
 
+import com.suseoaa.projectoaa.core.database.dao.AcademicDao
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
+import com.suseoaa.projectoaa.core.database.entity.ExamCacheEntity
+import com.suseoaa.projectoaa.core.database.entity.MessageCacheEntity
 import com.suseoaa.projectoaa.core.network.school.SchoolApiService
 import com.suseoaa.projectoaa.core.util.HtmlParser
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 import javax.inject.Inject
@@ -12,45 +17,51 @@ import javax.inject.Singleton
 @Singleton
 class SchoolInfoRepository @Inject constructor(
     private val api: SchoolApiService,
-    private val authRepository: SchoolAuthRepository
+    private val authRepository: SchoolAuthRepository,
+    private val academicDao: AcademicDao
 ) {
-    // 考试信息 - 使用三段式拼接
-    suspend fun getAcademicExamInfo(account: CourseAccountEntity): Result<List<String>> =
+
+    // === 考试信息 (缓存+网络) ===
+
+    fun observeExams(studentId: String): Flow<List<ExamCacheEntity>> {
+        return academicDao.getExamsFlow(studentId)
+    }
+
+    suspend fun refreshAcademicExamInfo(account: CourseAccountEntity): Result<String> =
         withContext(Dispatchers.IO) {
             try {
                 val (xnm, xqm) = getCurrentTerm()
-
+                // 1. 发起请求
                 val request = suspend { api.getExamList(xnm, xqm) }
                 var response = request()
 
-                // 自动重试逻辑
-                if (!response.isSuccessful || response.raw().header("Content-Type")
-                        ?.contains("html") == true
-                ) {
+                // 2. 自动重试
+                if (!response.isSuccessful || response.raw().header("Content-Type")?.contains("html") == true) {
                     authRepository.login(account.studentId, account.password)
                     response = request()
                 }
 
+                // 3. 处理响应并写入数据库
                 if (response.isSuccessful) {
                     val examResponse = response.body()
                     val items = examResponse?.items ?: emptyList()
 
-                    val resultList = items.map { item ->
+                    val entities = items.map { item ->
                         val name = item.kcmc ?: "未知课程"
                         val time = item.kssj ?: "时间待定"
-
-                        // 拼接地点：教室 + (校区)
-                        // e.g. "LA5-322(临港校区)"
                         var location = item.cdmc ?: "地点待定"
                         if (!item.cdxqmc.isNullOrBlank()) {
                             location += "(${item.cdxqmc})"
                         }
-
-                        // 使用 "###" 分隔三个字段：课程名###时间###地点
-                        // 这样 ViewModel 就不需要用正则去猜了，直接 split 即可
-                        "$name###$time###$location"
+                        ExamCacheEntity(
+                            studentId = account.studentId,
+                            courseName = name,
+                            time = time,
+                            location = location
+                        )
                     }
-                    Result.success(resultList)
+                    academicDao.updateExams(account.studentId, entities)
+                    Result.success("刷新成功")
                 } else {
                     Result.failure(Exception("获取考试信息失败: ${response.code()}"))
                 }
@@ -60,9 +71,48 @@ class SchoolInfoRepository @Inject constructor(
             }
         }
 
-    suspend fun getAcademicMessageInfo(account: CourseAccountEntity): Result<List<String>> =
-        fetchAndParseHtml(account) { api.getAcademicMessageInfo() }
+    // === 调课通知 (缓存+网络) ===
 
+    fun observeMessages(studentId: String): Flow<List<MessageCacheEntity>> {
+        return academicDao.getMessagesFlow(studentId)
+    }
+
+    suspend fun refreshAcademicMessageInfo(account: CourseAccountEntity): Result<String> =
+        fetchAndSaveMessages(account)
+
+    private suspend fun fetchAndSaveMessages(account: CourseAccountEntity): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val request = suspend { api.getAcademicMessageInfo() }
+            var response = request()
+            var bodyString = response.body()?.string() ?: ""
+
+            if (response.code() == 901 || response.code() == 302 || isLoginRequired(bodyString)) {
+                val loginResult = authRepository.login(account.studentId, account.password)
+                if (loginResult.isFailure) return@withContext Result.failure(Exception("自动登录失败"))
+                response = request()
+                bodyString = response.body()?.string() ?: ""
+            }
+
+            if (response.isSuccessful) {
+                val rawList = HtmlParser.htmlParse(bodyString)
+                val entities = rawList.map { content ->
+                    MessageCacheEntity(
+                        studentId = account.studentId,
+                        content = content
+                    )
+                }
+                academicDao.updateMessages(account.studentId, entities)
+                Result.success("刷新成功")
+            } else {
+                Result.failure(Exception("请求失败: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // === [修复] 补回：教务/课程信息 (目前仍使用直连，未做缓存) ===
+    // 这里的返回值仍保持 List<String>，以兼容 GetCourseInfoViewModel
     suspend fun getAcademicCourseInfo(account: CourseAccountEntity): Result<List<String>> =
         fetchAndParseHtml(account) { api.getAcademicCourseInfo() }
 
@@ -83,9 +133,8 @@ class SchoolInfoRepository @Inject constructor(
             }
 
             if (response.isSuccessful) {
-                val finalHtml = bodyString
                 val result = withContext(Dispatchers.Default) {
-                    HtmlParser.htmlParse(finalHtml)
+                    HtmlParser.htmlParse(bodyString)
                 }
                 Result.success(result)
             } else {
@@ -95,6 +144,9 @@ class SchoolInfoRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+
+    // === 辅助 ===
 
     private fun isLoginRequired(html: String?): Boolean =
         html != null && (html.contains("用户登录") || html.contains("/xtgl/login_slogin.html"))

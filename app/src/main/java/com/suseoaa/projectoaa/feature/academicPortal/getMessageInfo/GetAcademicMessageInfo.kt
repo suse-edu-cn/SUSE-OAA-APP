@@ -45,12 +45,13 @@ fun GetAcademicMessageInfoScreen(
     val messageList by viewModel.dataList.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        viewModel.fetchData()
+        if (messageList.isEmpty()) {
+            viewModel.refreshData()
+        }
     }
 
     with(sharedTransitionScope) {
         Scaffold(
-            // 使用 SharedTransition 标记，与主页的卡片产生关联动画
             modifier = Modifier.sharedBounds(
                 sharedContentState = rememberSharedContentState(key = "academic_messages_card"),
                 animatedVisibilityScope = animatedVisibilityScope,
@@ -68,7 +69,7 @@ fun GetAcademicMessageInfoScreen(
                 )
             }
         ) { innerPadding ->
-            if (messageList.isNullOrEmpty()) {
+            if (messageList.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -85,7 +86,7 @@ fun GetAcademicMessageInfoScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(messageList ?: emptyList()) { msg ->
+                    items(messageList) { msg ->
                         MessageItemCard(msg)
                     }
                 }
