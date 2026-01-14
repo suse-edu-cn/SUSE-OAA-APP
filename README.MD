@@ -5,7 +5,7 @@
 
 **青蟹** 是专为 **四川轻化工大学开放原子开源协会 (SUSE Open Atom Open Source Association)** 量身打造的现代化校园服务客户端。
 
-本项目完全采用 **Kotlin** 与 **Jetpack Compose** 重构，贯彻 **Modern Android Development (MAD)** 理念。项目深度对接学校教务系统（强智科技），旨在解决传统教务系统移动端体验不佳的问题，同时为协会内部提供高效的服务入口。
+本项目完全采用 **Kotlin** 与 **Jetpack Compose** 重构，贯彻 **Modern Android Development (MAD)** 理念。项目深度对接四川轻化工大学教务系统，旨在解决传统教务系统移动端体验不佳的问题，同时为协会内部提供高效的服务入口。
 
 ## ✨ 核心技术亮点 (Key Highlights)
 
