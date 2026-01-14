@@ -7,19 +7,19 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.geometry.Rect
 
 fun <T> containerVisualPhysics(): FiniteAnimationSpec<T> = tween(
-    durationMillis = 500,
+    durationMillis = 400,
     easing = FastOutSlowInEasing
 )
 
 fun <T> keepAlivePhysics(): FiniteAnimationSpec<T> = tween(
-    durationMillis = 750,
+    durationMillis = 450,
     easing = LinearEasing
 )
 
 val AcademicSharedTransitionSpec: (Rect, Rect) -> FiniteAnimationSpec<Rect> =
     { _, _ ->
         tween(
-            durationMillis = 500,
+            durationMillis = 400,
             easing = FastOutSlowInEasing
         )
     }

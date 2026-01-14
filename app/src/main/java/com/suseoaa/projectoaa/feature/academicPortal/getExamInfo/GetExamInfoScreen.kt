@@ -27,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
 import com.suseoaa.projectoaa.core.util.getExamCountDown
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +38,9 @@ fun GetExamInfoScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
+    // 延迟数据加载，给转场动画留出 300ms 纯净时间
     LaunchedEffect(Unit) {
+        delay(300)
         viewModel.fetchData()
     }
     val examList by viewModel.dataList.collectAsStateWithLifecycle()
@@ -49,6 +52,8 @@ fun GetExamInfoScreen(
                     sharedContentState = rememberSharedContentState(key = "academic_exams_card"),
                     animatedVisibilityScope = animatedVisibilityScope,
                     boundsTransform = AcademicSharedTransitionSpec,
+                    // [修复] 使用小写的 scaleToBounds() 函数
+                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(),
                     zIndexInOverlay = 1f
                 ),
         ) { innerPadding ->

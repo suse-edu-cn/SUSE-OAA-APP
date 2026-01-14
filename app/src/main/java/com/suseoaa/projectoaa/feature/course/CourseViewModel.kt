@@ -143,7 +143,6 @@ class CourseListViewModel @Inject constructor(
     private var _semesterStartDate = MutableStateFlow<LocalDate>(LocalDate.now().with(DayOfWeek.MONDAY))
     val semesterStartDate: StateFlow<LocalDate> = _semesterStartDate
 
-    // [修复] 修改为 public
     @OptIn(ExperimentalCoroutinesApi::class)
     val allCourses: StateFlow<List<CourseWithTimes>> = combine(
         currentAccount.filterNotNull(),
@@ -155,7 +154,6 @@ class CourseListViewModel @Inject constructor(
         localRepository.getCourses(studentId, xnm, xqm)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // [修复] 修改为 public
     val weekScheduleMap: StateFlow<Map<Int, List<CourseWithTimes>>> = allCourses
         .map { list ->
             (1..25).associateWith { week -> calculateCoursesForWeek(week, list) }
@@ -163,21 +161,32 @@ class CourseListViewModel @Inject constructor(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
-    val currentWeekLayoutData: StateFlow<List<ScheduleLayoutItem>> = combine(
-        weekScheduleMap,
-        snapshotFlow { currentDisplayWeek },
-        snapshotFlow { selectedXnm }
-    ) { map, week, xnm ->
-        val courses = map[week] ?: emptyList()
-        val dailySchedule = getDailySchedule(xnm)
-        calculateLayoutItems(courses, dailySchedule)
-    }
-        .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
     val currentDailySchedule: StateFlow<List<TimeSlotConfig>> = snapshotFlow { selectedXnm }
         .map { getDailySchedule(it) }
         .stateIn(viewModelScope, SharingStarted.Lazily, DailySchedulePost2025)
+
+    // [新增] 预计算所有周次的布局数据
+    // 这将繁重的 "calculateLayoutItems" 逻辑从 UI 线程移到了后台线程
+    val weekLayoutMap: StateFlow<Map<Int, List<ScheduleLayoutItem>>> = combine(
+        weekScheduleMap,
+        currentDailySchedule
+    ) { map, schedule ->
+        map.mapValues { (_, courses) ->
+            calculateLayoutItems(courses, schedule)
+        }
+    }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
+    // 以前的 currentWeekLayoutData 可以保留，也可以不用，UI 现在推荐用 weekLayoutMap + Pager
+    val currentWeekLayoutData: StateFlow<List<ScheduleLayoutItem>> = combine(
+        weekLayoutMap,
+        snapshotFlow { currentDisplayWeek }
+    ) { map, week ->
+        map[week] ?: emptyList()
+    }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
 
     init {
         loadSemesterStart()
@@ -297,6 +306,7 @@ class CourseListViewModel @Inject constructor(
         return if (year >= 2025) DailySchedulePost2025 else DailySchedulePre2025
     }
 
+    // [优化] 确保此方法是公开的或内部可见的，以便在 StateFlow 中调用（如果在同一文件，private 也可以）
     private fun calculateLayoutItems(
         courses: List<CourseWithTimes>,
         dailySchedule: List<TimeSlotConfig>

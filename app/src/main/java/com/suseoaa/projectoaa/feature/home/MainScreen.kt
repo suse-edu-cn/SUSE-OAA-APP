@@ -11,6 +11,9 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,18 +32,22 @@ fun MainScreen(
     windowSizeClass: WindowWidthSizeClass,
     onAcademicEvent: (AcademicPortalEvent) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    modifier: Modifier = Modifier // [新增] 接收外部 Modifier
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
 
     // 判断设备类型
     val isCompact = windowSizeClass == WindowWidthSizeClass.Compact
-    val isTablet = !isCompact // 如果不是紧凑型（手机），就认为是平板/大屏
+    val isTablet = !isCompact
 
-    val currentDestinationIndex = pagerState.currentPage
+    // [优化] 延迟状态读取，防止页面微动时触发全屏重组
+    val currentDestinationIndex by remember {
+        derivedStateOf { pagerState.currentPage }
+    }
 
-    Row(modifier = Modifier.fillMaxSize()) {
+    Row(modifier = modifier.fillMaxSize()) {
         if (!isCompact) {
             OaaNavRail(
                 selectedIndex = currentDestinationIndex,
@@ -52,19 +59,17 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .graphicsLayer(clip = false)
             ) {
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer(clip = false),
-                    beyondViewportPageCount = 2,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 1, // [优化] 减少预加载页数，节省内存
                 ) { page ->
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .graphicsLayer(clip = false)
+                            // [优化] 开启硬件层裁剪，提升滑动帧率
+                            .graphicsLayer { clip = true }
                     ) {
                         when (page) {
                             0 -> HomeScreen()

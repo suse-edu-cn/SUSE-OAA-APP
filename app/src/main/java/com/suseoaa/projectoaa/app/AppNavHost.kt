@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -46,16 +47,12 @@ fun AppNavHost(
         NavHost(
             navController = navController,
             startDestination = startDestination,
-
-            // 1. 进场
             enterTransition = {
                 slideInHorizontally(
                     initialOffsetX = { it },
                     animationSpec = containerVisualPhysics()
                 )
             },
-
-            // 2. 普通离场 (正向跳转时也要保活，防止平板主页闪烁)
             exitTransition = {
                 scaleOut(
                     targetScale = 0.9f,
@@ -64,29 +61,22 @@ fun AppNavHost(
                     animationSpec = keepAlivePhysics()
                 )
             },
-
-            // 3. 返回手势 - 顶层页面
             popExitTransition = {
-                // 动作A：缩放 (500ms) - 露出底层页面
                 scaleOut(
                     targetScale = 0.85f,
                     animationSpec = containerVisualPhysics()
                 ) +
-                        // 动作B：保活淡出 (750ms) - 防止过早销毁
                         fadeOut(
                             animationSpec = keepAlivePhysics()
                         ) +
-                        // 动作C：1像素锚点位移 (750ms) - 防止平板渲染引擎偷懒丢动画
                         slideOutHorizontally(
                             targetOffsetX = { 1 },
                             animationSpec = keepAlivePhysics()
                         )
             },
-
-            // 4. 返回手势 - 底层页面
             popEnterTransition = {
                 scaleIn(
-                    initialScale = 0.96f, // 微微缩放，增加景深
+                    initialScale = 0.96f,
                     animationSpec = containerVisualPhysics()
                 )
             }
@@ -110,6 +100,8 @@ fun AppNavHost(
             composable(MAIN_SCREEN_ROUTE) {
                 MainScreen(
                     windowSizeClass = windowSizeClass,
+                    // [优化] 为主屏幕容器增加硬件隔离层，防止转场时底层重绘
+                    modifier = Modifier.graphicsLayer { clip = true },
                     onAcademicEvent = { event ->
                         when (event) {
                             is AcademicPortalEvent.NavigateTo -> {
@@ -122,7 +114,6 @@ fun AppNavHost(
                 )
             }
 
-            // 教务信息-成绩查询
             composable(AcademicDestinations.Grades.route) {
                 GradesScreen(
                     windowSizeClass = windowSizeClass,
@@ -132,7 +123,6 @@ fun AppNavHost(
                 )
             }
 
-            // 考试信息查询
             composable(AcademicDestinations.Exams.route) {
                 GetExamInfoScreen(
                     windowSizeClass = windowSizeClass,
@@ -142,7 +132,6 @@ fun AppNavHost(
                 )
             }
 
-            // 调课通知列表
             composable(AcademicDestinations.Messages.route) {
                 GetAcademicMessageInfoScreen(
                     windowSizeClass = windowSizeClass,
@@ -151,7 +140,7 @@ fun AppNavHost(
                     animatedVisibilityScope = this@composable
                 )
             }
-            // 测试页面
+
             composable(AcademicDestinations.Test.route) {
                 TestScreen()
             }

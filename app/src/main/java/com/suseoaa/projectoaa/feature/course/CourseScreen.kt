@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
@@ -68,14 +69,16 @@ fun CourseScreen(
     val windowSizeClass = LocalWindowSizeClass.current
     val context = LocalContext.current
 
-    // 从 ViewModel 收集状态
+    // [优化] 从 ViewModel 收集预计算好的布局数据，而非原始课程数据
+    val weekLayoutMap by viewModel.weekLayoutMap.collectAsStateWithLifecycle()
+
+    // 仅用于判空显示
     val allCourses by viewModel.allCourses.collectAsStateWithLifecycle()
-    val weekScheduleMap by viewModel.weekScheduleMap.collectAsStateWithLifecycle()
+
     val startDate by viewModel.semesterStartDate.collectAsStateWithLifecycle()
     val savedAccounts by viewModel.savedAccounts.collectAsStateWithLifecycle()
     val currentAccount by viewModel.currentAccount.collectAsStateWithLifecycle()
     val termOptions by viewModel.termOptions.collectAsStateWithLifecycle()
-    // 获取当前适用的作息时间表
     val currentDailySchedule by viewModel.currentDailySchedule.collectAsStateWithLifecycle()
     val uiState = viewModel.uiState
 
@@ -100,13 +103,11 @@ fun CourseScreen(
     val isPhone = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
     val bottomPadding = if (isPhone) 90.dp else 0.dp
 
-    // 监听 Pager 滑动，更新 ViewModel 中的当前周
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }.collect { page ->
-            val newWeek = page + 1
-            if (viewModel.currentDisplayWeek != newWeek) {
-                viewModel.currentDisplayWeek = newWeek
-            }
+    // [优化] 监听 Pager 静止状态 (settledPage)，防止滑动过程中频繁触发 ViewModel 计算
+    LaunchedEffect(pagerState.settledPage) {
+        val newWeek = pagerState.settledPage + 1
+        if (viewModel.currentDisplayWeek != newWeek) {
+            viewModel.currentDisplayWeek = newWeek
         }
     }
 
@@ -237,6 +238,10 @@ fun CourseScreen(
                                 DropdownMenuItem(
                                     text = { Text("查看他人课表") },
                                     onClick = { menuExpanded = false; showAccountDialog = true })
+                                DropdownMenuItem(
+                                    text = { Text("设置开学日期") },
+                                    onClick = { menuExpanded = false; datePickerDialog.show() }
+                                )
                             }
                         }
                     }
@@ -289,6 +294,8 @@ fun CourseScreen(
                 .padding(padding)
                 .padding(bottom = bottomPadding)
                 .fillMaxSize()
+                // [优化] 开启 GPU 硬件层加速，滑动时只进行纹理位移，不重绘内容
+                .graphicsLayer { clip = true }
         ) {
             if (allCourses.isEmpty() && !uiState.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -315,7 +322,7 @@ fun CourseScreen(
                             .fillMaxHeight()
                     ) {
                         CourseScheduleLayout(
-                            weekScheduleMap = weekScheduleMap,
+                            weekLayoutMap = weekLayoutMap,
                             startDate = startDate,
                             pagerState = pagerState,
                             dailySchedule = currentDailySchedule,
@@ -398,7 +405,7 @@ fun CourseScreen(
 
 @Composable
 fun CourseScheduleLayout(
-    weekScheduleMap: Map<Int, List<CourseWithTimes>>,
+    weekLayoutMap: Map<Int, List<ScheduleLayoutItem>>,
     startDate: LocalDate,
     pagerState: androidx.compose.foundation.pager.PagerState,
     dailySchedule: List<TimeSlotConfig>,
@@ -452,16 +459,18 @@ fun CourseScheduleLayout(
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
-                        beyondViewportPageCount = 4,
+                        beyondViewportPageCount = 1, // [优化] 减少预加载以降低内存占用
                         pageSpacing = 0.dp
                     ) { page ->
                         val weekIndex = page + 1
                         val weekStart =
                             remember(startDate, page) { startDate.plusWeeks(page.toLong()) }
-                        val weekCourses = weekScheduleMap[weekIndex] ?: emptyList()
+
+                        // [优化] 直接获取预计算好的布局对象
+                        val layoutItems = weekLayoutMap[weekIndex] ?: emptyList()
 
                         DynamicWeekContent(
-                            courses = weekCourses,
+                            layoutItems = layoutItems,
                             weekStartDate = weekStart,
                             unitHeightPx = unitHeightPx,
                             maxWidth = parentMaxWidth - timeAxisWidth,
@@ -474,6 +483,102 @@ fun CourseScheduleLayout(
         }
     }
 }
+
+@Composable
+fun DynamicWeekContent(
+    layoutItems: List<ScheduleLayoutItem>,
+    weekStartDate: LocalDate,
+    unitHeightPx: Float,
+    maxWidth: Dp,
+    dailySchedule: List<TimeSlotConfig>,
+    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        DynamicDateRow(weekStartDate)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            HighlightTodayColumn(weekStartDate, maxWidth)
+            ScheduleCourseOverlay(layoutItems, unitHeightPx, dailySchedule, onCourseClick)
+        }
+    }
+}
+
+@Composable
+fun ScheduleCourseOverlay(
+    items: List<ScheduleLayoutItem>,
+    unitHeightPx: Float,
+    dailySchedule: List<TimeSlotConfig>,
+    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
+) {
+    // [优化] 分组逻辑保留，但不再解析字符串，直接使用 ViewModel 计算好的索引
+    val preparedGroups = remember(items) {
+        items.groupBy { it.dayIndex }.mapValues { (_, dayItems) ->
+            // 同一天可能有多节课在同一时间段（重叠）
+            dayItems.groupBy { "${it.startNodeIndex}-${it.endNodeIndex}" }
+        }
+    }
+
+    Layout(content = {
+        for (day in 0..6) {
+            val dayGroups = preparedGroups[day] ?: emptyMap()
+            dayGroups.forEach { (_, groupItems) ->
+                val overlappedData = groupItems.map { it.course to it.time }
+                val item = groupItems.first()
+                val index =
+                    (item.course.course.courseName.hashCode() and Int.MAX_VALUE) % CourseColors.size
+                val baseColor = CourseColors[index]
+
+                CourseCard(
+                    title = item.course.course.courseName,
+                    location = item.time.location,
+                    color = baseColor,
+                    onClick = { onCourseClick(overlappedData) },
+                    modifier = Modifier.layoutId(item) // 将 ScheduleLayoutItem 直接作为 ID
+                )
+            }
+        }
+    }) { measurables, constraints ->
+        val totalWidthPx = constraints.maxWidth.toFloat()
+        val colWidthPx = totalWidthPx / 7f
+
+        val slotYPositions = FloatArray(dailySchedule.size + 1)
+        var currentY = 0f
+        dailySchedule.forEachIndexed { index, slot ->
+            slotYPositions[index] = currentY
+            currentY += slot.weight * unitHeightPx
+        }
+        slotYPositions[dailySchedule.size] = currentY
+
+        val placeables = measurables.map { measurable ->
+            val item = measurable.layoutId as ScheduleLayoutItem
+            val yPos = slotYPositions[item.startNodeIndex]
+            val endYPos = slotYPositions[item.endNodeIndex.coerceAtMost(dailySchedule.size)]
+            val height = (endYPos - yPos).roundToInt() - 2.dp.roundToPx()
+            val width = colWidthPx.roundToInt() - 2.dp.roundToPx()
+            val placeable = measurable.measure(
+                androidx.compose.ui.unit.Constraints.fixed(
+                    width = width.coerceAtLeast(0), height = height.coerceAtLeast(0)
+                )
+            )
+            Triple(placeable, item, yPos)
+        }
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            placeables.forEach { (placeable, item, yPos) ->
+                placeable.place(
+                    (colWidthPx * item.dayIndex).roundToInt(),
+                    yPos.roundToInt()
+                )
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
+// 以下为辅助 Composable，基本保持原样，移除文件底部的解析函数
+// -------------------------------------------------------------------------
 
 @Composable
 fun CourseDetailContent(
@@ -609,7 +714,6 @@ fun CourseDetailCard(
                 .padding(12.dp)
                 .fillMaxWidth()
         ) {
-            // 双排布局
             val rows = details.chunked(2)
             rows.forEachIndexed { index, rowItems ->
                 Row(
@@ -633,7 +737,6 @@ fun CourseDetailCard(
     }
 }
 
-// 辅助数据类
 data class DetailInfo(
     val icon: ImageVector,
     val label: String,
@@ -763,28 +866,6 @@ fun StaticGridBackground(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Floa
 }
 
 @Composable
-fun DynamicWeekContent(
-    courses: List<CourseWithTimes>,
-    weekStartDate: LocalDate,
-    unitHeightPx: Float,
-    maxWidth: Dp,
-    dailySchedule: List<TimeSlotConfig>,
-    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        DynamicDateRow(weekStartDate)
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
-            HighlightTodayColumn(weekStartDate, maxWidth)
-            ScheduleCourseOverlay(courses, unitHeightPx, maxWidth, dailySchedule, onCourseClick)
-        }
-    }
-}
-
-@Composable
 fun DynamicDateRow(startDate: LocalDate) {
     val today = remember { LocalDate.now() }
     Row(
@@ -833,109 +914,6 @@ fun HighlightTodayColumn(weekStartDate: LocalDate, maxWidth: Dp) {
                 topLeft = Offset(xPx, 0f),
                 size = Size(colWidthPx, size.height)
             )
-        }
-    }
-}
-
-private data class LayoutItem(
-    val course: CourseWithTimes,
-    val time: ClassTimeEntity,
-    val startIndex: Int,
-    val endIndex: Int,
-    val dayIndex: Int
-)
-
-@Composable
-fun ScheduleCourseOverlay(
-    courses: List<CourseWithTimes>,
-    unitHeightPx: Float,
-    maxWidth: Dp,
-    dailySchedule: List<TimeSlotConfig>,
-    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
-) {
-    val density = LocalDensity.current
-    val sectionIndexMap = remember(dailySchedule) {
-        dailySchedule.mapIndexedNotNull { index, slot ->
-            if (slot.sectionName.isNotEmpty()) slot.sectionName to index else null
-        }.toMap()
-    }
-
-    val preparedGroups = remember(courses, sectionIndexMap) {
-        val items = mutableListOf<LayoutItem>()
-        courses.forEach { course ->
-            course.times.forEach { time ->
-                val dayIndex = parseWeekday(time.weekday) - 1
-                if (dayIndex in 0..6) {
-                    val (startPeriod, span) = parsePeriod(time.period)
-                    val startIndex = sectionIndexMap[startPeriod.toString()] ?: -1
-                    if (startIndex != -1) {
-                        var spanCounter = 0
-                        var endIndex = startIndex
-                        while (spanCounter < span && endIndex < dailySchedule.size) {
-                            if (dailySchedule[endIndex].type == SlotType.CLASS) spanCounter++
-                            endIndex++
-                        }
-                        items.add(LayoutItem(course, time, startIndex, endIndex, dayIndex))
-                    }
-                }
-            }
-        }
-        items.groupBy { it.dayIndex }.mapValues { (_, dayItems) ->
-            dayItems.groupBy { "${it.startIndex}-${it.endIndex}" }
-        }
-    }
-
-    Layout(content = {
-        for (day in 0..6) {
-            val dayGroups = preparedGroups[day] ?: emptyMap()
-            dayGroups.forEach { (_, groupItems) ->
-                val overlappedData = groupItems.map { it.course to it.time }
-                val item = groupItems.first()
-                val index =
-                    (item.course.course.courseName.hashCode() and Int.MAX_VALUE) % CourseColors.size
-                val baseColor = CourseColors[index]
-
-                CourseCard(
-                    title = item.course.course.courseName,
-                    location = item.time.location,
-                    color = baseColor,
-                    onClick = { onCourseClick(overlappedData) },
-                    modifier = Modifier.layoutId(item)
-                )
-            }
-        }
-    }) { measurables, constraints ->
-        val totalWidthPx = constraints.maxWidth.toFloat()
-        val colWidthPx = totalWidthPx / 7f
-
-        val slotYPositions = FloatArray(dailySchedule.size + 1)
-        var currentY = 0f
-        dailySchedule.forEachIndexed { index, slot ->
-            slotYPositions[index] = currentY
-            currentY += slot.weight * unitHeightPx
-        }
-        slotYPositions[dailySchedule.size] = currentY
-
-        val placeables = measurables.map { measurable ->
-            val item = measurable.layoutId as LayoutItem
-            val yPos = slotYPositions[item.startIndex]
-            val endYPos = slotYPositions[item.endIndex.coerceAtMost(dailySchedule.size)]
-            val height = (endYPos - yPos).roundToInt() - 2.dp.roundToPx()
-            val width = colWidthPx.roundToInt() - 2.dp.roundToPx()
-            val placeable = measurable.measure(
-                androidx.compose.ui.unit.Constraints.fixed(
-                    width = width.coerceAtLeast(0), height = height.coerceAtLeast(0)
-                )
-            )
-            Triple(placeable, item, yPos)
-        }
-        layout(constraints.maxWidth, constraints.maxHeight) {
-            placeables.forEach { (placeable, item, yPos) ->
-                placeable.place(
-                    (colWidthPx * item.dayIndex).roundToInt(),
-                    yPos.roundToInt()
-                )
-            }
         }
     }
 }
@@ -1171,28 +1149,4 @@ fun AddCustomCourseDialog(
             }
         }
     }
-}
-
-// 辅助函数，文件私有，防止与 VM 中的冲突
-private fun parseWeekday(day: String): Int = when {
-    day.contains("一") || day == "1" -> 1
-    day.contains("二") || day == "2" -> 2
-    day.contains("三") || day == "3" -> 3
-    day.contains("四") || day == "4" -> 4
-    day.contains("五") || day == "5" -> 5
-    day.contains("六") || day == "6" -> 6
-    day.contains("日") || day == "7" -> 7
-    else -> 1
-}
-
-private fun parsePeriod(period: String): Pair<Int, Int> {
-    try {
-        val clean = period.replace("节", "")
-        val parts = clean.split("-")
-        if (parts.size == 2) return parts[0].toInt() to (parts[1].toInt() - parts[0].toInt() + 1)
-        clean.toIntOrNull()?.let { return it to 1 }
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
-    return 1 to 2
 }
