@@ -39,7 +39,8 @@ fun MainScreen(
     onAcademicEvent: (AcademicPortalEvent) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToLogin: () -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
@@ -88,7 +89,9 @@ fun MainScreen(
                                 animatedVisibilityScope = animatedVisibilityScope
                             )
 
-                            3 -> PersonScreen()
+                            3 -> PersonScreen(
+                                onNavigateToLogin = onNavigateToLogin
+                            )
                         }
                     }
                 }

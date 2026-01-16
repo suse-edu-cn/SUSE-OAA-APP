@@ -14,7 +14,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.material3.TimePickerDialogDefaults.Title
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -45,7 +47,8 @@ private val HeaderHeight = 320.dp
 @Composable
 fun PersonScreen(
     viewModel: PersonViewModel = hiltViewModel(),
-    updateViewModel: AppUpdateViewModel = hiltViewModel()
+    updateViewModel: AppUpdateViewModel = hiltViewModel(),
+    onNavigateToLogin: () -> Unit
 ) {
     val userInfo by viewModel.userInfo.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -156,16 +159,15 @@ fun PersonScreen(
 
                     // Item 1: 用户信息卡片 (跨满整行)
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        UserInfoCard(userInfo)
+                        UserInfoCard(
+                            userInfo = userInfo,
+                            onLogout = {
+                                viewModel.logout {
+                                    onNavigateToLogin()
+                                }
+                            }
+                        )
                     }
-
-                    // Item 2...N: 功能卡片/设备信息
-//                    item(span = { GridItemSpan(if (isPhone) maxLineSpan else 1) }) {
-//                        InfoItemCard(title = "检查更新", value = "1")
-//                    }
-//                    item(span = { GridItemSpan(if (isPhone) maxLineSpan else 1) }) {
-//                        InfoItemCard(title = "检查更新", value = BuildConfig.VERSION_NAME)
-//                    }
                     item(span = { GridItemSpan(if (isPhone) maxLineSpan else 1) }) {
                         UpdateInfoCard(
                             currentVersion = BuildConfig.VERSION_NAME,
@@ -188,20 +190,24 @@ fun PersonScreen(
 }
 
 // 组件封装
-
 @Composable
-fun UserInfoCard(userInfo: Data?) {
+fun UserInfoCard(
+    userInfo: Data?,
+    onLogout: () -> Unit
+) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(24.dp), // 大圆角
+        shape = RoundedCornerShape(24.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier
+                .padding(24.dp)
+                .fillMaxWidth(), // 确保 Row 占满宽度
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 头像
+            // 1. 头像
             AsyncImage(
                 model = userInfo?.avatar ?: "",
                 contentDescription = null,
@@ -215,6 +221,8 @@ fun UserInfoCard(userInfo: Data?) {
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // 2. 文本区域
+            // 使用 weight(1f) 占据中间剩余空间，把后面的按钮挤到最右边
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = userInfo?.name ?: "请登录",
@@ -232,38 +240,48 @@ fun UserInfoCard(userInfo: Data?) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            // --- 3. 右侧退出按钮 ---
+            // 只有当用户已登录(有名字/信息)时才显示，或者一直显示
+            IconButton(onClick = onLogout) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = "退出登录",
+                    tint = MaterialTheme.colorScheme.error // 使用红色表示警告/退出
+                )
+            }
         }
     }
 }
 
+// 退出登录卡片组件
 @Composable
-fun InfoItemCard(title: String, value: String) {
+fun LogoutCard(onClick: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .height(60.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error // 使用红色示警
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "退出登录",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
@@ -326,7 +344,10 @@ fun UpdateDialog(
                         // 场景 B: 正在检查 或 暂无更新
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             // 如果状态包含 "检查" 关键字，显示转圈圈
-                            if (viewModel.checkStatus.contains("检查") && !viewModel.checkStatus.contains("失败")) {
+                            if (viewModel.checkStatus.contains("检查") && !viewModel.checkStatus.contains(
+                                    "失败"
+                                )
+                            ) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
                                     strokeWidth = 2.5.dp

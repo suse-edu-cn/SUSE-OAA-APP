@@ -64,13 +64,19 @@ fun AppNavHost(
             composable(MAIN_SCREEN_ROUTE) {
                 MainScreen(
                     windowSizeClass = windowSizeClass,
-                    // 为主屏幕容器增加硬件隔离层，防止转场时底层重绘
                     modifier = Modifier.graphicsLayer { clip = true },
                     onAcademicEvent = { event ->
                         when (event) {
                             is AcademicPortalEvent.NavigateTo -> {
                                 navController.navigate(event.destination.route)
                             }
+                        }
+                    },
+                    onNavigateToLogin = {
+                        navController.navigate(LOGIN_ROUTE) {
+                            // 关键：清空返回栈，防止按返回键回到已退出的页面
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
                         }
                     },
                     sharedTransitionScope = this@SharedTransitionLayout,

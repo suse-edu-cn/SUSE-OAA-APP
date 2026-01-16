@@ -12,8 +12,11 @@ fun NavController.navigateToPerson(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.personScreen(
+    onNavigateToLogin: () -> Unit
 ) {
     composable(route = PERSON_ROUTE) {
-        PersonScreen()
+        PersonScreen(
+            onNavigateToLogin = onNavigateToLogin
+        )
     }
 }

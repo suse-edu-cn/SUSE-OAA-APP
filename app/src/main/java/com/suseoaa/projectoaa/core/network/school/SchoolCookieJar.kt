@@ -2,12 +2,12 @@ package com.suseoaa.projectoaa.core.network.school
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
 import javax.inject.Singleton
-import androidx.core.content.edit
 
 @Singleton
 class SchoolCookieJar @Inject constructor(
@@ -30,7 +30,7 @@ class SchoolCookieJar @Inject constructor(
             requestBuilder.addHeader("Cookie", cookieString)
         }
 
-        // 添加伪装头 (保持不变)
+        // 添加伪装头
         requestBuilder.addHeader(
             "User-Agent",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -61,8 +61,8 @@ class SchoolCookieJar @Inject constructor(
         return response
     }
 
-    // 退出登录时调用 (清空本地存储)
     fun clear() {
+        // 直接使用成员变量 prefs 进行清除，确保文件名一致
         prefs.edit { clear() }
     }
 }

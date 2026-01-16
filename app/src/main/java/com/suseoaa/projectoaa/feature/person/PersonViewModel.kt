@@ -28,7 +28,20 @@ class PersonViewModel @Inject constructor(
     init {
         fetchPersonInfo()
     }
-
+//    退出登录
+    fun logout(onLogoutSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.logout()
+                // 退出成功后回调
+                onLogoutSuccess()
+            } catch (e: Exception) {
+                // 处理错误，通常退出登录即使报错也应该强制跳转
+                e.printStackTrace()
+                onLogoutSuccess()
+            }
+        }
+    }
     fun fetchPersonInfo() {
         viewModelScope.launch {
             _isLoading.value = true

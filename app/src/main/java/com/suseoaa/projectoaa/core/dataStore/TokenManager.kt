@@ -88,7 +88,8 @@ class TokenManager @Inject constructor(
      */
     suspend fun clearToken() {
         context.dataStore.edit { preferences ->
-            preferences.remove(TOKEN_KEY)
+            // 或者只移除特定的 key: preferences.remove(TOKEN_KEY)
+            preferences.clear() 
         }
     }
 
@@ -96,4 +97,6 @@ class TokenManager @Inject constructor(
         // first() 会挂起直到 DataStore 读取完成
         return tokenFlow.first()
     }
+
+
 }
