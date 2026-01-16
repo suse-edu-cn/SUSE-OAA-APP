@@ -3,6 +3,7 @@ package com.suseoaa.projectoaa.core.network.di
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.suseoaa.projectoaa.core.network.AuthInterceptor
 import com.suseoaa.projectoaa.core.network.BASE_URL_FOR_SUSE_OAA
+import com.suseoaa.projectoaa.core.network.GithubApiService
 import com.suseoaa.projectoaa.core.network.login.LoginService
 import com.suseoaa.projectoaa.core.network.person.PersonService
 import com.suseoaa.projectoaa.core.network.register.RegisterService
@@ -75,5 +76,16 @@ object NetworkModule {
     @Singleton
     fun providePersonService(retrofit: Retrofit): PersonService {
         return retrofit.create(PersonService::class.java)
+    }
+
+//    7.提供更新
+    @Provides
+    @Singleton
+    fun provideGithubService(json: Json): GithubApiService {
+        return Retrofit.Builder()
+            .baseUrl("https://api.github.com/")
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(GithubApiService::class.java)
     }
 }

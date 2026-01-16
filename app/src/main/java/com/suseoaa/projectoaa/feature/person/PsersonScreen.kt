@@ -8,13 +8,15 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.TimePickerDialogDefaults.Title
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,12 +29,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.suseoaa.projectoaa.BuildConfig
 import com.suseoaa.projectoaa.app.LocalWindowSizeClass
 import com.suseoaa.projectoaa.core.network.model.person.Data
+import com.suseoaa.projectoaa.core.ui.component.OaaMarkdownText
 
 // 定义头图高度
 private val HeaderHeight = 320.dp
@@ -41,7 +44,8 @@ private val HeaderHeight = 320.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonScreen(
-    viewModel: PersonViewModel = hiltViewModel()
+    viewModel: PersonViewModel = hiltViewModel(),
+    updateViewModel: AppUpdateViewModel = hiltViewModel()
 ) {
     val userInfo by viewModel.userInfo.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -52,14 +56,20 @@ fun PersonScreen(
     val isPhone = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
     val gridColumns = if (isPhone) 1 else 2
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    // 获取底部导航栏高度 (因为 MainScreen 取消了 padding，这里可能也需要处理底部遮挡，
-    // 但通常 BottomBar 是浮动的，LazyVerticalGrid 只需要加 contentPadding 即可)
     val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     // 1. 滚动状态用于驱动动画
     val scrollState = rememberLazyGridState()
     val density = LocalDensity.current
     val headerHeightPx = with(density) { HeaderHeight.toPx() }
 
+//    自动检查更新
+    LaunchedEffect(Unit) {
+        updateViewModel.checkUpdate(isManual = false)
+    }
+    UpdateDialog(
+        viewModel = updateViewModel,
+        onDismiss = { updateViewModel.showDialog = false }
+    )
     Scaffold(
         // 将背景设为透明，以便看到我们自定义的底层
         containerColor = MaterialTheme.colorScheme.background,
@@ -150,18 +160,23 @@ fun PersonScreen(
                     }
 
                     // Item 2...N: 功能卡片/设备信息
+//                    item(span = { GridItemSpan(if (isPhone) maxLineSpan else 1) }) {
+//                        InfoItemCard(title = "检查更新", value = "1")
+//                    }
+//                    item(span = { GridItemSpan(if (isPhone) maxLineSpan else 1) }) {
+//                        InfoItemCard(title = "检查更新", value = BuildConfig.VERSION_NAME)
+//                    }
                     item(span = { GridItemSpan(if (isPhone) maxLineSpan else 1) }) {
-                        InfoItemCard(title = "信息1", value = "1")
+                        UpdateInfoCard(
+                            currentVersion = BuildConfig.VERSION_NAME,
+                            hasNewVersion = updateViewModel.hasNewVersion,
+                            newVersionName = updateViewModel.latestVersionName,
+                            onClick = {
+                                // 点击触发手动检查
+                                updateViewModel.checkUpdate(isManual = true)
+                            }
+                        )
                     }
-                    item(span = { GridItemSpan(if (isPhone) maxLineSpan else 1) }) {
-                        InfoItemCard(title = "信息2", value = "2")
-                    }
-
-                    // 更多设置项模拟
-                    items(5) { index ->
-                        InfoItemCard(title = "更多设置 $index", value = "已开启")
-                    }
-
                     // 底部留白
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Spacer(modifier = Modifier.height(80.dp))
@@ -249,6 +264,178 @@ fun InfoItemCard(title: String, value: String) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun UpdateDialog(
+    viewModel: AppUpdateViewModel,
+    onDismiss: () -> Unit
+) {
+    if (viewModel.showDialog) {
+        AlertDialog(
+            containerColor = MaterialTheme.colorScheme.background,
+            onDismissRequest = onDismiss,
+            title = {
+                Text(
+                    text = if (viewModel.updateInfo != null) "发现新版本" else "检查更新",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column {
+                    if (viewModel.updateInfo != null) {
+                        // === 场景 A: 发现新版本，显示详情 ===
+                        val release = viewModel.updateInfo!!
+
+                        // 1. 版本号
+                        Text(
+                            text = "版本: ${release.tagName}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 2. 更新日志标题
+                        Text(
+                            text = "更新内容:",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // 3. Markdown 内容区域 (带滚动条)
+                        Box(
+                            modifier = Modifier
+                                .heightIn(max = 240.dp) // 限制最大高度，防止弹窗太长
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            // 使用通用的 Markdown 解析组件
+                            OaaMarkdownText(
+                                markdown = release.body,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        // 场景 B: 正在检查 或 暂无更新
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // 如果状态包含 "检查" 关键字，显示转圈圈
+                            if (viewModel.checkStatus.contains("检查") && !viewModel.checkStatus.contains("失败")) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.5.dp
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                            }
+                            // 显示状态文字 (如 "正在检查..." 或 "当前已是最新版本")
+                            Text(
+                                text = viewModel.checkStatus,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (viewModel.updateInfo != null) {
+                    // 有更新 -> 显示“立即更新”
+                    Button(onClick = { viewModel.downloadAndInstall() }) {
+                        Text("立即下载并安装")
+                    }
+                } else if (!viewModel.checkStatus.contains("正在检查")) {
+                    // 没更新且检查结束 -> 显示“确定”关闭弹窗
+                    TextButton(onClick = onDismiss) {
+                        Text("确定")
+                    }
+                }
+            },
+            dismissButton = {
+                // 只有在显示更新详情时，才显示“稍后”按钮
+                if (viewModel.updateInfo != null) {
+                    TextButton(onClick = onDismiss) {
+                        Text("稍后")
+                    }
+                }
+            }
+        )
+    }
+}
+
+
+@Composable
+fun UpdateInfoCard(
+    currentVersion: String,
+    hasNewVersion: Boolean,
+    newVersionName: String,
+    onClick: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp),
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // 左侧标题
+            Text(
+                text = "版本信息",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+
+            // 右侧信息区域
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (hasNewVersion) {
+                    // 有新版本时的样式
+
+                    // 1. 红点
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(Color.Red, CircleShape)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // 2. 新版本号提示 (例如: "v1.0.0 -> v1.1.0")
+                    Text(
+                        text = "新版本: $newVersionName",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary, // 用高亮色
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    // 无新版本时的样式
+                    Text(
+                        text = "v$currentVersion",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // 箭头图标
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.outline
+                )
             }
         }
     }

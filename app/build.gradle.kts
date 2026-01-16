@@ -18,7 +18,7 @@ android {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
+        versionCode = 1263
         versionName = "1.26.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -39,6 +39,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 kotlin {
@@ -99,4 +100,6 @@ dependencies {
     implementation(libs.jsoup)
 //    Coil图片库
     implementation(libs.coil.compose)
+//    md解析器
+    implementation(libs.multiplatform.markdown.renderer.m3)
 }
