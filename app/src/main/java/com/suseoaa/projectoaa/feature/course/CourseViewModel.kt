@@ -165,8 +165,7 @@ class CourseListViewModel @Inject constructor(
         .map { getDailySchedule(it) }
         .stateIn(viewModelScope, SharingStarted.Lazily, DailySchedulePost2025)
 
-    // [新增] 预计算所有周次的布局数据
-    // 这将繁重的 "calculateLayoutItems" 逻辑从 UI 线程移到了后台线程
+    // 预计算所有周次的布局数据
     val weekLayoutMap: StateFlow<Map<Int, List<ScheduleLayoutItem>>> = combine(
         weekScheduleMap,
         currentDailySchedule
@@ -178,7 +177,6 @@ class CourseListViewModel @Inject constructor(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
-    // 以前的 currentWeekLayoutData 可以保留，也可以不用，UI 现在推荐用 weekLayoutMap + Pager
     val currentWeekLayoutData: StateFlow<List<ScheduleLayoutItem>> = combine(
         weekLayoutMap,
         snapshotFlow { currentDisplayWeek }
@@ -194,7 +192,10 @@ class CourseListViewModel @Inject constructor(
             currentAccount.collect { account ->
                 if (account != null) {
                     generateTermOptions(account.njdmId)
-                    selectCurrentRealTerm()
+                    // 初始化时自动选中当前真实学期
+                    val (realXnm, realXqm) = calculateCurrentRealTerm()
+                    selectedXnm = realXnm
+                    selectedXqm = realXqm
                 }
             }
         }
@@ -212,17 +213,29 @@ class CourseListViewModel @Inject constructor(
             uiState = uiState.copy(errorMessage = "当前无账号")
             return
         }
+        // 刷新时使用当前 UI 选中的学期
         fetchAndSaveCourseSchedule(account.studentId, account.password, selectedXnm, selectedXqm)
     }
 
+    /**
+     * 登录并保存课表
+     * [自动策略] 如果 xnm/xqm 为 null，则自动计算离当前时间最近的学期
+     */
     fun fetchAndSaveCourseSchedule(
         username: String,
         pass: String,
-        xnm: String = "2024",
-        xqm: String = "3"
+        xnm: String? = null,
+        xqm: String? = null
     ) {
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true, statusMessage = "正在登录...")
+
+            // 1. 确定目标学年学期：如果有传参则用参数，没有则自动计算当前最新学期
+            val (targetXnm, targetXqm) = if (xnm != null && xqm != null) {
+                xnm to xqm
+            } else {
+                calculateCurrentRealTerm()
+            }
 
             val loginResult = schoolAuthRepository.login(username, pass)
 
@@ -232,8 +245,8 @@ class CourseListViewModel @Inject constructor(
                 return@launch
             }
 
-            uiState = uiState.copy(statusMessage = "正在获取课表...")
-            val courseResult = schoolCourseRepository.getCourseSchedule(xnm, xqm)
+            uiState = uiState.copy(statusMessage = "正在获取课表 ($targetXnm-$targetXqm)...")
+            val courseResult = schoolCourseRepository.getCourseSchedule(targetXnm, targetXqm)
 
             courseResult.onSuccess { courseData ->
                 uiState = uiState.copy(statusMessage = "正在保存...")
@@ -256,7 +269,12 @@ class CourseListViewModel @Inject constructor(
                     successMessage = "更新成功",
                     statusMessage = null
                 )
+                // 保存并切换到新账号
                 tokenManager.saveCurrentStudentId(username)
+
+                // 如果当前UI显示的不是刚刚抓取的学期，顺便更新UI状态
+                selectedXnm = targetXnm
+                selectedXqm = targetXqm
 
             }.onFailure { e ->
                 uiState = uiState.copy(
@@ -301,12 +319,26 @@ class CourseListViewModel @Inject constructor(
         selectedXqm = xqm
     }
 
+    /**
+     * 计算离当前时间最近的学年和学期
+     * 逻辑：2月-7月为下学期(12)，8月-1月为上学期(3)
+     */
+    private fun calculateCurrentRealTerm(): Pair<String, String> {
+        val today = LocalDate.now()
+        val currentYear = today.year
+        val currentMonth = today.monthValue
+        return when (currentMonth) {
+            in 2..7 -> (currentYear - 1).toString() to "12" // 例：2026年3月 -> 2025-2026学年 第2学期(12)
+            1 -> (currentYear - 1).toString() to "3"        // 例：2026年1月 -> 2025-2026学年 第1学期(3)
+            else -> currentYear.toString() to "3"           // 例：2025年9月 -> 2025-2026学年 第1学期(3)
+        }
+    }
+
     private fun getDailySchedule(yearStr: String): List<TimeSlotConfig> {
         val year = yearStr.toIntOrNull() ?: 2025
         return if (year >= 2025) DailySchedulePost2025 else DailySchedulePre2025
     }
 
-    // [优化] 确保此方法是公开的或内部可见的，以便在 StateFlow 中调用（如果在同一文件，private 也可以）
     private fun calculateLayoutItems(
         courses: List<CourseWithTimes>,
         dailySchedule: List<TimeSlotConfig>
@@ -395,27 +427,6 @@ class CourseListViewModel @Inject constructor(
             list.add(TermOption(y.toString(), "12", "$y-${y + 1} 第2学期"))
         }
         _termOptions.value = list
-    }
-
-    private fun selectCurrentRealTerm() {
-        val today = LocalDate.now()
-        val currentYear = today.year
-        val currentMonth = today.monthValue
-        val (targetXnm, targetXqm) = when (currentMonth) {
-            in 2..7 -> (currentYear - 1).toString() to "12"
-            1 -> (currentYear - 1).toString() to "3"
-            else -> currentYear.toString() to "3"
-        }
-        val options = _termOptions.value
-        val match = options.find { it.xnm == targetXnm && it.xqm == targetXqm }
-        if (match != null) {
-            selectedXnm = match.xnm
-            selectedXqm = match.xqm
-        } else if (options.isNotEmpty()) {
-            val last = options.last()
-            selectedXnm = last.xnm
-            selectedXqm = last.xqm
-        }
     }
 
     private fun loadSemesterStart() {

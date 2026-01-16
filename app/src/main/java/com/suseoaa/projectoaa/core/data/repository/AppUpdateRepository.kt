@@ -22,7 +22,7 @@ import androidx.core.net.toUri
 @Singleton
 class AppUpdateRepository @Inject constructor(
     private val api: GithubApiService,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
     // 替换为目标地址的GitHub 用户名和仓库名
     private val OWNER = "HuangZhuoRui"

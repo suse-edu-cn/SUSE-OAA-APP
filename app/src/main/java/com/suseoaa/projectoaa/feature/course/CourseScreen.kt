@@ -12,6 +12,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.*
@@ -69,7 +70,7 @@ fun CourseScreen(
     val windowSizeClass = LocalWindowSizeClass.current
     val context = LocalContext.current
 
-    // [优化] 从 ViewModel 收集预计算好的布局数据，而非原始课程数据
+    // 从 ViewModel 收集预计算好的布局数据，而非原始课程数据
     val weekLayoutMap by viewModel.weekLayoutMap.collectAsStateWithLifecycle()
 
     // 仅用于判空显示
@@ -103,6 +104,7 @@ fun CourseScreen(
     val isPhone = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
     val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomPadding = if (isPhone) 90.dp + navBarHeight else 0.dp
+
     // 监听 Pager 静止状态 (settledPage)，防止滑动过程中频繁触发 ViewModel 计算
     LaunchedEffect(pagerState.settledPage) {
         val newWeek = pagerState.settledPage + 1
@@ -134,6 +136,7 @@ fun CourseScreen(
             today.dayOfMonth
         )
     }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -147,14 +150,6 @@ fun CourseScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-//                            .then(
-//                                when (windowSizeClass.widthSizeClass) {
-//                                    WindowWidthSizeClass.Compact -> Modifier.padding(8.dp)
-//                                    WindowWidthSizeClass.Expanded -> Modifier.statusBarsPadding()
-//                                    WindowWidthSizeClass.Medium -> Modifier.statusBarsPadding()
-//                                    else -> Modifier.statusBarsPadding()
-//                                }
-//                            )
                             .statusBarsPadding()
                             .padding(horizontal = 8.dp)
                             .padding(top = 8.dp, bottom = 8.dp),
@@ -297,7 +292,7 @@ fun CourseScreen(
                 // 底部留白，防止被 BottomBar 遮挡
                 .padding(bottom = bottomPadding)
                 .fillMaxSize()
-//                开启硬件加速
+                // 开启硬件加速
                 .graphicsLayer { clip = true }
         ) {
             if (allCourses.isEmpty() && !uiState.isLoading) {
@@ -383,6 +378,7 @@ fun CourseScreen(
         }
 
         if (showLoginDialog) LoginDialog({ showLoginDialog = false }) { u, p ->
+            // 此处不再传递 xnm, xqm，让 ViewModel 自动计算最新学期
             viewModel.fetchAndSaveCourseSchedule(u, p)
             showLoginDialog = false
         }
@@ -469,7 +465,7 @@ fun CourseScheduleLayout(
                         val weekStart =
                             remember(startDate, page) { startDate.plusWeeks(page.toLong()) }
 
-                        // [优化] 直接获取预计算好的布局对象
+                        // 直接获取预计算好的布局对象
                         val layoutItems = weekLayoutMap[weekIndex] ?: emptyList()
 
                         DynamicWeekContent(
@@ -516,7 +512,7 @@ fun ScheduleCourseOverlay(
     dailySchedule: List<TimeSlotConfig>,
     onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
 ) {
-    // [优化] 分组逻辑保留，但不再解析字符串，直接使用 ViewModel 计算好的索引
+    // 分组逻辑
     val preparedGroups = remember(items) {
         items.groupBy { it.dayIndex }.mapValues { (_, dayItems) ->
             // 同一天可能有多节课在同一时间段（重叠）
@@ -578,10 +574,6 @@ fun ScheduleCourseOverlay(
         }
     }
 }
-
-// -------------------------------------------------------------------------
-// 以下为辅助 Composable，基本保持原样，移除文件底部的解析函数
-// -------------------------------------------------------------------------
 
 @Composable
 fun CourseDetailContent(
