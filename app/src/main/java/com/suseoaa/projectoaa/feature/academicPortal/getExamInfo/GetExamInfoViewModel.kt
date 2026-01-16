@@ -92,7 +92,7 @@ class GetExamInfoViewModel @Inject constructor(
     // 日期解析工具
     private fun parseDate(timeStr: String, formatter: DateTimeFormatter): LocalDate? {
         return try {
-            // 假设格式为 "2026-01-08(09:30-11:30)"，截取括号前部分
+            // 格式为 "2026-01-08(09:30-11:30)"，截取括号前部分
             val datePart = timeStr.substringBefore("(")
             if (datePart.isBlank()) return null
             LocalDate.parse(datePart, formatter)

@@ -27,7 +27,7 @@ class GetAcademicMessageInfoViewModel @Inject constructor(
     private val courseDao: CourseDao
 ) : ViewModel() {
 
-    // === 1. 数据流 (UI 自动更新) ===
+    // 1. 数据流 (UI 自动更新)
     // 监听当前学号 -> 监听数据库中的消息表 -> 转换为 UI 需要的 List<String>
     @OptIn(ExperimentalCoroutinesApi::class)
     val dataList: StateFlow<List<String>> = tokenManager.currentStudentId
@@ -45,7 +45,7 @@ class GetAcademicMessageInfoViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    // === 2. 刷新状态控制 ===
+    //  2. 刷新状态控制
     var isRefreshing by mutableStateOf(false)
         private set
 

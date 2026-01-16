@@ -14,7 +14,7 @@ val InkGrey = Color(0xFF70767E)            // 次要文字 (未选中图标)
 val OutlineSoft = Color(0xFFE8E9EB)        // 极其淡的分割线
 
 // 暗色模式
-val NightBackground = Color(0xFF000000)    // 纯黑 (OLED 风格)
+val NightBackground = Color(0xFF000000)    // 纯黑
 val NightSurface = Color(0xFF1C1C1E)       // 浮层灰 (iOS 风格)
 val NightBlue = Color(0xFF0A84FF)          // 夜间模式的亮蓝
 val NightContainer = Color(0xFF002F58)     // 夜间选中背景

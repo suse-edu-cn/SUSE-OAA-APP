@@ -35,7 +35,9 @@ class SchoolInfoRepository @Inject constructor(
                 var response = request()
 
                 // 2. 自动重试
-                if (!response.isSuccessful || response.raw().header("Content-Type")?.contains("html") == true) {
+                if (!response.isSuccessful || response.raw().header("Content-Type")
+                        ?.contains("html") == true
+                ) {
                     authRepository.login(account.studentId, account.password)
                     response = request()
                 }
@@ -79,36 +81,37 @@ class SchoolInfoRepository @Inject constructor(
     suspend fun refreshAcademicMessageInfo(account: CourseAccountEntity): Result<String> =
         fetchAndSaveMessages(account)
 
-    private suspend fun fetchAndSaveMessages(account: CourseAccountEntity): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val request = suspend { api.getAcademicMessageInfo() }
-            var response = request()
-            var bodyString = response.body()?.string() ?: ""
+    private suspend fun fetchAndSaveMessages(account: CourseAccountEntity): Result<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                val request = suspend { api.getAcademicMessageInfo() }
+                var response = request()
+                var bodyString = response.body()?.string() ?: ""
 
-            if (response.code() == 901 || response.code() == 302 || isLoginRequired(bodyString)) {
-                val loginResult = authRepository.login(account.studentId, account.password)
-                if (loginResult.isFailure) return@withContext Result.failure(Exception("自动登录失败"))
-                response = request()
-                bodyString = response.body()?.string() ?: ""
-            }
-
-            if (response.isSuccessful) {
-                val rawList = HtmlParser.htmlParse(bodyString)
-                val entities = rawList.map { content ->
-                    MessageCacheEntity(
-                        studentId = account.studentId,
-                        content = content
-                    )
+                if (response.code() == 901 || response.code() == 302 || isLoginRequired(bodyString)) {
+                    val loginResult = authRepository.login(account.studentId, account.password)
+                    if (loginResult.isFailure) return@withContext Result.failure(Exception("自动登录失败"))
+                    response = request()
+                    bodyString = response.body()?.string() ?: ""
                 }
-                academicDao.updateMessages(account.studentId, entities)
-                Result.success("刷新成功")
-            } else {
-                Result.failure(Exception("请求失败: ${response.code()}"))
+
+                if (response.isSuccessful) {
+                    val rawList = HtmlParser.htmlParse(bodyString)
+                    val entities = rawList.map { content ->
+                        MessageCacheEntity(
+                            studentId = account.studentId,
+                            content = content
+                        )
+                    }
+                    academicDao.updateMessages(account.studentId, entities)
+                    Result.success("刷新成功")
+                } else {
+                    Result.failure(Exception("请求失败: ${response.code()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
-    }
 
     // 这里的返回值仍保持 List<String>，以兼容 GetCourseInfoViewModel
     suspend fun getAcademicCourseInfo(account: CourseAccountEntity): Result<List<String>> =

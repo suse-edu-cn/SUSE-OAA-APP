@@ -4,7 +4,7 @@ import android.content.Context
 import com.suseoaa.projectoaa.core.database.CourseDatabase
 import com.suseoaa.projectoaa.core.database.dao.AcademicDao
 import com.suseoaa.projectoaa.core.database.dao.CourseDao
-import com.suseoaa.projectoaa.core.database.dao.GradeDao // [新增]
+import com.suseoaa.projectoaa.core.database.dao.GradeDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

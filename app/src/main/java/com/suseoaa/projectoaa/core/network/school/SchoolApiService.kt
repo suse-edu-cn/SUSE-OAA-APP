@@ -9,14 +9,14 @@ import retrofit2.http.*
 
 interface SchoolApiService {
 
-    // === 1. 登录准备 ===
+    // 1. 登录准备
     @GET("/xtgl/login_slogin.html")
     suspend fun getCSRFToken(): ResponseBody
 
     @GET("/xtgl/login_getPublicKey.html")
     suspend fun getRSAKey(): RSAKey
 
-    // === 2. 执行登录 ===
+    //2. 执行登录
     @FormUrlEncoded
     @POST("/xtgl/login_slogin.html")
     suspend fun login(
@@ -26,7 +26,7 @@ interface SchoolApiService {
         @Field("csrftoken") csrfToken: String
     ): Response<ResponseBody>
 
-    // === 3. 课表查询 ===
+    // 3. 课表查询
     @FormUrlEncoded
     @Headers("X-Requested-With: XMLHttpRequest") // 必须加！
     @POST("/kbcx/xskbcx_cxXsKb.html")
@@ -37,7 +37,7 @@ interface SchoolApiService {
         @Field("kzlx") kzlx: String = "ck"
     ): Response<ResponseBody>
 
-    // === 4. 获取校历 (起始周) ===
+    // 4. 获取校历 (起始周)
     @Headers("X-Requested-With: XMLHttpRequest") // 必须加！
     @POST("/xtgl/index_cxAreaSix.html")
     suspend fun getCalendar(
@@ -45,7 +45,7 @@ interface SchoolApiService {
         @Query("gnmkdm") gnmkdm: String = "index"
     ): Response<ResponseBody>
 
-    // === 辅助：重定向访问 ===
+    // 辅助：重定向访问
     @GET
     suspend fun visitUrl(@Url url: String): ResponseBody
 
@@ -101,5 +101,5 @@ interface SchoolApiService {
         @Field("queryModel.sortName") sortName: String = "",
         @Field("queryModel.sortOrder") sortOrder: String = "asc",
         @Field("time") time: Int = 1
-    ): retrofit2.Response<ExamResponse>
+    ): Response<ExamResponse>
 }

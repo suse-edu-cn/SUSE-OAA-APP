@@ -31,7 +31,6 @@ class AuthInterceptor @Inject constructor(
         if (!finalToken.isNullOrBlank()) {
             requestBuilder.addHeader("Authorization", "Bearer $finalToken")
         }
-        // 修改 AuthInterceptor.kt
 //        if (!finalToken.isNullOrBlank()) {
 //            android.util.Log.d("AuthInterceptor", "正在为请求注入 Token: $finalToken")
 //            requestBuilder.addHeader("Authorization", finalToken)

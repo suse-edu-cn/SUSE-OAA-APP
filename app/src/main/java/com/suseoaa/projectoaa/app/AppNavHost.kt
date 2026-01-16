@@ -3,12 +3,6 @@ package com.suseoaa.projectoaa.app
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -19,8 +13,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.suseoaa.projectoaa.core.util.containerVisualPhysics
-import com.suseoaa.projectoaa.core.util.keepAlivePhysics
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicDestinations
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoScreen
@@ -72,7 +64,7 @@ fun AppNavHost(
             composable(MAIN_SCREEN_ROUTE) {
                 MainScreen(
                     windowSizeClass = windowSizeClass,
-                    // [优化] 为主屏幕容器增加硬件隔离层，防止转场时底层重绘
+                    // 为主屏幕容器增加硬件隔离层，防止转场时底层重绘
                     modifier = Modifier.graphicsLayer { clip = true },
                     onAcademicEvent = { event ->
                         when (event) {

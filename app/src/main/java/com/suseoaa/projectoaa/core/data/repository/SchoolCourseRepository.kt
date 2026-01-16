@@ -1,7 +1,6 @@
 package com.suseoaa.projectoaa.core.data.repository
 
 
-import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.network.model.course.CourseResponseJson
 import com.suseoaa.projectoaa.core.network.school.SchoolApiService
 import kotlinx.coroutines.Dispatchers

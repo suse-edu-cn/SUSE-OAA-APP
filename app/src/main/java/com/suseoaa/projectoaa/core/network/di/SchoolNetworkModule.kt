@@ -31,7 +31,8 @@ object SchoolNetworkModule {
     ): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(cookieJar)
-            .followRedirects(false) // 禁止自动重定向，手动处理登录跳转
+            // 禁止自动重定向，手动处理登录跳转
+            .followRedirects(false)
             .followSslRedirects(false)
             .build()
     }
@@ -39,7 +40,8 @@ object SchoolNetworkModule {
     @Provides
     @Singleton
     fun provideSchoolApiService(
-        @SchoolNetwork okHttpClient: OkHttpClient, // 注入上面配置好的 Client
+        // 注入上面配置好的 Client
+        @SchoolNetwork okHttpClient: OkHttpClient,
         json: Json
     ): SchoolApiService {
         val contentType = "application/json".toMediaType()

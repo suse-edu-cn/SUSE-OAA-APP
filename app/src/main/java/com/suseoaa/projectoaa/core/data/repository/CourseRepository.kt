@@ -109,7 +109,7 @@ class CourseRepository @Inject constructor(
         val xqm = xsxx?.xQM ?: "3"
 
         if (xsxx != null) {
-            // [关键修改] 保存账户前，先检查旧数据，为了保留 sortIndex
+            // 保存账户前，先检查旧数据，为了保留 sortIndex
             val oldAccount = dao.getAccountById(studentId)
 
             // 如果是老用户，沿用旧的 sortIndex；如果是新用户，放到末尾 (max + 1)
@@ -122,13 +122,11 @@ class CourseRepository @Inject constructor(
                 className = xsxx.bJMC ?: "未知班级",
                 njdmId = xsxx.nJDMID ?: xnm,
                 major = xsxx.zYMC ?: "",
-                // 确保这里传入了计算好的 sortIndex
                 sortIndex = newSortIndex
             )
             dao.insertAccount(account)
         }
 
-        // 下面是保存课程的代码，保持不变
         val rawList = resp.kbList ?: emptyList()
         val validList = rawList.filterNotNull().filter { !it.courseName.isNullOrBlank() }
         val groups: Map<String, List<Kb>> = validList.groupBy { it.courseName!! }

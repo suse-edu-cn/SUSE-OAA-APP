@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AcademicDao {
-    // === 考试信息 ===
+    // 考试信息
     @Query("SELECT * FROM cached_exams WHERE studentId = :studentId")
     fun getExamsFlow(studentId: String): Flow<List<ExamCacheEntity>>
 
@@ -27,7 +27,7 @@ interface AcademicDao {
         insertExams(newExams)
     }
 
-    // === 调课通知 ===
+    // 调课通知
     @Query("SELECT * FROM cached_messages WHERE studentId = :studentId ORDER BY date DESC")
     fun getMessagesFlow(studentId: String): Flow<List<MessageCacheEntity>>
 
