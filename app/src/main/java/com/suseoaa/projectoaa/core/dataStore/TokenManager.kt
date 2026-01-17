@@ -29,15 +29,25 @@ class TokenManager @Inject constructor(
 
         // 存储当前选中的学生学号
         private val CURRENT_STUDENT_ID_KEY = stringPreferencesKey("current_student_id")
+
+        // 用户信息 Key (用于绩点计算)
+        private val JG_ID_KEY = stringPreferencesKey("user_jg_id")
+        private val ZYH_ID_KEY = stringPreferencesKey("user_zyh_id")
+        private val NJDM_ID_KEY = stringPreferencesKey("user_njdm_id")
     }
 
-//    内存缓存，使用 @Volatile 保证线程可见性
+    // 内存缓存，使用 @Volatile 保证线程可见性
     @Volatile
     var cachedToken: String? = null
         private set
 
+    // 内存缓存：当前学生ID (新增，以便 ViewModel 同步获取)
+    @Volatile
+    var cachedStudentId: String? = null
+        private set
+
     /**
-     * 读取 Token
+     * 读取 Token Flow
      */
     val tokenFlow: Flow<String?> = context.dataStore.data
         .catch { exception ->
@@ -50,19 +60,16 @@ class TokenManager @Inject constructor(
         }
 
     /**
-     * 读取当前选中的学号
-     * 返回 Flow，任何地方修改了 ID，这里都会收到通知
+     * 读取当前选中的学号 Flow
      */
     val currentStudentId: Flow<String?> = context.dataStore.data
         .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
         }
         .map { preferences ->
-            preferences[CURRENT_STUDENT_ID_KEY]
+            val id = preferences[CURRENT_STUDENT_ID_KEY]
+            cachedStudentId = id // 更新缓存
+            id
         }
 
     /**
@@ -84,19 +91,45 @@ class TokenManager @Inject constructor(
     }
 
     /**
-     * 清除 Token
+     * 清除 Token (修复：PersonRepository 需要调用此方法)
      */
     suspend fun clearToken() {
         context.dataStore.edit { preferences ->
-            // 或者只移除特定的 key: preferences.remove(TOKEN_KEY)
-            preferences.clear() 
+            preferences.clear()
         }
+        cachedToken = null
+        cachedStudentId = null
     }
 
+    /**
+     * 同步获取 Token (修复：AuthInterceptor 需要调用此方法)
+     */
     suspend fun getTokenSynchronously(): String? {
         // first() 会挂起直到 DataStore 读取完成
         return tokenFlow.first()
     }
 
 
+    /**
+     * 读取用户专业信息 (jg_id, zyh_id, njdm_id)
+     */
+    val userInfoFlow: Flow<Map<String, String?>> = context.dataStore.data
+        .map { prefs ->
+            mapOf(
+                "jg_id" to prefs[JG_ID_KEY],
+                "zyh_id" to prefs[ZYH_ID_KEY],
+                "njdm_id" to prefs[NJDM_ID_KEY]
+            )
+        }
+
+    /**
+     * 保存用户专业信息
+     */
+    suspend fun saveUserInfo(jgId: String, zyhId: String, njdmId: String) {
+        context.dataStore.edit { prefs ->
+            if (jgId.isNotEmpty()) prefs[JG_ID_KEY] = jgId
+            if (zyhId.isNotEmpty()) prefs[ZYH_ID_KEY] = zyhId
+            if (njdmId.isNotEmpty()) prefs[NJDM_ID_KEY] = njdmId
+        }
+    }
 }

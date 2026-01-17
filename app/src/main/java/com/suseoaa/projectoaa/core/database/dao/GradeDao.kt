@@ -14,20 +14,20 @@ interface GradeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGrades(grades: List<GradeEntity>)
 
-    // 实时查询：返回 Flow，当数据库变化时 UI 会自动更新
+    // 当传入具体年份（如 "2024"）时，LIKE "2024" 等同于 = "2024"，不会影响原有成绩查询功能
     @Query("""
         SELECT * FROM grades 
         WHERE studentId = :studentId 
-          AND xnm = :xnm 
-          AND xqm = :xqm
+          AND xnm LIKE :xnm 
+          AND xqm LIKE :xqm
     """)
     fun getGradesFlow(studentId: String, xnm: String, xqm: String): Flow<List<GradeEntity>>
 
-    // 删除指定学期的旧数据
+    // 删除指定学期的旧数据 (此处保持 = 即可，因为删除通常是针对特定学期)
     @Query("DELETE FROM grades WHERE studentId = :studentId AND xnm = :xnm AND xqm = :xqm")
     suspend fun deleteGrades(studentId: String, xnm: String, xqm: String)
 
-    // 事务操作：先删后存，确保数据纯净 (防止服务器删除了某门课，本地却还留着)
+    // 事务操作：先删后存
     @Transaction
     suspend fun updateGrades(studentId: String, xnm: String, xqm: String, newGrades: List<GradeEntity>) {
         deleteGrades(studentId, xnm, xqm)

@@ -1,5 +1,7 @@
 package com.suseoaa.projectoaa.core.data.repository
 
+import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.core.database.dao.CourseDao
 import com.suseoaa.projectoaa.core.database.dao.GradeDao
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.GradeEntity
@@ -17,9 +19,10 @@ import javax.inject.Singleton
 class SchoolGradeRepository @Inject constructor(
     private val api: SchoolApiService,
     private val gradeDao: GradeDao,
+    private val courseDao: CourseDao,
     private val json: Json,
-    // 注入 AuthRepo 用于自动重试
-    private val authRepository: SchoolAuthRepository
+    private val authRepository: SchoolAuthRepository,
+    private val tokenManager: TokenManager
 ) {
 
     fun observeGrades(studentId: String, xnm: String, xqm: String): Flow<List<GradeEntity>> {
@@ -36,11 +39,10 @@ class SchoolGradeRepository @Inject constructor(
 
                 for (year in startYear..endYear) {
                     listOf("3", "12").forEach { semester ->
-                        // 使用通用重试逻辑
                         executeWithAutoRetry(account) {
                             fetchAndSaveSingleTerm(account, year.toString(), semester)
                         }.onSuccess { successCount++ }
-                        delay(300) // 避免频繁请求
+                        delay(300)
                     }
                 }
                 Result.success("同步完成，更新了 $successCount 个学期数据")
@@ -60,6 +62,26 @@ class SchoolGradeRepository @Inject constructor(
             if (isLoginRequired(bodyString)) throw SessionExpiredException()
 
             val gradeResponse = json.decodeFromString<StudentGradeResponse>(bodyString)
+
+            // 每次拉取成绩时，尝试提取专业信息并更新到当前账户的数据库记录中
+            gradeResponse.items.firstOrNull()?.let { firstItem ->
+                val jgId = firstItem.jgId
+                val zyhId = firstItem.zyhId
+                val njdmId = firstItem.njdmId
+
+                // 只要信息完整，就更新到数据库的用户表中
+                if (!jgId.isNullOrEmpty() && !zyhId.isNullOrEmpty() && !njdmId.isNullOrEmpty()) {
+                    courseDao.updateStudentMajorInfo(
+                        studentId = account.studentId,
+                        jgId = jgId,
+                        zyhId = zyhId,
+                        njdmId = njdmId
+                    )
+                    // 为了兼容旧代码，顺便存一份到 TokenManager，但主要依赖数据库
+                    tokenManager.saveUserInfo(jgId, zyhId, njdmId)
+                }
+            }
+
             val entities = gradeResponse.items.map { item ->
                 GradeEntity(
                     studentId = account.studentId,
@@ -83,7 +105,6 @@ class SchoolGradeRepository @Inject constructor(
         }
     }
 
-    // 通用辅助方法
     private fun isLoginRequired(html: String): Boolean =
         html.contains("用户登录") || html.contains("/xtgl/login_slogin.html")
 
@@ -94,11 +115,9 @@ class SchoolGradeRepository @Inject constructor(
         return try {
             Result.success(block())
         } catch (e: SessionExpiredException) {
-            // Session 过期，尝试自动重新登录
             val loginResult = authRepository.login(account.studentId, account.password)
             if (loginResult.isSuccess) {
                 try {
-                    // 重试
                     Result.success(block())
                 } catch (e2: Exception) {
                     Result.failure(e2)

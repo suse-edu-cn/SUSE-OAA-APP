@@ -18,7 +18,9 @@ data class CourseAccountEntity(
     val className: String,
     val njdmId: String,
     val major: String,
-    val sortIndex: Int = 0
+    val sortIndex: Int = 0,
+    val jgId: String? = null,  // 学院ID (10)
+    val zyhId: String? = null  // 专业ID (1013)
 )
 
 /**

@@ -23,7 +23,7 @@ import com.suseoaa.projectoaa.core.database.entity.MessageCacheEntity
         ExamCacheEntity::class,
         MessageCacheEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class CourseDatabase : RoomDatabase() {

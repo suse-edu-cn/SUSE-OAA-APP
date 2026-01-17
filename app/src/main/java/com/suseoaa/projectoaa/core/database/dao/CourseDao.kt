@@ -11,9 +11,6 @@ interface CourseDao {
 
     // 账号操作
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAccount(account: CourseAccountEntity)
-
     // 必须按 sortIndex 排序，否则手动排序无效
     @Query("SELECT * FROM course_accounts ORDER BY sortIndex ASC")
     fun getAllAccounts(): Flow<List<CourseAccountEntity>>
@@ -57,7 +54,13 @@ interface CourseDao {
     suspend fun deleteAllCoursesByStudent(studentId: String)
 
     @Transaction
-    suspend fun updateTermCourses(studentId: String, xnm: String, xqm: String, courses: List<CourseEntity>, times: List<ClassTimeEntity>) {
+    suspend fun updateTermCourses(
+        studentId: String,
+        xnm: String,
+        xqm: String,
+        courses: List<CourseEntity>,
+        times: List<ClassTimeEntity>
+    ) {
         deleteRemoteCoursesByTerm(studentId, xnm, xqm)
         courses.forEach { insertCourse(it) }
         insertClassTimes(times)
@@ -75,5 +78,27 @@ interface CourseDao {
     fun getCourseEntities(studentId: String, xnm: String, xqm: String): Flow<List<CourseEntity>>
 
     @Query("SELECT * FROM class_times WHERE studentId = :studentId AND xnm = :xnm AND xqm = :xqm")
-    fun getClassTimeEntities(studentId: String, xnm: String, xqm: String): Flow<List<ClassTimeEntity>>
+    fun getClassTimeEntities(
+        studentId: String,
+        xnm: String,
+        xqm: String
+    ): Flow<List<ClassTimeEntity>>
+
+    @Query("SELECT * FROM course_accounts WHERE studentId = :studentId")
+    fun getAccountFlow(studentId: String): Flow<CourseAccountEntity?>
+
+    @Query("SELECT * FROM course_accounts WHERE studentId = :studentId")
+    suspend fun getAccount(studentId: String): CourseAccountEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAccount(account: CourseAccountEntity)
+
+    // === 新增：只更新专业信息 ===
+    @Query("UPDATE course_accounts SET jgId = :jgId, zyhId = :zyhId, njdmId = :njdmId WHERE studentId = :studentId")
+    suspend fun updateStudentMajorInfo(
+        studentId: String,
+        jgId: String,
+        zyhId: String,
+        njdmId: String
+    )
 }

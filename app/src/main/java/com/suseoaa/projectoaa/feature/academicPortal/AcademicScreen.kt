@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
@@ -91,6 +92,12 @@ fun AcademicScreen(
             AcademicDestinations.Exams,
             MaterialTheme.colorScheme.tertiary
         ),
+        PortalFunction(
+            "绩点计算",
+            Icons.Default.Calculate, // 也可以用 Icons.AutoMirrored.Filled.ShowChart
+            AcademicDestinations.Gpa,
+            MaterialTheme.colorScheme.secondary
+        )
     )
 
     PullToRefreshBox(

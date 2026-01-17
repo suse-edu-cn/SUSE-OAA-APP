@@ -18,6 +18,7 @@ import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoScreen
 import com.suseoaa.projectoaa.feature.academicPortal.getGrades.GradesScreen
 import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicMessageInfoScreen
+import com.suseoaa.projectoaa.feature.gpa.GpaScreen
 import com.suseoaa.projectoaa.feature.home.MAIN_SCREEN_ROUTE
 import com.suseoaa.projectoaa.feature.home.MainScreen
 import com.suseoaa.projectoaa.feature.login.LOGIN_ROUTE
@@ -110,7 +111,14 @@ fun AppNavHost(
                     animatedVisibilityScope = this@composable
                 )
             }
-
+            composable(AcademicDestinations.Gpa.route) {
+                GpaScreen(
+                    windowSizeClass = windowSizeClass,
+                    onBack = { navController.popBackStack() },
+                    sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this@composable
+                )
+            }
             composable(AcademicDestinations.Test.route) {
                 TestScreen()
             }

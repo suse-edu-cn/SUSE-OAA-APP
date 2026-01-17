@@ -29,4 +29,6 @@ sealed class AcademicDestinations(val route: String, val title: String) {
     data object Exams : AcademicDestinations("academic_exams", "考场查询")
 //    调课通知
     data object Messages : AcademicDestinations("academic_messages", "调课通知")
+//    绩点计算
+    data object Gpa : AcademicDestinations("academic_gpa", "绩点计算")
 }
