@@ -274,6 +274,7 @@ fun GpaCourseItem(
 fun EditScoreDialog(initialScore: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf(initialScore) }
     AlertDialog(
+        containerColor = MaterialTheme.colorScheme.background,
         onDismissRequest = onDismiss,
         title = { Text("修改模拟成绩") },
         text = {
