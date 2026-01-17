@@ -128,7 +128,7 @@ fun PersonScreen(
                         color = Color.Black.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = "致力服务于四川轻化工大学开放原子开放协会",
+                        text = "致力服务于四川轻化工大学开放原子开源协会",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Black.copy(alpha = 0.5f)
                     )
