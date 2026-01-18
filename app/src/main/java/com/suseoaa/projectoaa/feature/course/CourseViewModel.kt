@@ -30,7 +30,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import javax.inject.Inject
 
-// 数据结构
+// --- 数据类定义 ---
 data class TermOption(
     val xnm: String,
     val xqm: String,
@@ -62,7 +62,7 @@ data class CourseListUiState(
     val statusMessage: String? = null
 )
 
-// --- 作息时间表常量 ---
+// --- 作息时间常量 ---
 val DailySchedulePost2025 = listOf(
     TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
     TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
@@ -140,7 +140,8 @@ class CourseListViewModel @Inject constructor(
     var realCurrentWeek by mutableIntStateOf(1)
         private set
 
-    private var _semesterStartDate = MutableStateFlow<LocalDate>(LocalDate.now().with(DayOfWeek.MONDAY))
+    private var _semesterStartDate =
+        MutableStateFlow<LocalDate>(LocalDate.now().with(DayOfWeek.MONDAY))
     val semesterStartDate: StateFlow<LocalDate> = _semesterStartDate
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -217,6 +218,11 @@ class CourseListViewModel @Inject constructor(
         fetchAndSaveCourseSchedule(account.studentId, account.password, selectedXnm, selectedXqm)
     }
 
+    // 清除 UI 消息 (供界面调用)
+    fun clearUiMessage() {
+        uiState = uiState.copy(errorMessage = null, successMessage = null)
+    }
+
     /**
      * 登录并保存课表
      * [自动策略] 如果 xnm/xqm 为 null，则自动计算离当前时间最近的学期
@@ -228,7 +234,13 @@ class CourseListViewModel @Inject constructor(
         xqm: String? = null
     ) {
         viewModelScope.launch {
-            uiState = uiState.copy(isLoading = true, statusMessage = "正在登录...")
+            //请求开始前，清除旧的错误/成功状态
+            uiState = uiState.copy(
+                isLoading = true,
+                statusMessage = "正在登录...",
+                errorMessage = null,
+                successMessage = null
+            )
 
             // 1. 确定目标学年学期：如果有传参则用参数，没有则自动计算当前最新学期
             val (targetXnm, targetXqm) = if (xnm != null && xqm != null) {
@@ -241,7 +253,8 @@ class CourseListViewModel @Inject constructor(
 
             if (loginResult.isFailure) {
                 val errorMsg = loginResult.exceptionOrNull()?.message ?: "登录失败"
-                uiState = uiState.copy(isLoading = false, errorMessage = errorMsg, statusMessage = null)
+                uiState =
+                    uiState.copy(isLoading = false, errorMessage = errorMsg, statusMessage = null)
                 return@launch
             }
 
@@ -267,7 +280,8 @@ class CourseListViewModel @Inject constructor(
                 uiState = uiState.copy(
                     isLoading = false,
                     successMessage = "更新成功",
-                    statusMessage = null
+                    statusMessage = null,
+                    errorMessage = null // 确保清除错误
                 )
                 // 保存并切换到新账号
                 tokenManager.saveCurrentStudentId(username)
@@ -319,10 +333,6 @@ class CourseListViewModel @Inject constructor(
         selectedXqm = xqm
     }
 
-    /**
-     * 计算离当前时间最近的学年和学期
-     * 逻辑：2月-7月为下学期(12)，8月-1月为上学期(3)
-     */
     private fun calculateCurrentRealTerm(): Pair<String, String> {
         val today = LocalDate.now()
         val currentYear = today.year
@@ -407,7 +417,10 @@ class CourseListViewModel @Inject constructor(
         return 1 to 2
     }
 
-    private fun calculateCoursesForWeek(week: Int, allData: List<CourseWithTimes>): List<CourseWithTimes> {
+    private fun calculateCoursesForWeek(
+        week: Int,
+        allData: List<CourseWithTimes>
+    ): List<CourseWithTimes> {
         if (allData.isEmpty()) return emptyList()
         return allData.mapNotNull { courseWithTimes ->
             val validTimes = courseWithTimes.times.filter { time ->
@@ -419,7 +432,8 @@ class CourseListViewModel @Inject constructor(
     }
 
     private fun generateTermOptions(startYearStr: String) {
-        val startYear = startYearStr.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.YEAR) - 1)
+        val startYear =
+            startYearStr.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.YEAR) - 1)
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
         val list = mutableListOf<TermOption>()
         for (y in startYear..currentYear + 1) {
@@ -430,10 +444,12 @@ class CourseListViewModel @Inject constructor(
     }
 
     private fun loadSemesterStart() {
-        val prefs = getApplication<Application>().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs =
+            getApplication<Application>().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val epochDay = prefs.getLong(KEY_START_DATE, -1L)
         val today = LocalDate.now()
-        val start = if (epochDay != -1L) LocalDate.ofEpochDay(epochDay) else today.with(DayOfWeek.MONDAY)
+        val start =
+            if (epochDay != -1L) LocalDate.ofEpochDay(epochDay) else today.with(DayOfWeek.MONDAY)
         _semesterStartDate.value = start
         val weeksBetween = ChronoUnit.WEEKS.between(start, today).toInt() + 1
         realCurrentWeek = weeksBetween

@@ -21,13 +21,11 @@ class SchoolAuthRepository @Inject constructor(
                 cookieJar.clear()
 
                 // 2. 获取 CSRF Token
-                // API 现已定义返回 ResponseBody，可以直接调用 string()
                 val csrfHtml = api.getCSRFToken().string()
                 val csrfToken = extractCSRFToken(csrfHtml)
                     ?: return@withContext Result.failure(Exception("无法获取 CSRF Token"))
 
                 // 3. RSA 加密密码
-                // API 现已定义返回 RSAKey 对象
                 val rsaKey = api.getRSAKey()
                 val encryptedPwd = RSAEncryptor.encrypt(password, rsaKey.modulus, rsaKey.exponent)
 
@@ -37,8 +35,16 @@ class SchoolAuthRepository @Inject constructor(
 
                 // 5. 处理结果
                 if (response.code() == 302) {
-                    val location = response.headers()["Location"]
-                    if (location != null) {
+                    val location = response.headers()["Location"] ?: ""
+
+                    if (location.contains("login_logoutAccount.html") ||
+                        location.contains("login_slogin.html") ||
+                        location.contains("logout")
+                    ) {
+                        return@withContext Result.failure(Exception("账号或密码错误"))
+                    }
+
+                    if (location.isNotEmpty()) {
                         val targetUrl =
                             if (location.startsWith("/")) "https://jwgl.suse.edu.cn$location" else location
                         try {
@@ -53,8 +59,11 @@ class SchoolAuthRepository @Inject constructor(
                     }
                 } else {
                     val body = response.errorBody()?.string() ?: response.body()?.string() ?: ""
-                    val msg =
-                        if (body.contains("用户名或密码不正确")) "用户名或密码错误" else "登录失败，状态码: ${response.code()}"
+                    val msg = when {
+                        body.contains("用户名或密码不正确") -> "用户名或密码错误"
+                        body.contains("验证码不正确") -> "验证码错误"
+                        else -> "登录失败，状态码: ${response.code()}"
+                    }
                     Result.failure(Exception(msg))
                 }
             } catch (e: Exception) {

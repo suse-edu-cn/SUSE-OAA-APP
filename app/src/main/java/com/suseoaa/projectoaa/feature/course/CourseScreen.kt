@@ -2,6 +2,7 @@ package com.suseoaa.projectoaa.feature.course
 
 import android.annotation.SuppressLint
 import android.app.DatePickerDialog
+import android.widget.Toast
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
@@ -12,7 +13,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.*
@@ -39,7 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.sp // 核心修复：确保导入 sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -48,6 +48,8 @@ import com.suseoaa.projectoaa.app.LocalWindowSizeClass
 import com.suseoaa.projectoaa.core.database.entity.ClassTimeEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.CourseWithTimes
+// 确保引用 CourseEntity
+import com.suseoaa.projectoaa.core.database.entity.CourseEntity
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -70,12 +72,9 @@ fun CourseScreen(
     val windowSizeClass = LocalWindowSizeClass.current
     val context = LocalContext.current
 
-    // 从 ViewModel 收集预计算好的布局数据，而非原始课程数据
+    // 从 ViewModel 收集预计算好的布局数据
     val weekLayoutMap by viewModel.weekLayoutMap.collectAsStateWithLifecycle()
-
-    // 仅用于判空显示
     val allCourses by viewModel.allCourses.collectAsStateWithLifecycle()
-
     val startDate by viewModel.semesterStartDate.collectAsStateWithLifecycle()
     val savedAccounts by viewModel.savedAccounts.collectAsStateWithLifecycle()
     val currentAccount by viewModel.currentAccount.collectAsStateWithLifecycle()
@@ -105,7 +104,19 @@ fun CourseScreen(
     val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomPadding = if (isPhone) 90.dp + navBarHeight else 0.dp
 
-    // 监听 Pager 静止状态 (settledPage)，防止滑动过程中频繁触发 ViewModel 计算
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
+        if (uiState.errorMessage != null) {
+            Toast.makeText(context, uiState.errorMessage, Toast.LENGTH_SHORT).show()
+            viewModel.clearUiMessage()
+        }
+        if (uiState.successMessage != null) {
+            Toast.makeText(context, uiState.successMessage, Toast.LENGTH_SHORT).show()
+            showLoginDialog = false // 成功后才关闭弹窗
+            viewModel.clearUiMessage()
+        }
+    }
+
+    // 监听 Pager 静止状态
     LaunchedEffect(pagerState.settledPage) {
         val newWeek = pagerState.settledPage + 1
         if (viewModel.currentDisplayWeek != newWeek) {
@@ -113,7 +124,7 @@ fun CourseScreen(
         }
     }
 
-    // 监听 ViewModel 中的当前周变化（如通过Tab点击），同步 Pager
+    // 监听 ViewModel 中的当前周变化
     LaunchedEffect(viewModel.currentDisplayWeek) {
         val targetPage = viewModel.currentDisplayWeek - 1
         if (pagerState.currentPage != targetPage && targetPage in 0..24 && !pagerState.isScrollInProgress) {
@@ -188,7 +199,6 @@ fun CourseScreen(
                                 )
                                 Icon(Icons.Default.ArrowDropDown, null)
                             }
-                            // 选择学期
                             DropdownMenu(
                                 modifier = Modifier
                                     .background(color = MaterialTheme.colorScheme.surface),
@@ -289,10 +299,8 @@ fun CourseScreen(
         Box(
             modifier = Modifier
                 .padding(padding)
-                // 底部留白，防止被 BottomBar 遮挡
                 .padding(bottom = bottomPadding)
                 .fillMaxSize()
-                // 开启硬件加速
                 .graphicsLayer { clip = true }
         ) {
             if (allCourses.isEmpty() && !uiState.isLoading) {
@@ -377,10 +385,14 @@ fun CourseScreen(
             }
         }
 
-        if (showLoginDialog) LoginDialog({ showLoginDialog = false }) { u, p ->
-            // 此处不再传递 xnm, xqm，让 ViewModel 自动计算最新学期
-            viewModel.fetchAndSaveCourseSchedule(u, p)
-            showLoginDialog = false
+        if (showLoginDialog) {
+            LoginDialog(
+                isLoading = uiState.isLoading,
+                onDismiss = { showLoginDialog = false },
+                onConfirm = { u, p ->
+                    viewModel.fetchAndSaveCourseSchedule(u, p)
+                }
+            )
         }
 
         if (showAccountDialog) AccountSelectionDialog(
@@ -458,14 +470,13 @@ fun CourseScheduleLayout(
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
-                        beyondViewportPageCount = 4, // 减少预加载以降低内存占用
+                        beyondViewportPageCount = 4,
                         pageSpacing = 0.dp
                     ) { page ->
                         val weekIndex = page + 1
                         val weekStart =
                             remember(startDate, page) { startDate.plusWeeks(page.toLong()) }
 
-                        // 直接获取预计算好的布局对象
                         val layoutItems = weekLayoutMap[weekIndex] ?: emptyList()
 
                         DynamicWeekContent(
@@ -512,10 +523,8 @@ fun ScheduleCourseOverlay(
     dailySchedule: List<TimeSlotConfig>,
     onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
 ) {
-    // 分组逻辑
     val preparedGroups = remember(items) {
         items.groupBy { it.dayIndex }.mapValues { (_, dayItems) ->
-            // 同一天可能有多节课在同一时间段（重叠）
             dayItems.groupBy { "${it.startNodeIndex}-${it.endNodeIndex}" }
         }
     }
@@ -526,16 +535,16 @@ fun ScheduleCourseOverlay(
             dayGroups.forEach { (_, groupItems) ->
                 val overlappedData = groupItems.map { it.course to it.time }
                 val item = groupItems.first()
-                val index =
-                    (item.course.course.courseName.hashCode() and Int.MAX_VALUE) % CourseColors.size
+                val courseName = item.course.course.courseName
+                val index = (courseName.hashCode() and Int.MAX_VALUE) % CourseColors.size
                 val baseColor = CourseColors[index]
 
                 CourseCard(
-                    title = item.course.course.courseName,
+                    title = courseName,
                     location = item.time.location,
                     color = baseColor,
                     onClick = { onCourseClick(overlappedData) },
-                    modifier = Modifier.layoutId(item) // 将 ScheduleLayoutItem 直接作为 ID
+                    modifier = Modifier.layoutId(item)
                 )
             }
         }
@@ -1038,22 +1047,63 @@ fun AccountSelectionDialog(
     )
 }
 
+//4：LoginDialog 支持 Loading 状态
 @Composable
-fun LoginDialog(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
+fun LoginDialog(
+    isLoading: Boolean = false,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit
+) {
     var u by remember { mutableStateOf("") }
     var p by remember { mutableStateOf("") }
+
     AlertDialog(
         containerColor = MaterialTheme.colorScheme.surface,
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            // 加载中禁止关闭
+            if (!isLoading) onDismiss()
+        },
         title = { Text("导入课表") },
         text = {
             Column {
-                OutlinedTextField(u, { u = it }, label = { Text("学号") }, singleLine = true)
+                OutlinedTextField(
+                    value = u,
+                    onValueChange = { u = it },
+                    label = { Text("学号") },
+                    singleLine = true,
+                    enabled = !isLoading // 加载禁用
+                )
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(p, { p = it }, label = { Text("密码") }, singleLine = true)
+                OutlinedTextField(
+                    value = p,
+                    onValueChange = { p = it },
+                    label = { Text("密码") },
+                    singleLine = true,
+                    enabled = !isLoading // 加载禁用
+                )
             }
         },
-        confirmButton = { Button(onClick = { onConfirm(u, p) }) { Text("确定") } }
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(u, p) },
+                enabled = !isLoading // 加载禁用
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("确定")
+                }
+            }
+        },
+        dismissButton = {
+            if (!isLoading) {
+                TextButton(onClick = onDismiss) { Text("取消") }
+            }
+        }
     )
 }
 
