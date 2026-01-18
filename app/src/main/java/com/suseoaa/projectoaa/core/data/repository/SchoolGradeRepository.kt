@@ -7,9 +7,15 @@ import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
 import com.suseoaa.projectoaa.core.database.entity.GradeEntity
 import com.suseoaa.projectoaa.core.network.model.academic.studentGrade.StudentGradeResponse
 import com.suseoaa.projectoaa.core.network.school.SchoolApiService
+import com.suseoaa.projectoaa.core.util.HtmlParser
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -51,11 +57,12 @@ class SchoolGradeRepository @Inject constructor(
             }
         }
 
+    // 增加并发获取详情逻辑
     private suspend fun fetchAndSaveSingleTerm(
         account: CourseAccountEntity,
         year: String,
         semester: String
-    ) {
+    ) = coroutineScope { // 开启协程作用域以支持 async
         val response = api.getStudentGrade(year = year, semester = semester)
         if (response.isSuccessful) {
             val bodyString = response.body()?.string() ?: ""
@@ -63,13 +70,11 @@ class SchoolGradeRepository @Inject constructor(
 
             val gradeResponse = json.decodeFromString<StudentGradeResponse>(bodyString)
 
-            // 每次拉取成绩时，尝试提取专业信息并更新到当前账户的数据库记录中
+            // 1. 更新专业信息
             gradeResponse.items.firstOrNull()?.let { firstItem ->
                 val jgId = firstItem.jgId
                 val zyhId = firstItem.zyhId
                 val njdmId = firstItem.njdmId
-
-                // 只要信息完整，就更新到数据库的用户表中
                 if (!jgId.isNullOrEmpty() && !zyhId.isNullOrEmpty() && !njdmId.isNullOrEmpty()) {
                     courseDao.updateStudentMajorInfo(
                         studentId = account.studentId,
@@ -77,17 +82,19 @@ class SchoolGradeRepository @Inject constructor(
                         zyhId = zyhId,
                         njdmId = njdmId
                     )
-                    // 为了兼容旧代码，顺便存一份到 TokenManager，但主要依赖数据库
                     tokenManager.saveUserInfo(jgId, zyhId, njdmId)
                 }
             }
 
-            val entities = gradeResponse.items.map { item ->
+            // 2. 初步构建 Entity 列表 (此时还没有详情)
+            val tempEntities = gradeResponse.items.map { item ->
                 GradeEntity(
                     studentId = account.studentId,
                     xnm = item.xnm ?: year,
                     xqm = item.xqm ?: semester,
                     courseId = item.kchId ?: item.kch ?: "unknown_${item.hashCode()}",
+                    // 保存 jxbId
+                    jxbId = item.jxbId ?: "",
                     courseName = item.kcmc ?: "未知课程",
                     score = item.cj ?: "-",
                     credit = item.xf ?: "0",
@@ -95,10 +102,49 @@ class SchoolGradeRepository @Inject constructor(
                     courseType = item.kcxzmc ?: "",
                     examType = item.khfsmc ?: "",
                     teacher = item.jsxm ?: item.cjbdczr ?: "",
-                    examNature = item.ksxz ?: ""
+                    examNature = item.ksxz ?: "",
+                    regularScore = "",
+                    finalScore = ""
                 )
             }
-            gradeDao.updateGrades(account.studentId, year, semester, entities)
+
+            // 3. 并发获取每一科的详情
+            val requestSemaphore = Semaphore(3)
+
+            val finalEntities = tempEntities.map { entity ->
+                async {
+                    if (entity.jxbId.isBlank()) return@async entity
+
+                    requestSemaphore.withPermit {
+                        try {
+                            val detailResp = api.getGradeDetail(
+                                xnm = entity.xnm,
+                                xqm = entity.xqm,
+                                kcmc = entity.courseName,
+                                jxbId = entity.jxbId
+                            )
+                            if (detailResp.isSuccessful) {
+                                val html = detailResp.body()?.string() ?: ""
+                                val detail = HtmlParser.parseGradeDetail(html)
+
+                                // 同时保存成绩和比例
+                                return@withPermit entity.copy(
+                                    regularScore = detail.regular,
+                                    regularRatio = detail.regularRatio, // 保存平时比例
+                                    finalScore = detail.final,
+                                    finalRatio = detail.finalRatio      // 保存期末比例
+                                )
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                        entity
+                    }
+                }
+            }.awaitAll()
+
+            // 4. 一次性保存到数据库
+            gradeDao.updateGrades(account.studentId, year, semester, finalEntities)
         } else {
             if (response.code() == 901) throw SessionExpiredException()
             throw Exception("HTTP Error: ${response.code()}")

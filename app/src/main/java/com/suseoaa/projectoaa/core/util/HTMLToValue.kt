@@ -53,4 +53,46 @@ object HtmlParser {
 
         return emptyList()
     }
+
+    data class GradeDetail(
+        val regular: String = "",
+        val regularRatio: String = "",
+        val final: String = "",
+        val finalRatio: String = ""
+    )
+
+    fun parseGradeDetail(html: String): GradeDetail {
+        val doc = Jsoup.parse(html)
+        val rows = doc.select("table#subtab tbody tr")
+
+        var regular = ""
+        var regularRatio = ""
+        var finalScore = ""
+        var finalRatio = ""
+
+        for (row in rows) {
+            val cols = row.select("td")
+            if (cols.size >= 3) {
+                // 第一列：标题 (【 平时 】)
+                val title = cols[0].text().replace("【", "").replace("】", "").trim()
+                // 第二列：比例 (40%)
+                val ratio = cols[1].text().trim()
+                // 第三列：分数 (91)
+                val score = cols[2].text().trim()
+
+                when {
+                    title.contains("平时") -> {
+                        regular = score
+                        regularRatio = ratio
+                    }
+
+                    title.contains("期末") || title.contains("补考") -> {
+                        finalScore = score
+                        finalRatio = ratio
+                    }
+                }
+            }
+        }
+        return GradeDetail(regular, regularRatio, finalScore, finalRatio)
+    }
 }

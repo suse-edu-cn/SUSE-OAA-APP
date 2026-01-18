@@ -15,12 +15,14 @@ interface GradeDao {
     suspend fun insertGrades(grades: List<GradeEntity>)
 
     // 当传入具体年份（如 "2024"）时，LIKE "2024" 等同于 = "2024"，不会影响原有成绩查询功能
-    @Query("""
+    @Query(
+        """
         SELECT * FROM grades 
         WHERE studentId = :studentId 
           AND xnm LIKE :xnm 
           AND xqm LIKE :xqm
-    """)
+    """
+    )
     fun getGradesFlow(studentId: String, xnm: String, xqm: String): Flow<List<GradeEntity>>
 
     // 删除指定学期的旧数据 (此处保持 = 即可，因为删除通常是针对特定学期)
@@ -29,8 +31,29 @@ interface GradeDao {
 
     // 事务操作：先删后存
     @Transaction
-    suspend fun updateGrades(studentId: String, xnm: String, xqm: String, newGrades: List<GradeEntity>) {
+    suspend fun updateGrades(
+        studentId: String,
+        xnm: String,
+        xqm: String,
+        newGrades: List<GradeEntity>
+    ) {
         deleteGrades(studentId, xnm, xqm)
         insertGrades(newGrades)
     }
+
+    @Query(
+        """
+        UPDATE grades 
+        SET regularScore = :regular, finalScore = :finalScore 
+        WHERE studentId = :studentId AND courseId = :courseId AND xnm = :xnm AND xqm = :xqm
+    """
+    )
+    suspend fun updateGradeDetail(
+        studentId: String,
+        courseId: String,
+        xnm: String,
+        xqm: String,
+        regular: String,
+        finalScore: String
+    )
 }

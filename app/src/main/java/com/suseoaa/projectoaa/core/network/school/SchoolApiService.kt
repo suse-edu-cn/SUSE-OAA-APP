@@ -141,4 +141,18 @@ interface SchoolApiService {
         @Field("queryModel.sortOrder") sortOrder: String = "asc",
         @Field("time") time: Int = 0
     ): Response<TeachingPlanResponse>
+
+
+    // 查询单科成绩详情
+    @FormUrlEncoded
+    @Headers("X-Requested-With: XMLHttpRequest")
+    @POST("/cjcx/cjcx_cxCjxqGjh.html")
+    suspend fun getGradeDetail(
+        @Query("time") time: Long = System.currentTimeMillis(),
+        @Query("gnmkdm") gnmkdm: String = "N305005", // 必须带上功能代码
+        @Field("xnm") xnm: String,
+        @Field("xqm") xqm: String,
+        @Field("kcmc") kcmc: String, // 课程名称
+        @Field("jxb_id") jxbId: String // 教学班ID，关键参数
+    ): Response<ResponseBody>
 }

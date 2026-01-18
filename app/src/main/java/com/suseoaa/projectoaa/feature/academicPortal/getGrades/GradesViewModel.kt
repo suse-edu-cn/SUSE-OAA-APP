@@ -60,6 +60,7 @@ class GradesViewModel @Inject constructor(
     var refreshMessage by mutableStateOf<String?>(null)
         private set
 
+    // 监听筛选条件的变化，实时从数据库获取成绩列表
     @OptIn(ExperimentalCoroutinesApi::class)
     val grades: StateFlow<List<GradeEntity>> = combine(
         currentAccount.filterNotNull(),
@@ -80,12 +81,15 @@ class GradesViewModel @Inject constructor(
         selectedXqm = xqm
     }
 
+    // 触发全量刷新：包含详情的并发抓取
     fun refreshGrades() {
         val account = currentAccount.value ?: return
         viewModelScope.launch {
+            if (isRefreshing) return@launch
             isRefreshing = true
-            refreshMessage = "正在全量同步成绩..."
+            refreshMessage = "正在全量同步成绩(含平时分)..."
             try {
+                // 这个方法现在会调用 Repository 中修改过的带详情抓取的逻辑
                 val result = gradeRepository.fetchAllHistoryGrades(account)
                 result.onSuccess { msg ->
                     refreshMessage = msg
