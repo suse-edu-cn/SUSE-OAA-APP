@@ -14,7 +14,7 @@ import androidx.annotation.Keep
  */
 @Keep
 @Serializable
-data class ChangePasswordErrorResponse(
+data class ChangePasswordResponse(
     @SerialName("code")
     val code: Int,
     @SerialName("data")

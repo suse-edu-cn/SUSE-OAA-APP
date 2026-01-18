@@ -33,39 +33,50 @@ class SchoolAuthRepository @Inject constructor(
                 val timestamp = System.currentTimeMillis().toString()
                 val response = api.login(timestamp, username, encryptedPwd, csrfToken)
 
-                // 5. 处理结果
-                if (response.code() == 302) {
+                // 5. 获取最终页面内容（处理 302 跳转或 200 响应）
+                val finalBody = if (response.code() == 302) {
                     val location = response.headers()["Location"] ?: ""
-
-                    if (location.contains("login_logoutAccount.html") ||
-                        location.contains("login_slogin.html") ||
-                        location.contains("logout")
-                    ) {
-                        return@withContext Result.failure(Exception("账号或密码错误"))
-                    }
-
                     if (location.isNotEmpty()) {
-                        val targetUrl =
-                            if (location.startsWith("/")) "https://jwgl.suse.edu.cn$location" else location
+                        val targetUrl = if (location.startsWith("/")) "https://jwgl.suse.edu.cn$location" else location
+                        // 跟随跳转获取新页面内容
                         try {
-                            api.visitUrl(targetUrl) // 访问跳转链接以完成 Cookie 设置
-                            delay(500)
-                            Result.success("登录成功")
+                            api.visitUrl(targetUrl).string()
                         } catch (e: Exception) {
-                            Result.success("登录成功 (重定向异常: ${e.message})")
+                            "" // 如果跳转失败，返回空字符串，后续逻辑会兜底
                         }
                     } else {
-                        Result.success("登录成功 (无跳转)")
+                        ""
                     }
                 } else {
-                    val body = response.errorBody()?.string() ?: response.body()?.string() ?: ""
+                    // 如果是 200，直接读取当前响应体
+                    response.body()?.string() ?: response.errorBody()?.string() ?: ""
+                }
+
+                // 6. 统一判定逻辑：检查最终页面是否包含“登录页特征”或“错误提示”
+                // 登录页特征：
+                // 1. id="rsaKey" (用于加密密码，主页没有)
+                // 2. id="tips" (错误提示框，您提供的失败HTML中有这个)
+                // 3. name="mm" (密码输入框)
+
+                val isLoginPage = finalBody.contains("id=\"rsaKey\"") ||
+                        finalBody.contains("id=\"tips\"") ||
+                        (finalBody.contains("name=\"yhm\"") && finalBody.contains("name=\"mm\""))
+
+                if (isLoginPage) {
+                    // 仍然停留在登录页，说明失败
                     val msg = when {
-                        body.contains("用户名或密码不正确") -> "用户名或密码错误"
-                        body.contains("验证码不正确") -> "验证码错误"
-                        else -> "登录失败，状态码: ${response.code()}"
+                        finalBody.contains("用户名或密码不正确") -> "用户名或密码错误"
+                        finalBody.contains("验证码不正确") -> "验证码错误"
+                        else -> "登录失败，请检查账号密码"
                     }
                     Result.failure(Exception(msg))
+                } else {
+                    // 已经跳出登录页（进入了主页或其他页面），视为成功
+                    // 这里的逻辑是：只要不是登录页，就认为是进去了
+                    delay(500) // 等待一下确保 Cookie 写入
+                    Result.success("登录成功")
                 }
+
             } catch (e: Exception) {
                 Result.failure(e)
             }

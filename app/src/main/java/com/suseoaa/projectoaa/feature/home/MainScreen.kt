@@ -29,7 +29,6 @@ import com.suseoaa.projectoaa.feature.course.CourseScreen
 import com.suseoaa.projectoaa.feature.person.PersonScreen
 import kotlinx.coroutines.launch
 
-// 保持定义在顶层，确保 AppNavHost 能引用到它
 const val MAIN_SCREEN_ROUTE = "main_screen_route"
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -40,19 +39,14 @@ fun MainScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    onNavigateToChangePassword: () -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
-
-    // 判断设备类型
     val isCompact = windowSizeClass == WindowWidthSizeClass.Compact
     val isTablet = !isCompact
-
-    // 延迟状态读取，防止页面微动时触发全屏重组
-    val currentDestinationIndex by remember {
-        derivedStateOf { pagerState.currentPage }
-    }
+    val currentDestinationIndex by remember { derivedStateOf { pagerState.currentPage } }
 
     Row(modifier = modifier.fillMaxSize()) {
         if (!isCompact) {
@@ -64,10 +58,7 @@ fun MainScreen(
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { _ ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
@@ -76,7 +67,6 @@ fun MainScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            // 开启硬件层裁剪，提升滑动帧率
                             .graphicsLayer { clip = true }
                     ) {
                         when (page) {
@@ -88,9 +78,12 @@ fun MainScreen(
                                 sharedTransitionScope = sharedTransitionScope,
                                 animatedVisibilityScope = animatedVisibilityScope
                             )
-
                             3 -> PersonScreen(
-                                onNavigateToLogin = onNavigateToLogin
+                                onNavigateToLogin = onNavigateToLogin,
+                                onNavigateToChangePassword = onNavigateToChangePassword,
+                                // 传递动画 Scope
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope
                             )
                         }
                     }
@@ -99,9 +92,7 @@ fun MainScreen(
                 if (isCompact) {
                     OaaBottomBar(
                         selectedIndex = currentDestinationIndex,
-                        onNavigate = { index ->
-                            scope.launch { pagerState.animateScrollToPage(index) }
-                        },
+                        onNavigate = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .windowInsetsPadding(WindowInsets.navigationBars)

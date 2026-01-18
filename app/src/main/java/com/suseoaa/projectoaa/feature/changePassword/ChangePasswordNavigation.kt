@@ -1,5 +1,7 @@
 package com.suseoaa.projectoaa.feature.changePassword
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
@@ -11,15 +13,20 @@ fun NavController.navigateToChangePassword(navOptions: NavOptions? = null) {
     this.navigate(CHANGE_PASSWORD_ROUTE, navOptions)
 }
 
-//注册登录页
 fun NavGraphBuilder.changePasswordScreen(
-    onChangePasswordSuccess: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope
+    // === 修复：这里移除了 animatedVisibilityScope 参数 ===
 ) {
     composable(route = CHANGE_PASSWORD_ROUTE) {
+        // 在这里，'this' 就是 AnimatedContentScope (实现了 AnimatedVisibilityScope)
         ChangePasswordScreen(
-            onChangePasswordSuccess = onChangePasswordSuccess,
-            onNavigateToLogin = onNavigateToLogin
+            onNavigateBack = onNavigateBack,
+            onNavigateToLogin = onNavigateToLogin,
+            sharedTransitionScope = sharedTransitionScope,
+            // === 修复：使用当前 composable 的作用域 ===
+            animatedVisibilityScope = this
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.feature.person
 
+import androidx.compose.animation.SharedTransitionScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
@@ -12,11 +13,17 @@ fun NavController.navigateToPerson(navOptions: NavOptions? = null) {
 }
 
 fun NavGraphBuilder.personScreen(
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    onNavigateToChangePassword: () -> Unit,
+    // 新增参数：接收 SharedTransitionScope
+    sharedTransitionScope: SharedTransitionScope
 ) {
     composable(route = PERSON_ROUTE) {
         PersonScreen(
-            onNavigateToLogin = onNavigateToLogin
+            onNavigateToLogin = onNavigateToLogin,
+            onNavigateToChangePassword = onNavigateToChangePassword,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = this
         )
     }
 }

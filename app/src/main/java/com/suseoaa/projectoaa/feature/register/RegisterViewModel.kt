@@ -26,7 +26,7 @@ class RegisterViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
 
     fun register(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
-        if (listOf(studentID, realName, userName, password).any { it.isBlank() }) {
+        if (listOf(studentID, realName, userName, password,confirmPassword).any { it.isBlank() }) {
             onError("请填写所有选项")
             return
         }
@@ -34,13 +34,16 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             try {
+                if (password!=confirmPassword){
+                    onError("两次密码输入不一致")
+                    return@launch
+                }
                 val request = RegisterRequest(
                     studentId = studentID,
                     name = realName,
                     username = userName,
                     password = password
                 )
-                // [修改] 使用注入的 Service
                 val response = registerService.register(request)
 
                 if (response.isSuccessful) {

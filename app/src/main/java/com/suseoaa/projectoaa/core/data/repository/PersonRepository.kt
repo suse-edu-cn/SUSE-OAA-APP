@@ -2,6 +2,7 @@ package com.suseoaa.projectoaa.core.data.repository
 
 import com.suseoaa.projectoaa.core.database.CourseDatabase
 import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.core.network.model.changePassword.ChangePasswordRequest
 import com.suseoaa.projectoaa.core.network.model.person.Data
 import com.suseoaa.projectoaa.core.network.person.PersonService
 import com.suseoaa.projectoaa.core.network.school.SchoolCookieJar
@@ -19,16 +20,11 @@ class PersonRepository @Inject constructor(
 ) {
     // 退出登录逻辑
     suspend fun logout() {
-        // 1. 清除 Token
+        // 1. 清除 Token (本地持久化存储的凭证)
         tokenManager.clearToken()
 
-        // 2. 清除 Cookie (Session)
+        // 2. 清除 Cookie (内存中的 Session)
         cookieJar.clear()
-
-        // 3. 清空本地数据库
-        withContext(Dispatchers.IO) {
-            database.clearAllTables()
-        }
     }
 
     suspend fun getPersonInfo(): Result<Data> = withContext(Dispatchers.IO) {
@@ -43,6 +39,33 @@ class PersonRepository @Inject constructor(
                 }
             } else {
                 Result.failure(Exception("请求失败: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 修改密码
+    suspend fun changePassword(oldPassword: String, newPassword: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val request = ChangePasswordRequest(
+                oldpassword = oldPassword,
+                password = newPassword
+            )
+            val response = api.changePassword(request)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                // 根据提供的响应体：code 为 200 即成功
+                if (body != null && body.code == 200) {
+                    Result.success(body.message)
+                } else {
+                    Result.failure(Exception(body?.message ?: "修改失败"))
+                }
+            } else {
+                // 处理 HTTP 错误 (如 400, 500)
+                val errorBody = response.errorBody()?.string()
+                Result.failure(Exception("请求失败(${response.code()}): $errorBody"))
             }
         } catch (e: Exception) {
             Result.failure(e)

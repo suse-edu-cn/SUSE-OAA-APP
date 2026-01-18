@@ -118,7 +118,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = viewModel.password,
             onValueChange = {
-                if (it.length <= 11) viewModel.password = it
+                if (it.length <= 128) viewModel.password = it
             },
             label = { Text("密码") },
             modifier = Modifier
@@ -137,7 +137,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = viewModel.confirmPassword,
             onValueChange = {
-                if (it.length <= 11) viewModel.confirmPassword = it
+                if (it.length <= 128) viewModel.confirmPassword = it
             },
             label = { Text("确认密码") },
             modifier = Modifier

@@ -18,6 +18,8 @@ import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoScreen
 import com.suseoaa.projectoaa.feature.academicPortal.getGrades.GradesScreen
 import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicMessageInfoScreen
+import com.suseoaa.projectoaa.feature.changePassword.changePasswordScreen
+import com.suseoaa.projectoaa.feature.changePassword.navigateToChangePassword
 import com.suseoaa.projectoaa.feature.gpa.GpaScreen
 import com.suseoaa.projectoaa.feature.home.MAIN_SCREEN_ROUTE
 import com.suseoaa.projectoaa.feature.home.MainScreen
@@ -62,6 +64,19 @@ fun AppNavHost(
                     navController.popBackStack()
                 }
             )
+
+            // === 修复：调用时移除 animatedVisibilityScope 参数 ===
+            changePasswordScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToLogin = {
+                    navController.navigate(LOGIN_ROUTE) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                sharedTransitionScope = this@SharedTransitionLayout
+            )
+
             composable(MAIN_SCREEN_ROUTE) {
                 MainScreen(
                     windowSizeClass = windowSizeClass,
@@ -75,13 +90,16 @@ fun AppNavHost(
                     },
                     onNavigateToLogin = {
                         navController.navigate(LOGIN_ROUTE) {
-                            // 关键：清空返回栈，防止按返回键回到已退出的页面
                             popUpTo(0) { inclusive = true }
                             launchSingleTop = true
                         }
                     },
+                    onNavigateToChangePassword = {
+                        navController.navigateToChangePassword()
+                    },
                     sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedVisibilityScope = this@composable
+                    // 使用 this 即可指代当前的 AnimatedContentScope
+                    animatedVisibilityScope = this
                 )
             }
 
