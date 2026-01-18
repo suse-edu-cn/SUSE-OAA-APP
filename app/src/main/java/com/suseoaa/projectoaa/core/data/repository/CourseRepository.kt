@@ -109,7 +109,7 @@ class CourseRepository @Inject constructor(
         val xqm = xsxx?.xQM ?: "3"
 
         if (xsxx != null) {
-            // 保存账户前，先检查旧数据，为了保留 sortIndex
+            // 保存账户前，先检查旧数据，为了保留 sortIndex 和 学院专业信息
             val oldAccount = dao.getAccountById(studentId)
 
             // 如果是老用户，沿用旧的 sortIndex；如果是新用户，放到末尾 (max + 1)
@@ -122,7 +122,11 @@ class CourseRepository @Inject constructor(
                 className = xsxx.bJMC ?: "未知班级",
                 njdmId = xsxx.nJDMID ?: xnm,
                 major = xsxx.zYMC ?: "",
-                sortIndex = newSortIndex
+                sortIndex = newSortIndex,
+                // 保留旧的 jgId，因为课表接口通常不返回它，但成绩查询需要它
+                jgId = oldAccount?.jgId,
+                // 优先使用课表接口返回的 zyhId，如果没有则尝试保留旧值
+                zyhId = xsxx.zYHID ?: oldAccount?.zyhId
             )
             dao.insertAccount(account)
         }

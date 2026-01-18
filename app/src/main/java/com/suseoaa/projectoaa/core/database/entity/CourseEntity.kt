@@ -12,7 +12,8 @@ import androidx.room.PrimaryKey
 @Keep
 @Entity(tableName = "course_accounts")
 data class CourseAccountEntity(
-    @PrimaryKey val studentId: String,
+    @PrimaryKey
+    val studentId: String,
     val password: String,
     val name: String,
     val className: String,
