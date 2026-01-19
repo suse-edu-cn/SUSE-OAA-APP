@@ -24,6 +24,10 @@ data class GradeEntity(
     val regularScore: String = "", // 平时成绩
     val regularRatio: String = "", // 平时比例 (如 "40%")
 
+    // 实验成绩字段
+    val experimentScore: String = "",
+    val experimentRatio: String = "",
+
     val finalScore: String = "",   // 期末成绩
     val finalRatio: String = "",   // 期末比例 (如 "60%")
 

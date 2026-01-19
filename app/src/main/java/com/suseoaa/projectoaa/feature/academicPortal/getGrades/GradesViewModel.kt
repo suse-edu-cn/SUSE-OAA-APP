@@ -87,7 +87,7 @@ class GradesViewModel @Inject constructor(
         viewModelScope.launch {
             if (isRefreshing) return@launch
             isRefreshing = true
-            refreshMessage = "正在全量同步成绩(含平时分)..."
+            refreshMessage = "正在全量同步成绩..."
             try {
                 // 这个方法现在会调用 Repository 中修改过的带详情抓取的逻辑
                 val result = gradeRepository.fetchAllHistoryGrades(account)

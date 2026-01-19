@@ -296,6 +296,16 @@ fun GradeItemCard(item: GradeEntity) {
                     value = item.regularScore.ifBlank { "-" }
                 )
 
+                // 实验成绩 + 比例 (有数据才显示)
+                if (item.experimentScore.isNotBlank()) {
+                    val expLabel =
+                        if (item.experimentRatio.isNotBlank()) "实验(${item.experimentRatio})" else "实验"
+                    LabelValueText(
+                        label = expLabel,
+                        value = item.experimentScore
+                    )
+                }
+
                 // 期末成绩 + 比例
                 val finalLabel =
                     if (item.finalRatio.isNotBlank()) "期末(${item.finalRatio})" else "期末"

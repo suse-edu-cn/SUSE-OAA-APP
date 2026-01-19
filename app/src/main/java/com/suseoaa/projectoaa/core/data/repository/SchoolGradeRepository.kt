@@ -62,7 +62,7 @@ class SchoolGradeRepository @Inject constructor(
         account: CourseAccountEntity,
         year: String,
         semester: String
-    ) = coroutineScope { // 开启协程作用域以支持 async
+    ) = coroutineScope {
         val response = api.getStudentGrade(year = year, semester = semester)
         if (response.isSuccessful) {
             val bodyString = response.body()?.string() ?: ""
@@ -93,7 +93,6 @@ class SchoolGradeRepository @Inject constructor(
                     xnm = item.xnm ?: year,
                     xqm = item.xqm ?: semester,
                     courseId = item.kchId ?: item.kch ?: "unknown_${item.hashCode()}",
-                    // 保存 jxbId
                     jxbId = item.jxbId ?: "",
                     courseName = item.kcmc ?: "未知课程",
                     score = item.cj ?: "-",
@@ -130,9 +129,13 @@ class SchoolGradeRepository @Inject constructor(
                                 // 同时保存成绩和比例
                                 return@withPermit entity.copy(
                                     regularScore = detail.regular,
-                                    regularRatio = detail.regularRatio, // 保存平时比例
+                                    regularRatio = detail.regularRatio,
+                                    // 保存实验成绩和比例
+                                    experimentScore = detail.experiment,
+                                    experimentRatio = detail.experimentRatio,
+
                                     finalScore = detail.final,
-                                    finalRatio = detail.finalRatio      // 保存期末比例
+                                    finalRatio = detail.finalRatio
                                 )
                             }
                         } catch (e: Exception) {

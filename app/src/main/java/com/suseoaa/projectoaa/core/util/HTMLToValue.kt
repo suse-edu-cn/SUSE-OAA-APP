@@ -28,24 +28,16 @@ object HtmlParser {
             val title = element.select("span.title").text().trim()
             if (title.isEmpty()) return@mapNotNull null
 
-            // 步骤 A: 优先尝试查找 span.fraction
             var details = element.select("span.fraction").text().trim()
-
-            // 步骤 B: 如果没有，尝试 p.list-group-item-text
             if (details.isEmpty()) {
                 details = element.select("p.list-group-item-text").text().trim()
             }
-
-            // 步骤 C: 最后的兜底，纯文本替换
             if (details.isEmpty()) {
                 val fullText = element.text().trim()
-                // 移除标题，移除可能存在的 "考试安排" 等多余标签文本
                 details = fullText.replace(title, "")
                     .replace("考试安排", "")
                     .trim()
             }
-
-            // 返回 "课程名###详情" 的格式
             "$title###$details"
         }
 
@@ -58,7 +50,9 @@ object HtmlParser {
         val regular: String = "",
         val regularRatio: String = "",
         val final: String = "",
-        val finalRatio: String = ""
+        val finalRatio: String = "",
+        val experiment: String = "",
+        val experimentRatio: String = ""
     )
 
     fun parseGradeDetail(html: String): GradeDetail {
@@ -69,11 +63,13 @@ object HtmlParser {
         var regularRatio = ""
         var finalScore = ""
         var finalRatio = ""
+        var experimentScore = ""
+        var experimentRatio = ""
 
         for (row in rows) {
             val cols = row.select("td")
             if (cols.size >= 3) {
-                // 第一列：标题 (【 平时 】)
+                // 第一列：标题 (【 平时 】 / 【 实验 】)
                 val title = cols[0].text().replace("【", "").replace("】", "").trim()
                 // 第二列：比例 (40%)
                 val ratio = cols[1].text().trim()
@@ -85,6 +81,11 @@ object HtmlParser {
                         regular = score
                         regularRatio = ratio
                     }
+                    // 实验匹配逻辑
+                    title.contains("实验") -> {
+                        experimentScore = score
+                        experimentRatio = ratio
+                    }
 
                     title.contains("期末") || title.contains("补考") -> {
                         finalScore = score
@@ -93,6 +94,10 @@ object HtmlParser {
                 }
             }
         }
-        return GradeDetail(regular, regularRatio, finalScore, finalRatio)
+        return GradeDetail(
+            regular, regularRatio,
+            finalScore, finalRatio,
+            experimentScore, experimentRatio
+        )
     }
 }

@@ -25,7 +25,7 @@ import com.suseoaa.projectoaa.core.database.entity.MessageCacheEntity
         ExamCacheEntity::class,
         MessageCacheEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 abstract class CourseDatabase : RoomDatabase() {
@@ -47,10 +47,15 @@ abstract class CourseDatabase : RoomDatabase() {
 
         val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // 添加 regularRatio 列
                 db.execSQL("ALTER TABLE grades ADD COLUMN regularRatio TEXT NOT NULL DEFAULT ''")
-                // 添加 finalRatio 列
                 db.execSQL("ALTER TABLE grades ADD COLUMN finalRatio TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE grades ADD COLUMN experimentScore TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE grades ADD COLUMN experimentRatio TEXT NOT NULL DEFAULT ''")
             }
         }
 
@@ -66,8 +71,7 @@ abstract class CourseDatabase : RoomDatabase() {
                 CourseDatabase::class.java,
                 "course_schedule.db"
             )
-                // 注册所有迁移脚本
-                .addMigrations(MIGRATION_10_11, MIGRATION_11_12)
+                .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                 .fallbackToDestructiveMigration(false)
                 .build()
         }
