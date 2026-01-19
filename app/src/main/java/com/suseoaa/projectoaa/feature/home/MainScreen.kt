@@ -78,10 +78,10 @@ fun MainScreen(
                                 sharedTransitionScope = sharedTransitionScope,
                                 animatedVisibilityScope = animatedVisibilityScope
                             )
+
                             3 -> PersonScreen(
                                 onNavigateToLogin = onNavigateToLogin,
                                 onNavigateToChangePassword = onNavigateToChangePassword,
-                                // 传递动画 Scope
                                 sharedTransitionScope = sharedTransitionScope,
                                 animatedVisibilityScope = animatedVisibilityScope
                             )

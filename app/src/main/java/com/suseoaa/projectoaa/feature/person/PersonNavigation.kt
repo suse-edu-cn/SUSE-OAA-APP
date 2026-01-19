@@ -15,7 +15,6 @@ fun NavController.navigateToPerson(navOptions: NavOptions? = null) {
 fun NavGraphBuilder.personScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
-    // 新增参数：接收 SharedTransitionScope
     sharedTransitionScope: SharedTransitionScope
 ) {
     composable(route = PERSON_ROUTE) {

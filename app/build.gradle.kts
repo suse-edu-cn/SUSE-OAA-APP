@@ -18,8 +18,8 @@ android {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1278
-        versionName = "1.27.8"
+        versionCode = 1288
+        versionName = "1.28.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -102,4 +102,5 @@ dependencies {
     implementation(libs.coil.compose)
 //    md解析器
     implementation(libs.multiplatform.markdown.renderer.m3)
-}
+//    图片压缩
+    implementation(libs.compressor)}
