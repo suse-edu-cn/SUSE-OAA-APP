@@ -27,7 +27,7 @@ class PersonRepository @Inject constructor(
     private val api: PersonService,
     private val tokenManager: TokenManager,
     private val cookieJar: SchoolCookieJar,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
 
     suspend fun logout() {
@@ -76,7 +76,7 @@ class PersonRepository @Inject constructor(
             }
         }
 
-    // 3. 修改用户信息 (增加详细错误日志)
+    // 3. 修改用户信息
     suspend fun updateUserInfo(username: String, name: String): Result<String> =
         withContext(Dispatchers.IO) {
             try {

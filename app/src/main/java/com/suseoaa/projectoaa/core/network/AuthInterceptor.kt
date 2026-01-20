@@ -28,15 +28,15 @@ class AuthInterceptor @Inject constructor(
         }
 
         val requestBuilder = chain.request().newBuilder()
-        /*        if (!finalToken.isNullOrBlank()) {
-                    requestBuilder.addHeader("Authorization", "Bearer $finalToken")
-                }*/
         if (!finalToken.isNullOrBlank()) {
-            android.util.Log.d("AuthInterceptor", "正在为请求注入 Token: $finalToken")
             requestBuilder.addHeader("Authorization", "Bearer $finalToken")
-        } else {
-            android.util.Log.e("AuthInterceptor", "警告：Token 为空，请求将不携带认证信息")
         }
+//        if (!finalToken.isNullOrBlank()) {
+//            android.util.Log.d("AuthInterceptor", "正在为请求注入 Token: $finalToken")
+//            requestBuilder.addHeader("Authorization", "Bearer $finalToken")
+//        } else {
+//            android.util.Log.e("AuthInterceptor", "警告：Token 为空，请求将不携带认证信息")
+//        }
         return chain.proceed(requestBuilder.build())
     }
 }
