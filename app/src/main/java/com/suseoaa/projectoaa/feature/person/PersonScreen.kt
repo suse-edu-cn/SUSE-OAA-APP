@@ -61,7 +61,6 @@ fun PersonScreen(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    // 【关键修复】这里使用 personInfo 对应 ViewModel 中的变量名
     val userInfo by viewModel.personInfo.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val uiEvent by viewModel.uiEvent.collectAsStateWithLifecycle()
@@ -316,7 +315,7 @@ fun UserInfoCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = userInfo?.role ?: "查看会员权益",
+                    text = userInfo?.role ?: "未加入协会",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -344,6 +343,7 @@ fun EditInfoDialog(
     var name by remember { mutableStateOf(initialName) }
 
     AlertDialog(
+        containerColor = MaterialTheme.colorScheme.background,
         onDismissRequest = onDismiss,
         title = { Text("修改个人信息") },
         text = {

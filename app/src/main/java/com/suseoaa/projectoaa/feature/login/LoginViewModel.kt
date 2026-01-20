@@ -18,13 +18,11 @@ class LoginViewModel @Inject constructor(
     private val loginService: LoginService
 ) : ViewModel() {
 
-    // UI状态
     var account by mutableStateOf("")
     var password by mutableStateOf("")
     var isLoading by mutableStateOf(false)
         private set
 
-    // 登录方法
     fun login(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
         val cleanAccount = account.trim()
         val cleanPassword = password.trim()
@@ -37,21 +35,25 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             try {
+                // 1. 执行 App 后端登录
                 val request = LoginRequest(username = cleanAccount, password = cleanPassword)
-                // 使用注入的 Service
                 val response = loginService.login(request)
 
                 if (response.isSuccessful) {
                     val body = response.body()
                     if (body != null && body.code == 200 && body.data?.token != null) {
                         val token = body.data.token
+
+                        // 2. 仅保存 App 的 Token 和 身份标识
                         tokenManager.saveToken(token)
+                        tokenManager.saveCurrentStudentId(cleanAccount)
+
+                        // 3. 跳转主页
                         onSuccess(token)
                     } else {
                         onError(body?.message ?: "登录失败: 未知错误")
                     }
                 } else {
-                    // 处理 401 或其他错误码
                     if (response.code() == 401) {
                         onError("登录失败：账号或密码错误")
                     } else {
@@ -60,7 +62,6 @@ class LoginViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                // 在控制台打印错误信息
                 e.printStackTrace()
                 onError("网络请求失败: ${e.message}")
             } finally {

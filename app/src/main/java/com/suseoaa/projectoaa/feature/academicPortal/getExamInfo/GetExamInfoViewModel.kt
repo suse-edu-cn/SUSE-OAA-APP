@@ -8,12 +8,12 @@ import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.core.data.repository.SchoolInfoRepository
 import com.suseoaa.projectoaa.core.database.dao.CourseDao
 import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.core.util.parseExamTimeRange
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,7 +30,7 @@ class GetExamInfoViewModel @Inject constructor(
         .flatMapLatest { id -> flow { emit(courseDao.getAccountById(id)) } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    // 2. 考试列表流 (含排序逻辑)
+    // 2. 考试列表流 (含精确排序逻辑)
     @OptIn(ExperimentalCoroutinesApi::class)
     val examList: StateFlow<List<ExamUiState>> = tokenManager.currentStudentId
         .filterNotNull()
@@ -38,8 +38,7 @@ class GetExamInfoViewModel @Inject constructor(
             repository.observeExams(studentId)
         }
         .map { entities ->
-            val today = LocalDate.now()
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            val now = LocalDateTime.now()
 
             entities.map { entity ->
                 ExamUiState(
@@ -48,27 +47,31 @@ class GetExamInfoViewModel @Inject constructor(
                     location = entity.location
                 )
             }.sortedWith { a, b ->
-                // 解析日期 helper
-                val dateA = parseDate(a.time, formatter)
-                val dateB = parseDate(b.time, formatter)
+                // 使用工具类解析完整时间
+                val timesA = parseExamTimeRange(a.time)
+                val timesB = parseExamTimeRange(b.time)
 
-                // 异常处理：解析失败的项沉底
-                if (dateA == null && dateB == null) return@sortedWith 0
-                if (dateA == null) return@sortedWith 1
-                if (dateB == null) return@sortedWith -1
+                // 异常处理：解析失败的项放到最后
+                if (timesA == null && timesB == null) return@sortedWith 0
+                if (timesA == null) return@sortedWith 1
+                if (timesB == null) return@sortedWith -1
 
-                // 判断是否已结束（今天之前的算已结束）
-                val isEndedA = dateA.isBefore(today)
-                val isEndedB = dateB.isBefore(today)
+                val (startA, endA) = timesA
+                val (startB, endB) = timesB
+
+                // 判断是否已结束 (当前时间 > 结束时间)
+                val isEndedA = now.isAfter(endA)
+                val isEndedB = now.isAfter(endB)
 
                 if (isEndedA != isEndedB) {
-                    // 规则2:已结束的放到最后
-                    // A已结束(true)，B未结束(false) -> A放后面(1)
+                    // 规则1: 状态不同时，未结束的在前，已结束的在后
+                    // A已结束(true) -> 放后面(1)
                     if (isEndedA) 1 else -1
                 } else {
-                    // 规则1:状态相同时，按由先到后(时间升序)排列
-                    // 这样未结束的考试中，离今天最近的排在最上面
-                    dateA.compareTo(dateB)
+                    // 规则2: 状态相同时（都未结束 或 都已结束）
+                    // 按开始时间升序排列（离现在最近的/最早发生的排前面）
+                    // 这样同一天不同时间的考试会按时间顺序排列
+                    startA.compareTo(startB)
                 }
             }
         }
@@ -86,18 +89,6 @@ class GetExamInfoViewModel @Inject constructor(
             isRefreshing = true
             repository.refreshAcademicExamInfo(account)
             isRefreshing = false
-        }
-    }
-
-    // 日期解析工具
-    private fun parseDate(timeStr: String, formatter: DateTimeFormatter): LocalDate? {
-        return try {
-            // 格式为 "2026-01-08(09:30-11:30)"，截取括号前部分
-            val datePart = timeStr.substringBefore("(")
-            if (datePart.isBlank()) return null
-            LocalDate.parse(datePart, formatter)
-        } catch (e: Exception) {
-            null
         }
     }
 }

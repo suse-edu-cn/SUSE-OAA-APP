@@ -86,12 +86,12 @@ fun AcademicScreen(
             AcademicDestinations.Grades,
             MaterialTheme.colorScheme.primary
         ),
-        PortalFunction(
-            "考试查询",
-            Icons.Default.Event,
-            AcademicDestinations.Exams,
-            MaterialTheme.colorScheme.tertiary
-        ),
+//        PortalFunction(
+//            "考试查询",
+//            Icons.Default.Event,
+//            AcademicDestinations.Exams,
+//            MaterialTheme.colorScheme.tertiary
+//        ),
         PortalFunction(
             "绩点计算",
             Icons.Default.Calculate, // 也可以用 Icons.AutoMirrored.Filled.ShowChart

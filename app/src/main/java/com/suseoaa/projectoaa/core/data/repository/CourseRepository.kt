@@ -13,8 +13,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import kotlin.collections.filter
-import kotlin.collections.map
 
 class CourseRepository @Inject constructor(
     private val dao: CourseDao
@@ -23,7 +21,6 @@ class CourseRepository @Inject constructor(
     val allAccounts: Flow<List<CourseAccountEntity>> = dao.getAllAccounts()
 
     // 处理列表排序交换
-    // fromIndex 和 toIndex 是 UI 列表中的位置，currentList 是当前的列表数据
     suspend fun swapAccountOrder(
         fromIndex: Int,
         toIndex: Int,
@@ -32,12 +29,8 @@ class CourseRepository @Inject constructor(
         if (fromIndex == toIndex) return@withContext
         if (fromIndex !in currentList.indices || toIndex !in currentList.indices) return@withContext
 
-        // 1. 在内存中交换顺序
         val mutableList = currentList.toMutableList()
         java.util.Collections.swap(mutableList, fromIndex, toIndex)
-
-        // 2. 将新的顺序索引写入数据库
-        // 注意：这里会重新分配 0, 1, 2... 的 sortIndex 给调整后的列表
         dao.updateAllSortIndices(mutableList)
     }
 
@@ -53,14 +46,32 @@ class CourseRepository @Inject constructor(
                 }
                 CourseWithTimes(course, matchingTimes)
             }
-        }
-//        确保上述组合逻辑在计算线程执行
-            .flowOn(Dispatchers.Default)
+        }.flowOn(Dispatchers.Default)
     }
 
     suspend fun deleteAccount(studentId: String) {
         dao.deleteAccount(studentId)
         dao.deleteAllCoursesByStudent(studentId)
+    }
+
+    // 保存登录凭证 (用于登录成功后)
+    // 无论是新用户还是老用户，都更新/插入密码
+    suspend fun saveCredential(studentId: String, pass: String) {
+        val oldAccount = dao.getAccountById(studentId)
+        val newSortIndex = oldAccount?.sortIndex ?: ((dao.getMaxSortIndex() ?: -1) + 1)
+
+        val account = CourseAccountEntity(
+            studentId = studentId,
+            password = pass,
+            name = oldAccount?.name ?: "正在加载...", // 暂时占位
+            className = oldAccount?.className ?: "",
+            njdmId = oldAccount?.njdmId ?: "",
+            major = oldAccount?.major ?: "",
+            sortIndex = newSortIndex,
+            jgId = oldAccount?.jgId,
+            zyhId = oldAccount?.zyhId
+        )
+        dao.insertAccount(account)
     }
 
     suspend fun saveCustomCourse(
@@ -109,10 +120,7 @@ class CourseRepository @Inject constructor(
         val xqm = xsxx?.xQM ?: "3"
 
         if (xsxx != null) {
-            // 保存账户前，先检查旧数据，为了保留 sortIndex 和 学院专业信息
             val oldAccount = dao.getAccountById(studentId)
-
-            // 如果是老用户，沿用旧的 sortIndex；如果是新用户，放到末尾 (max + 1)
             val newSortIndex = oldAccount?.sortIndex ?: ((dao.getMaxSortIndex() ?: -1) + 1)
 
             val account = CourseAccountEntity(
@@ -123,9 +131,7 @@ class CourseRepository @Inject constructor(
                 njdmId = xsxx.nJDMID ?: xnm,
                 major = xsxx.zYMC ?: "",
                 sortIndex = newSortIndex,
-                // 保留旧的 jgId，因为课表接口通常不返回它，但成绩查询需要它
                 jgId = oldAccount?.jgId,
-                // 优先使用课表接口返回的 zyhId，如果没有则尝试保留旧值
                 zyhId = xsxx.zYHID ?: oldAccount?.zyhId
             )
             dao.insertAccount(account)

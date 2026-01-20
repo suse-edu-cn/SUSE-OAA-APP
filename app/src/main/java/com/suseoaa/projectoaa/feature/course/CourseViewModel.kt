@@ -30,7 +30,6 @@ import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import javax.inject.Inject
 
-// --- 数据类定义 ---
 data class TermOption(
     val xnm: String,
     val xqm: String,
@@ -62,7 +61,6 @@ data class CourseListUiState(
     val statusMessage: String? = null
 )
 
-// --- 作息时间常量 ---
 val DailySchedulePost2025 = listOf(
     TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
     TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
@@ -119,12 +117,19 @@ class CourseListViewModel @Inject constructor(
     val savedAccounts: StateFlow<List<CourseAccountEntity>> = localRepository.allAccounts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // 监听保存的账号列表和当前 Token 中的学号
     val currentAccount: StateFlow<CourseAccountEntity?> = combine(
         savedAccounts,
         tokenManager.currentStudentId
     ) { accounts, selectedId ->
-        if (accounts.isEmpty()) null
-        else accounts.find { it.studentId == selectedId } ?: accounts.first()
+        if (accounts.isEmpty()) {
+            // 数据库无账号，返回 null，不做任何处理
+            null
+        } else {
+            // 1. 尝试匹配当前登录的 App 账号
+            // 2. 如果匹配失败（因为 App 账号 != 教务账号），则默认使用数据库的第一个账号
+            accounts.find { it.studentId == selectedId } ?: accounts.first()
+        }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _termOptions = MutableStateFlow<List<TermOption>>(emptyList())
@@ -166,7 +171,6 @@ class CourseListViewModel @Inject constructor(
         .map { getDailySchedule(it) }
         .stateIn(viewModelScope, SharingStarted.Lazily, DailySchedulePost2025)
 
-    // 预计算所有周次的布局数据
     val weekLayoutMap: StateFlow<Map<Int, List<ScheduleLayoutItem>>> = combine(
         weekScheduleMap,
         currentDailySchedule
@@ -190,15 +194,25 @@ class CourseListViewModel @Inject constructor(
     init {
         loadSemesterStart()
         viewModelScope.launch {
-            currentAccount.collect { account ->
-                if (account != null) {
+            // 自动刷新逻辑
+            // 监听 currentAccount 的变化
+            currentAccount
+                .filterNotNull()
+                // 使用 distinctUntilChanged 确保仅在账号对象发生实质变化时触发
+                // 注意：如果从登录页进入，currentAccount 从 null 变为 对象，会触发
+                .distinctUntilChanged { old, new -> old.studentId == new.studentId }
+                .collect { account ->
                     generateTermOptions(account.njdmId)
-                    // 初始化时自动选中当前真实学期
                     val (realXnm, realXqm) = calculateCurrentRealTerm()
                     selectedXnm = realXnm
                     selectedXqm = realXqm
+
+                    // 只要确认了教务账号（且有密码），就自动刷新一次
+                    // 保证会话的准确性和数据的即时性
+                    if (account.password.isNotBlank()) {
+                        fetchAndSaveCourseSchedule(account.studentId, account.password, realXnm, realXqm)
+                    }
                 }
-            }
         }
     }
 
@@ -211,22 +225,16 @@ class CourseListViewModel @Inject constructor(
     fun refreshSchedule() {
         val account = currentAccount.value
         if (account == null) {
-            uiState = uiState.copy(errorMessage = "当前无账号")
+            uiState = uiState.copy(errorMessage = "请先添加教务账号")
             return
         }
-        // 刷新时使用当前 UI 选中的学期
         fetchAndSaveCourseSchedule(account.studentId, account.password, selectedXnm, selectedXqm)
     }
 
-    // 清除 UI 消息 (供界面调用)
     fun clearUiMessage() {
         uiState = uiState.copy(errorMessage = null, successMessage = null)
     }
 
-    /**
-     * 登录并保存课表
-     * [自动策略] 如果 xnm/xqm 为 null，则自动计算离当前时间最近的学期
-     */
     fun fetchAndSaveCourseSchedule(
         username: String,
         pass: String,
@@ -234,35 +242,35 @@ class CourseListViewModel @Inject constructor(
         xqm: String? = null
     ) {
         viewModelScope.launch {
-            //请求开始前，清除旧的错误/成功状态
             uiState = uiState.copy(
                 isLoading = true,
-                statusMessage = "正在登录...",
+                statusMessage = "正在同步教务系统...",
                 errorMessage = null,
                 successMessage = null
             )
 
-            // 1. 确定目标学年学期：如果有传参则用参数，没有则自动计算当前最新学期
             val (targetXnm, targetXqm) = if (xnm != null && xqm != null) {
                 xnm to xqm
             } else {
                 calculateCurrentRealTerm()
             }
 
+            // 1. 登录教务系统 (获取 Session)
             val loginResult = schoolAuthRepository.login(username, pass)
 
             if (loginResult.isFailure) {
-                val errorMsg = loginResult.exceptionOrNull()?.message ?: "登录失败"
-                uiState =
-                    uiState.copy(isLoading = false, errorMessage = errorMsg, statusMessage = null)
+                val errorMsg = loginResult.exceptionOrNull()?.message ?: "教务系统登录失败"
+                uiState = uiState.copy(isLoading = false, errorMessage = errorMsg, statusMessage = null)
                 return@launch
             }
 
+            // 2. 获取课表数据
             uiState = uiState.copy(statusMessage = "正在获取课表 ($targetXnm-$targetXqm)...")
             val courseResult = schoolCourseRepository.getCourseSchedule(targetXnm, targetXqm)
 
             courseResult.onSuccess { courseData ->
                 uiState = uiState.copy(statusMessage = "正在保存...")
+
                 withContext(Dispatchers.IO) {
                     localRepository.saveFromResponse(username, pass, courseData)
                 }
@@ -281,14 +289,15 @@ class CourseListViewModel @Inject constructor(
                     isLoading = false,
                     successMessage = "更新成功",
                     statusMessage = null,
-                    errorMessage = null // 确保清除错误
+                    errorMessage = null
                 )
-                // 保存并切换到新账号
+                // 注意：这里保存的是教务账号的 ID，以便下次进入能保持选中状态
                 tokenManager.saveCurrentStudentId(username)
 
-                // 如果当前UI显示的不是刚刚抓取的学期，顺便更新UI状态
-                selectedXnm = targetXnm
-                selectedXqm = targetXqm
+                if (selectedXnm != targetXnm || selectedXqm != targetXqm) {
+                    selectedXnm = targetXnm
+                    selectedXqm = targetXqm
+                }
 
             }.onFailure { e ->
                 uiState = uiState.copy(
@@ -338,9 +347,9 @@ class CourseListViewModel @Inject constructor(
         val currentYear = today.year
         val currentMonth = today.monthValue
         return when (currentMonth) {
-            in 2..7 -> (currentYear - 1).toString() to "12" // 例：2026年3月 -> 2025-2026学年 第2学期(12)
-            1 -> (currentYear - 1).toString() to "3"        // 例：2026年1月 -> 2025-2026学年 第1学期(3)
-            else -> currentYear.toString() to "3"           // 例：2025年9月 -> 2025-2026学年 第1学期(3)
+            in 2..7 -> (currentYear - 1).toString() to "12"
+            1 -> (currentYear - 1).toString() to "3"
+            else -> currentYear.toString() to "3"
         }
     }
 

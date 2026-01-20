@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.core.data.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.core.data.repository.SchoolGradeRepository
 import com.suseoaa.projectoaa.core.database.dao.CourseDao
 import com.suseoaa.projectoaa.core.database.entity.CourseAccountEntity
@@ -21,24 +22,23 @@ import javax.inject.Inject
 @HiltViewModel
 class GradesViewModel @Inject constructor(
     private val gradeRepository: SchoolGradeRepository,
+    private val authRepository: SchoolAuthRepository,
     private val tokenManager: TokenManager,
     private val courseDao: CourseDao
 ) : ViewModel() {
 
-    // 监听全局选中的学生 ID，自动加载该学生信息
     @OptIn(ExperimentalCoroutinesApi::class)
-    val currentAccount: StateFlow<CourseAccountEntity?> = tokenManager.currentStudentId
-        .filterNotNull()
-        .flatMapLatest { studentId ->
-            flow {
-                emit(courseDao.getAccountById(studentId))
-            }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = null
-        )
+    val currentAccount: StateFlow<CourseAccountEntity?> = combine(
+        courseDao.getAllAccounts(), // 直接监听所有账号
+        tokenManager.currentStudentId
+    ) { accounts, selectedId ->
+        if (accounts.isEmpty()) null
+        else accounts.find { it.studentId == selectedId } ?: accounts.first()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = null
+    )
 
     private val defaultSelection: Pair<String, String>
         get() {
@@ -60,7 +60,6 @@ class GradesViewModel @Inject constructor(
     var refreshMessage by mutableStateOf<String?>(null)
         private set
 
-    // 监听筛选条件的变化，实时从数据库获取成绩列表
     @OptIn(ExperimentalCoroutinesApi::class)
     val grades: StateFlow<List<GradeEntity>> = combine(
         currentAccount.filterNotNull(),
@@ -81,20 +80,28 @@ class GradesViewModel @Inject constructor(
         selectedXqm = xqm
     }
 
-    // 触发全量刷新：包含详情的并发抓取
     fun refreshGrades() {
         val account = currentAccount.value ?: return
         viewModelScope.launch {
             if (isRefreshing) return@launch
             isRefreshing = true
-            refreshMessage = "正在全量同步成绩..."
+            refreshMessage = "正在连接教务系统..."
+
             try {
-                // 这个方法现在会调用 Repository 中修改过的带详情抓取的逻辑
-                val result = gradeRepository.fetchAllHistoryGrades(account)
-                result.onSuccess { msg ->
-                    refreshMessage = msg
-                }.onFailure { e ->
-                    refreshMessage = "更新失败: ${e.message}"
+                // 自动重试登录，确保 Session 有效
+                val loginResult = authRepository.login(account.studentId, account.password)
+
+                if (loginResult.isSuccess) {
+                    refreshMessage = "正在全量同步成绩..."
+                    val result = gradeRepository.fetchAllHistoryGrades(account)
+
+                    result.onSuccess { msg ->
+                        refreshMessage = msg
+                    }.onFailure { e ->
+                        refreshMessage = "更新失败: ${e.message}"
+                    }
+                } else {
+                    refreshMessage = "教务登录失败，请检查密码或网络"
                 }
             } catch (e: Exception) {
                 refreshMessage = "未知错误: ${e.message}"
