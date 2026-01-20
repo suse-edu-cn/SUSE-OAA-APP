@@ -56,12 +56,7 @@ fun GpaScreen(
             ),
             topBar = {
                 TopAppBar(
-                    title = { Text("绩点计算") },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    }
+                    title = { Text("绩点计算") }
                 )
             }
         ) { padding ->

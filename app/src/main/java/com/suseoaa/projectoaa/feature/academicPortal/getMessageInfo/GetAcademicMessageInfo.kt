@@ -60,12 +60,7 @@ fun GetAcademicMessageInfoScreen(
             ),
             topBar = {
                 TopAppBar(
-                    title = { Text("调课通知") },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
-                        }
-                    }
+                    title = { Text("调课通知") }
                 )
             }
         ) { innerPadding ->

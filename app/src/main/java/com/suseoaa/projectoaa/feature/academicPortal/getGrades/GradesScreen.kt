@@ -2,6 +2,7 @@ package com.suseoaa.projectoaa.feature.academicPortal.getGrades
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -16,8 +18,10 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,7 +29,7 @@ import com.suseoaa.projectoaa.core.database.entity.GradeEntity
 import com.suseoaa.projectoaa.core.util.AcademicSharedTransitionSpec
 import java.util.Calendar
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun GradesScreen(
     windowSizeClass: WindowWidthSizeClass,
@@ -64,23 +68,7 @@ fun GradesScreen(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
-                    title = { Text("成绩查询") },
-                    actions = {
-                        IconButton(
-                            onClick = { viewModel.refreshGrades() },
-                            enabled = !isRefreshing
-                        ) {
-                            if (isRefreshing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            } else {
-                                Icon(Icons.Default.Refresh, contentDescription = "全量更新")
-                            }
-                        }
-                    }
+                    title = { Text("成绩查询") }
                 )
             }
         ) { innerPadding ->
@@ -89,6 +77,7 @@ fun GradesScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
+                // 筛选栏
                 SelectOption(
                     selectedYear = viewModel.selectedXnm,
                     selectedSemester = viewModel.selectedXqm,
@@ -98,6 +87,7 @@ fun GradesScreen(
                     }
                 )
 
+                // 内容区
                 if (grades.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -114,6 +104,7 @@ fun GradesScreen(
                         }
                     }
                 } else {
+                    // 响应式布局列数
                     val columns = if (windowSizeClass == WindowWidthSizeClass.Compact) 1 else 2
 
                     LazyVerticalGrid(
@@ -250,12 +241,15 @@ fun GradeItemCard(item: GradeEntity) {
                     text = item.courseName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                // 使用颜色区分成绩
                 Text(
                     text = item.score,
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = getGradeColor(item.score), // 动态颜色
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -332,5 +326,32 @@ fun LabelValueText(label: String, value: String?) {
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface
         )
+    }
+}
+
+/**
+ * 根据成绩返回对应的颜色
+ */
+fun getGradeColor(score: String): Color {
+    // 1. 尝试解析为数字
+    val scoreVal = score.toDoubleOrNull()
+    if (scoreVal != null) {
+        return when {
+            scoreVal >= 90 -> Color(0xFF2E7D32) // 深绿色 (优秀)
+            scoreVal >= 80 -> Color(0xFF1565C0) // 深蓝色 (良好)
+            scoreVal >= 70 -> Color(0xFF0097A7) // 青色 (中等)
+            scoreVal >= 60 -> Color(0xFFEF6C00) // 橙色 (及格)
+            else -> Color(0xFFC62828)           // 红色 (不及格)
+        }
+    }
+
+    // 2. 尝试匹配常见等级文本
+    return when (score.trim()) {
+        "优秀", "优" -> Color(0xFF2E7D32)
+        "良好", "良" -> Color(0xFF1565C0)
+        "中等", "中" -> Color(0xFF0097A7)
+        "及格", "合格" -> Color(0xFFEF6C00)
+        "不及格", "不合格" -> Color(0xFFC62828)
+        else -> Color.Gray
     }
 }

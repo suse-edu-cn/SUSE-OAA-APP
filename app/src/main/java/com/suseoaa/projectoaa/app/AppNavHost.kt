@@ -65,7 +65,6 @@ fun AppNavHost(
                 }
             )
 
-            // === 修复：调用时移除 animatedVisibilityScope 参数 ===
             changePasswordScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToLogin = {
@@ -104,8 +103,7 @@ fun AppNavHost(
             }
 
             composable(AcademicDestinations.Grades.route) {
-                GradesScreen(
-                    windowSizeClass = windowSizeClass,
+                GradesScreen(windowSizeClass = windowSizeClass,
                     onBack = { navController.popBackStack() },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@composable
