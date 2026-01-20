@@ -4,6 +4,7 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 import com.suseoaa.projectoaa.core.network.AuthInterceptor
 import com.suseoaa.projectoaa.core.network.BASE_URL_FOR_SUSE_OAA
 import com.suseoaa.projectoaa.core.network.GithubApiService
+import com.suseoaa.projectoaa.core.network.announcement.AnnouncementService
 import com.suseoaa.projectoaa.core.network.login.LoginService
 import com.suseoaa.projectoaa.core.network.person.PersonService
 import com.suseoaa.projectoaa.core.network.register.RegisterService
@@ -15,6 +16,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
+import retrofit2.create
 import javax.inject.Singleton
 
 @Module
@@ -78,7 +80,7 @@ object NetworkModule {
         return retrofit.create(PersonService::class.java)
     }
 
-//    7.提供更新
+    //    7.提供更新
     @Provides
     @Singleton
     fun provideGithubService(json: Json): GithubApiService {
@@ -87,5 +89,12 @@ object NetworkModule {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(GithubApiService::class.java)
+    }
+
+    //    获取公告信息
+    @Provides
+    @Singleton
+    fun provideAnnouncementService(retrofit: Retrofit): AnnouncementService {
+        return retrofit.create(AnnouncementService::class.java)
     }
 }

@@ -97,7 +97,6 @@ fun AppNavHost(
                         navController.navigateToChangePassword()
                     },
                     sharedTransitionScope = this@SharedTransitionLayout,
-                    // 使用 this 即可指代当前的 AnimatedContentScope
                     animatedVisibilityScope = this
                 )
             }

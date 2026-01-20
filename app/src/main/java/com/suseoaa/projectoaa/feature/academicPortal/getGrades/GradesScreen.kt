@@ -68,7 +68,26 @@ fun GradesScreen(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
-                    title = { Text("成绩查询") }
+                    title = { Text("成绩查询") },
+                    actions = {
+                        IconButton(
+                            onClick = { viewModel.refreshGrades() },
+                            enabled = !isRefreshing // 刷新时禁用点击
+                        ) {
+                            if (isRefreshing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "刷新"
+                                )
+                            }
+                        }
+                    }
                 )
             }
         ) { innerPadding ->
