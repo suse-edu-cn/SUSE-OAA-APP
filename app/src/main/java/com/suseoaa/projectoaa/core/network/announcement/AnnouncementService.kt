@@ -11,7 +11,7 @@ import retrofit2.http.Query
 
 interface AnnouncementService {
     //获取公告信息
-    @GET("/announcement/UpdateAnnouncement")
+    @GET("/announcement/GetAnnouncement")
     suspend fun getAnnouncementInfo(@Query("department") department: String): Response<FetchAnnouncementInfoResponse>
 
     //更新公告信息

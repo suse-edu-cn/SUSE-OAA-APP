@@ -39,10 +39,26 @@ class AnnouncementRepository @Inject constructor(
         }
 
 
-    suspend fun updateAnnouncementInfo(request: UpdateAnnouncementInfoRequest): Response<UpdateAnnouncementInfoResponse> =
+    suspend fun updateAnnouncementInfo(request: UpdateAnnouncementInfoRequest): Result<String> =
         withContext(
             Dispatchers.IO
         ) {
-
+            try {
+                val response = api.updateAnnouncement(request)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null && body.code == 200) {
+                        Result.success(body.message)
+                    } else {
+                        Result.failure(Exception(body?.message ?: "更新失败"))
+                    }
+                } else {
+                    val errorMessage =
+                        response.errorBody()?.string() ?: "更新失败:${response.code()}"
+                    Result.failure(Exception(errorMessage))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
 }
