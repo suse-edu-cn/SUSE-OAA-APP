@@ -22,7 +22,7 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     // 1. 部门列表
-    val departments = listOf("协会", "算法竞赛部", "项目实践部", "组织宣传部", "理事会", "秘书处")
+    val departments = listOf("协会", "算法竞赛部", "项目实践部", "组织宣传部", "秘书处")
 
     // 2. UI 状态
     private val _uiState = MutableStateFlow(HomeUiState())

@@ -121,7 +121,6 @@ fun DepartmentDetailScreen(
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                                 }
                             },
-                            // ✅ 修复：使用 topAppBarColors 替代过时的 centerAlignedTopAppBarColors
                             colors = TopAppBarDefaults.topAppBarColors(
                                 containerColor = OxygenWhite
                             ),

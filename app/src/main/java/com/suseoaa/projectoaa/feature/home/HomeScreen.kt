@@ -270,7 +270,7 @@ fun getIconForDepartment(name: String): ImageVector {
         "算法竞赛部" -> Icons.Default.Code
         "项目实践部" -> Icons.Default.Build
         "组织宣传部" -> Icons.Default.Campaign
-        "理事会" -> Icons.Default.Group
+//        "理事会" -> Icons.Default.Group
         "秘书处" -> Icons.Default.EditNote
         else -> Icons.Default.Star
     }
