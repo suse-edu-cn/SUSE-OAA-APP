@@ -11,8 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicDestinations
 import com.suseoaa.projectoaa.feature.academicPortal.AcademicPortalEvent
 import com.suseoaa.projectoaa.feature.academicPortal.getExamInfo.GetExamInfoScreen
@@ -21,6 +23,7 @@ import com.suseoaa.projectoaa.feature.academicPortal.getMessageInfo.GetAcademicM
 import com.suseoaa.projectoaa.feature.changePassword.changePasswordScreen
 import com.suseoaa.projectoaa.feature.changePassword.navigateToChangePassword
 import com.suseoaa.projectoaa.feature.gpa.GpaScreen
+import com.suseoaa.projectoaa.feature.home.DepartmentDetailScreen
 import com.suseoaa.projectoaa.feature.home.MAIN_SCREEN_ROUTE
 import com.suseoaa.projectoaa.feature.home.MainScreen
 import com.suseoaa.projectoaa.feature.login.LOGIN_ROUTE
@@ -97,12 +100,28 @@ fun AppNavHost(
                         navController.navigateToChangePassword()
                     },
                     sharedTransitionScope = this@SharedTransitionLayout,
+                    animatedVisibilityScope = this,
+                    onNavigateToDepartmentDetail = { dept ->
+                        navController.navigate("department_detail/$dept")
+                    },
+                )
+            }
+            composable(
+                route = "department_detail/{deptName}",
+                arguments = listOf(navArgument("deptName") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val deptName = backStackEntry.arguments?.getString("deptName") ?: ""
+
+                DepartmentDetailScreen(
+                    departmentName = deptName,
+                    onBack = { navController.popBackStack() },
+                    sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this
                 )
             }
-
             composable(AcademicDestinations.Grades.route) {
-                GradesScreen(windowSizeClass = windowSizeClass,
+                GradesScreen(
+                    windowSizeClass = windowSizeClass,
                     onBack = { navController.popBackStack() },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@composable

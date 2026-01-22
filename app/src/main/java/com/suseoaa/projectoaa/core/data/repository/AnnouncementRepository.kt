@@ -1,17 +1,12 @@
 package com.suseoaa.projectoaa.core.data.repository
 
-import com.suseoaa.projectoaa.core.dataStore.TokenManager
 import com.suseoaa.projectoaa.core.network.announcement.AnnouncementService
 import com.suseoaa.projectoaa.core.network.model.announcement.FetchAnnouncementInfoResponse
 import com.suseoaa.projectoaa.core.network.model.announcement.UpdateAnnouncementInfoRequest
-import com.suseoaa.projectoaa.core.network.model.announcement.UpdateAnnouncementInfoResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import retrofit2.Response
-import retrofit2.http.Body
 import javax.inject.Inject
 import javax.inject.Singleton
-
 
 @Singleton
 class AnnouncementRepository @Inject constructor(
@@ -38,12 +33,14 @@ class AnnouncementRepository @Inject constructor(
             }
         }
 
-
-    suspend fun updateAnnouncementInfo(request: UpdateAnnouncementInfoRequest): Result<String> =
-        withContext(
-            Dispatchers.IO
-        ) {
+    suspend fun updateAnnouncementInfo(department: String, content: String): Result<String> =
+        withContext(Dispatchers.IO) {
             try {
+                val request = UpdateAnnouncementInfoRequest(
+                    department = department,
+                    updateinfo = content
+                )
+
                 val response = api.updateAnnouncement(request)
                 if (response.isSuccessful) {
                     val body = response.body()

@@ -40,7 +40,8 @@ fun MainScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier,
     onNavigateToLogin: () -> Unit,
-    onNavigateToChangePassword: () -> Unit
+    onNavigateToChangePassword: () -> Unit,
+    onNavigateToDepartmentDetail: (String) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
@@ -70,7 +71,13 @@ fun MainScreen(
                             .graphicsLayer { clip = true }
                     ) {
                         when (page) {
-                            0 -> HomeScreen()
+                            0 -> HomeScreen(
+                                isTablet = isTablet,
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                onNavigateToDetail = onNavigateToDepartmentDetail
+                            )
+
                             1 -> CourseScreen()
                             2 -> AcademicScreen(
                                 isTablet = isTablet,
