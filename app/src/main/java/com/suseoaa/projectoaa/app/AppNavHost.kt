@@ -30,7 +30,6 @@ import com.suseoaa.projectoaa.feature.login.LOGIN_ROUTE
 import com.suseoaa.projectoaa.feature.login.loginScreen
 import com.suseoaa.projectoaa.feature.register.navigateToRegister
 import com.suseoaa.projectoaa.feature.register.registerScreen
-import com.suseoaa.projectoaa.feature.testScreen.TestScreen
 
 @Composable
 fun AppNavHost(
@@ -152,9 +151,6 @@ fun AppNavHost(
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@composable
                 )
-            }
-            composable(AcademicDestinations.Test.route) {
-                TestScreen()
             }
         }
     }
