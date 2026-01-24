@@ -4,7 +4,6 @@ package com.suseoaa.projectoaa.core.network.model.application
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import androidx.annotation.Keep
-import kotlinx.serialization.json.JsonElement
 
 /**
 {
@@ -17,11 +16,11 @@ import kotlinx.serialization.json.JsonElement
  */
 @Keep
 @Serializable
-data class GetApplicationOutTimeResponse(
+data class GetApplicationBaseResponse<T>(
     @SerialName("code")
     val code: Int,
     @SerialName("data")
-    val `data`: JsonElement? = null,
+    val data: T? = null,
     @SerialName("endtime")
     val endtime: String,
     @SerialName("message")
