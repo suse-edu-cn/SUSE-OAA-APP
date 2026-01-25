@@ -9,7 +9,7 @@ data class UpdateApplicationResponse(
     @SerialName("code")
     val code: Int,
     @SerialName("data")
-    val `data`: DataX,
+    val `data`: Data,
     @SerialName("message")
     val message: String
 )

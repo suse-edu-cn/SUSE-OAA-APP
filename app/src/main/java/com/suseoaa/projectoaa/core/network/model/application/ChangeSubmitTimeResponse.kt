@@ -9,7 +9,7 @@ data class ChangeSubmitTimeResponse(
     @SerialName("code")
     val code: Int,
     @SerialName("data")
-    val `data`: DataXX,
+    val `data`: DataX,
     @SerialName("message")
     val message: String
 )
