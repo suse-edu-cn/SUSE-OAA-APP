@@ -17,7 +17,7 @@ import kotlinx.serialization.json.JsonElement
  */
 @Keep
 @Serializable
-data class SubmitApplicationSuccessResponse(
+data class SubmitApplicationResponse(
     @SerialName("code")
     val code: Int,
     @SerialName("data")

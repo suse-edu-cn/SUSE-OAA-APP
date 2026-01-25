@@ -8,6 +8,8 @@ import kotlinx.serialization.Serializable
 data class DataX(
     @SerialName("adjustment")
     val adjustment: Int,
+    @SerialName("avator")
+    val avator: String,
     @SerialName("birthday")
     val birthday: String,
     @SerialName("choice1")
@@ -16,6 +18,8 @@ data class DataX(
     val choice2: String,
     @SerialName("class")
     val classX: String,
+    @SerialName("created_at")
+    val createdAt: String,
     @SerialName("experience")
     val experience: String,
     @SerialName("gender")

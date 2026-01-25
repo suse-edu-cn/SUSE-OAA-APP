@@ -1,9 +1,11 @@
 package com.suseoaa.projectoaa.core.network.application
 
+import com.suseoaa.projectoaa.core.network.model.application.ChangeSubmitTimeRequest
+import com.suseoaa.projectoaa.core.network.model.application.ChangeSubmitTimeResponse
 import com.suseoaa.projectoaa.core.network.model.application.Data
 import com.suseoaa.projectoaa.core.network.model.application.GetApplicationBaseResponse
 import com.suseoaa.projectoaa.core.network.model.application.SubmitApplicationRequest
-import com.suseoaa.projectoaa.core.network.model.application.SubmitApplicationSuccessResponse
+import com.suseoaa.projectoaa.core.network.model.application.SubmitApplicationResponse
 import com.suseoaa.projectoaa.core.network.model.application.UpdateApplicationResponse
 import com.suseoaa.projectoaa.core.network.model.application.UploadApplicationAvatarResponse
 import okhttp3.MultipartBody
@@ -21,7 +23,7 @@ interface ApplicationService {
 
     //    提交申请列表
     @POST("/application/create")
-    suspend fun submitApplication(@Body request: SubmitApplicationRequest): Response<SubmitApplicationSuccessResponse>
+    suspend fun submitApplication(@Body request: SubmitApplicationRequest): Response<SubmitApplicationResponse>
 
     //    修改申请表
     @POST("/application/update")
@@ -31,4 +33,8 @@ interface ApplicationService {
     @Multipart
     @POST("/application/uploadimg")
     suspend fun uploadApplicationAvatar(@Part file: MultipartBody.Part): Response<UploadApplicationAvatarResponse>
+
+    //    修改提交时间
+    @POST("/application/updatetime")
+    suspend fun changeSubmitTime(@Body request: ChangeSubmitTimeRequest): Response<ChangeSubmitTimeResponse>
 }
