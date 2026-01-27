@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
+import com.suseoaa.projectoaa.shared.domain.model.announcement.AnnouncementData
 import com.suseoaa.projectoaa.ui.theme.*
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -31,8 +32,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val departments = listOf("协会", "算法竞赛部", "项目实践部", "组织宣传部", "秘书处")
-    val gridColumns = 2
+    val departments = viewModel.departments
 
     Scaffold(
         containerColor = OxygenBackground
@@ -54,7 +54,7 @@ fun HomeScreen(
 @Composable
 fun DepartmentGrid(
     departments: List<String>,
-    cardInfos: Map<String, String>,
+    cardInfos: Map<String, AnnouncementData?>,
     onItemClick: (String) -> Unit
 ) {
     val gridCells = GridCells.Fixed(2)
@@ -115,10 +115,10 @@ fun DepartmentGrid(
 @Composable
 fun BigAssociationCard(
     name: String,
-    data: String?,
+    data: AnnouncementData?,
     onClick: () -> Unit
 ) {
-    val summary = data?.stripMarkdown() ?: "加载中..."
+    val summary = data?.data?.stripMarkdown() ?: "加载中..."
 
     Surface(
         onClick = onClick,
@@ -160,11 +160,11 @@ fun BigAssociationCard(
 @Composable
 fun DepartmentCard(
     name: String,
-    data: String?,
+    data: AnnouncementData?,
     icon: ImageVector,
     onClick: () -> Unit
 ) {
-    val summary = data?.stripMarkdown() ?: "..."
+    val summary = data?.data?.stripMarkdown() ?: "..."
 
     Surface(
         onClick = onClick,

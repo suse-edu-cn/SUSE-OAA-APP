@@ -22,7 +22,7 @@ class UserApi(private val client: HttpClient) {
     }
 
     suspend fun updateUser(request: UpdateUserRequest): UpdatePersonResponse {
-        return client.put("$baseUrl${ApiConfig.Endpoints.UPDATE_USER}") {
+        return client.post("$baseUrl${ApiConfig.Endpoints.UPDATE_USER}") {
             setBody(request)
         }.body()
     }

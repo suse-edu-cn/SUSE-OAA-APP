@@ -23,8 +23,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.ui.theme.*
 import org.koin.compose.viewmodel.koinViewModel
@@ -185,19 +187,34 @@ fun UserInfoCard(
                         .size(64.dp)
                         .clickable { onAvatarClick() }
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .background(SoftBlueWait)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            tint = ElectricBlue,
-                            modifier = Modifier.size(32.dp)
+                    if (userInfo?.avatar.isNullOrBlank()) {
+                        // 无头像时显示默认图标
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(SoftBlueWait)
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = ElectricBlue,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    } else {
+                        // 有头像时加载图片
+                        AsyncImage(
+                            model = userInfo.avatar,
+                            contentDescription = "用户头像",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(SoftBlueWait)
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                         )
                     }
                     // 编辑图标提示

@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import com.suseoaa.projectoaa.ui.screen.changepassword.ChangePasswordScreen
 import com.suseoaa.projectoaa.ui.screen.gpa.GpaScreen
 import com.suseoaa.projectoaa.ui.screen.grades.GradesScreen
+import com.suseoaa.projectoaa.ui.screen.home.DepartmentDetailScreen
 import com.suseoaa.projectoaa.ui.screen.login.LoginScreen
 import com.suseoaa.projectoaa.ui.screen.main.MainScreen
 import com.suseoaa.projectoaa.ui.screen.register.RegisterScreen
@@ -104,8 +105,8 @@ fun AppNavHost(
             arguments = Screen.DepartmentDetail.arguments
         ) { backStackEntry ->
             val department = backStackEntry.arguments?.getString("department") ?: ""
-            PlaceholderScreen(
-                title = department,
+            DepartmentDetailScreen(
+                departmentName = department,
                 onBack = { navController.popBackStack() }
             )
         }

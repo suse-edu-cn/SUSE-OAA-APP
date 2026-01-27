@@ -16,13 +16,13 @@ class AnnouncementApi(private val client: HttpClient) {
     private val baseUrl = ApiConfig.BASE_URL
 
     suspend fun fetchAnnouncementInfo(department: String): FetchAnnouncementInfoResponse {
-        return client.get("$baseUrl/api/announcement/info") {
+        return client.get("${baseUrl}${ApiConfig.Endpoints.GET_ANNOUNCEMENT}") {
             parameter("department", department)
         }.body()
     }
 
     suspend fun updateAnnouncementInfo(request: UpdateAnnouncementInfoRequest): UpdateAnnouncementInfoResponse {
-        return client.post("$baseUrl/api/announcement/update") {
+        return client.post("${baseUrl}${ApiConfig.Endpoints.UPDATE_ANNOUNCEMENT}") {
             setBody(request)
         }.body()
     }

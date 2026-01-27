@@ -11,9 +11,13 @@ object ApiConfig {
     object Endpoints {
         const val LOGIN = "user/login"
         const val REGISTER = "user/register"
-        const val USER_INFO = "user/info"
+        const val USER_INFO = "user/Info"
         const val UPDATE_USER = "user/update"
-        const val CHANGE_PASSWORD = "user/changePassword"
-        const val UPLOAD_AVATAR = "user/uploadAvatar"
+        const val CHANGE_PASSWORD = "user/updatePassword"
+        const val UPLOAD_AVATAR = "user/uploadimg"
+        
+        // 公告相关
+        const val GET_ANNOUNCEMENT = "announcement/GetAnnouncement"
+        const val UPDATE_ANNOUNCEMENT = "announcement/UpdateAnnouncement"
     }
 }
