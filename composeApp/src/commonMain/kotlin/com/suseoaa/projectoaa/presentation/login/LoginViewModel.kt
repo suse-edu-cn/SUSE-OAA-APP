@@ -2,8 +2,8 @@ package com.suseoaa.projectoaa.presentation.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.shared.data.repository.AuthRepository
-import com.suseoaa.projectoaa.shared.data.repository.Result
+import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.data.repository.OaaAuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +25,8 @@ data class LoginUiState(
  * 登录 ViewModel
  */
 class LoginViewModel(
-    private val authRepository: AuthRepository
+    private val authRepository: OaaAuthRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -54,25 +55,29 @@ class LoginViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            when (val result = authRepository.login(cleanAccount, cleanPassword)) {
-                is Result.Success -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            isLoginSuccess = true
-                        )
-                    }
+            val result = authRepository.login(cleanAccount, cleanPassword)
+            
+            result.onSuccess { response ->
+                // 保存 Token 和学号
+                response.data?.token?.let { token ->
+                    tokenManager.saveToken(token)
                 }
-                is Result.Error -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.message
-                        )
-                    }
+                tokenManager.saveCurrentStudentId(cleanAccount)
+                
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        isLoginSuccess = true
+                    )
                 }
-                is Result.Loading -> {
-                    // 已处理
+            }
+            
+            result.onFailure { error ->
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "登录失败"
+                    )
                 }
             }
         }

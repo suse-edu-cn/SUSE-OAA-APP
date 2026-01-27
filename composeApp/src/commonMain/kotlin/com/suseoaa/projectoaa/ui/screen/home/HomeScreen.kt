@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
-import com.suseoaa.projectoaa.shared.domain.model.announcement.AnnouncementData
+import com.suseoaa.projectoaa.data.model.AnnouncementData
 import com.suseoaa.projectoaa.ui.theme.*
 import org.koin.compose.viewmodel.koinViewModel
 

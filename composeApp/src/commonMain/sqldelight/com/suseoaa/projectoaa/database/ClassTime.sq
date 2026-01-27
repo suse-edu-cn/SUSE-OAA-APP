@@ -1,0 +1,40 @@
+-- 课程时间表
+CREATE TABLE ClassTime (
+    uniqueId INTEGER PRIMARY KEY AUTOINCREMENT,
+    studentId TEXT NOT NULL,
+    courseOwnerName TEXT NOT NULL,
+    xnm TEXT NOT NULL,
+    xqm TEXT NOT NULL,
+    isCustom INTEGER NOT NULL,
+    weekday TEXT NOT NULL DEFAULT '',
+    period TEXT NOT NULL DEFAULT '',
+    weeks TEXT NOT NULL DEFAULT '',
+    weeksMask INTEGER NOT NULL DEFAULT 0,
+    location TEXT NOT NULL DEFAULT '',
+    teacher TEXT NOT NULL DEFAULT '',
+    duration TEXT NOT NULL DEFAULT '',
+    teacherTitle TEXT NOT NULL DEFAULT '',
+    politicalStatus TEXT NOT NULL DEFAULT '',
+    classGroup TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (studentId, courseOwnerName, xnm, xqm, isCustom)
+        REFERENCES Course(studentId, courseName, xnm, xqm, isCustom)
+    ON DELETE CASCADE
+        ON DELETE CASCADE
+);
+
+-- 创建索引加速外键查询
+CREATE INDEX idx_classtime_course ON ClassTime(studentId, courseOwnerName, xnm, xqm, isCustom);
+
+-- 查询指定学期的所有课程时间
+selectByTerm:
+SELECT * FROM ClassTime WHERE studentId = ? AND xnm = ? AND xqm = ?;
+
+-- 插入课程时间
+insert:
+INSERT INTO ClassTime(studentId, courseOwnerName, xnm, xqm, isCustom, weekday, period, weeks, weeksMask, location, teacher, duration, teacherTitle, politicalStatus, classGroup)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 查询指定课程的时间
+selectByCourse:
+SELECT * FROM ClassTime 
+WHERE studentId = ? AND courseOwnerName = ? AND xnm = ? AND xqm = ? AND isCustom = ?;

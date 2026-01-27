@@ -2,8 +2,7 @@ package com.suseoaa.projectoaa.presentation.register
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.shared.data.repository.AuthRepository
-import com.suseoaa.projectoaa.shared.data.repository.Result
+import com.suseoaa.projectoaa.data.repository.OaaRegisterRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +27,7 @@ data class RegisterUiState(
  * 注册 ViewModel
  */
 class RegisterViewModel(
-    private val authRepository: AuthRepository
+    private val registerRepository: OaaRegisterRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
@@ -99,26 +98,28 @@ class RegisterViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            // 使用 studentId 作为注册参数
-            when (val result = authRepository.register(cleanStudentId, cleanPassword, cleanConfirmPassword)) {
-                is Result.Success -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            isRegisterSuccess = true
-                        )
-                    }
+            val result = registerRepository.register(
+                studentId = cleanStudentId,
+                name = cleanRealName,
+                username = cleanUserName,
+                password = cleanPassword
+            )
+            
+            result.onSuccess {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        isRegisterSuccess = true
+                    )
                 }
-                is Result.Error -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.message
-                        )
-                    }
-                }
-                is Result.Loading -> {
-                    // 已处理
+            }
+            
+            result.onFailure { error ->
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "注册失败"
+                    )
                 }
             }
         }

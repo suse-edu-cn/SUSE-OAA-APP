@@ -1,0 +1,32 @@
+-- 课程表
+CREATE TABLE Course (
+    studentId TEXT NOT NULL,
+    courseName TEXT NOT NULL,
+    xnm TEXT NOT NULL,
+    xqm TEXT NOT NULL,
+    isCustom INTEGER NOT NULL DEFAULT 0,
+    remoteCourseId TEXT NOT NULL DEFAULT '',
+    nature TEXT NOT NULL DEFAULT '',
+    background TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT '',
+    assessment TEXT NOT NULL DEFAULT '',
+    totalHours TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (studentId, courseName, xnm, xqm, isCustom)
+);
+
+-- 查询指定学期的所有课程
+selectByTerm:
+SELECT * FROM Course WHERE studentId = ? AND xnm = ? AND xqm = ?;
+
+-- 插入或替换课程
+insertOrReplace:
+INSERT OR REPLACE INTO Course(studentId, courseName, xnm, xqm, isCustom, remoteCourseId, nature, background, category, assessment, totalHours)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 删除指定学期的远程课程(isCustom = 0)
+deleteRemoteCoursesByTerm:
+DELETE FROM Course WHERE studentId = ? AND xnm = ? AND xqm = ? AND isCustom = 0;
+
+-- 删除指定学生的所有课程
+deleteAllByStudent:
+DELETE FROM Course WHERE studentId = ?;

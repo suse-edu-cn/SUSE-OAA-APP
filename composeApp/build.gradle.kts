@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -46,6 +47,12 @@ kotlin {
             // Navigation (KMP) - 需要 2.8.0+
             implementation(libs.androidx.navigation.compose)
 
+            // Ktor Networking
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.logging)
+
             // Koin
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
@@ -66,9 +73,14 @@ kotlin {
 
             // DateTime
             implementation(libs.kotlinx.datetime)
-
+            // KMP DataStore
+            implementation(libs.androidx.datastore.preferences.core)
             // Window Size Class
             implementation(libs.material3.windowSize)
+
+            // SQLDelight
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
         }
 
         androidMain.dependencies {
@@ -80,10 +92,20 @@ kotlin {
 
             // Compose Preview
             implementation(compose.preview)
+
+            // SQLDelight Android Driver
+            implementation(libs.sqldelight.android.driver)
+            
+            // Ktor Android Engine
+            implementation(libs.ktor.client.okhttp)
         }
 
         iosMain.dependencies {
-            // iOS 不需要额外依赖，使用 commonMain 中的 KMP 库
+            // SQLDelight iOS Driver
+            implementation(libs.sqldelight.native.driver)
+            
+            // Ktor iOS Engine
+            implementation(libs.ktor.client.darwin)
         }
 
         commonTest.dependencies {
@@ -135,4 +157,12 @@ dependencies {
 
     // Debug
     debugImplementation(compose.uiTooling)
+}
+
+sqldelight {
+    databases {
+        create("CourseDatabase") {
+            packageName.set("com.suseoaa.projectoaa.database")
+        }
+    }
 }

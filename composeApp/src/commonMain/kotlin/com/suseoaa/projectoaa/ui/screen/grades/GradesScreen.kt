@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
-import com.suseoaa.projectoaa.shared.domain.model.grade.GradeItem
+import com.suseoaa.projectoaa.presentation.grades.GradeItem
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

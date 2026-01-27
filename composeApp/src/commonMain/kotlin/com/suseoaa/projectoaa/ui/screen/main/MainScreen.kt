@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.ui.screen.academic.AcademicScreen
-import com.suseoaa.projectoaa.ui.screen.course.CourseScreen
+import com.suseoaa.projectoaa.presentation.course.CourseScreen
 import com.suseoaa.projectoaa.ui.screen.home.HomeScreen
 import com.suseoaa.projectoaa.ui.screen.person.PersonScreen
 import kotlinx.coroutines.launch
@@ -72,7 +72,9 @@ fun MainScreen(
                         0 -> HomeScreen(
                             onNavigateToDetail = onNavigateToDepartmentDetail
                         )
-                        1 -> CourseScreen()
+                        1 -> CourseScreen(
+                            onNavigateToLogin = onNavigateToLogin
+                        )
                         2 -> AcademicScreen(
                             onNavigateToGrades = onNavigateToGrades,
                             onNavigateToGpa = onNavigateToGpa,

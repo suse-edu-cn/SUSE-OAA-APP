@@ -1,0 +1,41 @@
+-- 教务系统账号表
+CREATE TABLE CourseAccount (
+    studentId TEXT NOT NULL PRIMARY KEY,
+    password TEXT NOT NULL,
+    name TEXT NOT NULL,
+    className TEXT NOT NULL,
+    njdmId TEXT NOT NULL,
+    major TEXT NOT NULL,
+    sortIndex INTEGER NOT NULL DEFAULT 0,
+    jgId TEXT,
+    zyhId TEXT
+);
+
+-- 查询所有账号，按排序索引排序
+selectAll:
+SELECT * FROM CourseAccount ORDER BY sortIndex ASC;
+
+-- 根据学号查询账号
+selectById:
+SELECT * FROM CourseAccount WHERE studentId = ?;
+
+-- 插入或替换账号
+insertOrReplace:
+INSERT OR REPLACE INTO CourseAccount(studentId, password, name, className, njdmId, major, sortIndex, jgId, zyhId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 更新排序索引
+updateSortIndex:
+UPDATE CourseAccount SET sortIndex = ? WHERE studentId = ?;
+
+-- 获取最大排序索引
+getMaxSortIndex:
+SELECT MAX(sortIndex) AS maxIndex FROM CourseAccount;
+
+-- 删除账号
+deleteById:
+DELETE FROM CourseAccount WHERE studentId = ?;
+
+-- 更新专业信息
+updateMajorInfo:
+UPDATE CourseAccount SET jgId = ?, zyhId = ?, njdmId = ? WHERE studentId = ?;

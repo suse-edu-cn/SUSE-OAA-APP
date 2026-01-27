@@ -20,9 +20,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
-import com.suseoaa.projectoaa.shared.domain.model.grade.FilterType
-import com.suseoaa.projectoaa.shared.domain.model.grade.GpaCourseWrapper
-import com.suseoaa.projectoaa.shared.domain.model.grade.SortOrder
+import com.suseoaa.projectoaa.presentation.gpa.FilterType
+import com.suseoaa.projectoaa.presentation.gpa.GpaCourseWrapper
+import com.suseoaa.projectoaa.presentation.gpa.SortOrder
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

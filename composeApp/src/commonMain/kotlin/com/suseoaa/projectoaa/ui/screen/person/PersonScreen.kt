@@ -151,7 +151,7 @@ fun PersonScreen(
 
 @Composable
 fun UserInfoCard(
-    userInfo: com.suseoaa.projectoaa.shared.domain.model.person.PersonData?,
+    userInfo: com.suseoaa.projectoaa.data.model.PersonData?,
     onLogout: () -> Unit,
     onAvatarClick: () -> Unit,
     onEditInfo: (String, String) -> Unit = { _, _ -> }

@@ -2,47 +2,34 @@ package com.suseoaa.projectoaa.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.shared.data.repository.AuthRepository
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.ui.navigation.Screen
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 /**
  * 主 ViewModel - 管理应用级状态
  */
 class MainViewModel(
-    private val authRepository: AuthRepository
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
-    private val _startDestination = MutableStateFlow<String?>(null)
-    val startDestination: StateFlow<String?> = _startDestination.asStateFlow()
-
     /**
-     * 是否已登录 (作为 StateFlow 供 UI 订阅)
+     * 启动目标页面 - 根据 Token 是否存在决定
      */
-    val isLoggedIn: StateFlow<Boolean> = authRepository.isLoggedIn()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    init {
-        checkLoginStatus()
-    }
-
-    private fun checkLoginStatus() {
-        viewModelScope.launch {
-            val loggedIn = authRepository.isLoggedIn().first()
-            _startDestination.value = if (loggedIn) {
-                "main"
+    val startDestination: StateFlow<String> = tokenManager.currentStudentId
+        .map { id ->
+            if (id.isNullOrEmpty()) {
+                Screen.Login.route
             } else {
-                "login"
+                Screen.Main.route
             }
         }
-    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = Screen.Login.route
+        )
 }

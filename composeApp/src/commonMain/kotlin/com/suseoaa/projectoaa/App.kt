@@ -12,17 +12,10 @@ import org.koin.compose.viewmodel.koinViewModel
 fun App(
     mainViewModel: MainViewModel = koinViewModel()
 ) {
-    val isLoggedIn by mainViewModel.isLoggedIn.collectAsState()
+    val startDestination by mainViewModel.startDestination.collectAsState()
     
     ProjectOAATheme {
         val navController = rememberNavController()
-        
-        // 根据登录状态决定起始页面
-        val startDestination = if (isLoggedIn) {
-            Screen.Main.route
-        } else {
-            Screen.Login.route
-        }
         
         AppNavHost(
             navController = navController,

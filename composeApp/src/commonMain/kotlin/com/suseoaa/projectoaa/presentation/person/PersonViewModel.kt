@@ -2,10 +2,8 @@ package com.suseoaa.projectoaa.presentation.person
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.shared.data.repository.AuthRepository
-import com.suseoaa.projectoaa.shared.data.repository.Result
-import com.suseoaa.projectoaa.shared.data.repository.UserRepository
-import com.suseoaa.projectoaa.shared.domain.model.person.PersonData
+import com.suseoaa.projectoaa.data.model.PersonData
+import com.suseoaa.projectoaa.data.repository.PersonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,8 +18,7 @@ data class PersonUiState(
 )
 
 class PersonViewModel(
-    private val userRepository: UserRepository,
-    private val authRepository: AuthRepository
+    private val personRepository: PersonRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(PersonUiState())
@@ -35,59 +32,64 @@ class PersonViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
-            when (val result = userRepository.getUserInfo()) {
-                is Result.Success -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            userInfo = result.data
-                        )
-                    }
+            val result = personRepository.getPersonInfo()
+            
+            result.onSuccess { data ->
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        userInfo = data
+                    )
                 }
-                is Result.Error -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            message = result.message
-                        )
-                    }
+            }
+            
+            result.onFailure { e ->
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        message = e.message
+                    )
                 }
-                is Result.Loading -> { /* 不会发生 */ }
             }
         }
     }
 
     fun logout() {
         viewModelScope.launch {
-            authRepository.logout()
+            personRepository.logout()
             _uiState.update { it.copy(isLoggedOut = true) }
         }
     }
 
     fun updateInfo(username: String, name: String) {
+        if (username.isBlank() || name.isBlank()) {
+            _uiState.update { it.copy(message = "用户名或姓名不能为空") }
+            return
+        }
+        
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
-            when (val result = userRepository.updateUserInfo(username, name)) {
-                is Result.Success -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            message = "信息更新成功"
-                        )
-                    }
-                    // 重新加载用户信息
-                    loadUserInfo()
+            val result = personRepository.updateUserInfo(username, name)
+            
+            result.onSuccess {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        message = "信息更新成功"
+                    )
                 }
-                is Result.Error -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            message = result.message
-                        )
-                    }
+                // 重新加载用户信息
+                loadUserInfo()
+            }
+            
+            result.onFailure { e ->
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        message = e.message
+                    )
                 }
-                is Result.Loading -> { /* 不会发生 */ }
             }
         }
     }

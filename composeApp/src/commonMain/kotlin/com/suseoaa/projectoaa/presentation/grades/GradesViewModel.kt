@@ -2,9 +2,9 @@ package com.suseoaa.projectoaa.presentation.grades
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.shared.data.repository.AcademicRepository
-import com.suseoaa.projectoaa.shared.data.repository.Result
-import com.suseoaa.projectoaa.shared.domain.model.grade.GradeItem
+import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.data.repository.LocalCourseRepository
+import com.suseoaa.projectoaa.data.repository.SchoolAuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +13,82 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+/**
+ * 成绩响应
+ */
+@Serializable
+data class StudentGradeResponse(
+    @SerialName("items")
+    val items: List<GradeItem>? = emptyList(),
+    @SerialName("totalResult")
+    val totalResult: Int? = 0,
+    @SerialName("currentPage")
+    val currentPage: Int? = 1
+)
+
+/**
+ * 成绩条目 - 匹配教务系统返回的字段
+ */
+@Serializable
+data class GradeItem(
+    @SerialName("bfzcj")
+    val bfzcj: String? = "",       // 百分制成绩
+    @SerialName("bh")
+    val bh: String? = "",          // 班号
+    @SerialName("bj")
+    val bj: String? = "",          // 班级
+    @SerialName("cj")
+    val cj: String? = "",          // 成绩
+    @SerialName("jd")
+    val jd: String? = "",          // 绩点
+    @SerialName("jgmc")
+    val jgmc: String? = "",        // 学院名称
+    @SerialName("jsxm")
+    val jsxm: String? = "",        // 教师姓名
+    @SerialName("jxbmc")
+    val jxbmc: String? = "",       // 教学班名称
+    @SerialName("kcbj")
+    val kcbj: String? = "",        // 课程标记
+    @SerialName("kch")
+    val kch: String? = "",         // 课程号
+    @SerialName("kclbmc")
+    val kclbmc: String? = "",      // 课程类别名称
+    @SerialName("kcmc")
+    val kcmc: String? = "",        // 课程名称
+    @SerialName("kcxzmc")
+    val kcxzmc: String? = "",      // 课程性质名称 (专业基础必修等)
+    @SerialName("khfsmc")
+    val khfsmc: String? = "",      // 考核方式名称
+    @SerialName("kkbmmc")
+    val kkbmmc: String? = "",      // 开课部门名称
+    @SerialName("ksxz")
+    val ksxz: String? = "",        // 考试性质 (正常考试/补考)
+    @SerialName("njmc")
+    val njmc: String? = "",        // 年级名称
+    @SerialName("sfxwkc")
+    val sfxwkc: String? = "",      // 是否学位课程
+    @SerialName("xf")
+    val xf: String? = "",          // 学分
+    @SerialName("xfjd")
+    val xfjd: String? = "",        // 学分绩点
+    @SerialName("xh")
+    val xh: String? = "",          // 学号
+    @SerialName("xm")
+    val xm: String? = "",          // 姓名
+    @SerialName("xnm")
+    val xnm: String? = "",         // 学年码
+    @SerialName("xnmmc")
+    val xnmmc: String? = "",       // 学年名称
+    @SerialName("xqm")
+    val xqm: String? = "",         // 学期码
+    @SerialName("xqmmc")
+    val xqmmc: String? = "",       // 学期名称
+    @SerialName("zymc")
+    val zymc: String? = ""         // 专业名称
+)
 
 data class GradesUiState(
     val isRefreshing: Boolean = false,
@@ -25,7 +101,9 @@ data class GradesUiState(
 )
 
 class GradesViewModel(
-    private val academicRepository: AcademicRepository
+    private val tokenManager: TokenManager,
+    private val localCourseRepository: LocalCourseRepository,
+    private val schoolAuthRepository: SchoolAuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GradesUiState())
@@ -50,35 +128,33 @@ class GradesViewModel(
 
     fun loadGrades() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true) }
+            _uiState.update { it.copy(isRefreshing = true, message = null) }
             
-            when (val result = academicRepository.getGrades()) {
-                is Result.Success -> {
-                    val allGrades = result.data
-                    val filtered = filterGrades(allGrades, _uiState.value.selectedYear, _uiState.value.selectedSemester)
-                    _uiState.update {
-                        it.copy(
-                            isRefreshing = false,
-                            allGrades = allGrades,
-                            grades = filtered
-                        )
-                    }
-                }
-                is Result.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isRefreshing = false,
-                            message = result.message
-                        )
-                    }
-                }
-                is Result.Loading -> { /* 不会发生 */ }
+            // TODO: 从 SchoolGradeRepository 加载成绩数据
+            // 需要实现完整的成绩查询功能
+            
+            _uiState.update { 
+                it.copy(
+                    isRefreshing = false,
+                    message = "成绩查询功能正在开发中"
+                )
             }
         }
     }
 
     fun refreshGrades() {
-        loadGrades()
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true, message = "正在连接教务系统...") }
+            
+            // TODO: 自动登录教务系统并刷新成绩
+            
+            _uiState.update { 
+                it.copy(
+                    isRefreshing = false,
+                    message = "成绩刷新功能正在开发中"
+                )
+            }
+        }
     }
 
     fun updateFilter(year: String, semester: String) {
@@ -94,7 +170,7 @@ class GradesViewModel(
 
     private fun filterGrades(grades: List<GradeItem>, year: String, semester: String): List<GradeItem> {
         return grades.filter { grade ->
-            val yearMatch = grade.xnm == year || grade.xnmmc?.contains(year) == true
+            val yearMatch = grade.xnm == year
             val semesterMatch = grade.xqm == semester
             yearMatch && semesterMatch
         }

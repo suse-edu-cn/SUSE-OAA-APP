@@ -2,8 +2,7 @@ package com.suseoaa.projectoaa.presentation.changepassword
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.shared.data.repository.Result
-import com.suseoaa.projectoaa.shared.data.repository.UserRepository
+import com.suseoaa.projectoaa.data.repository.PersonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +26,7 @@ data class ChangePasswordUiState(
  * 修改密码 ViewModel
  */
 class ChangePasswordViewModel(
-    private val userRepository: UserRepository
+    private val personRepository: PersonRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChangePasswordUiState())
@@ -75,30 +74,29 @@ class ChangePasswordViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            when (val result = userRepository.changePassword(
+            val result = personRepository.changePassword(
                 currentState.oldPassword,
-                currentState.newPassword,
-                currentState.confirmPassword
-            )) {
-                is Result.Success -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            isSuccess = true,
-                            successMessage = "密码修改成功"
-                        )
-                    }
+                currentState.newPassword
+            )
+            
+            result.onSuccess { msg ->
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        isSuccess = true,
+                        successMessage = msg
+                    )
                 }
-                is Result.Error -> {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.message
-                        )
-                    }
-                }
-                is Result.Loading -> {
-                    // 已处理
+                // 修改密码后强制登出
+                personRepository.logout()
+            }
+            
+            result.onFailure { e ->
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.message ?: "修改失败"
+                    )
                 }
             }
         }

@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
-import com.suseoaa.projectoaa.shared.domain.model.exam.ExamItem
+import com.suseoaa.projectoaa.presentation.academic.ExamItem
 import com.suseoaa.projectoaa.ui.theme.*
 import kotlinx.datetime.*
 import org.koin.compose.viewmodel.koinViewModel
