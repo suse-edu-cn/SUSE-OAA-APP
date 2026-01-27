@@ -1,0 +1,45 @@
+-- Course 表
+CREATE TABLE CourseEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    courseName TEXT NOT NULL,
+    courseCode TEXT NOT NULL,
+    teacher TEXT,
+    classroom TEXT,
+    dayOfWeek INTEGER NOT NULL,
+    startSection INTEGER NOT NULL,
+    endSection INTEGER NOT NULL,
+    startWeek INTEGER NOT NULL,
+    endWeek INTEGER NOT NULL,
+    semesterId TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+-- 查询所有课程
+selectAll:
+SELECT * FROM CourseEntity;
+
+-- 按学期查询
+selectBySemester:
+SELECT * FROM CourseEntity WHERE semesterId = ?;
+
+-- 按星期几查询
+selectByDayOfWeek:
+SELECT * FROM CourseEntity WHERE dayOfWeek = ? AND semesterId = ?;
+
+-- 插入课程
+insertCourse:
+INSERT OR REPLACE INTO CourseEntity (
+    courseName, courseCode, teacher, classroom, 
+    dayOfWeek, startSection, endSection, 
+    startWeek, endWeek, semesterId, 
+    createdAt, updatedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 删除所有课程
+deleteAll:
+DELETE FROM CourseEntity;
+
+-- 按学期删除
+deleteBySemester:
+DELETE FROM CourseEntity WHERE semesterId = ?;

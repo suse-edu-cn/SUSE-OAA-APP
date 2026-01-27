@@ -1,87 +1,145 @@
 [versions]
-agp = "8.13.2"
-animation = "1.10.0"
-coilCompose = "2.7.0"
-compressor = "3.0.1"
-datastorePreferences = "1.0.0"
-jsoup = "1.22.1"
-kotlin = "2.3.0"
-coreKtx = "1.17.0"
+# Core
+agp = "8.7.3"
+kotlin = "2.1.0"
+ksp = "2.1.0-1.0.29"
+
+# Compose Multiplatform
+composeMultiplatform = "1.7.3"
+
+# AndroidX
+coreKtx = "1.15.0"
+activityCompose = "1.9.3"
+lifecycleRuntimeKtx = "2.8.3"
+lifecycleViewmodelCompose = "2.8.3"
+navigationCompose = "2.8.3"
+
+# Testing
 junit = "4.13.2"
-junitVersion = "1.3.0"
-espressoCore = "3.7.0"
-lifecycleRuntimeKtx = "2.10.0"
-activityCompose = "1.12.2"
-composeBom = "2025.12.01"
-lifecycleViewmodelCompose = "2.10.0"
-material3WindowSizeClass = "1.4.0"
-materialIconsExtended = "1.7.8"
-multiplatformMarkdownRendererM3 = "0.39.1"
-navigationCompose = "2.9.6"
-playServicesMaps = "19.2.0"
-retrofit = "3.0.0"
-okhttp = "5.3.2"
-kotlinxSerializationJson = "1.9.0" # 核心库
-retrofitKotlinxSerializationConverter = "1.0.0" # Retrofit 的 KTX 转换器
-room = "2.8.4"
-ksp = "2.3.4"
-# Hilt 版本
-hilt = "2.57.2"
-# Hilt Navigation Compose
-hiltNavigationCompose = "1.3.0"
-material3 = "1.4.0"
-volley = "1.2.1"
-foundation = "1.10.0"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+
+# KMP Networking - Ktor
+ktor = "3.0.2"
+
+# KMP Database - SQLDelight
+sqldelight = "2.0.2"
+
+# KMP DI - Koin
+koin = "4.0.0"
+
+# KMP Coroutines
+kotlinxCoroutines = "1.9.0"
+
+# KMP Serialization
+kotlinxSerializationJson = "1.7.3"
+
+# KMP DateTime
+kotlinxDatetime = "0.6.1"
+
+# KMP DataStore
+datastorePreferences = "1.1.2"
+
+# Image Loading - Coil (KMP)
+coil = "3.0.4"
+
+# Markdown Renderer
+multiplatformMarkdownRenderer = "0.28.0"
+
+# HTML Parsing - Ksoup (KMP alternative to Jsoup)
+ksoup = "0.2.5"
+
+# Logging
+napier = "2.7.1"
+
+# Cryptography
+cryptographyCore = "0.4.0"
+
+# Google Play Services (Android only)
+playServicesMaps = "19.0.0"
+
+# Window Size Class
+material3WindowSizeClass = "0.5.0"
+
 [libraries]
-androidx-compose-animation = { module = "androidx.compose.animation:animation", version.ref = "animation" }
-androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
-androidx-compose-material3-window-size = { module = "androidx.compose.material3:material3-window-size-class", version.ref = "material3WindowSizeClass" }
+# AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
-androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
-coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
-compressor = { module = "id.zelory:compressor", version.ref = "compressor" }
-jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version = "2.8.3" }
+androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version = "2.8.3" }
+androidx-lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version = "2.8.3" }
+androidx-navigation-compose = { group = "org.jetbrains.androidx.navigation", name = "navigation-compose", version = "2.8.0-alpha10" }
+
+# DataStore Multiplatform
+androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastorePreferences" }
+
+# Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
-androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
-androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
-androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
-androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
-androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
-androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
-# 网络请求核心
-multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdownRendererM3" }
-play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
-retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
-okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-# JSON 解析核心
+
+# Ktor Client
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
+ktor-client-auth = { group = "io.ktor", name = "ktor-client-auth", version.ref = "ktor" }
+
+# SQLDelight
+sqldelight-runtime = { group = "app.cash.sqldelight", name = "runtime", version.ref = "sqldelight" }
+sqldelight-coroutines = { group = "app.cash.sqldelight", name = "coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-android-driver = { group = "app.cash.sqldelight", name = "android-driver", version.ref = "sqldelight" }
+sqldelight-native-driver = { group = "app.cash.sqldelight", name = "native-driver", version.ref = "sqldelight" }
+
+# Koin DI
+koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
+koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
+koin-compose = { group = "io.insert-koin", name = "koin-compose", version.ref = "koin" }
+koin-compose-viewmodel = { group = "io.insert-koin", name = "koin-compose-viewmodel", version.ref = "koin" }
+
+# Coroutines
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+
+# Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-# 转换器,连接 Retrofit 和 Kotlinx Serialization
-retrofit-converter-kotlinx-serialization = { group = "com.jakewharton.retrofit", name = "retrofit2-kotlinx-serialization-converter", version.ref = "retrofitKotlinxSerializationConverter" }
-# === 数据库
-androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
-androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-# Hilt 核心库
-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
-hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
-# Compose 导航支持
-androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
-volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
-androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+
+# DateTime
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
+
+# Image Loading - Coil KMP
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
+
+# Markdown Renderer
+multiplatform-markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "multiplatformMarkdownRenderer" }
+
+# HTML Parsing - Ksoup
+ksoup = { group = "com.fleeksoft.ksoup", name = "ksoup", version.ref = "ksoup" }
+
+# Logging
+napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
+
+# Cryptography (KMP)
+cryptography-core = { group = "dev.whyoleg.cryptography", name = "cryptography-core", version.ref = "cryptographyCore" }
+cryptography-provider-jdk = { group = "dev.whyoleg.cryptography", name = "cryptography-provider-jdk", version.ref = "cryptographyCore" }
+cryptography-provider-apple = { group = "dev.whyoleg.cryptography", name = "cryptography-provider-apple", version.ref = "cryptographyCore" }
+
+# Google Play Services (Android only)
+play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
+
+# Window Size Class (Compose Multiplatform)
+material3-windowSize = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "material3WindowSizeClass" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

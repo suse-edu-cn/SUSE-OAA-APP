@@ -21,4 +21,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ProjectOAA"
-include(":app")
+
+include(":composeApp")
+include(":shared")

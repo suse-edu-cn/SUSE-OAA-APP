@@ -1,0 +1,45 @@
+-- Grade 表
+CREATE TABLE GradeEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    courseName TEXT NOT NULL,
+    courseCode TEXT NOT NULL,
+    credit REAL NOT NULL,
+    score TEXT,
+    gradePoint REAL,
+    examType TEXT,
+    semesterId TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+);
+
+-- 查询所有成绩
+selectAll:
+SELECT * FROM GradeEntity;
+
+-- 按学期查询
+selectBySemester:
+SELECT * FROM GradeEntity WHERE semesterId = ?;
+
+-- 计算学期 GPA
+calculateGpaBySemester:
+SELECT 
+    SUM(credit * gradePoint) / SUM(credit) AS gpa,
+    SUM(credit) AS totalCredits
+FROM GradeEntity 
+WHERE semesterId = ? AND gradePoint IS NOT NULL;
+
+-- 插入成绩
+insertGrade:
+INSERT OR REPLACE INTO GradeEntity (
+    courseName, courseCode, credit, score, 
+    gradePoint, examType, semesterId, 
+    createdAt, updatedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 删除所有成绩
+deleteAll:
+DELETE FROM GradeEntity;
+
+-- 按学期删除
+deleteBySemester:
+DELETE FROM GradeEntity WHERE semesterId = ?;
