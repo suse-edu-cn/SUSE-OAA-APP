@@ -120,7 +120,10 @@ fun PersonScreen(
                         UserInfoCard(
                             userInfo = uiState.userInfo,
                             onLogout = { viewModel.logout() },
-                            onAvatarClick = { /* TODO: 选择头像 */ }
+                            onAvatarClick = { /* TODO: 选择头像 */ },
+                            onEditInfo = { username, name ->
+                                viewModel.updateInfo(username, name)
+                            }
                         )
                     }
 
@@ -148,8 +151,23 @@ fun PersonScreen(
 fun UserInfoCard(
     userInfo: com.suseoaa.projectoaa.shared.domain.model.person.PersonData?,
     onLogout: () -> Unit,
-    onAvatarClick: () -> Unit
+    onAvatarClick: () -> Unit,
+    onEditInfo: (String, String) -> Unit = { _, _ -> }
 ) {
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    if (showEditDialog && userInfo != null) {
+        EditInfoDialog(
+            initialUsername = userInfo.username ?: "",
+            initialName = userInfo.name ?: "",
+            onDismiss = { showEditDialog = false },
+            onConfirm = { username, name ->
+                onEditInfo(username, name)
+                showEditDialog = false
+            }
+        )
+    }
+
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = OxygenWhite),
@@ -161,80 +179,138 @@ fun UserInfoCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 头像
+                // 头像区域
                 Box(
                     modifier = Modifier
                         .size(64.dp)
-                        .clip(CircleShape)
-                        .background(SoftBlueWait)
-                        .clickable { onAvatarClick() },
-                    contentAlignment = Alignment.Center
+                        .clickable { onAvatarClick() }
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(SoftBlueWait)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            tint = ElectricBlue,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    // 编辑图标提示
                     Icon(
-                        Icons.Default.Person,
+                        imageVector = Icons.Default.Edit,
                         contentDescription = null,
-                        tint = ElectricBlue,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier
+                            .size(20.dp)
+                            .align(Alignment.BottomEnd)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                            .padding(4.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // 用户信息
-                Column(modifier = Modifier.weight(1f)) {
+                // 用户信息 (可点击编辑)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showEditDialog = true }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = userInfo?.name ?: "请登录",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = InkBlack
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Text(
-                        text = userInfo?.name ?: "用户",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = InkBlack
-                    )
-                    Text(
-                        text = userInfo?.studentId ?: "",
+                        text = userInfo?.department ?: "暂未加入任何部门",
                         style = MaterialTheme.typography.bodyMedium,
                         color = InkGrey
                     )
-                    userInfo?.department?.let { dept ->
-                        Text(
-                            text = dept,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ElectricBlue
-                        )
-                    }
+                    Text(
+                        text = userInfo?.role ?: "未加入协会",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ElectricBlue
+                    )
                 }
 
-                // 编辑按钮
-                IconButton(onClick = { /* TODO: 编辑信息 */ }) {
+                // 退出登录按钮
+                IconButton(onClick = onLogout) {
                     Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "编辑",
-                        tint = InkGrey
+                        Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = "退出登录",
+                        tint = AlertRed
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider(color = OutlineSoft)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 退出登录按钮
-            OutlinedButton(
-                onClick = onLogout,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = AlertRed
-                ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, AlertRed.copy(alpha = 0.5f))
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("退出登录")
-            }
         }
     }
+}
+
+/**
+ * 编辑信息对话框
+ */
+@Composable
+fun EditInfoDialog(
+    initialUsername: String,
+    initialName: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit
+) {
+    var username by remember { mutableStateOf(initialUsername) }
+    var name by remember { mutableStateOf(initialName) }
+
+    AlertDialog(
+        containerColor = MaterialTheme.colorScheme.background,
+        onDismissRequest = onDismiss,
+        title = { Text("修改个人信息") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("姓名") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("用户名") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(username, name) },
+                enabled = username.isNotBlank() && name.isNotBlank()
+            ) {
+                Text("保存")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }
 
 @Composable

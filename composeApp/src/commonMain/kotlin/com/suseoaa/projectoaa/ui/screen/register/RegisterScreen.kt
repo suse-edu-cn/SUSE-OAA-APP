@@ -78,13 +78,52 @@ fun RegisterScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                text = "注意：学号填写后无法修改",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp)
+            )
 
-            // 账号输入框
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 学号输入框
             OutlinedTextField(
-                value = uiState.account,
-                onValueChange = viewModel::updateAccount,
-                label = { Text("账号 (学号)") },
+                value = uiState.studentId,
+                onValueChange = viewModel::updateStudentId,
+                label = { Text("学号") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 姓名输入框
+            OutlinedTextField(
+                value = uiState.realName,
+                onValueChange = viewModel::updateRealName,
+                label = { Text("姓名") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 用户名输入框
+            OutlinedTextField(
+                value = uiState.userName,
+                onValueChange = viewModel::updateUserName,
+                label = { Text("用户名") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),

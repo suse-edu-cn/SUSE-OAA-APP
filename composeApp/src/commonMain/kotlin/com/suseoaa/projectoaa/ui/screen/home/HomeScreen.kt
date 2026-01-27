@@ -233,10 +233,10 @@ fun String.stripMarkdown(): String {
 fun getIconForDepartment(name: String): ImageVector {
     return when (name) {
         "协会" -> Icons.Default.Home
-        "算法竞赛部" -> Icons.Default.Star
+        "算法竞赛部" -> Icons.Default.Star        // 原版 Code，KMP 用 Star
         "项目实践部" -> Icons.Default.Build
-        "组织宣传部" -> Icons.Default.Favorite
-        "秘书处" -> Icons.Default.Edit
+        "组织宣传部" -> Icons.Default.Notifications // 原版 Campaign，KMP 用 Notifications
+        "秘书处" -> Icons.Default.Create           // 原版 EditNote，KMP 用 Create
         else -> Icons.Default.Star
     }
 }

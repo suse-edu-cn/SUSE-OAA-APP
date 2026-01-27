@@ -5,10 +5,10 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,8 +30,8 @@ enum class MainTab(
     val label: String
 ) {
     HOME(0, Icons.Default.Home, "首页"),
-    COURSE(1, Icons.Default.DateRange, "课程"),
-    ACADEMIC(2, Icons.Default.Info, "教务信息"),
+    COURSE(1, Icons.Default.DateRange, "课程"),           // 原版是 Book，但 KMP 中用 DateRange 表示课表更合适
+    ACADEMIC(2, Icons.AutoMirrored.Filled.List, "教务信息"),  // 原版是 ChatBubble，KMP 用 List
     PERSON(3, Icons.Default.Person, "个人");
 
     companion object {

@@ -31,6 +31,10 @@ data class PersonData(
 
 @Serializable
 data class UpdateUserRequest(
+    @SerialName("username")
+    val username: String? = null,
+    @SerialName("name")
+    val name: String? = null,
     @SerialName("nickname")
     val nickname: String? = null,
     @SerialName("email")

@@ -50,6 +50,13 @@ class UserRepository(
     }
 
     /**
+     * 更新用户信息（简化接口）
+     */
+    suspend fun updateUserInfo(username: String, name: String): Result<UpdatePersonResponse> {
+        return updateUser(UpdateUserRequest(username = username, name = name))
+    }
+
+    /**
      * 修改密码
      */
     suspend fun changePassword(

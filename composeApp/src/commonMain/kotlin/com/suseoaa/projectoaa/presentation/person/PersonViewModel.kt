@@ -64,6 +64,34 @@ class PersonViewModel(
         }
     }
 
+    fun updateInfo(username: String, name: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            
+            when (val result = userRepository.updateUserInfo(username, name)) {
+                is Result.Success -> {
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            message = "信息更新成功"
+                        )
+                    }
+                    // 重新加载用户信息
+                    loadUserInfo()
+                }
+                is Result.Error -> {
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            message = result.message
+                        )
+                    }
+                }
+                is Result.Loading -> { /* 不会发生 */ }
+            }
+        }
+    }
+
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
     }

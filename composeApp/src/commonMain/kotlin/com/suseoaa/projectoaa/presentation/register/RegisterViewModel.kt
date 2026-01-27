@@ -14,7 +14,9 @@ import kotlinx.coroutines.launch
  * 注册界面状态
  */
 data class RegisterUiState(
-    val account: String = "",
+    val studentId: String = "",      // 学号
+    val realName: String = "",       // 姓名
+    val userName: String = "",       // 用户名
     val password: String = "",
     val confirmPassword: String = "",
     val isLoading: Boolean = false,
@@ -32,9 +34,21 @@ class RegisterViewModel(
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
-    fun updateAccount(account: String) {
-        if (account.length <= 20) {
-            _uiState.update { it.copy(account = account, errorMessage = null) }
+    fun updateStudentId(studentId: String) {
+        if (studentId.length <= 11) {
+            _uiState.update { it.copy(studentId = studentId, errorMessage = null) }
+        }
+    }
+
+    fun updateRealName(realName: String) {
+        if (realName.length <= 20) {
+            _uiState.update { it.copy(realName = realName, errorMessage = null) }
+        }
+    }
+
+    fun updateUserName(userName: String) {
+        if (userName.length <= 20) {
+            _uiState.update { it.copy(userName = userName, errorMessage = null) }
         }
     }
 
@@ -48,14 +62,24 @@ class RegisterViewModel(
 
     fun register() {
         val currentState = _uiState.value
-        val cleanAccount = currentState.account.trim()
+        val cleanStudentId = currentState.studentId.trim()
+        val cleanRealName = currentState.realName.trim()
+        val cleanUserName = currentState.userName.trim()
         val cleanPassword = currentState.password.trim()
         val cleanConfirmPassword = currentState.confirmPassword.trim()
 
         // 验证
         when {
-            cleanAccount.isBlank() -> {
-                _uiState.update { it.copy(errorMessage = "账号不能为空") }
+            cleanStudentId.isBlank() -> {
+                _uiState.update { it.copy(errorMessage = "学号不能为空") }
+                return
+            }
+            cleanRealName.isBlank() -> {
+                _uiState.update { it.copy(errorMessage = "姓名不能为空") }
+                return
+            }
+            cleanUserName.isBlank() -> {
+                _uiState.update { it.copy(errorMessage = "用户名不能为空") }
                 return
             }
             cleanPassword.isBlank() -> {
@@ -75,7 +99,8 @@ class RegisterViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            when (val result = authRepository.register(cleanAccount, cleanPassword, cleanConfirmPassword)) {
+            // 使用 studentId 作为注册参数
+            when (val result = authRepository.register(cleanStudentId, cleanPassword, cleanConfirmPassword)) {
                 is Result.Success -> {
                     _uiState.update { 
                         it.copy(

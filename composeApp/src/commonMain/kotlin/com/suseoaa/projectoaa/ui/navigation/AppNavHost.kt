@@ -5,6 +5,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.suseoaa.projectoaa.ui.screen.changepassword.ChangePasswordScreen
+import com.suseoaa.projectoaa.ui.screen.gpa.GpaScreen
+import com.suseoaa.projectoaa.ui.screen.grades.GradesScreen
 import com.suseoaa.projectoaa.ui.screen.login.LoginScreen
 import com.suseoaa.projectoaa.ui.screen.main.MainScreen
 import com.suseoaa.projectoaa.ui.screen.register.RegisterScreen
@@ -79,15 +81,13 @@ fun AppNavHost(
         }
 
         composable(Screen.Grades.route) {
-            PlaceholderScreen(
-                title = "成绩查询",
+            GradesScreen(
                 onBack = { navController.popBackStack() }
             )
         }
 
         composable(Screen.Gpa.route) {
-            PlaceholderScreen(
-                title = "GPA 计算",
+            GpaScreen(
                 onBack = { navController.popBackStack() }
             )
         }

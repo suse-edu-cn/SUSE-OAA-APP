@@ -4,6 +4,8 @@ import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.changepassword.ChangePasswordViewModel
 import com.suseoaa.projectoaa.presentation.course.CourseViewModel
+import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
+import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
 import com.suseoaa.projectoaa.presentation.login.LoginViewModel
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
@@ -23,6 +25,8 @@ val appModule = module {
     viewModel { CourseViewModel() }
     viewModel { AcademicViewModel(get()) }
     viewModel { PersonViewModel(get(), get()) }
+    viewModel { GpaViewModel(get()) }
+    viewModel { GradesViewModel(get()) }
 }
 
 // 重导出 shared 模块
