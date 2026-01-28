@@ -19,9 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.suseoaa.projectoaa.data.repository.GpaCourseWrapper
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
 import com.suseoaa.projectoaa.presentation.gpa.FilterType
-import com.suseoaa.projectoaa.presentation.gpa.GpaCourseWrapper
 import com.suseoaa.projectoaa.presentation.gpa.SortOrder
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -196,7 +196,7 @@ private fun GpaContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.weight(1f)
         ) {
-            items(courseList, key = { it.originalEntity.kcmc ?: it.hashCode().toString() }) { item ->
+            items(courseList, key = { it.originalEntity.courseName }) { item ->
                 GpaCourseItem(
                     item = item,
                     onScoreChange = { newScore ->
@@ -251,7 +251,7 @@ fun GpaCourseItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    item.originalEntity.kcmc ?: "未知课程",
+                    item.originalEntity.courseName,
                     fontWeight = FontWeight.Bold
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {

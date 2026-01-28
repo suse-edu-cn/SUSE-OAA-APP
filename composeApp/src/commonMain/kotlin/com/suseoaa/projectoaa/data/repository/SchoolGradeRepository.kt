@@ -75,6 +75,16 @@ class SchoolGradeRepository(
     }
 
     /**
+     * 观察学生所有成绩（用于GPA计算）
+     */
+    fun observeAllGrades(studentId: String): Flow<List<GradeEntity>> {
+        return database.gradeQueries.selectAllByStudent(studentId)
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { list -> list.map { it.toEntity() } }
+    }
+
+    /**
      * 获取所有历史成绩（全量同步）
      */
     suspend fun fetchAllHistoryGrades(account: CourseAccountEntity): Result<String> =

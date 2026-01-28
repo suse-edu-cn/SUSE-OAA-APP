@@ -1,0 +1,23 @@
+-- 学位课程缓存表（用于GPA计算）
+CREATE TABLE DegreeCourse (
+    studentId TEXT NOT NULL,
+    courseKey TEXT NOT NULL,  -- 课程号或课程名
+    isDegree INTEGER NOT NULL DEFAULT 0,  -- 1=学位课, 0=非学位课
+    PRIMARY KEY (studentId, courseKey)
+);
+
+-- 创建索引
+CREATE INDEX idx_degree_course_student ON DegreeCourse(studentId);
+
+-- 查询学生的所有学位课程信息
+selectByStudent:
+SELECT * FROM DegreeCourse WHERE studentId = ?;
+
+-- 插入或替换学位课程信息
+insertOrReplace:
+INSERT OR REPLACE INTO DegreeCourse(studentId, courseKey, isDegree)
+VALUES (?, ?, ?);
+
+-- 删除学生的所有学位课程信息（用于刷新）
+deleteByStudent:
+DELETE FROM DegreeCourse WHERE studentId = ?;

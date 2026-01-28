@@ -8,6 +8,7 @@ import com.suseoaa.projectoaa.data.network.OaaHttpClient
 import com.suseoaa.projectoaa.data.network.SchoolHttpClient
 import com.suseoaa.projectoaa.data.repository.AnnouncementRepository
 import com.suseoaa.projectoaa.data.repository.AppUpdateRepository
+import com.suseoaa.projectoaa.data.repository.GpaRepository
 import com.suseoaa.projectoaa.data.repository.LocalCourseRepository
 import com.suseoaa.projectoaa.data.repository.OaaAuthRepository
 import com.suseoaa.projectoaa.data.repository.OaaRegisterRepository
@@ -99,6 +100,19 @@ val appModule = module {
             get<Json>(),
             get<SchoolAuthRepository>()
         ) 
+    }
+    
+    // GPA 仓库
+    single {
+        GpaRepository(
+            get<SchoolApiService>(),
+            get<SchoolGradeRepository>(),
+            get<LocalCourseRepository>(),
+            get<SchoolAuthRepository>(),
+            get<TokenManager>(),
+            get<Json>(),
+            get<CourseDatabase>()
+        )
     }
 
     // ==================== ViewModels ====================

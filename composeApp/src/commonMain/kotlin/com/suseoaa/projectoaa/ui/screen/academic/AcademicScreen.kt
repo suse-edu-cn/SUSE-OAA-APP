@@ -49,6 +49,14 @@ fun AcademicScreen(
     val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomContentPadding = 80.dp + navBarHeight
 
+    // 错峰加载策略 - 数据为空时自动刷新
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(800)
+        if (uiState.exams.isEmpty() || uiState.messages.isEmpty()) {
+            viewModel.refresh()
+        }
+    }
+
     val functions = listOf(
         PortalFunction(
             "成绩查询",
