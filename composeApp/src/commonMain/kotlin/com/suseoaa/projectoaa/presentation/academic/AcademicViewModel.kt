@@ -3,13 +3,28 @@ package com.suseoaa.projectoaa.presentation.academic
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.data.model.CourseAccountEntity
+import com.suseoaa.projectoaa.data.repository.ExamCacheEntity
 import com.suseoaa.projectoaa.data.repository.LocalCourseRepository
+import com.suseoaa.projectoaa.data.repository.MessageCacheEntity
 import com.suseoaa.projectoaa.data.repository.SchoolAuthRepository
+import com.suseoaa.projectoaa.data.repository.SchoolInfoRepository
+import com.suseoaa.projectoaa.util.parseExamTimeRange
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -47,50 +62,173 @@ data class ExamItem(
     val xm: String? = ""      // 姓名
 )
 
+/**
+ * 考试UI状态
+ */
+data class ExamUiState(
+    val courseName: String,
+    val time: String,
+    val location: String
+)
+
 data class AcademicUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val messages: List<String> = emptyList(),
-    val exams: List<ExamItem> = emptyList(),
+    val messages: List<MessageCacheEntity> = emptyList(),
+    val exams: List<ExamUiState> = emptyList(),
     val errorMessage: String? = null
 )
 
 class AcademicViewModel(
     private val tokenManager: TokenManager,
     private val localCourseRepository: LocalCourseRepository,
-    private val schoolAuthRepository: SchoolAuthRepository
+    private val schoolAuthRepository: SchoolAuthRepository,
+    private val schoolInfoRepository: SchoolInfoRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(AcademicUiState())
     val uiState: StateFlow<AcademicUiState> = _uiState.asStateFlow()
 
+    // 当前账户流
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val currentAccount: StateFlow<CourseAccountEntity?> = tokenManager.currentStudentId
+        .filterNotNull()
+        .flatMapLatest { id -> flow { emit(localCourseRepository.getAccountById(id)) } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    // 考试列表流 (含精确排序逻辑)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val examList: StateFlow<List<ExamUiState>> = tokenManager.currentStudentId
+        .filterNotNull()
+        .flatMapLatest { studentId ->
+            schoolInfoRepository.observeExams(studentId)
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        .let { flow ->
+            MutableStateFlow(emptyList<ExamUiState>()).also { resultFlow ->
+                viewModelScope.launch {
+                    flow.collect { entities ->
+                        val timeZone = TimeZone.currentSystemDefault()
+                        val now = Clock.System.now().toLocalDateTime(timeZone)
+
+                        val sorted = entities.map { entity ->
+                            ExamUiState(
+                                courseName = entity.courseName,
+                                time = entity.time,
+                                location = entity.location
+                            )
+                        }.sortedWith { a, b ->
+                            // 使用工具类解析完整时间
+                            val timesA = parseExamTimeRange(a.time)
+                            val timesB = parseExamTimeRange(b.time)
+
+                            // 异常处理：解析失败的项放到最后
+                            if (timesA == null && timesB == null) return@sortedWith 0
+                            if (timesA == null) return@sortedWith 1
+                            if (timesB == null) return@sortedWith -1
+
+                            val (startA, endA) = timesA
+                            val (startB, endB) = timesB
+
+                            // 判断是否已结束
+                            val isEndedA = now > endA
+                            val isEndedB = now > endB
+
+                            if (isEndedA != isEndedB) {
+                                if (isEndedA) 1 else -1
+                            } else {
+                                startA.compareTo(startB)
+                            }
+                        }
+                        resultFlow.value = sorted
+                    }
+                }
+            }
+        }
+
+    // 消息列表流
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val messageList: StateFlow<List<MessageCacheEntity>> = tokenManager.currentStudentId
+        .filterNotNull()
+        .flatMapLatest { studentId ->
+            schoolInfoRepository.observeMessages(studentId)
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     init {
-        loadData()
+        // 观察考试数据变化
+        viewModelScope.launch {
+            examList.collect { exams ->
+                _uiState.update { it.copy(exams = exams) }
+            }
+        }
+
+        // 观察消息数据变化
+        viewModelScope.launch {
+            messageList.collect { messages ->
+                _uiState.update { it.copy(messages = messages) }
+            }
+        }
     }
 
     fun loadData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             
-            // TODO: 从 SchoolInfoRepository 加载考试数据
-            // 需要实现 SchoolInfoRepository 来获取考试信息
+            // 数据会通过 Flow 自动更新
             
-            _uiState.update { 
-                it.copy(
-                    isLoading = false,
-                    errorMessage = "教务系统考试信息功能正在开发中"
-                )
-            }
+            _uiState.update { it.copy(isLoading = false) }
         }
     }
 
     fun refresh() {
+        val account = currentAccount.value ?: return
         viewModelScope.launch {
+            if (_uiState.value.isRefreshing) return@launch
             _uiState.update { it.copy(isRefreshing = true) }
-            
-            // TODO: 刷新考试数据
-            
-            _uiState.update { it.copy(isRefreshing = false) }
+
+            try {
+                // 刷新考试信息
+                schoolInfoRepository.refreshAcademicExamInfo(account)
+                // 刷新调课通知
+                schoolInfoRepository.refreshAcademicMessageInfo(account)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "刷新失败: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isRefreshing = false) }
+            }
+        }
+    }
+
+    fun refreshExams() {
+        val account = currentAccount.value ?: return
+        viewModelScope.launch {
+            if (_uiState.value.isRefreshing) return@launch
+            _uiState.update { it.copy(isRefreshing = true) }
+
+            try {
+                schoolInfoRepository.refreshAcademicExamInfo(account)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "刷新考试信息失败: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isRefreshing = false) }
+            }
+        }
+    }
+
+    fun refreshMessages() {
+        val account = currentAccount.value ?: return
+        viewModelScope.launch {
+            if (_uiState.value.isRefreshing) return@launch
+            _uiState.update { it.copy(isRefreshing = true) }
+
+            try {
+                schoolInfoRepository.refreshAcademicMessageInfo(account)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "刷新消息失败: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isRefreshing = false) }
+            }
         }
     }
 

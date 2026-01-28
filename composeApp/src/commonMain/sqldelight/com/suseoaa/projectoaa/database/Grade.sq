@@ -1,0 +1,53 @@
+-- 成绩表
+CREATE TABLE Grade (
+    studentId TEXT NOT NULL,
+    xnm TEXT NOT NULL,
+    xqm TEXT NOT NULL,
+    courseId TEXT NOT NULL,
+    jxbId TEXT NOT NULL DEFAULT '',
+    regularScore TEXT NOT NULL DEFAULT '',
+    regularRatio TEXT NOT NULL DEFAULT '',
+    experimentScore TEXT NOT NULL DEFAULT '',
+    experimentRatio TEXT NOT NULL DEFAULT '',
+    finalScore TEXT NOT NULL DEFAULT '',
+    finalRatio TEXT NOT NULL DEFAULT '',
+    courseName TEXT NOT NULL,
+    score TEXT NOT NULL,
+    credit TEXT NOT NULL,
+    gpa TEXT NOT NULL,
+    courseType TEXT NOT NULL,
+    examType TEXT NOT NULL,
+    teacher TEXT NOT NULL,
+    examNature TEXT NOT NULL,
+    PRIMARY KEY (studentId, xnm, xqm, courseId)
+);
+
+-- 创建索引
+CREATE INDEX idx_grade_term ON Grade(studentId, xnm, xqm);
+
+-- 查询指定学期的成绩
+selectByTerm:
+SELECT * FROM Grade WHERE studentId = ? AND xnm LIKE ? AND xqm LIKE ?;
+
+-- 插入或替换成绩
+insertOrReplace:
+INSERT OR REPLACE INTO Grade(
+    studentId, xnm, xqm, courseId, jxbId,
+    regularScore, regularRatio, experimentScore, experimentRatio,
+    finalScore, finalRatio, courseName, score, credit, gpa,
+    courseType, examType, teacher, examNature
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 删除指定学期的成绩
+deleteByTerm:
+DELETE FROM Grade WHERE studentId = ? AND xnm = ? AND xqm = ?;
+
+-- 更新成绩详情
+updateGradeDetail:
+UPDATE Grade SET regularScore = ?, finalScore = ?
+WHERE studentId = ? AND courseId = ? AND xnm = ? AND xqm = ?;
+
+-- 查询学生所有成绩（用于GPA计算）
+selectAllByStudent:
+SELECT * FROM Grade WHERE studentId = ?;
+

@@ -7,12 +7,15 @@ import com.suseoaa.projectoaa.data.database.CourseDatabaseDriverFactory
 import com.suseoaa.projectoaa.data.network.OaaHttpClient
 import com.suseoaa.projectoaa.data.network.SchoolHttpClient
 import com.suseoaa.projectoaa.data.repository.AnnouncementRepository
+import com.suseoaa.projectoaa.data.repository.AppUpdateRepository
 import com.suseoaa.projectoaa.data.repository.LocalCourseRepository
 import com.suseoaa.projectoaa.data.repository.OaaAuthRepository
 import com.suseoaa.projectoaa.data.repository.OaaRegisterRepository
 import com.suseoaa.projectoaa.data.repository.PersonRepository
 import com.suseoaa.projectoaa.data.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.data.repository.SchoolCourseRepository
+import com.suseoaa.projectoaa.data.repository.SchoolGradeRepository
+import com.suseoaa.projectoaa.data.repository.SchoolInfoRepository
 import com.suseoaa.projectoaa.database.CourseDatabase
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
@@ -24,6 +27,7 @@ import com.suseoaa.projectoaa.presentation.home.HomeViewModel
 import com.suseoaa.projectoaa.presentation.login.LoginViewModel
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.presentation.register.RegisterViewModel
+import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -76,6 +80,26 @@ val appModule = module {
     single { SchoolApiService(get(qualifier = org.koin.core.qualifier.named("school")), get()) }
     single { SchoolAuthRepository(get<SchoolApiService>()) }
     single { SchoolCourseRepository(get<SchoolApiService>(), get()) }
+    
+    // 成绩和信息仓库
+    single { 
+        SchoolGradeRepository(
+            get<SchoolApiService>(), 
+            get<CourseDatabase>(), 
+            get<Json>(), 
+            get<SchoolAuthRepository>(),
+            get<LocalCourseRepository>(),
+            get<TokenManager>()
+        ) 
+    }
+    single { 
+        SchoolInfoRepository(
+            get<SchoolApiService>(), 
+            get<CourseDatabase>(), 
+            get<Json>(),
+            get<SchoolAuthRepository>()
+        ) 
+    }
 
     // ==================== ViewModels ====================
     viewModel { MainViewModel(get()) }
@@ -84,8 +108,9 @@ val appModule = module {
     viewModel { HomeViewModel(get(), get(), get()) }
     viewModel { ChangePasswordViewModel(get()) }
     viewModel { CourseViewModel(get(), get(), get(), get()) }
-    viewModel { AcademicViewModel(get(), get(), get()) }
+    viewModel { AcademicViewModel(get(), get(), get(), get()) }
     viewModel { PersonViewModel(get()) }
     viewModel { GpaViewModel(get(), get()) }
-    viewModel { GradesViewModel(get(), get(), get()) }
+    viewModel { GradesViewModel(get(), get(), get(), get()) }
+    viewModel { AppUpdateViewModel(get()) }
 }

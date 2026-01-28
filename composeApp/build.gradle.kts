@@ -81,6 +81,9 @@ kotlin {
             // SQLDelight
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
+            
+            // HTML Parsing - KSoup (KMP alternative to Jsoup)
+            implementation(libs.ksoup)
         }
 
         androidMain.dependencies {

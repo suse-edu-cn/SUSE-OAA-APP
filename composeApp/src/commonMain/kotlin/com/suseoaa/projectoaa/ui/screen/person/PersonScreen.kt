@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +29,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
+import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
+import com.suseoaa.projectoaa.presentation.update.UpdateEvent
+import com.suseoaa.projectoaa.ui.component.UpdateDialog
 import com.suseoaa.projectoaa.ui.theme.*
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
 
 private val HeaderHeight = 320.dp
@@ -38,16 +43,44 @@ private val HeaderHeight = 320.dp
 fun PersonScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
-    viewModel: PersonViewModel = koinViewModel()
+    viewModel: PersonViewModel = koinViewModel(),
+    updateViewModel: AppUpdateViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    
+    // 更新相关状态
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    val updateUiState by updateViewModel.uiState.collectAsState()
 
     // 监听登出
     LaunchedEffect(uiState.isLoggedOut) {
         if (uiState.isLoggedOut) {
             onNavigateToLogin()
+        }
+    }
+    
+    // 启动时自动检查更新
+    LaunchedEffect(Unit) {
+        updateViewModel.checkForUpdate()
+    }
+    
+    // 监听更新事件
+    LaunchedEffect(Unit) {
+        updateViewModel.events.collectLatest { event ->
+            when (event) {
+                is UpdateEvent.DownloadComplete -> {
+                    // 自动提示安装
+                    updateViewModel.installDownloadedApk()
+                }
+                is UpdateEvent.NoUpdateAvailable -> {
+                    // 无更新，可以显示 Snackbar
+                }
+                is UpdateEvent.ShowToast -> {
+                    // 显示错误消息
+                }
+            }
         }
     }
 
@@ -58,6 +91,21 @@ fun PersonScreen(
             snackbarHostState.showSnackbar(message)
             viewModel.clearMessage()
         }
+    }
+    
+    // 自动弹出更新对话框
+    LaunchedEffect(updateUiState.hasUpdate) {
+        if (updateUiState.hasUpdate) {
+            showUpdateDialog = true
+        }
+    }
+    
+    // 更新对话框
+    if (showUpdateDialog) {
+        UpdateDialog(
+            viewModel = updateViewModel,
+            onDismiss = { showUpdateDialog = false }
+        )
     }
 
     Scaffold(
@@ -136,6 +184,19 @@ fun PersonScreen(
                             title = "修改密码",
                             subtitle = "更新您的账户密码",
                             onClick = onNavigateToChangePassword
+                        )
+                    }
+                    
+                    // 检查更新卡片
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        SettingCard(
+                            icon = Icons.Default.Refresh,
+                            title = "检查更新",
+                            subtitle = if (updateUiState.isChecking) "正在检查..." else "点击检查是否有新版本",
+                            onClick = { 
+                                showUpdateDialog = true
+                                updateViewModel.checkForUpdate()
+                            }
                         )
                     }
 

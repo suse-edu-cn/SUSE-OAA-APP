@@ -177,13 +177,56 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         password: String, 
         response: CourseResponseJson
     ) = withContext(Dispatchers.IO) {
-        val list = response.kbList ?: return@withContext
+        val xsxx = response.xsxx
+        val list = response.kbList ?: emptyList()
         
-        if (list.isEmpty()) return@withContext
+        // 确定学年学期
+        val xnm = xsxx?.xnm ?: list.firstOrNull()?.xnm ?: "2024"
+        val xqm = xsxx?.xqm ?: list.firstOrNull()?.xqm ?: "3"
+        
+        // 保存账号信息（非常重要！）
+        if (xsxx != null) {
+            val oldAccount = getAccountById(studentId)
+            val newSortIndex = oldAccount?.sortIndex ?: (getMaxSortIndex() + 1)
+            
+            val account = CourseAccountEntity(
+                studentId = studentId,
+                password = password,
+                name = xsxx.name ?: "未知姓名",
+                className = xsxx.className ?: "未知班级",
+                njdmId = xsxx.njdmId ?: xnm,
+                major = xsxx.major ?: "",
+                sortIndex = newSortIndex,
+                jgId = oldAccount?.jgId ?: "",
+                zyhId = xsxx.zyhId ?: oldAccount?.zyhId ?: ""
+            )
+            insertOrReplaceAccount(account)
+            println("[LocalCourse] Saved account: ${account.name} (${account.studentId})")
+        } else {
+            // 即使没有 xsxx 信息，也要创建基本账号记录
+            val oldAccount = getAccountById(studentId)
+            if (oldAccount == null) {
+                val newSortIndex = getMaxSortIndex() + 1
+                val account = CourseAccountEntity(
+                    studentId = studentId,
+                    password = password,
+                    name = "用户$studentId",
+                    className = "未知班级",
+                    njdmId = xnm,
+                    major = "",
+                    sortIndex = newSortIndex,
+                    jgId = "",
+                    zyhId = ""
+                )
+                insertOrReplaceAccount(account)
+                println("[LocalCourse] Created basic account for: $studentId")
+            }
+        }
 
-        val firstItem = list.first()
-        val xnm = firstItem.xnm ?: "2024"
-        val xqm = firstItem.xqm ?: "3"
+        if (list.isEmpty()) {
+            println("[LocalCourse] No courses in response")
+            return@withContext
+        }
 
         val courseEntities = mutableListOf<CourseEntity>()
         val timeEntities = mutableListOf<ClassTimeEntity>()
@@ -226,12 +269,13 @@ class LocalCourseRepository(private val database: CourseDatabase) {
                     weeksMask = parseWeeksToMask(item.zcd ?: ""),
                     location = item.cdmc ?: "",
                     teacher = item.xm ?: "",
-                    classGroup = "" // item.jxbmc not available in model
+                    classGroup = ""
                 )
             )
         }
 
         updateTermCourses(studentId, xnm, xqm, courseEntities, timeEntities)
+        println("[LocalCourse] Saved ${courseEntities.size} courses and ${timeEntities.size} time slots")
     }
 
     private fun parseWeeksToMask(weeksStr: String): Long {
@@ -321,4 +365,54 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         politicalStatus = politicalStatus,
         classGroup = classGroup
     )
+
+    /**
+     * 添加自定义课程
+     */
+    suspend fun addCustomCourse(
+        studentId: String,
+        xnm: String,
+        xqm: String,
+        courseName: String,
+        location: String,
+        teacher: String,
+        weeks: String,
+        dayOfWeek: Int,
+        startNode: Int,
+        duration: Int
+    ) = withContext(Dispatchers.IO) {
+        val courseEntity = CourseEntity(
+            studentId = studentId,
+            courseName = courseName,
+            xnm = xnm,
+            xqm = xqm,
+            isCustom = true,
+            remoteCourseId = "",
+            nature = "自定义",
+            category = "自定义课程",
+            assessment = "",
+            totalHours = "",
+            background = "#7E57C2"
+        )
+
+        val timeEntity = ClassTimeEntity(
+            studentId = studentId,
+            courseOwnerName = courseName,
+            xnm = xnm,
+            xqm = xqm,
+            isCustom = true,
+            weekday = dayOfWeek.toString(),
+            period = "$startNode-${startNode + duration - 1}",
+            weeks = weeks,
+            weeksMask = parseWeeksToMask(weeks),
+            location = location,
+            teacher = teacher,
+            duration = duration.toString(),
+            teacherTitle = "",
+            politicalStatus = "",
+            classGroup = ""
+        )
+
+        insertCustomCourse(courseEntity, timeEntity)
+    }
 }

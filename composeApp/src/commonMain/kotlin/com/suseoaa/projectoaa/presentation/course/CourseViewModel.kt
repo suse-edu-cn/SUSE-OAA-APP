@@ -16,13 +16,18 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 
-// 删除原文件的 TermOption 定义，统一在这里重定义，避免冲突
+/**
+ * 学期选项
+ */
 data class TermOption(
-    val xnm: String,
-    val xqm: String,
-    val label: String
+    val xnm: String,      // 学年码
+    val xqm: String,      // 学期码: "3" = 第一学期, "12" = 第二学期
+    val label: String     // 显示标签
 )
 
+/**
+ * 时间段配置
+ */
 data class TimeSlotConfig(
     val sectionName: String,
     val startTime: String,
@@ -30,8 +35,12 @@ data class TimeSlotConfig(
     val type: SlotType,
     val weight: Float
 )
+
 enum class SlotType { CLASS, BREAK_SMALL, BREAK_LUNCH, BREAK_DINNER }
 
+/**
+ * 布局计算结果
+ */
 data class ScheduleLayoutItem(
     val course: CourseWithTimes,
     val time: ClassTimeEntity,
@@ -40,6 +49,9 @@ data class ScheduleLayoutItem(
     val dayIndex: Int
 )
 
+/**
+ * UI状态
+ */
 data class CourseListUiState(
     val isLoading: Boolean = false,
     val successMessage: String? = null,
@@ -47,6 +59,9 @@ data class CourseListUiState(
     val statusMessage: String? = null
 )
 
+/**
+ * 2025年后的课程时间表
+ */
 val DailySchedulePost2025 = listOf(
     TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
     TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
@@ -66,6 +81,28 @@ val DailySchedulePost2025 = listOf(
     TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.2f)
 )
 
+/**
+ * 2025年之前的课程时间表
+ */
+val DailySchedulePre2025 = listOf(
+    TimeSlotConfig("1", "08:00", "08:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("2", "08:55", "09:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
+    TimeSlotConfig("3", "10:00", "10:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("4", "10:55", "11:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("午餐", "11:40", "14:00", SlotType.BREAK_LUNCH, 0.5f),
+    TimeSlotConfig("午休", "", "", SlotType.BREAK_LUNCH, 0.5f),
+    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("6", "14:55", "15:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
+    TimeSlotConfig("7", "16:00", "16:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("8", "16:55", "17:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("", "", "", SlotType.BREAK_DINNER, 0.4f),
+    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("10", "19:55", "20:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("11", "20:50", "21:35", SlotType.CLASS, 1.2f)
+)
+
 class CourseViewModel(
     private val localRepository: LocalCourseRepository,
     private val schoolAuthRepository: SchoolAuthRepository,
@@ -73,16 +110,19 @@ class CourseViewModel(
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
-    private val KEY_START_DATE = "semester_start_date"
+    // ==================== 日期计算 ====================
     
-    // KMP日期处理: 获取当前周一的日期
     private fun getCurrentMonday(): LocalDate {
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         return today.minus(today.dayOfWeek.ordinal, DateTimeUnit.DAY)
     }
+    
+    private fun today(): LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault())
 
+    // ==================== 状态 ====================
+    
     private val _semesterStartDate = MutableStateFlow(getCurrentMonday())
-    val semesterStartDate: StateFlow<LocalDate> = _semesterStartDate
+    val semesterStartDate: StateFlow<LocalDate> = _semesterStartDate.asStateFlow()
 
     private val _uiState = MutableStateFlow(CourseListUiState())
     val uiState: StateFlow<CourseListUiState> = _uiState.asStateFlow()
@@ -95,22 +135,32 @@ class CourseViewModel(
 
     private val _currentDisplayWeek = MutableStateFlow(1)
     val currentDisplayWeek: StateFlow<Int> = _currentDisplayWeek.asStateFlow()
+    
+    // 真实当前周（用于高亮）
+    private val _realCurrentWeek = MutableStateFlow(1)
+    val realCurrentWeek: StateFlow<Int> = _realCurrentWeek.asStateFlow()
 
     private val _termOptions = MutableStateFlow<List<TermOption>>(emptyList())
     val termOptions: StateFlow<List<TermOption>> = _termOptions.asStateFlow()
 
-    // 账号管理
+    // ==================== 账号管理（教务系统账号，与软件账号分开）====================
+    
     val savedAccounts: StateFlow<List<CourseAccountEntity>> = localRepository.getAllAccounts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val currentAccount: StateFlow<CourseAccountEntity?> = combine(
-        savedAccounts,
-        tokenManager.currentStudentId // 这里假设TokenManager有这个Flow
-    ) { accounts, selectedId ->
-        if (accounts.isEmpty()) null
-        else accounts.find { it.studentId == selectedId } ?: accounts.first()
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val currentAccount: StateFlow<CourseAccountEntity?> = tokenManager.currentStudentId
+        .flatMapLatest { selectedId ->
+            savedAccounts.map { accounts ->
+                if (accounts.isEmpty()) null
+                else if (selectedId != null) accounts.find { it.studentId == selectedId } ?: accounts.firstOrNull()
+                else accounts.firstOrNull()
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    // ==================== 课程数据 ====================
+    
     @OptIn(ExperimentalCoroutinesApi::class)
     val allCourses: StateFlow<List<CourseWithTimes>> = combine(
         currentAccount.filterNotNull(),
@@ -133,18 +183,25 @@ class CourseViewModel(
         .map { getDailySchedule(it) }
         .stateIn(viewModelScope, SharingStarted.Lazily, DailySchedulePost2025)
 
-    val currentWeekLayoutData: StateFlow<List<ScheduleLayoutItem>> = combine(
+    // 预计算每周的布局数据，供 Pager 使用
+    val weekLayoutMap: StateFlow<Map<Int, List<ScheduleLayoutItem>>> = combine(
         weekScheduleMap,
-        dailySchedule,
-        currentDisplayWeek
-    ) { map, schedule, week ->
-        val courses = map[week] ?: emptyList()
-        calculateLayoutItems(courses, schedule)
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        dailySchedule
+    ) { weekMap, schedule ->
+        weekMap.mapValues { (_, courses) ->
+            calculateLayoutItems(courses, schedule)
+        }
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
     init {
+        initializeData()
+        loadSemesterStart()
+    }
+    
+    private fun initializeData() {
         viewModelScope.launch {
-            // 自动刷新逻辑
+            // 监听当前账号变化，自动刷新数据
             currentAccount
                 .filterNotNull()
                 .distinctUntilChanged { old, new -> old.studentId == new.studentId }
@@ -153,16 +210,31 @@ class CourseViewModel(
                     val (realXnm, realXqm) = calculateCurrentRealTerm()
                     _selectedXnm.value = realXnm
                     _selectedXqm.value = realXqm
-                    
-                    if (account.password.isNotBlank()) {
-                         fetchAndSaveCourseSchedule(account.studentId, account.password, realXnm, realXqm)
-                    }
                 }
         }
     }
     
+    private fun loadSemesterStart() {
+        viewModelScope.launch {
+            // TODO: 从 DataStore 加载开学日期
+            // 暂时使用默认值
+            updateRealCurrentWeek()
+        }
+    }
+    
+    private fun updateRealCurrentWeek() {
+        val start = _semesterStartDate.value
+        val todayDate = today()
+        val daysBetween = start.daysUntil(todayDate)
+        val weekNum = (daysBetween / 7) + 1
+        _realCurrentWeek.value = weekNum.coerceIn(1, 25)
+        _currentDisplayWeek.value = _realCurrentWeek.value
+    }
+
+    // ==================== 公开方法 ====================
+    
     fun setDisplayWeek(week: Int) {
-        _currentDisplayWeek.value = week
+        _currentDisplayWeek.value = week.coerceIn(1, 25)
     }
 
     fun selectTerm(xnm: String, xqm: String) {
@@ -184,27 +256,85 @@ class CourseViewModel(
             tokenManager.saveCurrentStudentId(account.studentId)
         }
     }
-
-    private fun fetchAndSaveCourseSchedule(
+    
+    /**
+     * 删除教务账号
+     */
+    fun deleteAccount(account: CourseAccountEntity) {
+        viewModelScope.launch {
+            localRepository.deleteAccount(account.studentId)
+            _uiState.value = _uiState.value.copy(successMessage = "已删除账号: ${account.name}")
+        }
+    }
+    
+    /**
+     * 设置开学日期
+     */
+    fun setSemesterStartDate(date: LocalDate) {
+        viewModelScope.launch {
+            _semesterStartDate.value = date
+            // TODO: 持久化到 DataStore
+            updateRealCurrentWeek()
+        }
+    }
+    
+    /**
+     * 添加自定义课程
+     */
+    fun addCustomCourse(
+        courseName: String,
+        location: String,
+        teacher: String,
+        weeks: String,
+        dayOfWeek: Int,
+        startNode: Int,
+        duration: Int
+    ) {
+        val account = currentAccount.value ?: return
+        viewModelScope.launch {
+            localRepository.addCustomCourse(
+                studentId = account.studentId,
+                xnm = selectedXnm.value,
+                xqm = selectedXqm.value,
+                courseName = courseName,
+                location = location,
+                teacher = teacher,
+                weeks = weeks,
+                dayOfWeek = dayOfWeek,
+                startNode = startNode,
+                duration = duration
+            )
+            _uiState.value = _uiState.value.copy(successMessage = "添加成功: $courseName")
+        }
+    }
+    
+    /**
+     * 导入课表（用于登录对话框）
+     */
+    fun fetchAndSaveCourseSchedule(
         username: String,
-        pass: String,
-        xnm: String,
-        xqm: String
+        password: String,
+        xnm: String = selectedXnm.value,
+        xqm: String = selectedXqm.value
     ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
-                statusMessage = "正在同步教务系统...",
+                statusMessage = "正在登录教务系统...",
                 errorMessage = null,
                 successMessage = null
             )
 
             // 1. 登录
-            val loginResult = schoolAuthRepository.login(username, pass)
+            val loginResult = schoolAuthRepository.login(username, password)
             
             if (loginResult.isFailure) {
                 val errorMsg = loginResult.exceptionOrNull()?.message ?: "教务系统登录失败"
-                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = errorMsg, statusMessage = null)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false, 
+                    errorMessage = errorMsg, 
+                    statusMessage = null
+                )
                 return@launch
             }
 
@@ -213,16 +343,19 @@ class CourseViewModel(
             val courseResult = schoolCourseRepository.getCourseSchedule(xnm, xqm)
 
             courseResult.onSuccess { courseData ->
-                 _uiState.value = _uiState.value.copy(statusMessage = "正在保存...")
-                 
-                 localRepository.saveFromResponse(username, pass, courseData)
+                _uiState.value = _uiState.value.copy(statusMessage = "正在保存...")
+                
+                localRepository.saveFromResponse(username, password, courseData)
+                
+                // 切换到新导入的账号
+                tokenManager.saveCurrentStudentId(username)
 
-                 _uiState.value = _uiState.value.copy(
+                _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    successMessage = "更新成功",
+                    successMessage = "导入成功",
                     statusMessage = null,
                     errorMessage = null
-                 )
+                )
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -232,53 +365,173 @@ class CourseViewModel(
             }
         }
     }
+    
+    fun clearUiMessage() {
+        _uiState.value = _uiState.value.copy(
+            successMessage = null,
+            errorMessage = null,
+            statusMessage = null
+        )
+    }
+
+    // ==================== 私有方法 ====================
 
     private fun getDailySchedule(year: String): List<TimeSlotConfig> {
-        return if (year >= "2025") DailySchedulePost2025 else DailySchedulePost2025 // 简化处理
+        return if (year >= "2025") DailySchedulePost2025 else DailySchedulePre2025
     }
     
     private fun calculateCoursesForWeek(week: Int, courses: List<CourseWithTimes>): List<CourseWithTimes> {
         return courses.filter { courseWithTimes ->
-             courseWithTimes.times.any { time ->
-                 isWeekActive(week, time.weeks, time.weeksMask)
-             }
+            courseWithTimes.times.any { time ->
+                isWeekActive(week, time.weeks, time.weeksMask)
+            }
         }
     }
     
     private fun isWeekActive(week: Int, weeksStr: String, mask: Long): Boolean {
         // 如果有掩码，优先使用掩码
         if (mask != 0L) {
-             return (mask and (1L shl (week - 1))) != 0L
+            return (mask and (1L shl (week - 1))) != 0L
         }
-        // 否则解析字符串 (简化版，实际需要解析 "1-16周" 等格式)
-        return true
+        // 否则解析字符串
+        return parseWeeksString(weeksStr, week)
+    }
+    
+    /**
+     * 解析周次字符串，如 "1-16周", "1,3,5周", "1-8,10-16周"
+     */
+    private fun parseWeeksString(weeksStr: String, targetWeek: Int): Boolean {
+        if (weeksStr.isBlank()) return true
+        
+        val cleanStr = weeksStr.replace("周", "").replace(" ", "")
+        val parts = cleanStr.split(",")
+        
+        for (part in parts) {
+            if (part.contains("-")) {
+                val range = part.split("-")
+                if (range.size == 2) {
+                    val start = range[0].toIntOrNull() ?: continue
+                    val end = range[1].toIntOrNull() ?: continue
+                    if (targetWeek in start..end) return true
+                }
+            } else {
+                val single = part.toIntOrNull()
+                if (single == targetWeek) return true
+            }
+        }
+        return false
     }
 
+    /**
+     * 布局计算：将课程映射到时间网格
+     */
     private fun calculateLayoutItems(
         courses: List<CourseWithTimes>, 
         schedule: List<TimeSlotConfig>
     ): List<ScheduleLayoutItem> {
-        // 核心布局算法，将课程时间映射到网格位置
         val result = mutableListOf<ScheduleLayoutItem>()
-        // TODO: 实现完整布局计算算法
+        
+        // 构建节次索引映射
+        val sectionIndexMap = schedule.mapIndexedNotNull { index, slot ->
+            if (slot.sectionName.isNotEmpty() && slot.type == SlotType.CLASS) {
+                slot.sectionName to index
+            } else null
+        }.toMap()
+        
+        courses.forEach { courseWithTimes ->
+            courseWithTimes.times.forEach { time ->
+                val dayIndex = parseWeekday(time.weekday) - 1
+                if (dayIndex !in 0..6) return@forEach
+                
+                val (startPeriod, span) = parsePeriod(time.period)
+                val startIndex = sectionIndexMap[startPeriod.toString()] ?: return@forEach
+                
+                // 计算结束索引
+                var endIndex = startIndex
+                var foundSpan = 1
+                for (i in (startIndex + 1) until schedule.size) {
+                    val slot = schedule[i]
+                    if (slot.type == SlotType.CLASS && slot.sectionName.isNotEmpty()) {
+                        foundSpan++
+                        endIndex = i
+                        if (foundSpan >= span) break
+                    }
+                }
+                
+                result.add(
+                    ScheduleLayoutItem(
+                        course = courseWithTimes,
+                        time = time,
+                        startNodeIndex = startIndex,
+                        endNodeIndex = endIndex,
+                        dayIndex = dayIndex
+                    )
+                )
+            }
+        }
+        
         return result
     }
     
+    /**
+     * 解析星期字符串
+     */
+    private fun parseWeekday(weekday: String): Int {
+        return when {
+            weekday.contains("一") || weekday == "1" -> 1
+            weekday.contains("二") || weekday == "2" -> 2
+            weekday.contains("三") || weekday == "3" -> 3
+            weekday.contains("四") || weekday == "4" -> 4
+            weekday.contains("五") || weekday == "5" -> 5
+            weekday.contains("六") || weekday == "6" -> 6
+            weekday.contains("日") || weekday.contains("天") || weekday == "7" -> 7
+            else -> weekday.toIntOrNull() ?: 1
+        }
+    }
+    
+    /**
+     * 解析节次字符串，如 "1-2", "3-4节"
+     * @return Pair(起始节, 跨度)
+     */
+    private fun parsePeriod(period: String): Pair<Int, Int> {
+        val cleanPeriod = period.replace("节", "").trim()
+        return if (cleanPeriod.contains("-")) {
+            val parts = cleanPeriod.split("-")
+            val start = parts[0].toIntOrNull() ?: 1
+            val end = parts.getOrNull(1)?.toIntOrNull() ?: start
+            start to (end - start + 1)
+        } else {
+            val single = cleanPeriod.toIntOrNull() ?: 1
+            single to 1
+        }
+    }
+    
     private fun generateTermOptions(njdmId: String) {
-        // 根据年级代码生成学期选项
         val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
-        val startYear = njdmId.take(4).toIntOrNull() ?: currentYear
+        val startYear = njdmId.take(4).toIntOrNull() ?: (currentYear - 4)
         
         val options = mutableListOf<TermOption>()
         for (y in startYear..currentYear + 1) {
-            options.add(TermOption(y.toString(), "3", "${y}-${y+1}-1"))
-            options.add(TermOption(y.toString(), "12", "${y}-${y+1}-2"))
+            options.add(TermOption(y.toString(), "3", "${y}-${y+1}学年 第1学期"))
+            options.add(TermOption(y.toString(), "12", "${y}-${y+1}学年 第2学期"))
         }
         _termOptions.value = options.reversed()
     }
     
     private fun calculateCurrentRealTerm(): Pair<String, String> {
-        // 简单实现，默认返回当前学期
-        return "2024" to "3"
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val month = now.monthNumber
+        val year = now.year
+        
+        return if (month >= 9) {
+            // 9月及以后：当年第一学期
+            year.toString() to "3"
+        } else if (month >= 2) {
+            // 2-8月：上一年第二学期
+            (year - 1).toString() to "12"
+        } else {
+            // 1月：上一年第一学期
+            (year - 1).toString() to "3"
+        }
     }
 }

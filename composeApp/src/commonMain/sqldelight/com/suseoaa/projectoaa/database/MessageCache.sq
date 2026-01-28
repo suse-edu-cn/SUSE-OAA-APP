@@ -1,0 +1,24 @@
+-- 消息缓存表（调课通知等）
+CREATE TABLE MessageCache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    studentId TEXT NOT NULL,
+    content TEXT NOT NULL,
+    date INTEGER NOT NULL
+);
+
+-- 创建索引
+CREATE INDEX idx_message_student ON MessageCache(studentId);
+
+-- 查询指定学生的消息，按日期降序
+selectByStudent:
+SELECT * FROM MessageCache WHERE studentId = ? ORDER BY date DESC;
+
+-- 插入消息
+insert:
+INSERT INTO MessageCache(studentId, content, date)
+VALUES (?, ?, ?);
+
+-- 删除指定学生的所有消息
+deleteByStudent:
+DELETE FROM MessageCache WHERE studentId = ?;
+

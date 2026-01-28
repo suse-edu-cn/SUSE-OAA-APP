@@ -11,7 +11,23 @@ data class RSAKey(
 
 @Serializable
 data class CourseResponseJson(
-    @SerialName("kbList") val kbList: List<CourseItem>? = null
+    @SerialName("kbList") val kbList: List<CourseItem>? = null,
+    @SerialName("xsxx") val xsxx: StudentInfo? = null
+)
+
+/**
+ * 学生信息
+ */
+@Serializable
+data class StudentInfo(
+    @SerialName("BJMC") val className: String? = null,
+    @SerialName("NJDM_ID") val njdmId: String? = null,
+    @SerialName("XH") val studentNo: String? = null,
+    @SerialName("XM") val name: String? = null,
+    @SerialName("XNM") val xnm: String? = null,
+    @SerialName("XQM") val xqm: String? = null,
+    @SerialName("ZYH_ID") val zyhId: String? = null,
+    @SerialName("ZYMC") val major: String? = null
 )
 
 @Serializable

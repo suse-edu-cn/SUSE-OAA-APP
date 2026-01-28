@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.suseoaa.projectoaa.ui.screen.changepassword.ChangePasswordScreen
+import com.suseoaa.projectoaa.ui.screen.exam.ExamInfoScreen
 import com.suseoaa.projectoaa.ui.screen.gpa.GpaScreen
 import com.suseoaa.projectoaa.ui.screen.grades.GradesScreen
 import com.suseoaa.projectoaa.ui.screen.home.DepartmentDetailScreen
@@ -94,8 +95,7 @@ fun AppNavHost(
         }
 
         composable(Screen.Exams.route) {
-            PlaceholderScreen(
-                title = "考试信息",
+            ExamInfoScreen(
                 onBack = { navController.popBackStack() }
             )
         }

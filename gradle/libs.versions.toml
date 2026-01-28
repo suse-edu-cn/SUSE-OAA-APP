@@ -47,7 +47,8 @@ coil = "3.0.4"
 multiplatformMarkdownRenderer = "0.28.0"
 
 # HTML Parsing - Ksoup (KMP alternative to Jsoup)
-ksoup = "0.2.5"
+# 注意：0.2.x 需要 Kotlin 2.2.0，使用 0.1.9 兼容 Kotlin 2.1.0
+ksoup = "0.1.9"
 
 # Logging
 napier = "2.7.1"

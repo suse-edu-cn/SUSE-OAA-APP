@@ -17,11 +17,12 @@ class MainViewModel(
 ) : ViewModel() {
 
     /**
-     * 启动目标页面 - 根据 Token 是否存在决定
+     * 启动目标页面 - 根据软件账号 Token 是否存在决定
+     * 使用 tokenFlow (JWT Token) 而不是 currentStudentId (教务系统学号)
      */
-    val startDestination: StateFlow<String> = tokenManager.currentStudentId
-        .map { id ->
-            if (id.isNullOrEmpty()) {
+    val startDestination: StateFlow<String> = tokenManager.tokenFlow
+        .map { token ->
+            if (token.isNullOrEmpty()) {
                 Screen.Login.route
             } else {
                 Screen.Main.route

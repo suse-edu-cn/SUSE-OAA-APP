@@ -3,11 +3,20 @@ package com.suseoaa.projectoaa.presentation.grades
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.data.model.CourseAccountEntity
+import com.suseoaa.projectoaa.data.repository.GradeEntity
 import com.suseoaa.projectoaa.data.repository.LocalCourseRepository
 import com.suseoaa.projectoaa.data.repository.SchoolAuthRepository
+import com.suseoaa.projectoaa.data.repository.SchoolGradeRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -42,18 +51,26 @@ data class GradeItem(
     val bj: String? = "",          // 班级
     @SerialName("cj")
     val cj: String? = "",          // 成绩
+    @SerialName("cjbdczr")
+    val cjbdczr: String? = "",     // 成绩变动操作人
     @SerialName("jd")
     val jd: String? = "",          // 绩点
+    @SerialName("jg_id")
+    val jgId: String? = "",        // 学院ID
     @SerialName("jgmc")
     val jgmc: String? = "",        // 学院名称
     @SerialName("jsxm")
     val jsxm: String? = "",        // 教师姓名
+    @SerialName("jxb_id")
+    val jxbId: String? = "",       // 教学班ID (用于获取详情)
     @SerialName("jxbmc")
     val jxbmc: String? = "",       // 教学班名称
     @SerialName("kcbj")
     val kcbj: String? = "",        // 课程标记
     @SerialName("kch")
     val kch: String? = "",         // 课程号
+    @SerialName("kch_id")
+    val kchId: String? = "",       // 课程ID
     @SerialName("kclbmc")
     val kclbmc: String? = "",      // 课程类别名称
     @SerialName("kcmc")
@@ -66,6 +83,8 @@ data class GradeItem(
     val kkbmmc: String? = "",      // 开课部门名称
     @SerialName("ksxz")
     val ksxz: String? = "",        // 考试性质 (正常考试/补考)
+    @SerialName("njdm_id")
+    val njdmId: String? = "",      // 年级代码ID
     @SerialName("njmc")
     val njmc: String? = "",        // 年级名称
     @SerialName("sfxwkc")
@@ -86,28 +105,60 @@ data class GradeItem(
     val xqm: String? = "",         // 学期码
     @SerialName("xqmmc")
     val xqmmc: String? = "",       // 学期名称
+    @SerialName("zyh_id")
+    val zyhId: String? = "",       // 专业ID
     @SerialName("zymc")
     val zymc: String? = ""         // 专业名称
 )
 
 data class GradesUiState(
     val isRefreshing: Boolean = false,
-    val grades: List<GradeItem> = emptyList(),
-    val allGrades: List<GradeItem> = emptyList(),
+    val grades: List<GradeEntity> = emptyList(),
     val selectedYear: String = "",
     val selectedSemester: String = "3",
     val startYear: Int = 2020,
-    val message: String? = null
+    val message: String? = null,
+    val currentAccount: CourseAccountEntity? = null
 )
 
 class GradesViewModel(
     private val tokenManager: TokenManager,
     private val localCourseRepository: LocalCourseRepository,
-    private val schoolAuthRepository: SchoolAuthRepository
+    private val schoolAuthRepository: SchoolAuthRepository,
+    private val schoolGradeRepository: SchoolGradeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GradesUiState())
     val uiState: StateFlow<GradesUiState> = _uiState.asStateFlow()
+
+    // 当前账户流
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val currentAccount: StateFlow<CourseAccountEntity?> = combine(
+        localCourseRepository.getAllAccounts(),
+        tokenManager.currentStudentId
+    ) { accounts, selectedId ->
+        if (accounts.isEmpty()) null
+        else accounts.find { it.studentId == selectedId } ?: accounts.firstOrNull()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = null
+    )
+
+    // 成绩数据流
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val gradesFlow: StateFlow<List<GradeEntity>> = combine(
+        currentAccount.filterNotNull(),
+        _uiState
+    ) { account, state ->
+        Triple(account.studentId, state.selectedYear, state.selectedSemester)
+    }.flatMapLatest { (studentId, xnm, xqm) ->
+        schoolGradeRepository.observeGrades(studentId, xnm, xqm)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Lazily,
+        initialValue = emptyList()
+    )
 
     init {
         // 初始化当前学年
@@ -122,57 +173,63 @@ class GradesViewModel(
                 startYear = academicYear - 4
             )
         }
-        
-        loadGrades()
-    }
 
-    fun loadGrades() {
+        // 观察当前账户变化
         viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true, message = null) }
-            
-            // TODO: 从 SchoolGradeRepository 加载成绩数据
-            // 需要实现完整的成绩查询功能
-            
-            _uiState.update { 
-                it.copy(
-                    isRefreshing = false,
-                    message = "成绩查询功能正在开发中"
-                )
+            currentAccount.collect { account ->
+                _uiState.update { it.copy(currentAccount = account) }
+                // 更新起始年份
+                account?.let { acc ->
+                    val startYear = acc.njdmId.toIntOrNull() ?: (academicYear - 4)
+                    _uiState.update { it.copy(startYear = startYear) }
+                }
+            }
+        }
+
+        // 观察成绩数据变化
+        viewModelScope.launch {
+            gradesFlow.collect { grades ->
+                _uiState.update { it.copy(grades = grades) }
             }
         }
     }
 
     fun refreshGrades() {
+        val account = currentAccount.value ?: return
         viewModelScope.launch {
+            if (_uiState.value.isRefreshing) return@launch
             _uiState.update { it.copy(isRefreshing = true, message = "正在连接教务系统...") }
-            
-            // TODO: 自动登录教务系统并刷新成绩
-            
-            _uiState.update { 
-                it.copy(
-                    isRefreshing = false,
-                    message = "成绩刷新功能正在开发中"
-                )
+
+            try {
+                // 自动重试登录，确保 Session 有效
+                val loginResult = schoolAuthRepository.login(account.studentId, account.password)
+
+                if (loginResult.isSuccess) {
+                    _uiState.update { it.copy(message = "正在全量同步成绩...") }
+                    val result = schoolGradeRepository.fetchAllHistoryGrades(account)
+
+                    result.onSuccess { msg ->
+                        _uiState.update { it.copy(message = msg) }
+                    }.onFailure { e ->
+                        _uiState.update { it.copy(message = "更新失败: ${e.message}") }
+                    }
+                } else {
+                    _uiState.update { it.copy(message = "教务登录失败，请检查密码或网络") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(message = "未知错误: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isRefreshing = false) }
             }
         }
     }
 
     fun updateFilter(year: String, semester: String) {
         _uiState.update { state ->
-            val filtered = filterGrades(state.allGrades, year, semester)
             state.copy(
                 selectedYear = year,
-                selectedSemester = semester,
-                grades = filtered
+                selectedSemester = semester
             )
-        }
-    }
-
-    private fun filterGrades(grades: List<GradeItem>, year: String, semester: String): List<GradeItem> {
-        return grades.filter { grade ->
-            val yearMatch = grade.xnm == year
-            val semesterMatch = grade.xqm == semester
-            yearMatch && semesterMatch
         }
     }
 

@@ -2,6 +2,8 @@ package com.suseoaa.projectoaa.data.api
 
 import com.suseoaa.projectoaa.data.model.CourseResponseJson
 import com.suseoaa.projectoaa.data.model.RSAKey
+import com.suseoaa.projectoaa.presentation.academic.ExamResponse
+import com.suseoaa.projectoaa.presentation.grades.StudentGradeResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.cookies.*
@@ -22,7 +24,8 @@ class SchoolApiService(
     }
 
     suspend fun getRSAKey(): RSAKey {
-        val response = client.post("$baseUrl/xtgl/login_getPublicKey.html") {
+        // 使用 GET 请求，与原生 Android 一致
+        val response = client.get("$baseUrl/xtgl/login_getPublicKey.html") {
             parameter("time", kotlinx.datetime.Clock.System.now().toEpochMilliseconds())
         }
         return response.body()
@@ -35,12 +38,11 @@ class SchoolApiService(
         csrfToken: String
     ): HttpResponse {
         return client.submitForm(
-            url = "$baseUrl/xtgl/login_slogin.html",
+            url = "$baseUrl/xtgl/login_slogin.html?time=$timestamp",
             formParameters = parameters {
                 append("csrftoken", csrfToken)
                 append("yhm", username)
                 append("mm", encryptedPassword)
-                append("mm", timestamp)
             }
         ) {
             header("Referer", "$baseUrl/xtgl/login_slogin.html")
@@ -52,16 +54,212 @@ class SchoolApiService(
     }
 
     suspend fun querySchedule(year: String, semester: String): HttpResponse {
-        return client.post("$baseUrl/kbcx/xskbcx_cxXsKb.html") {
-            parameter("xnm", year)
-            parameter("xqm", semester)
+        return client.submitForm(
+            url = "$baseUrl/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151",
+            formParameters = parameters {
+                append("xnm", year)
+                append("xqm", semester)
+                append("kzlx", "ck")
+            }
+        ) {
+            header("X-Requested-With", "XMLHttpRequest")
         }
     }
 
     suspend fun getCalendar(): HttpResponse {
-        return client.get("$baseUrl/xtgl/index_cxshjxjl.html") {
+        return client.post("$baseUrl/xtgl/index_cxAreaSix.html") {
+            parameter("localeKey", "zh_CN")
             parameter("gnmkdm", "index")
-            parameter("su", "")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    // ==================== 成绩查询 API ====================
+    
+    /**
+     * 获取学生成绩
+     */
+    suspend fun getStudentGrade(
+        year: String = "",
+        semester: String = "",
+        showCount: Int = 100,
+        currentPage: Int = 1
+    ): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/cjcx/cjcx_cxDgXscj.html",
+            formParameters = parameters {
+                append("xnm", year)
+                append("xqm", semester)
+                append("queryModel.showCount", showCount.toString())
+                append("queryModel.currentPage", currentPage.toString())
+                append("queryModel.sortName", "")
+                append("queryModel.sortOrder", "asc")
+                append("_search", "false")
+                append("nd", kotlinx.datetime.Clock.System.now().toEpochMilliseconds().toString())
+                append("time", "0")
+            }
+        ) {
+            parameter("doType", "query")
+            parameter("gnmkdm", "N305005")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    /**
+     * 查询单科成绩详情
+     */
+    suspend fun getGradeDetail(
+        xnm: String,
+        xqm: String,
+        kcmc: String,
+        jxbId: String
+    ): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/cjcx/cjcx_cxCjxqGjh.html",
+            formParameters = parameters {
+                append("xnm", xnm)
+                append("xqm", xqm)
+                append("kcmc", kcmc)
+                append("jxb_id", jxbId)
+            }
+        ) {
+            parameter("time", kotlinx.datetime.Clock.System.now().toEpochMilliseconds())
+            parameter("gnmkdm", "N305005")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    // ==================== 考试信息 API ====================
+    
+    /**
+     * 获取考试列表
+     */
+    suspend fun getExamList(
+        year: String,
+        semester: String,
+        showCount: Int = 100,
+        currentPage: Int = 1
+    ): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/kwgl/kscx_cxXsksxxIndex.html",
+            formParameters = parameters {
+                append("xnm", year)
+                append("xqm", semester)
+                append("queryModel.showCount", showCount.toString())
+                append("queryModel.currentPage", currentPage.toString())
+                append("queryModel.sortName", "")
+                append("queryModel.sortOrder", "asc")
+            }
+        ) {
+            parameter("doType", "query")
+            parameter("gnmkdm", "N358105")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    // ==================== 教务通知 API ====================
+    
+    /**
+     * 获取调课通知信息
+     */
+    suspend fun getAcademicMessageInfo(): HttpResponse {
+        return client.post("$baseUrl/xtgl/index_cxAreaThree.html") {
+            parameter("localeKey", "zh_CN")
+            parameter("gnmkdm", "index")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    /**
+     * 获取课程更新信息
+     */
+    suspend fun getAcademicCourseInfo(): HttpResponse {
+        return client.post("$baseUrl/xtgl/index_cxAreaOne.html") {
+            parameter("localeKey", "zh_CN")
+            parameter("gnmkdm", "index")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    // ==================== GPA 计算相关 API ====================
+
+    /**
+     * 获取专业代码列表
+     */
+    suspend fun getMajorList(jgId: String): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/xtgl/comm_cxZydmList.html",
+            formParameters = parameters {
+                append("dn", "ai")
+            }
+        ) {
+            parameter("jg_id", jgId)
+            parameter("gnmkdm", "N153540")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    /**
+     * 获取专业培养计划信息
+     */
+    suspend fun getProfessionInfo(
+        jgId: String,
+        grade: String,
+        majorId: String
+    ): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/jxzxjhgl/jxzxjhck_cxJxzxjhckIndex.html",
+            formParameters = parameters {
+                append("jg_id", jgId)
+                append("njdm_id", grade)
+                append("zyh_id", majorId)
+                append("dlbs", "")
+                append("currentPage_cx", "")
+                append("_search", "false")
+                append("nd", kotlinx.datetime.Clock.System.now().toEpochMilliseconds().toString())
+                append("queryModel.showCount", "100")
+                append("queryModel.currentPage", "1")
+                append("queryModel.sortName", " ")
+                append("queryModel.sortOrder", "asc")
+                append("time", "0")
+            }
+        ) {
+            parameter("doType", "query")
+            parameter("gnmkdm", "N153540")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    /**
+     * 获取课程列表（培养方案）
+     */
+    suspend fun getTeachingPlan(
+        planId: String,
+        showCount: Int = 1000
+    ): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/jxzxjhgl/jxzxjhkcxx_cxJxzxjhkcxxIndex.html",
+            formParameters = parameters {
+                append("jxzxjhxx_id", planId)
+                append("jyxdxnm", "")
+                append("jyxdxqm", "")
+                append("yxxdxnm", "")
+                append("yxxdxqm", "")
+                append("shzt", "")
+                append("kch", "")
+                append("xdlx", "")
+                append("_search", "false")
+                append("nd", kotlinx.datetime.Clock.System.now().toEpochMilliseconds().toString())
+                append("queryModel.showCount", showCount.toString())
+                append("queryModel.currentPage", "1")
+                append("queryModel.sortName", "jyxdxnm,jyxdxqm,kch ")
+                append("queryModel.sortOrder", "asc")
+                append("time", "0")
+            }
+        ) {
+            parameter("doType", "query")
+            parameter("gnmkdm", "N153540")
+            header("X-Requested-With", "XMLHttpRequest")
         }
     }
 }

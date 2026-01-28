@@ -1,0 +1,25 @@
+-- 考试缓存表
+CREATE TABLE ExamCache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    studentId TEXT NOT NULL,
+    courseName TEXT NOT NULL,
+    time TEXT NOT NULL,
+    location TEXT NOT NULL
+);
+
+-- 创建索引
+CREATE INDEX idx_exam_student ON ExamCache(studentId);
+
+-- 查询指定学生的考试信息
+selectByStudent:
+SELECT * FROM ExamCache WHERE studentId = ?;
+
+-- 插入考试信息
+insert:
+INSERT INTO ExamCache(studentId, courseName, time, location)
+VALUES (?, ?, ?, ?);
+
+-- 删除指定学生的所有考试信息
+deleteByStudent:
+DELETE FROM ExamCache WHERE studentId = ?;
+

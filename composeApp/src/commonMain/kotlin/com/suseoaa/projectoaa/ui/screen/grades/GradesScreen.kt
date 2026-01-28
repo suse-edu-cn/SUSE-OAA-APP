@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
-import com.suseoaa.projectoaa.presentation.grades.GradeItem
+import com.suseoaa.projectoaa.data.repository.GradeEntity
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -133,7 +133,7 @@ fun GradesScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(uiState.grades, key = { it.kcmc ?: it.hashCode().toString() }) { item ->
+                        items(uiState.grades, key = { "${it.studentId}_${it.courseId}_${it.xnm}_${it.xqm}" }) { item ->
                             GradeItemCard(item)
                         }
                     }
@@ -243,7 +243,7 @@ fun FilterButton(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun GradeItemCard(item: GradeItem) {
+fun GradeItemCard(item: GradeEntity) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -261,7 +261,7 @@ fun GradeItemCard(item: GradeItem) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = item.kcmc ?: "未知课程",
+                    text = item.courseName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
@@ -269,9 +269,9 @@ fun GradeItemCard(item: GradeItem) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = item.cj ?: "-",
+                    text = item.score,
                     style = MaterialTheme.typography.titleLarge,
-                    color = getGradeColor(item.cj ?: ""),
+                    color = getGradeColor(item.score),
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -284,12 +284,12 @@ fun GradeItemCard(item: GradeItem) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    LabelValueText("学分", item.xf)
-                    LabelValueText("绩点", item.jd)
+                    LabelValueText("学分", item.credit)
+                    LabelValueText("绩点", item.gpa)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    LabelValueText("类型", item.kcxzmc)
-                    LabelValueText("考核", item.khfsmc)
+                    LabelValueText("类型", item.courseType)
+                    LabelValueText("考核", item.examType)
                 }
             }
 
@@ -300,18 +300,43 @@ fun GradeItemCard(item: GradeItem) {
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
             )
 
+            // 成绩详情行（如果有）
+            if (item.regularScore.isNotEmpty() || item.finalScore.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (item.regularScore.isNotEmpty()) {
+                        val regularLabel = if (item.regularRatio.isNotEmpty()) 
+                            "平时(${item.regularRatio})" else "平时"
+                        LabelValueText(regularLabel, item.regularScore)
+                    }
+                    if (item.experimentScore.isNotEmpty()) {
+                        val expLabel = if (item.experimentRatio.isNotEmpty())
+                            "实验(${item.experimentRatio})" else "实验"
+                        LabelValueText(expLabel, item.experimentScore)
+                    }
+                    if (item.finalScore.isNotEmpty()) {
+                        val finalLabel = if (item.finalRatio.isNotEmpty())
+                            "期末(${item.finalRatio})" else "期末"
+                        LabelValueText(finalLabel, item.finalScore)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 // 教师
-                LabelValueText("教师", item.jsxm)
+                LabelValueText("教师", item.teacher)
 
-                // 课程号
-                LabelValueText("课程号", item.kch)
+                // 课程ID
+                LabelValueText("课程号", item.courseId)
 
-                // 专业
-                LabelValueText("专业", item.zymc)
+                // 考试性质
+                LabelValueText("性质", item.examNature)
             }
         }
     }

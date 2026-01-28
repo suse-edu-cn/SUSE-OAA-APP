@@ -22,9 +22,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.suseoaa.projectoaa.data.repository.MessageCacheEntity
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
-import com.suseoaa.projectoaa.presentation.academic.ExamItem
+import com.suseoaa.projectoaa.presentation.academic.ExamUiState
 import com.suseoaa.projectoaa.ui.theme.*
+import com.suseoaa.projectoaa.util.getExamCountDown
 import kotlinx.datetime.*
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -125,10 +127,10 @@ fun AcademicScreen(
  */
 @Composable
 fun ReschedulingCard(
-    messageList: List<String>,
+    messageList: List<MessageCacheEntity>,
     onClick: () -> Unit
 ) {
-    val latestMessage = messageList.firstOrNull() ?: "暂无最新调课通知"
+    val latestMessage = messageList.firstOrNull()?.content ?: "暂无最新调课通知"
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -177,7 +179,7 @@ fun ReschedulingCard(
  */
 @Composable
 fun UpcomingExamsCard(
-    examList: List<ExamItem>,
+    examList: List<ExamUiState>,
     onClick: () -> Unit
 ) {
     Card(
@@ -253,9 +255,9 @@ fun UpcomingExamsCard(
  * 考试行项目
  */
 @Composable
-fun ExamRowItem(exam: ExamItem) {
-    val (countDownText, countColor) = remember(exam.kssj) {
-        getExamCountDown(exam.kssj ?: "")
+fun ExamRowItem(exam: ExamUiState) {
+    val (countDownText, countColor) = remember(exam.time) {
+        getExamCountDown(exam.time)
     }
 
     Row(
@@ -272,7 +274,7 @@ fun ExamRowItem(exam: ExamItem) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val timeStr = exam.kssj ?: ""
+                val timeStr = exam.time
                 val datePart = timeStr.substringBefore("(")
                 val parts = datePart.split("-")
                 if (parts.size >= 3) {
@@ -302,7 +304,7 @@ fun ExamRowItem(exam: ExamItem) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = exam.kcmc ?: "未知考试",
+                    text = exam.courseName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -329,9 +331,9 @@ fun ExamRowItem(exam: ExamItem) {
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            val timeStr = exam.kssj ?: ""
+            val timeStr = exam.time
             val timePart = timeStr.substringAfter("(").substringBefore(")")
-            val location = exam.cdmc ?: "待定"
+            val location = exam.location
             Text(
                 text = "$timePart @ $location",
                 style = MaterialTheme.typography.labelMedium,
