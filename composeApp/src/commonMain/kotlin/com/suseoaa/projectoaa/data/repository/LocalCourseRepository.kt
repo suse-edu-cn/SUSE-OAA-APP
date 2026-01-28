@@ -248,7 +248,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
                         isCustom = false,
                         remoteCourseId = item.kchId ?: "",
                         nature = item.kcxzmc ?: "",
-                        category = item.kclbmc ?: "",
+                        category = item.kclbmc ?: item.kclb ?: "",  // 优先 kclbmc，备选 kclb
                         assessment = item.khfsmc ?: "",
                         totalHours = item.xf ?: "", 
                         background = "#FFFFFF" 
@@ -269,7 +269,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
                     weeksMask = parseWeeksToMask(item.zcd ?: ""),
                     location = item.cdmc ?: "",
                     teacher = item.xm ?: "",
-                    classGroup = ""
+                    classGroup = item.jxbzc ?: ""  // jxbzc 是上课班级
                 )
             )
         }
@@ -287,23 +287,30 @@ class LocalCourseRepository(private val database: CourseDatabase) {
                     val rangeParts = part.split("-")
                     val start = rangeParts[0].toIntOrNull() ?: 1
                     var endStr = rangeParts[1]
-                    var step = 1
+                    var isOddOnly = false    // 单周
+                    var isEvenOnly = false   // 双周
                     
                     if (endStr.contains("(单)")) {
-                        step = 2
-                        if (start % 2 == 0) step = 0 
+                        isOddOnly = true
                         endStr = endStr.replace("(单)", "")
                     } else if (endStr.contains("(双)")) {
-                        step = 2
-                        if (start % 2 != 0) step = 0 
+                        isEvenOnly = true
                         endStr = endStr.replace("(双)", "")
                     }
                     
                     val end = endStr.toIntOrNull() ?: start
                     
-                    for (i in start..end step if (step == 0) 1 else step) {
-                        if (i in 1..60) {
-                            mask = mask or (1L shl (i - 1))
+                    for (week in start..end) {
+                        if (week in 1..60) {
+                            // 检查单双周过滤
+                            val shouldInclude = when {
+                                isOddOnly -> week % 2 == 1   // 单周：奇数周
+                                isEvenOnly -> week % 2 == 0  // 双周：偶数周
+                                else -> true                  // 默认：所有周
+                            }
+                            if (shouldInclude) {
+                                mask = mask or (1L shl (week - 1))
+                            }
                         }
                     }
                 } else {
@@ -314,7 +321,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
                 }
             }
         } catch (e: Exception) {
-            // Log error
+            println("[LocalCourse] Error parsing weeks: ${e.message}")
         }
         return mask
     }

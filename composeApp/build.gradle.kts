@@ -24,6 +24,8 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            // 链接 SQLite 库
+            linkerOpts("-lsqlite3")
         }
     }
 

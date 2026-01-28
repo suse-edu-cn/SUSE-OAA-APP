@@ -82,25 +82,26 @@ val DailySchedulePost2025 = listOf(
 )
 
 /**
- * 2025年之前的课程时间表
+ * 2025年之前的课程时间表（12节课）
  */
 val DailySchedulePre2025 = listOf(
-    TimeSlotConfig("1", "08:00", "08:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("2", "08:55", "09:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
     TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("3", "10:00", "10:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("4", "10:55", "11:40", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("午餐", "11:40", "14:00", SlotType.BREAK_LUNCH, 0.5f),
+    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("午餐", "12:00", "14:00", SlotType.BREAK_LUNCH, 0.5f),
     TimeSlotConfig("午休", "", "", SlotType.BREAK_LUNCH, 0.5f),
     TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("6", "14:55", "15:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.2f),
     TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("7", "16:00", "16:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("8", "16:55", "17:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.2f),
     TimeSlotConfig("", "", "", SlotType.BREAK_DINNER, 0.4f),
     TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("10", "19:55", "20:40", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("11", "20:50", "21:35", SlotType.CLASS, 1.2f)
+    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("12", "21:30", "22:15", SlotType.CLASS, 1.2f)
 )
 
 class CourseViewModel(
@@ -349,6 +350,19 @@ class CourseViewModel(
                 
                 // 切换到新导入的账号
                 tokenManager.saveCurrentStudentId(username)
+                
+                // 3. 获取校历（开学日期）
+                _uiState.value = _uiState.value.copy(statusMessage = "正在同步校历...")
+                try {
+                    val startDateStr = schoolCourseRepository.fetchSemesterStart()
+                    if (startDateStr != null) {
+                        val parsedDate = LocalDate.parse(startDateStr)
+                        setSemesterStartDate(parsedDate)
+                    }
+                } catch (e: Exception) {
+                    // 校历获取失败不影响整体流程
+                    println("[Course] Failed to fetch semester start: ${e.message}")
+                }
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

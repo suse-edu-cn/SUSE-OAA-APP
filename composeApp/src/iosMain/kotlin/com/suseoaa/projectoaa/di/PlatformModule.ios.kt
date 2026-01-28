@@ -3,10 +3,12 @@ package com.suseoaa.projectoaa.di
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.suseoaa.projectoaa.data.database.CourseDatabaseDriverFactory
 import com.suseoaa.projectoaa.data.repository.AppUpdateRepository
+import kotlinx.cinterop.ExperimentalForeignApi
 import okio.Path.Companion.toPath
 import org.koin.dsl.module
 import platform.Foundation.*
 
+@OptIn(ExperimentalForeignApi::class)
 actual fun platformModule() = module {
     single { CourseDatabaseDriverFactory() }
     

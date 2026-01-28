@@ -7,16 +7,19 @@ import io.ktor.client.plugins.cookies.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 
 /**
- * 可清除的 Cookie 存储
+ * 可清除的 Cookie 存储 (使用协程 Mutex 实现线程安全)
  */
 class ClearableCookiesStorage : CookiesStorage {
     private val storage = mutableListOf<Cookie>()
+    private val mutex = Mutex()
     
     override suspend fun addCookie(requestUrl: Url, cookie: Cookie) {
-        synchronized(storage) {
+        mutex.withLock {
             // 移除同名旧 cookie
             storage.removeAll { it.name == cookie.name && it.domain == cookie.domain }
             storage.add(cookie)
@@ -25,7 +28,7 @@ class ClearableCookiesStorage : CookiesStorage {
     }
     
     override suspend fun get(requestUrl: Url): List<Cookie> {
-        return synchronized(storage) {
+        return mutex.withLock {
             val cookies = storage.filter { cookie ->
                 // 简单匹配：检查域名和路径
                 (cookie.domain.isNullOrEmpty() || 
@@ -38,13 +41,11 @@ class ClearableCookiesStorage : CookiesStorage {
     }
     
     override fun close() {
-        synchronized(storage) {
-            storage.clear()
-        }
+        storage.clear()
     }
     
-    fun clear() {
-        synchronized(storage) {
+    suspend fun clear() {
+        mutex.withLock {
             println("[Cookie] Cleared all cookies")
             storage.clear()
         }

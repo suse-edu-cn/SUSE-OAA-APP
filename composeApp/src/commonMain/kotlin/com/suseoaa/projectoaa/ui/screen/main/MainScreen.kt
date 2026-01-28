@@ -52,6 +52,9 @@ fun MainScreen(
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
     val currentDestinationIndex by remember { derivedStateOf { pagerState.currentPage } }
+    
+    // 计算底部导航栏高度（大约80dp）
+    val bottomBarHeight = 80.dp
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -60,7 +63,10 @@ fun MainScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    // 为底部导航栏预留空间
+                    .padding(bottom = bottomBarHeight),
                 beyondViewportPageCount = 2,
             ) { page ->
                 Box(

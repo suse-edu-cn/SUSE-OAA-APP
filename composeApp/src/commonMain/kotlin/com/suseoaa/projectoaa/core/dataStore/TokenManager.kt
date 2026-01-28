@@ -18,12 +18,10 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         private val KEY_NJDM_ID = stringPreferencesKey("user_njdm_id")
     }
 
-    // 内存缓存
-    @Volatile
+    // 内存缓存 (使用 kotlinx.atomicfu 或简单的 var 实现线程安全)
     var cachedToken: String? = null
         private set
 
-    @Volatile
     var cachedStudentId: String? = null
         private set
 

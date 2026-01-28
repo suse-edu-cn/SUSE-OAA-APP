@@ -339,7 +339,7 @@ fun CourseScreen(
         // ==================== 对话框 ====================
         
         // 课程详情对话框
-        if (selectedCourses != null) {
+        selectedCourses?.let { courses ->
             Dialog(onDismissRequest = { selectedCourses = null }) {
                 Card(
                     modifier = Modifier
@@ -350,13 +350,11 @@ fun CourseScreen(
                         containerColor = MaterialTheme.colorScheme.background
                     )
                 ) {
-                    Box(modifier = Modifier.padding(16.dp)) {
-                        CourseDetailContent(
-                            infoList = selectedCourses!!,
-                            onClose = { selectedCourses = null },
-                            modifier = Modifier.wrapContentHeight()
-                        )
-                    }
+                    CourseDetailContent(
+                        infoList = courses,
+                        onClose = { selectedCourses = null },
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
             }
         }
@@ -821,7 +819,9 @@ fun CourseDetailContent(
                 contentPadding = PaddingValues(horizontal = 4.dp),
                 pageSpacing = 16.dp,
                 verticalAlignment = Alignment.Top,
-                modifier = Modifier.weight(1f, fill = false)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
             ) { page ->
                 val (courseData, timeData) = infoList[page]
                 CourseDetailCard(courseData, timeData)
@@ -868,18 +868,31 @@ fun CourseDetailCard(
             if (timeData.teacher.isNotBlank()) {
                 add(DetailInfo(Icons.Default.Person, "教师", timeData.teacher))
             }
-            add(DetailInfo(Icons.Default.Refresh, "时间", "${timeData.weekday} ${timeData.period}"))
+            
+            // 人性化显示时间
+            val weekdayText = formatWeekday(timeData.weekday)
+            val periodText = formatPeriod(timeData.period)
+            add(DetailInfo(Icons.Default.Refresh, "时间", "$weekdayText $periodText"))
+            
+            // 周次
             add(DetailInfo(Icons.Default.DateRange, "周次", timeData.weeks))
 
             if (!courseData.course.isCustom) {
-                if (courseData.course.assessment.isNotBlank()) {
-                    add(DetailInfo(Icons.Default.Edit, "考察方式", courseData.course.assessment))
+                // 课程性质
+                if (courseData.course.nature.isNotBlank()) {
+                    add(DetailInfo(Icons.Default.Info, "课程性质", courseData.course.nature))
                 }
+                // 课程类型/类别
+                if (courseData.course.category.isNotBlank()) {
+                    add(DetailInfo(Icons.Default.Menu, "课程类型", courseData.course.category))
+                }
+                // 考核方式
+                if (courseData.course.assessment.isNotBlank()) {
+                    add(DetailInfo(Icons.Default.Edit, "考核方式", courseData.course.assessment))
+                }
+                // 上课班级
                 if (timeData.classGroup.isNotBlank()) {
                     add(DetailInfo(Icons.Default.Person, "上课班级", timeData.classGroup.replace(";", "\n")))
-                }
-                if (courseData.course.category.isNotBlank()) {
-                    add(DetailInfo(Icons.Default.Info, "类型", courseData.course.category))
                 }
             }
         }
@@ -916,6 +929,35 @@ fun CourseDetailCard(
                 }
             }
         }
+    }
+}
+
+/**
+ * 将星期数字转换为中文表示
+ */
+private fun formatWeekday(weekday: String): String {
+    return when (weekday.trim()) {
+        "1", "星期一", "周一" -> "星期一"
+        "2", "星期二", "周二" -> "星期二"
+        "3", "星期三", "周三" -> "星期三"
+        "4", "星期四", "周四" -> "星期四"
+        "5", "星期五", "周五" -> "星期五"
+        "6", "星期六", "周六" -> "星期六"
+        "7", "星期日", "星期天", "周日" -> "星期日"
+        else -> "星期$weekday"
+    }
+}
+
+/**
+ * 将节次格式化为更友好的显示
+ * 例如：1-2 -> 第1-2节，3-4 -> 第3-4节
+ */
+private fun formatPeriod(period: String): String {
+    val cleanPeriod = period.replace("节", "").trim()
+    return if (cleanPeriod.isNotBlank()) {
+        "第${cleanPeriod}节"
+    } else {
+        period
     }
 }
 

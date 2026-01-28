@@ -41,10 +41,13 @@ data class CourseItem(
     @SerialName("zcd") val zcd: String? = null,
     @SerialName("cdmc") val cdmc: String? = null,
     @SerialName("xm") val xm: String? = null,
-    @SerialName("kcxzmc") val kcxzmc: String? = null,
-    @SerialName("kclbmc") val kclbmc: String? = null,
-    @SerialName("khfsmc") val khfsmc: String? = null,
+    @SerialName("kcxzmc") val kcxzmc: String? = null,  // 课程性质名称
+    @SerialName("kclbmc") val kclbmc: String? = null,  // 课程类别名称
+    @SerialName("kclb") val kclb: String? = null,      // 课程类别（备选字段）
+    @SerialName("khfsmc") val khfsmc: String? = null,  // 考核方式名称
     @SerialName("xf") val xf: String? = null,
     @SerialName("xqmc") val xqmc: String? = null,
-    @SerialName("kkxy") val kkxy: String? = null
+    @SerialName("kkxy") val kkxy: String? = null,
+    @SerialName("jxbmc") val jxbmc: String? = null,    // 教学班名称/上课班级
+    @SerialName("jxbzc") val jxbzc: String? = null     // 备用字段
 )

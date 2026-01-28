@@ -22,6 +22,8 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "Shared"
             isStatic = true
+            // 链接 SQLite 库
+            linkerOpts("-lsqlite3")
         }
     }
 

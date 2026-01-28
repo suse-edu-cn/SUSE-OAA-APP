@@ -11,6 +11,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// KMP 兼容的格式化函数
+private fun Double.format(decimals: Int): String {
+    // 简单实现：转换为字符串然后截取
+    val str = this.toString()
+    val parts = str.split(".")
+    return if (parts.size == 1) {
+        "$str.${"0".repeat(decimals)}"
+    } else {
+        val intPart = parts[0]
+        val decimalPart = parts[1]
+        if (decimalPart.length >= decimals) {
+            "$intPart.${decimalPart.take(decimals)}"
+        } else {
+            "$intPart.$decimalPart${"0".repeat(decimals - decimalPart.length)}"
+        }
+    }
+}
+
 enum class SortOrder {
     DESCENDING, // 从高到低
     ASCENDING   // 从低到高
@@ -48,7 +66,7 @@ data class GpaCourseWrapper(
         }
     
     private fun calculateGpa(score: Double): String {
-        return "%.2f".format(calculateGpaValue(score))
+        return calculateGpaValue(score).format(2)
     }
     
     private fun calculateGpaValue(score: Double): Double {
@@ -174,10 +192,10 @@ class GpaViewModel(
         val finalDegreeGpa = if (degreeCredits > 0) degreePoints / degreeCredits else 0.0
         
         return listOf(
-            "%.2f".format(finalTotalGpa),
-            "%.1f".format(totalCredits),
-            "%.2f".format(finalDegreeGpa),
-            "%.1f".format(degreeCredits)
+            finalTotalGpa.format(2),
+            totalCredits.format(1),
+            finalDegreeGpa.format(2),
+            degreeCredits.format(1)
         )
     }
 }
