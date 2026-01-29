@@ -61,47 +61,43 @@ data class CourseListUiState(
 
 /**
  * 2025年后的课程时间表
+ * 1-4节、5-8节、9-11节各为一个连续块，中间只有午休间隔
  */
 val DailySchedulePost2025 = listOf(
-    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.0f),
     TimeSlotConfig("午餐", "12:00", "14:00", SlotType.BREAK_LUNCH, 0.5f),
     TimeSlotConfig("午休", "", "", SlotType.BREAK_LUNCH, 0.5f),
-    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_DINNER, 0.4f),
-    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.2f)
+    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.0f)
 )
 
 /**
  * 2025年之前的课程时间表（12节课）
+ * 1-4节、5-8节、9-12节各为一个连续块，中间只有午休间隔
  */
 val DailySchedulePre2025 = listOf(
-    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.2f),
+    TimeSlotConfig("1", "08:30", "09:15", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("2", "09:20", "10:05", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("3", "10:25", "11:10", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("4", "11:15", "12:00", SlotType.CLASS, 1.0f),
     TimeSlotConfig("午餐", "12:00", "14:00", SlotType.BREAK_LUNCH, 0.5f),
     TimeSlotConfig("午休", "", "", SlotType.BREAK_LUNCH, 0.5f),
-    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_SMALL, 0.2f),
-    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("", "", "", SlotType.BREAK_DINNER, 0.4f),
-    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.2f),
-    TimeSlotConfig("12", "21:30", "22:15", SlotType.CLASS, 1.2f)
+    TimeSlotConfig("5", "14:00", "14:45", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("6", "14:50", "15:35", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("7", "15:55", "16:40", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("8", "16:45", "17:30", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("9", "19:00", "19:45", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("10", "19:50", "20:35", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("11", "20:40", "21:25", SlotType.CLASS, 1.0f),
+    TimeSlotConfig("12", "21:30", "22:15", SlotType.CLASS, 1.0f)
 )
 
 class CourseViewModel(

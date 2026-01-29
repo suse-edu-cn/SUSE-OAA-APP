@@ -1,5 +1,8 @@
 package com.suseoaa.projectoaa.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -20,7 +23,12 @@ fun AppNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = startDestination,
+        // 左右滑动切换动画
+        enterTransition = { slideInHorizontally(tween(300)) { it } },
+        exitTransition = { slideOutHorizontally(tween(300)) { -it / 3 } },
+        popEnterTransition = { slideInHorizontally(tween(300)) { -it / 3 } },
+        popExitTransition = { slideOutHorizontally(tween(300)) { it } }
     ) {
         composable(Screen.Login.route) {
             LoginScreen(

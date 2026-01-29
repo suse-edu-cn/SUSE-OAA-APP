@@ -23,6 +23,7 @@ import com.suseoaa.projectoaa.data.repository.GpaCourseWrapper
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
 import com.suseoaa.projectoaa.presentation.gpa.FilterType
 import com.suseoaa.projectoaa.presentation.gpa.SortOrder
+import com.suseoaa.projectoaa.ui.component.BackButton
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,9 +45,10 @@ fun GpaScreen(
             TopAppBar(
                 title = { Text("绩点计算") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
+                    BackButton(
+                        onClick = onBack,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 }
             )
         }

@@ -83,7 +83,7 @@ kotlin {
             // SQLDelight
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
-            
+
             // HTML Parsing - KSoup (KMP alternative to Jsoup)
             implementation(libs.ksoup)
         }
@@ -100,7 +100,7 @@ kotlin {
 
             // SQLDelight Android Driver
             implementation(libs.sqldelight.android.driver)
-            
+
             // Ktor Android Engine
             implementation(libs.ktor.client.okhttp)
         }
@@ -108,7 +108,7 @@ kotlin {
         iosMain.dependencies {
             // SQLDelight iOS Driver
             implementation(libs.sqldelight.native.driver)
-            
+
             // Ktor iOS Engine
             implementation(libs.ktor.client.darwin)
         }
@@ -121,14 +121,14 @@ kotlin {
 
 android {
     namespace = "com.suseoaa.projectoaa"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
-        targetSdk = 35
-        versionCode = 12912
-        versionName = "1.29.12"
+        targetSdk = 36
+        versionCode = 110000
+        versionName = "1.100.00"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -126,5 +126,5 @@ val appModule = module {
     viewModel { PersonViewModel(get()) }
     viewModel { GpaViewModel(get(), get()) }
     viewModel { GradesViewModel(get(), get(), get(), get()) }
-    viewModel { AppUpdateViewModel(get()) }
+    viewModel { AppUpdateViewModel(get(), get()) }
 }

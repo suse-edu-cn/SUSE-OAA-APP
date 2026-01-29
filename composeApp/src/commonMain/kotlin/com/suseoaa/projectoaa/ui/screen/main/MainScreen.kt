@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.ui.screen.academic.AcademicScreen
 import com.suseoaa.projectoaa.presentation.course.CourseScreen
@@ -53,8 +54,11 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val currentDestinationIndex by remember { derivedStateOf { pagerState.currentPage } }
     
-    // 计算底部导航栏高度（大约80dp）
-    val bottomBarHeight = 80.dp
+    // 获取系统导航栏高度（小白条）
+    val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // 底部栏基础高度 + 系统导航栏高度
+    val bottomBarBaseHeight = 70.dp
+    val totalBottomPadding = bottomBarBaseHeight + navBarHeight
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -65,8 +69,8 @@ fun MainScreen(
                 state = pagerState,
                 modifier = Modifier
                     .fillMaxSize()
-                    // 为底部导航栏预留空间
-                    .padding(bottom = bottomBarHeight),
+                    // 为底部导航栏预留空间（包括系统导航栏）
+                    .padding(bottom = totalBottomPadding),
                 beyondViewportPageCount = 2,
             ) { page ->
                 Box(
@@ -102,7 +106,6 @@ fun MainScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
             )
         }
     }
@@ -115,35 +118,41 @@ fun OaaBottomBar(
     onNavigate: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    NavigationBar(
+    // 获取系统导航栏高度
+    val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
+    
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp),
-        containerColor = Color.Transparent,
-        tonalElevation = 0.dp
+            .padding(horizontal = 8.dp)
+            .padding(top = 6.dp, bottom = navBarPadding.calculateBottomPadding()),
+        tonalElevation = 3.dp,
+        shadowElevation = 4.dp,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface
     ) {
-        Surface(
-            tonalElevation = 2.dp,
-            shadowElevation = 1.dp,
-            modifier = Modifier.padding(10.dp),
-            shape = RoundedCornerShape(26.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                MainTab.entries.forEach { tab ->
-                    val isSelected = selectedIndex == tab.index
-                    NavigationRailItem(
-                        selected = isSelected,
-                        onClick = { onNavigate(tab.index) },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label) }
+            MainTab.entries.forEach { tab ->
+                val isSelected = selectedIndex == tab.index
+                NavigationBarItem(
+                    selected = isSelected,
+                    onClick = { onNavigate(tab.index) },
+                    icon = { Icon(tab.icon, contentDescription = tab.label) },
+                    label = { Text(tab.label) },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
+                )
             }
         }
     }

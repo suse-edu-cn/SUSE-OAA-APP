@@ -1,6 +1,9 @@
 package com.suseoaa.projectoaa.presentation.course
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -32,21 +35,29 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.data.model.ClassTimeEntity
 import com.suseoaa.projectoaa.data.model.CourseAccountEntity
@@ -64,6 +75,10 @@ private val CourseColors = listOf(
 )
 
 private val DateHeaderHeight = 32.dp
+
+// 课程卡片间距配置
+private val CardVerticalPadding = 2.dp  // 上下各留的间距
+private val CardHorizontalPadding = 1.dp  // 左右各留的间距
 
 // ==================== 主界面 ====================
 
@@ -90,6 +105,8 @@ fun CourseScreen(
     
     // 对话框状态
     var selectedCourses by remember { mutableStateOf<List<Pair<CourseWithTimes, ClassTimeEntity>>?>(null) }
+    // 记录点击位置用于动画
+    var clickedCardBounds by remember { mutableStateOf<Rect?>(null) }
     var showLoginDialog by remember { mutableStateOf(false) }
     var showAccountDialog by remember { mutableStateOf(false) }
     var showCustomCourseDialog by remember { mutableStateOf(false) }
@@ -113,6 +130,13 @@ fun CourseScreen(
             ToastManager.showSuccess(it)
             showLoginDialog = false
             viewModel.clearUiMessage()
+        }
+    }
+    
+    // 当有账号但课程为空时，自动获取课表
+    LaunchedEffect(currentAccount, allCourses, uiState.isLoading) {
+        if (currentAccount != null && allCourses.isEmpty() && !uiState.isLoading) {
+            viewModel.refreshSchedule()
         }
     }
 
@@ -147,12 +171,11 @@ fun CourseScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // 左侧：标题和当前账号信息
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 "课表",
                                 style = MaterialTheme.typography.labelMedium,
@@ -162,13 +185,18 @@ fun CourseScreen(
                                 Text(
                                     "${currentAccount?.name} - ${currentAccount?.className}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline
+                                    color = MaterialTheme.colorScheme.outline,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
 
-                        // 中间：学期选择器
-                        Box {
+                        // 中间：学期选择器（限制最大宽度）
+                        Box(
+                            modifier = Modifier.widthIn(max = 180.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.clickable { termDropdownExpanded = true }
@@ -179,10 +207,12 @@ fun CourseScreen(
 
                                 Text(
                                     currentLabel,
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
                                     color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                Icon(Icons.Default.ArrowDropDown, null)
+                                Icon(Icons.Default.ArrowDropDown, null, modifier = Modifier.size(20.dp))
                             }
                             DropdownMenu(
                                 modifier = Modifier.background(color = MaterialTheme.colorScheme.surface),
@@ -200,9 +230,14 @@ fun CourseScreen(
                                 }
                             }
                         }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                        // 右侧：更多菜单
-                        Box {
+                        // 右侧：更多菜单（固定宽度）
+                        Box(
+                            modifier = Modifier.size(40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Icon(
                                 Icons.Default.Add, "更多",
                                 tint = MaterialTheme.colorScheme.primary,
@@ -242,7 +277,7 @@ fun CourseScreen(
                     // 周次选项卡
                     PrimaryScrollableTabRow(
                         selectedTabIndex = pagerState.currentPage,
-                        edgePadding = 16.dp,
+                        edgePadding = 8.dp,
                         containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.primary,
                         divider = {},
@@ -251,13 +286,14 @@ fun CourseScreen(
                                 SecondaryIndicator(
                                     modifier = Modifier
                                         .tabIndicatorOffset(pagerState.currentPage)
-                                        .padding(horizontal = 8.dp)
-                                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)),
-                                    height = 4.dp,
+                                        .padding(horizontal = 6.dp)
+                                        .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)),
+                                    height = 3.dp,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
-                        }
+                        },
+                        modifier = Modifier.height(32.dp)  // 限制 TabRow 高度
                     ) {
                         for (w in 1..25) {
                             val isSelected = w == (pagerState.currentPage + 1)
@@ -273,12 +309,12 @@ fun CourseScreen(
                                 text = {
                                     Text(
                                         "${w}周",
-                                        fontSize = if (isSelected) 18.sp else 14.sp,
+                                        fontSize = if (isSelected) 14.sp else 12.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         color = textColor
                                     )
                                 },
-                                modifier = Modifier.padding(vertical = 4.dp)
+                                modifier = Modifier.height(28.dp)
                             )
                         }
                     }
@@ -302,16 +338,32 @@ fun CourseScreen(
                             tint = MaterialTheme.colorScheme.surfaceVariant
                         )
                         Spacer(Modifier.height(16.dp))
-                        Text(
-                            "暂无课程数据",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(onClick = { showLoginDialog = true }) {
-                            Icon(Icons.Default.Add, null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("导入课表")
+                        if (currentAccount != null) {
+                            // 有账号但没课程，显示提示（会自动获取）
+                            Text(
+                                "本学期暂无课程",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "可尝试切换学期或刷新",
+                                color = MaterialTheme.colorScheme.outline,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        } else {
+                            // 没有账号，显示导入按钮
+                            Text(
+                                "暂无课程数据",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = { showLoginDialog = true }) {
+                                Icon(Icons.Default.Add, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("导入课表")
+                            }
                         }
                     }
                 }
@@ -322,7 +374,10 @@ fun CourseScreen(
                     startDate = semesterStartDate,
                     pagerState = pagerState,
                     dailySchedule = dailySchedule,
-                    onCourseClick = { selectedCourses = it }
+                    onCourseClick = { courses, bounds ->
+                        clickedCardBounds = bounds
+                        selectedCourses = courses
+                    }
                 )
             }
 
@@ -338,9 +393,15 @@ fun CourseScreen(
 
         // ==================== 对话框 ====================
         
-        // 课程详情对话框
+        // 课程详情对话框（带缩放动画）
         selectedCourses?.let { courses ->
-            Dialog(onDismissRequest = { selectedCourses = null }) {
+            ScaleAnimatedDialog(
+                onDismissRequest = { 
+                    selectedCourses = null
+                    clickedCardBounds = null
+                },
+                originBounds = clickedCardBounds
+            ) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -352,7 +413,10 @@ fun CourseScreen(
                 ) {
                     CourseDetailContent(
                         infoList = courses,
-                        onClose = { selectedCourses = null },
+                        onClose = { 
+                            selectedCourses = null
+                            clickedCardBounds = null
+                        },
                         modifier = Modifier.padding(16.dp)
                     )
                 }
@@ -404,6 +468,70 @@ fun CourseScreen(
     }
 }
 
+// ==================== 缩放动画对话框 ====================
+
+/**
+ * 带缩放动画的对话框
+ * 从点击位置展开，关闭时缩放回去
+ */
+@Composable
+fun ScaleAnimatedDialog(
+    onDismissRequest: () -> Unit,
+    originBounds: Rect?,
+    content: @Composable () -> Unit
+) {
+    var isVisible by remember { mutableStateOf(false) }
+    
+    // 启动时触发动画
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+    
+    // 缩放动画
+    val scale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "dialogScale"
+    )
+    
+    // 透明度动画
+    val alpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 200),
+        label = "dialogAlpha"
+    )
+    
+    Dialog(
+        onDismissRequest = {
+            isVisible = false
+            onDismissRequest()
+        },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    this.alpha = alpha
+                    // 如果有原点位置，从那个位置作为变换原点
+                    if (originBounds != null) {
+                        transformOrigin = TransformOrigin(0.5f, 0f)
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            content()
+        }
+    }
+}
+
 // ==================== 课表布局组件 ====================
 
 @Composable
@@ -412,7 +540,7 @@ fun CourseScheduleLayout(
     startDate: LocalDate,
     pagerState: PagerState,
     dailySchedule: List<TimeSlotConfig>,
-    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
+    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
 ) {
     val density = LocalDensity.current
     val timeAxisWidth = 40.dp
@@ -477,6 +605,7 @@ fun CourseScheduleLayout(
                         }
                         val layoutItems = weekLayoutMap[weekIndex] ?: emptyList()
 
+
                         DynamicWeekContent(
                             layoutItems = layoutItems,
                             weekStartDate = weekStart,
@@ -499,7 +628,7 @@ fun DynamicWeekContent(
     unitHeightPx: Float,
     maxWidth: Dp,
     dailySchedule: List<TimeSlotConfig>,
-    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
+    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         DynamicDateRow(weekStartDate)
@@ -519,8 +648,12 @@ fun ScheduleCourseOverlay(
     items: List<ScheduleLayoutItem>,
     unitHeightPx: Float,
     dailySchedule: List<TimeSlotConfig>,
-    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>) -> Unit
+    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
 ) {
+    val density = LocalDensity.current
+    val verticalPaddingPx = with(density) { CardVerticalPadding.toPx() }
+    val horizontalPaddingPx = with(density) { CardHorizontalPadding.toPx() }
+    
     val preparedGroups = remember(items) {
         items.groupBy { it.dayIndex }.mapValues { (_, dayItems) ->
             dayItems.groupBy { "${it.startNodeIndex}-${it.endNodeIndex}" }
@@ -541,7 +674,7 @@ fun ScheduleCourseOverlay(
                     title = courseName,
                     location = item.time.location,
                     color = baseColor,
-                    onClick = { onCourseClick(overlappedData) },
+                    onClickWithBounds = { bounds -> onCourseClick(overlappedData, bounds) },
                     modifier = Modifier.layoutId(item)
                 )
             }
@@ -561,9 +694,13 @@ fun ScheduleCourseOverlay(
         val placeables = measurables.map { measurable ->
             val item = measurable.layoutId as ScheduleLayoutItem
             val yPos = slotYPositions[item.startNodeIndex]
-            val endYPos = slotYPositions[(item.endNodeIndex + 1).coerceAtMost(dailySchedule.size)]
-            val height = (endYPos - yPos).roundToInt() - 2.dp.roundToPx()
-            val width = colWidthPx.roundToInt() - 2.dp.roundToPx()
+            // 计算实际占用的槽位数量（从startNodeIndex到endNodeIndex的所有槽位）
+            val endSlotIndex = (item.endNodeIndex + 1).coerceAtMost(dailySchedule.size)
+            val endYPos = slotYPositions[endSlotIndex]
+            // 上下各留相同的间距
+            val height = (endYPos - yPos - verticalPaddingPx * 2).roundToInt()
+            // 左右各留 CardHorizontalPadding 的间距
+            val width = (colWidthPx - horizontalPaddingPx * 2).roundToInt()
             val placeable = measurable.measure(
                 androidx.compose.ui.unit.Constraints.fixed(
                     width = width.coerceAtLeast(0), height = height.coerceAtLeast(0)
@@ -574,8 +711,10 @@ fun ScheduleCourseOverlay(
         layout(constraints.maxWidth, constraints.maxHeight) {
             placeables.forEach { (placeable, item, yPos) ->
                 placeable.place(
-                    (colWidthPx * item.dayIndex).roundToInt(),
-                    yPos.roundToInt()
+                    // 水平方向：列起始位置 + 左边距
+                    (colWidthPx * item.dayIndex + horizontalPaddingPx).roundToInt(),
+                    // 垂直方向：行起始位置 + 上边距
+                    (yPos + verticalPaddingPx).roundToInt()
                 )
             }
         }
@@ -587,14 +726,20 @@ private fun CourseCard(
     title: String,
     location: String,
     color: Color,
-    onClick: () -> Unit,
+    onClickWithBounds: (Rect?) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var cardBounds by remember { mutableStateOf<Rect?>(null) }
+    
     Card(
         colors = CardDefaults.cardColors(containerColor = color),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(6.dp),
         elevation = CardDefaults.cardElevation(0.dp),
-        modifier = modifier.clickable { onClick() }
+        modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                cardBounds = coordinates.boundsInWindow()
+            }
+            .clickable { onClickWithBounds(cardBounds) }
     ) {
         Column(
             modifier = Modifier
@@ -710,9 +855,11 @@ fun StaticGridBackground(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Floa
     val pathEffect = remember { PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f) }
     Canvas(modifier = Modifier.fillMaxSize()) {
         var y = 0f
+        var prevWasClass = false
         dailySchedule.forEach { slot ->
             val height = slot.weight * unitHeightPx
             if (slot.type == SlotType.CLASS) {
+                // 在每个课程槽位的顶部绘制虚线
                 drawLine(
                     color = dashColor,
                     start = Offset(0f, y),
@@ -720,8 +867,32 @@ fun StaticGridBackground(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Floa
                     strokeWidth = 1.dp.toPx(),
                     pathEffect = pathEffect
                 )
+                prevWasClass = true
+            } else {
+                // 如果上一个是 CLASS，则在当前非 CLASS 槽位的顶部绘制虚线（上一节课的底部）
+                if (prevWasClass) {
+                    drawLine(
+                        color = dashColor,
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 1.dp.toPx(),
+                        pathEffect = pathEffect
+                    )
+                }
+                prevWasClass = false
             }
             y += height
+        }
+        // 最后一行底部绘制虚线
+        val lastSlot = dailySchedule.lastOrNull()
+        if (lastSlot?.type == SlotType.CLASS) {
+            drawLine(
+                color = dashColor,
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = pathEffect
+            )
         }
     }
 }

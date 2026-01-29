@@ -19,8 +19,9 @@ class MainViewModel(
     /**
      * 启动目标页面 - 根据软件账号 Token 是否存在决定
      * 使用 tokenFlow (JWT Token) 而不是 currentStudentId (教务系统学号)
+     * 初始值为 null，表示正在加载，防止登录页闪烁
      */
-    val startDestination: StateFlow<String> = tokenManager.tokenFlow
+    val startDestination: StateFlow<String?> = tokenManager.tokenFlow
         .map { token ->
             if (token.isNullOrEmpty()) {
                 Screen.Login.route
@@ -31,6 +32,6 @@ class MainViewModel(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
-            initialValue = Screen.Login.route
+            initialValue = null  // 初始值为 null，表示正在加载
         )
 }

@@ -2,6 +2,7 @@ package com.suseoaa.projectoaa.presentation.update
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.core.dataStore.TokenManager
 import com.suseoaa.projectoaa.data.repository.AppUpdateRepository
 import com.suseoaa.projectoaa.data.repository.GithubRelease
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -21,7 +22,8 @@ data class AppUpdateUiState(
     val hasUpdate: Boolean = false,
     val latestRelease: GithubRelease? = null,
     val errorMessage: String? = null,
-    val downloadProgress: Int = 0 // 0-100
+    val downloadProgress: Int = 0, // 0-100
+    val hasShownAutoDialog: Boolean = false // 是否已经自动弹过窗
 )
 
 /**
@@ -34,10 +36,21 @@ sealed class UpdateEvent {
 }
 
 /**
+ * 平台类型
+ */
+expect fun isIosPlatform(): Boolean
+
+/**
+ * 获取应用版本号
+ */
+expect fun getAppVersionName(): String
+
+/**
  * 应用更新 ViewModel
  */
 class AppUpdateViewModel(
-    private val appUpdateRepository: AppUpdateRepository
+    private val appUpdateRepository: AppUpdateRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(AppUpdateUiState())
@@ -49,7 +62,12 @@ class AppUpdateViewModel(
     private var currentDownloadId: Long = -1L
     
     /**
-     * 检查更新
+     * 是否是 iOS 平台
+     */
+    val isIos: Boolean = isIosPlatform()
+    
+    /**
+     * 检查更新（用于手动触发，不检查是否已弹窗）
      */
     fun checkForUpdate() {
         viewModelScope.launch {
@@ -81,6 +99,56 @@ class AppUpdateViewModel(
                     )
                     _events.emit(UpdateEvent.ShowToast(error.message ?: "检查更新失败"))
                 }
+        }
+    }
+    
+    /**
+     * 检查更新（自动触发，会检查是否已弹窗）
+     * 只有在该版本还未弹过窗时才会弹窗
+     */
+    fun checkForUpdateAuto() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isChecking = true,
+                errorMessage = null
+            )
+            
+            appUpdateRepository.checkUpdate()
+                .onSuccess { release ->
+                    if (release != null) {
+                        // 检查是否已经为这个版本弹过窗
+                        val hasShown = tokenManager.hasShownUpdateDialogForVersion(release.tagName)
+                        
+                        _uiState.value = _uiState.value.copy(
+                            isChecking = false,
+                            hasUpdate = true,
+                            latestRelease = release,
+                            hasShownAutoDialog = hasShown
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isChecking = false,
+                            hasUpdate = false
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isChecking = false,
+                        errorMessage = error.message ?: "检查更新失败"
+                    )
+                }
+        }
+    }
+    
+    /**
+     * 标记已经显示过更新弹窗
+     */
+    fun markDialogShown() {
+        val version = _uiState.value.latestRelease?.tagName ?: return
+        viewModelScope.launch {
+            tokenManager.markUpdateDialogShown(version)
+            _uiState.value = _uiState.value.copy(hasShownAutoDialog = true)
         }
     }
     

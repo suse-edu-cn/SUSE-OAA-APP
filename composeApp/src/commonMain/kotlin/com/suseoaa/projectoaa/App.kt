@@ -1,6 +1,11 @@
 package com.suseoaa.projectoaa
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.ui.navigation.AppNavHost
@@ -16,14 +21,23 @@ fun App(
     val startDestination by mainViewModel.startDestination.collectAsState()
     
     ProjectOAATheme {
-        val navController = rememberNavController()
-        
         // 全局 Toast 处理器
         ToastHandler()
         
-        AppNavHost(
-            navController = navController,
-            startDestination = startDestination
-        )
+        // 等待加载完成
+        if (startDestination == null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            val navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                startDestination = startDestination!!
+            )
+        }
     }
 }

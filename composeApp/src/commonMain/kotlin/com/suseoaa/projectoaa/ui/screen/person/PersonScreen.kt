@@ -28,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.suseoaa.projectoaa.presentation.update.getAppVersionName
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
 import com.suseoaa.projectoaa.presentation.update.UpdateEvent
@@ -52,6 +53,7 @@ fun PersonScreen(
     
     // 更新相关状态
     var showUpdateDialog by remember { mutableStateOf(false) }
+    var isManualUpdateCheck by remember { mutableStateOf(false) }
     val updateUiState by updateViewModel.uiState.collectAsState()
 
     // 监听登出
@@ -61,9 +63,9 @@ fun PersonScreen(
         }
     }
     
-    // 启动时自动检查更新
+    // 启动时自动检查更新（使用自动检查方法，会检查是否已弹过窗）
     LaunchedEffect(Unit) {
-        updateViewModel.checkForUpdate()
+        updateViewModel.checkForUpdateAuto()
     }
     
     // 监听更新事件
@@ -93,10 +95,11 @@ fun PersonScreen(
         }
     }
     
-    // 自动弹出更新对话框
-    LaunchedEffect(updateUiState.hasUpdate) {
-        if (updateUiState.hasUpdate) {
+    // 自动弹出更新对话框（只在有更新且未弹过时弹出）
+    LaunchedEffect(updateUiState.hasUpdate, updateUiState.hasShownAutoDialog) {
+        if (updateUiState.hasUpdate && !updateUiState.hasShownAutoDialog) {
             showUpdateDialog = true
+            isManualUpdateCheck = false
         }
     }
     
@@ -104,7 +107,8 @@ fun PersonScreen(
     if (showUpdateDialog) {
         UpdateDialog(
             viewModel = updateViewModel,
-            onDismiss = { showUpdateDialog = false }
+            onDismiss = { showUpdateDialog = false },
+            isManualCheck = isManualUpdateCheck
         )
     }
 
@@ -194,6 +198,7 @@ fun PersonScreen(
                             title = "检查更新",
                             subtitle = if (updateUiState.isChecking) "正在检查..." else "点击检查是否有新版本",
                             onClick = { 
+                                isManualUpdateCheck = true
                                 showUpdateDialog = true
                                 updateViewModel.checkForUpdate()
                             }
@@ -474,7 +479,7 @@ fun AppInfoCard() {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "版本 1.0.0",
+                text = "版本 ${getAppVersionName()}",
                 style = MaterialTheme.typography.bodySmall,
                 color = InkGrey
             )

@@ -158,7 +158,8 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         times: List<ClassTimeEntity>
     ) = withContext(Dispatchers.IO) {
         database.transaction {
-            // inside transaction, use raw queries or private synchronous helpers
+            // 先删除时间表，再删除课程表（确保完全清除）
+            database.classTimeQueries.deleteRemoteByTerm(studentId, xnm, xqm)
             database.courseQueries.deleteRemoteCoursesByTerm(studentId, xnm, xqm)
             courses.forEach { insertCourseInternal(it) }
             times.forEach { insertClassTimeInternal(it) }

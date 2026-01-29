@@ -34,6 +34,10 @@ insert:
 INSERT INTO ClassTime(studentId, courseOwnerName, xnm, xqm, isCustom, weekday, period, weeks, weeksMask, location, teacher, duration, teacherTitle, politicalStatus, classGroup)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+-- 删除指定学期的远程课程时间(isCustom = 0)
+deleteRemoteByTerm:
+DELETE FROM ClassTime WHERE studentId = ? AND xnm = ? AND xqm = ? AND isCustom = 0;
+
 -- 查询指定课程的时间
 selectByCourse:
 SELECT * FROM ClassTime 

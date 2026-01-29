@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.academic.ExamUiState
+import com.suseoaa.projectoaa.ui.component.BackButton
 import com.suseoaa.projectoaa.util.getExamCountDown
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
@@ -47,9 +48,10 @@ fun ExamInfoScreen(
             TopAppBar(
                 title = { Text("考试信息查询") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
+                    BackButton(
+                        onClick = onBack,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 },
                 actions = {
                     IconButton(
