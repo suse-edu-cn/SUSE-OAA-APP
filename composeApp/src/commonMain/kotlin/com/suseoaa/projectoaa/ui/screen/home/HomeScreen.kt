@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.ui.screen.home
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
@@ -29,25 +31,23 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun HomeScreen(
     onNavigateToDetail: (String) -> Unit,
+    bottomBarHeight: Dp = 0.dp,
     viewModel: HomeViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val departments = viewModel.departments
 
-    Scaffold(
-        containerColor = OxygenBackground
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) {
-            DepartmentGrid(
-                departments = departments,
-                cardInfos = uiState.cardInfos,
-                onItemClick = onNavigateToDetail
-            )
-        }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        DepartmentGrid(
+            departments = departments,
+            cardInfos = uiState.cardInfos,
+            onItemClick = onNavigateToDetail,
+            bottomBarHeight = bottomBarHeight
+        )
     }
 }
 
@@ -55,16 +55,18 @@ fun HomeScreen(
 fun DepartmentGrid(
     departments: List<String>,
     cardInfos: Map<String, AnnouncementData?>,
-    onItemClick: (String) -> Unit
+    onItemClick: (String) -> Unit,
+    bottomBarHeight: Dp = 0.dp
 ) {
     val gridCells = GridCells.Fixed(2)
     val spanCount = 2
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     LazyVerticalGrid(
         columns = gridCells,
         contentPadding = PaddingValues(
-            top = 16.dp,
-            bottom = 100.dp,
+            top = 16.dp + statusBarHeight,
+            bottom = 16.dp + bottomBarHeight,
             start = 16.dp,
             end = 16.dp
         ),
@@ -78,13 +80,13 @@ fun DepartmentGrid(
                 Text(
                     "四川轻化工大学",
                     style = MaterialTheme.typography.titleSmall,
-                    color = InkGrey,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 1.sp
                 )
                 Text(
                     "开放原子开源协会",
                     style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                    color = InkBlack
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         }
@@ -126,7 +128,7 @@ fun BigAssociationCard(
             .fillMaxWidth()
             .height(140.dp),
         shape = RoundedCornerShape(20.dp),
-        color = ElectricBlue,
+        color = MaterialTheme.colorScheme.primary,
         shadowElevation = 4.dp
     ) {
         Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -135,13 +137,13 @@ fun BigAssociationCard(
                     text = name,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = summary,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -149,7 +151,7 @@ fun BigAssociationCard(
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
                 null,
-                tint = Color.White.copy(alpha = 0.8f),
+                tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -172,19 +174,19 @@ fun DepartmentCard(
             .fillMaxWidth()
             .height(180.dp),
         shape = RoundedCornerShape(20.dp),
-        color = OxygenWhite,
-        border = BorderStroke(0.5.dp, OutlineSoft),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = 2.dp
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = CircleShape,
-                    color = SoftBlueWait,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(icon, null, modifier = Modifier.size(20.dp), tint = ElectricBlue)
+                        Icon(icon, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
@@ -192,14 +194,14 @@ fun DepartmentCard(
                     text = name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = InkBlack,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1
                 )
             }
             Text(
                 text = summary,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (data == null) InkGrey.copy(alpha = 0.5f) else InkGrey,
+                color = if (data == null) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 18.sp
@@ -208,7 +210,7 @@ fun DepartmentCard(
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowForward,
                     null,
-                    tint = InkGrey.copy(alpha = 0.4f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -216,17 +218,72 @@ fun DepartmentCard(
     }
 }
 
-// 简单的正则去除：标题符、粗体、链接格式、图片格式等
+/**
+ * 去除 Markdown 格式符号，返回纯文本
+ * 采用逐行处理 + 字符替换的方式，避免正则匹配不完整的问题
+ */
 fun String.stripMarkdown(): String {
     return this
-        .replace(Regex("^#{1,6}\\s*"), "") // 去除标题 #
-        .replace(Regex("\\*\\*(.*?)\\*\\*"), "$1") // 去除粗体 **text** -> text
-        .replace(Regex("\\*(.*?)\\*"), "$1") // 去除斜体 *text* -> text
-        .replace(Regex("!\\[.*?\\]\\(.*?\\)"), "") // 去除图片 ![alt](url) -> ""
-        .replace(Regex("\\[(.*?)\\]\\(.*?\\)"), "$1") // 去除链接 [text](url) -> text
-        .replace(Regex("`{1,3}(.*?)`{1,3}"), "$1") // 去除代码块 `code` -> code
-        .replace(Regex(">\\s*"), "") // 去除引用 >
-        .replace("\n", " ") // 把换行变成空格，让预览更紧凑
+        .lines()  // 按行分割
+        .map { line ->
+            var result = line
+            // 去除标题符号 (行首的 # 符号)
+            while (result.startsWith("#")) {
+                result = result.removePrefix("#")
+            }
+            result = result.trimStart()  // 去除标题后的空格
+            result
+        }
+        .joinToString(" ")  // 用空格连接各行
+        .let { text ->
+            var result = text
+            // 去除粗体 **text** -> text
+            while (result.contains("**")) {
+                val start = result.indexOf("**")
+                val end = result.indexOf("**", start + 2)
+                if (end > start) {
+                    result = result.substring(0, start) + 
+                             result.substring(start + 2, end) + 
+                             result.substring(end + 2)
+                } else {
+                    // 没有配对的 **，直接移除
+                    result = result.replaceFirst("**", "")
+                }
+            }
+            // 去除斜体 *text* -> text (单个星号)
+            while (result.contains("*")) {
+                val start = result.indexOf("*")
+                val end = result.indexOf("*", start + 1)
+                if (end > start) {
+                    result = result.substring(0, start) + 
+                             result.substring(start + 1, end) + 
+                             result.substring(end + 1)
+                } else {
+                    result = result.replaceFirst("*", "")
+                }
+            }
+            // 去除行内代码 `code` -> code
+            while (result.contains("`")) {
+                val start = result.indexOf("`")
+                val end = result.indexOf("`", start + 1)
+                if (end > start) {
+                    result = result.substring(0, start) + 
+                             result.substring(start + 1, end) + 
+                             result.substring(end + 1)
+                } else {
+                    result = result.replaceFirst("`", "")
+                }
+            }
+            result
+        }
+        // 去除图片 ![alt](url)
+        .replace(Regex("!\\[[^\\]]*\\]\\([^)]*\\)"), "")
+        // 去除链接 [text](url) -> text
+        .replace(Regex("\\[([^\\]]*)\\]\\([^)]*\\)"), "$1")
+        // 去除引用符号 >
+        .replace(Regex("^>+\\s*", RegexOption.MULTILINE), "")
+        // 去除多余空格
+        .replace(Regex("\\s+"), " ")
         .trim()
 }
 

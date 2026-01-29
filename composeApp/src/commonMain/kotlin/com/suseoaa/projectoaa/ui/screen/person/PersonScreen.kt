@@ -3,6 +3,7 @@ package com.suseoaa.projectoaa.ui.screen.person
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.suseoaa.projectoaa.presentation.update.getAppVersionName
@@ -39,17 +41,29 @@ import org.koin.compose.viewmodel.koinViewModel
 
 private val HeaderHeight = 320.dp
 
+// 亮色渐变
+private val LightGradientColors = listOf(
+    Color(0xFF9BDCE5),
+    Color(0xFF8EC5FC),
+)
+
+// 暗色渐变
+private val DarkGradientColors = listOf(
+    Color(0xFF1A3A4A),
+    Color(0xFF1A2A4A),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
+    bottomBarHeight: Dp = 0.dp,
     viewModel: PersonViewModel = koinViewModel(),
     updateViewModel: AppUpdateViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     
     // 更新相关状态
     var showUpdateDialog by remember { mutableStateOf(false) }
@@ -117,6 +131,10 @@ fun PersonScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
+        val isDarkTheme = isSystemInDarkTheme()
+        val gradientColors = if (isDarkTheme) DarkGradientColors else LightGradientColors
+        val headerTextColor = if (isDarkTheme) Color.White else Color.Black
+        
         Box(modifier = Modifier.fillMaxSize()) {
             // 底层：动态背景
             Box(
@@ -125,11 +143,7 @@ fun PersonScreen(
                     .height(HeaderHeight)
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF9BDCE5),
-                                Color(0xFF8EC5FC),
-                                MaterialTheme.colorScheme.background
-                            )
+                            colors = gradientColors + MaterialTheme.colorScheme.background
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -139,12 +153,12 @@ fun PersonScreen(
                         text = "青蟹",
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black.copy(alpha = 0.7f)
+                        color = headerTextColor.copy(alpha = 0.7f)
                     )
                     Text(
                         text = "致力服务于四川轻化工大学开放原子开源协会",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Black.copy(alpha = 0.5f)
+                        color = headerTextColor.copy(alpha = 0.5f)
                     )
                 }
             }
@@ -157,7 +171,7 @@ fun PersonScreen(
                     columns = GridCells.Fixed(1),
                     contentPadding = PaddingValues(
                         top = 16.dp + statusBarHeight,
-                        bottom = 16.dp + navBarHeight + 80.dp,
+                        bottom = 16.dp + bottomBarHeight,
                         start = 16.dp,
                         end = 16.dp
                     ),
@@ -238,7 +252,7 @@ fun UserInfoCard(
 
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = OxygenWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -309,7 +323,7 @@ fun UserInfoCard(
                             text = userInfo?.name ?: "请登录",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = InkBlack
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
@@ -322,7 +336,7 @@ fun UserInfoCard(
                     Text(
                         text = userInfo?.department ?: "暂未加入任何部门",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = InkGrey
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = userInfo?.role ?: "未加入协会",
@@ -406,7 +420,7 @@ fun SettingCard(
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = OxygenWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -420,13 +434,13 @@ fun SettingCard(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(SoftBlueWait),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = ElectricBlue,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -438,19 +452,19 @@ fun SettingCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    color = InkBlack
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = InkGrey
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
-                tint = InkGrey.copy(alpha = 0.5f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -461,7 +475,7 @@ fun SettingCard(
 fun AppInfoCard() {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = OxygenWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -475,19 +489,19 @@ fun AppInfoCard() {
                 text = "青蟹",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = ElectricBlue
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "版本 ${getAppVersionName()}",
                 style = MaterialTheme.typography.bodySmall,
-                color = InkGrey
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "四川轻化工大学开放原子开源协会",
                 style = MaterialTheme.typography.bodySmall,
-                color = InkGrey
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

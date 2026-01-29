@@ -35,7 +35,7 @@ actual fun platformModule() = module {
         val currentVersion = infoDictionary?.get("CFBundleShortVersionString") as? String ?: "1.0.0"
         
         AppUpdateRepository(
-            httpClient = get(qualifier = org.koin.core.qualifier.named("oaa")),
+            httpClient = get(qualifier = org.koin.core.qualifier.named("github")),
             json = get(),
             currentVersionName = currentVersion
         )

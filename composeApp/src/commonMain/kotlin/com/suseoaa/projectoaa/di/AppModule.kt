@@ -29,6 +29,7 @@ import com.suseoaa.projectoaa.presentation.login.LoginViewModel
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.presentation.register.RegisterViewModel
 import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -48,6 +49,21 @@ val appModule = module {
 
     // TokenManager (需要从 PlatformModule 获取 DataStore)
     single { TokenManager(get()) }
+
+    // ==================== GitHub API ====================
+    // GitHub API HttpClient (不需要认证)
+    single(qualifier = org.koin.core.qualifier.named("github")) {
+        val jsonConfig = get<Json>()
+        io.ktor.client.HttpClient {
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(jsonConfig)
+            }
+            install(io.ktor.client.plugins.HttpTimeout) {
+                requestTimeoutMillis = 30_000
+                connectTimeoutMillis = 15_000
+            }
+        }
+    }
 
     // ==================== OAA 后端 API ====================
     // OAA 后端 HttpClient (需要 Token)

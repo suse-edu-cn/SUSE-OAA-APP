@@ -54,7 +54,7 @@ fun DepartmentDetailScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = OxygenWhite
+        color = MaterialTheme.colorScheme.background
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -72,7 +72,7 @@ fun DepartmentDetailScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = OxygenWhite
+                        containerColor = MaterialTheme.colorScheme.background
                     )
                 )
             },
@@ -84,8 +84,8 @@ fun DepartmentDetailScreen(
                 ) {
                     FloatingActionButton(
                         onClick = { viewModel.toggleEditDialog(true) },
-                        containerColor = ElectricBlue,
-                        contentColor = OxygenWhite
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ) {
                         Icon(Icons.Default.Edit, "编辑")
                     }
@@ -104,7 +104,7 @@ fun DepartmentDetailScreen(
                     uiState.isLoadingDetail && !uiState.isUpdating -> {
                         CircularProgressIndicator(
                             modifier = Modifier.align(Alignment.Center),
-                            color = ElectricBlue
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                     // 错误
@@ -127,7 +127,7 @@ fun DepartmentDetailScreen(
                                 OaaMarkdownText(
                                     markdown = uiState.detailData!!.data,
                                     modifier = Modifier.fillMaxWidth(),
-                                    color = InkBlack,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     style = MaterialTheme.typography.bodyLarge.copy(
                                         lineHeight = 28.sp
                                     )
@@ -158,7 +158,7 @@ private fun ErrorContent(
         Icon(
             Icons.Default.Warning,
             contentDescription = null,
-            tint = AlertRed,
+            tint = MaterialTheme.colorScheme.error,
             modifier = Modifier.size(48.dp)
         )
         Text(
@@ -169,7 +169,7 @@ private fun ErrorContent(
         Text(
             error, 
             style = MaterialTheme.typography.bodyMedium,
-            color = InkGrey
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Button(onClick = onRetry) {
             Text("重试")
@@ -197,7 +197,7 @@ private fun EditAnnouncementDialog(
         )
     ) {
         Scaffold(
-            containerColor = OxygenWhite,
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
                     title = { Text("编辑${departmentName}介绍") },
@@ -218,7 +218,7 @@ private fun EditAnnouncementDialog(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = OxygenWhite
+                        containerColor = MaterialTheme.colorScheme.background
                     )
                 )
             }
@@ -231,7 +231,7 @@ private fun EditAnnouncementDialog(
                 if (isUpdating) {
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxWidth(),
-                        color = ElectricBlue
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
                 TextField(
@@ -250,7 +250,7 @@ private fun EditAnnouncementDialog(
                     placeholder = { 
                         Text(
                             "在此输入 Markdown 内容...",
-                            color = InkGrey
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         ) 
                     },
                     textStyle = MaterialTheme.typography.bodyLarge

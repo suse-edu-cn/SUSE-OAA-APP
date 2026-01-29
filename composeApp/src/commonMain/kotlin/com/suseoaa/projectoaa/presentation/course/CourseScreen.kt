@@ -86,6 +86,7 @@ private val CardHorizontalPadding = 1.dp  // 左右各留的间距
 @Composable
 fun CourseScreen(
     onNavigateToLogin: () -> Unit = {},
+    bottomBarHeight: Dp = 0.dp,
     viewModel: CourseViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -160,6 +161,7 @@ fun CourseScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Surface(
                 color = MaterialTheme.colorScheme.background,
@@ -374,6 +376,7 @@ fun CourseScreen(
                     startDate = semesterStartDate,
                     pagerState = pagerState,
                     dailySchedule = dailySchedule,
+                    bottomPadding = bottomBarHeight,
                     onCourseClick = { courses, bounds ->
                         clickedCardBounds = bounds
                         selectedCourses = courses
@@ -540,6 +543,7 @@ fun CourseScheduleLayout(
     startDate: LocalDate,
     pagerState: PagerState,
     dailySchedule: List<TimeSlotConfig>,
+    bottomPadding: Dp = 0.dp,
     onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
 ) {
     val density = LocalDensity.current
@@ -560,6 +564,7 @@ fun CourseScheduleLayout(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                .padding(bottom = bottomPadding)  // 应用底部 padding
         ) {
             val totalHeight = maxHeight
             val gridHeight = totalHeight - DateHeaderHeight

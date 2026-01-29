@@ -27,7 +27,7 @@ actual fun platformModule() = module {
         
         AppUpdateRepository(
             context = context,
-            httpClient = get(qualifier = org.koin.core.qualifier.named("oaa")),
+            httpClient = get(qualifier = org.koin.core.qualifier.named("github")),
             json = get(),
             currentVersionName = currentVersion
         )

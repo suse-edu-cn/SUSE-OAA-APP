@@ -13,10 +13,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.ui.screen.academic.AcademicScreen
 import com.suseoaa.projectoaa.presentation.course.CourseScreen
@@ -31,8 +32,8 @@ enum class MainTab(
     val label: String
 ) {
     HOME(0, Icons.Default.Home, "首页"),
-    COURSE(1, Icons.Default.DateRange, "课程"),           // 原版是 Book，但 KMP 中用 DateRange 表示课表更合适
-    ACADEMIC(2, Icons.AutoMirrored.Filled.List, "教务信息"),  // 原版是 ChatBubble，KMP 用 List
+    COURSE(1, Icons.Default.DateRange, "课程"),
+    ACADEMIC(2, Icons.AutoMirrored.Filled.List, "教务信息"),
     PERSON(3, Icons.Default.Person, "个人");
 
     companion object {
@@ -53,61 +54,59 @@ fun MainScreen(
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
     val currentDestinationIndex by remember { derivedStateOf { pagerState.currentPage } }
+    val density = LocalDensity.current
     
-    // 获取系统导航栏高度（小白条）
-    val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    // 底部栏基础高度 + 系统导航栏高度
-    val bottomBarBaseHeight = 70.dp
-    val totalBottomPadding = bottomBarBaseHeight + navBarHeight
+    // 通过测量获取 BottomBar 的实际高度
+    var bottomBarHeightPx by remember { mutableIntStateOf(0) }
+    val bottomBarHeight: Dp = with(density) { bottomBarHeightPx.toDp() }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        modifier = modifier
-    ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            HorizontalPager(
-                state = pagerState,
+    Box(modifier = modifier.fillMaxSize()) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            beyondViewportPageCount = 2,
+        ) { page ->
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    // 为底部导航栏预留空间（包括系统导航栏）
-                    .padding(bottom = totalBottomPadding),
-                beyondViewportPageCount = 2,
-            ) { page ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { clip = true }
-                ) {
-                    when (page) {
-                        0 -> HomeScreen(
-                            onNavigateToDetail = onNavigateToDepartmentDetail
-                        )
-                        1 -> CourseScreen(
-                            onNavigateToLogin = onNavigateToLogin
-                        )
-                        2 -> AcademicScreen(
-                            onNavigateToGrades = onNavigateToGrades,
-                            onNavigateToGpa = onNavigateToGpa,
-                            onNavigateToExams = onNavigateToExams
-                        )
-                        3 -> PersonScreen(
-                            onNavigateToLogin = onNavigateToLogin,
-                            onNavigateToChangePassword = onNavigateToChangePassword
-                        )
-                    }
+                    .graphicsLayer { clip = true }
+            ) {
+                when (page) {
+                    0 -> HomeScreen(
+                        onNavigateToDetail = onNavigateToDepartmentDetail,
+                        bottomBarHeight = bottomBarHeight
+                    )
+                    1 -> CourseScreen(
+                        onNavigateToLogin = onNavigateToLogin,
+                        bottomBarHeight = bottomBarHeight
+                    )
+                    2 -> AcademicScreen(
+                        onNavigateToGrades = onNavigateToGrades,
+                        onNavigateToGpa = onNavigateToGpa,
+                        onNavigateToExams = onNavigateToExams,
+                        bottomBarHeight = bottomBarHeight
+                    )
+                    3 -> PersonScreen(
+                        onNavigateToLogin = onNavigateToLogin,
+                        onNavigateToChangePassword = onNavigateToChangePassword,
+                        bottomBarHeight = bottomBarHeight
+                    )
                 }
             }
-
-            // 底部导航栏
-            OaaBottomBar(
-                selectedIndex = currentDestinationIndex,
-                onNavigate = { index -> 
-                    scope.launch { pagerState.animateScrollToPage(index) }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-            )
         }
+
+        // 底部导航栏 - 测量实际高度
+        OaaBottomBar(
+            selectedIndex = currentDestinationIndex,
+            onNavigate = { index -> 
+                scope.launch { pagerState.animateScrollToPage(index) }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .onGloballyPositioned { coordinates ->
+                    bottomBarHeightPx = coordinates.size.height
+                }
+        )
     }
 }
 
@@ -118,14 +117,11 @@ fun OaaBottomBar(
     onNavigate: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 获取系统导航栏高度
-    val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
-    
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
-            .padding(top = 6.dp, bottom = navBarPadding.calculateBottomPadding()),
+            .navigationBarsPadding()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         tonalElevation = 3.dp,
         shadowElevation = 4.dp,
         shape = RoundedCornerShape(24.dp),

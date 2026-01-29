@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.ui.screen.academic
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -47,12 +49,11 @@ fun AcademicScreen(
     onNavigateToGrades: () -> Unit,
     onNavigateToGpa: () -> Unit,
     onNavigateToExams: () -> Unit,
+    bottomBarHeight: Dp = 0.dp,
     viewModel: AcademicViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val bottomContentPadding = 80.dp + navBarHeight
     
     // 调课信息对话框状态
     var showMessagesDialog by remember { mutableStateOf(false) }
@@ -78,13 +79,13 @@ fun AcademicScreen(
             "成绩查询",
             Icons.AutoMirrored.Filled.List,
             "grades",
-            ElectricBlue
+            MaterialTheme.colorScheme.primary
         ),
         PortalFunction(
             "绩点计算",
             Icons.Default.Star,
             "gpa",
-            Color(0xFF26A69A)
+            MaterialTheme.colorScheme.tertiary
         )
     )
 
@@ -92,13 +93,15 @@ fun AcademicScreen(
         columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(
             top = 16.dp + statusBarHeight,
-            bottom = 16.dp + bottomContentPadding,
+            bottom = 16.dp + bottomBarHeight,
             start = 16.dp,
             end = 16.dp
         ),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // 1. 调课信息卡片
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -191,7 +194,7 @@ fun ReschedulingCard(
             Text(
                 text = latestMessage,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (messageList.isEmpty()) Color.Gray else MaterialTheme.colorScheme.onSurface,
+                color = if (messageList.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
             )
         }
@@ -380,7 +383,7 @@ fun UpcomingExamsCard(
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("暂无考试安排", color = Color.Gray)
+                    Text("暂无考试安排", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
