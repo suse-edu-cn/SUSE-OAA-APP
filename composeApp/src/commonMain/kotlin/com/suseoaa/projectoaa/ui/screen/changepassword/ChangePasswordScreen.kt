@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.changepassword.ChangePasswordViewModel
 import com.suseoaa.projectoaa.ui.component.BackButton
+import com.suseoaa.projectoaa.util.showToast
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,21 +40,21 @@ fun ChangePasswordScreen(
         }
     }
 
-    // 显示错误/成功 Snackbar
-    val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
-        uiState.errorMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
+    // 显示错误/成功提示
+    uiState.errorMessage?.let { message ->
+        showToast(message)
+        LaunchedEffect(message) {
             viewModel.clearMessages()
         }
-        uiState.successMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
+    }
+    uiState.successMessage?.let { message ->
+        showToast(message)
+        LaunchedEffect(message) {
             viewModel.clearMessages()
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("修改密码") },

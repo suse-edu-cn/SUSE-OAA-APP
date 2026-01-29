@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.login.LoginUiState
 import com.suseoaa.projectoaa.presentation.login.LoginViewModel
+import com.suseoaa.projectoaa.util.showToast
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -39,18 +40,15 @@ fun LoginScreen(
         }
     }
 
-    // 显示错误 Snackbar
-    val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
+    // 显示错误提示
+    uiState.errorMessage?.let { message ->
+        showToast(message)
+        LaunchedEffect(message) {
             viewModel.clearError()
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+    Scaffold() { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

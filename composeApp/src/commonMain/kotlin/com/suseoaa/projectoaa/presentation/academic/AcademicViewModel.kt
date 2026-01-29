@@ -169,6 +169,18 @@ class AcademicViewModel(
                 _uiState.update { it.copy(messages = messages) }
             }
         }
+        
+        // 监听账号切换，自动刷新数据
+        viewModelScope.launch {
+            var previousStudentId: String? = null
+            tokenManager.currentStudentId.collect { studentId ->
+                if (studentId != null && previousStudentId != null && studentId != previousStudentId) {
+                    // 账号切换了，自动刷新
+                    refresh()
+                }
+                previousStudentId = studentId
+            }
+        }
     }
 
     fun loadData() {

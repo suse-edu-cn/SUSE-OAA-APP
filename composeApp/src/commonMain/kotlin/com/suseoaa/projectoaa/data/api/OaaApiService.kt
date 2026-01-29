@@ -4,6 +4,7 @@ import com.suseoaa.projectoaa.data.model.*
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.Json
@@ -47,6 +48,19 @@ class OaaApiService(
             contentType(ContentType.Application.Json)
             setBody(request)
         }
+        return response.body()
+    }
+    
+    suspend fun uploadAvatar(imageData: ByteArray): UploadAvatarResponse {
+        val response = client.submitFormWithBinaryData(
+            url = "$baseUrl/user/uploadimg",
+            formData = formData {
+                append("Image", imageData, Headers.build {
+                    append(HttpHeaders.ContentType, "image/jpeg")
+                    append(HttpHeaders.ContentDisposition, "filename=\"avatar.jpg\"")
+                })
+            }
+        )
         return response.body()
     }
 

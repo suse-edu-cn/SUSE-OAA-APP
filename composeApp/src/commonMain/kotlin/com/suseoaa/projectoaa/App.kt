@@ -40,46 +40,48 @@ fun App(
     val startDestination by mainViewModel.startDestination.collectAsState()
     
     ProjectOAATheme {
-        // 全局 Toast 处理器
-        ToastHandler()
-        
-        // 等待加载完成
-        if (startDestination == null) {
-            val isDarkTheme = isSystemInDarkTheme()
-            val gradientColors = if (isDarkTheme) DarkGradientColors else LightGradientColors
-            val headerTextColor = if (isDarkTheme) Color.White else Color.Black
-            
-            // 启动加载界面 - 渐变背景
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = gradientColors + MaterialTheme.colorScheme.background
+        Box(modifier = Modifier.fillMaxSize()) {
+            // 等待加载完成
+            if (startDestination == null) {
+                val isDarkTheme = isSystemInDarkTheme()
+                val gradientColors = if (isDarkTheme) DarkGradientColors else LightGradientColors
+                val headerTextColor = if (isDarkTheme) Color.White else Color.Black
+                
+                // 启动加载界面 - 渐变背景
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = gradientColors + MaterialTheme.colorScheme.background
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "青蟹",
+                            style = MaterialTheme.typography.displayMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = headerTextColor.copy(alpha = 0.7f)
                         )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "青蟹",
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = headerTextColor.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = "致力服务于四川轻化工大学开放原子开源协会",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = headerTextColor.copy(alpha = 0.5f)
-                    )
+                        Text(
+                            text = "致力服务于四川轻化工大学开放原子开源协会",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = headerTextColor.copy(alpha = 0.5f)
+                        )
+                    }
                 }
+            } else {
+                val navController = rememberNavController()
+                AppNavHost(
+                    navController = navController,
+                    startDestination = startDestination!!
+                )
             }
-        } else {
-            val navController = rememberNavController()
-            AppNavHost(
-                navController = navController,
-                startDestination = startDestination!!
-            )
+            
+            // 全局 Toast 处理器 - 放在最上层
+            ToastHandler()
         }
     }
 }

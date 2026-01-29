@@ -94,6 +94,34 @@ class PersonViewModel(
         }
     }
 
+    fun uploadAvatar(imageData: ByteArray) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, message = "正在上传头像...") }
+            
+            val result = personRepository.uploadAvatar(imageData)
+            
+            result.onSuccess {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        message = "头像更新成功"
+                    )
+                }
+                // 重新加载用户信息
+                loadUserInfo()
+            }
+            
+            result.onFailure { e ->
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        message = "头像上传失败: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+    
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
     }

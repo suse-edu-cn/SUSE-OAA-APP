@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.register.RegisterViewModel
+import com.suseoaa.projectoaa.util.showToast
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,17 +39,15 @@ fun RegisterScreen(
         }
     }
 
-    // 显示错误 Snackbar
-    val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
+    // 显示错误提示
+    uiState.errorMessage?.let { message ->
+        showToast(message)
+        LaunchedEffect(message) {
             viewModel.clearError()
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("注册") },

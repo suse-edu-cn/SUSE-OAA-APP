@@ -30,3 +30,7 @@ DELETE FROM Course WHERE studentId = ? AND xnm = ? AND xqm = ? AND isCustom = 0;
 -- 删除指定学生的所有课程
 deleteAllByStudent:
 DELETE FROM Course WHERE studentId = ?;
+
+-- 删除单个课程
+deleteCourse:
+DELETE FROM Course WHERE studentId = ? AND courseName = ? AND xnm = ? AND xqm = ? AND isCustom = ?;

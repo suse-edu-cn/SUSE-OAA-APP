@@ -213,8 +213,16 @@ class CourseViewModel(
     
     private fun loadSemesterStart() {
         viewModelScope.launch {
-            // TODO: 从 DataStore 加载开学日期
-            // 暂时使用默认值
+            // 仍DataStore加载开学日期
+            val savedDate = tokenManager.getSemesterStartDate()
+            if (savedDate != null) {
+                try {
+                    _semesterStartDate.value = LocalDate.parse(savedDate)
+                } catch (e: Exception) {
+                    // 解析失败使用默认值
+                    println("[Course] Failed to parse saved semester start date: $savedDate")
+                }
+            }
             updateRealCurrentWeek()
         }
     }
@@ -270,7 +278,8 @@ class CourseViewModel(
     fun setSemesterStartDate(date: LocalDate) {
         viewModelScope.launch {
             _semesterStartDate.value = date
-            // TODO: 持久化到 DataStore
+            // 持久化到 DataStore
+            tokenManager.saveSemesterStartDate(date.toString())
             updateRealCurrentWeek()
         }
     }
@@ -382,6 +391,24 @@ class CourseViewModel(
             errorMessage = null,
             statusMessage = null
         )
+    }
+    
+    /**
+     * 删除课程
+     */
+    fun deleteCourse(courseName: String) {
+        viewModelScope.launch {
+            currentAccount.value?.let { account ->
+                localRepository.deleteCourse(
+                    studentId = account.studentId,
+                    courseName = courseName,
+                    xnm = selectedXnm.value,
+                    xqm = selectedXqm.value,
+                    isCustom = true // 目前只支持删除自定义课程
+                )
+                _uiState.value = _uiState.value.copy(successMessage = "已删除: $courseName")
+            }
+        }
     }
 
     // ==================== 私有方法 ====================

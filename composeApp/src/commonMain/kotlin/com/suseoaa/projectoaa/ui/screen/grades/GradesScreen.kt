@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
 import com.suseoaa.projectoaa.data.repository.GradeEntity
 import com.suseoaa.projectoaa.ui.component.BackButton
+import com.suseoaa.projectoaa.util.showToast
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -32,18 +33,16 @@ fun GradesScreen(
     viewModel: GradesViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
 
-    // 显示消息
-    LaunchedEffect(uiState.message) {
-        uiState.message?.let {
-            snackbarHostState.showSnackbar(it)
+    // 显示Toast消息
+    uiState.message?.let { message ->
+        showToast(message)
+        LaunchedEffect(message) {
             viewModel.clearMessage()
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("成绩查询") },

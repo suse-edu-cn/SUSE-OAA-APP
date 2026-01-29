@@ -10,11 +10,14 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,6 +47,7 @@ data class PortalFunction(
     val color: Color
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AcademicScreen(
     onNavigateToGrades: () -> Unit,
@@ -89,15 +93,19 @@ fun AcademicScreen(
         )
     )
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(
-            top = 16.dp + statusBarHeight,
-            bottom = 16.dp + bottomBarHeight,
-            start = 16.dp,
-            end = 16.dp
-        ),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    PullToRefreshBox(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = { viewModel.refresh() }
+    ) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(
+                top = 16.dp + statusBarHeight,
+                bottom = 16.dp + bottomBarHeight,
+                start = 16.dp,
+                end = 16.dp
+            ),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier
             .fillMaxSize()
@@ -146,6 +154,7 @@ fun AcademicScreen(
         item(span = { GridItemSpan(maxLineSpan) }) {
             Spacer(modifier = Modifier.height(80.dp))
         }
+    }
     }
 }
 

@@ -19,6 +19,8 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         private val KEY_NJDM_ID = stringPreferencesKey("user_njdm_id")
         // 用于记录更新弹窗是否已经显示过（针对特定版本）
         private val KEY_UPDATE_DIALOG_SHOWN_VERSION = stringPreferencesKey("update_dialog_shown_version")
+        // 开学日期
+        private val KEY_SEMESTER_START_DATE = stringPreferencesKey("semester_start_date")
     }
 
     // 内存缓存 (使用 kotlinx.atomicfu 或简单的 var 实现线程安全)
@@ -106,6 +108,31 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { prefs ->
             prefs[KEY_UPDATE_DIALOG_SHOWN_VERSION] = version
         }
+    }
+    
+    // ==================== 开学日期管理 ====================
+    
+    /**
+     * 获取保存的开学日期
+     */
+    val semesterStartDateFlow: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[KEY_SEMESTER_START_DATE]
+    }
+    
+    /**
+     * 保存开学日期
+     */
+    suspend fun saveSemesterStartDate(dateString: String) {
+        dataStore.edit { prefs ->
+            prefs[KEY_SEMESTER_START_DATE] = dateString
+        }
+    }
+    
+    /**
+     * 同步获取开学日期
+     */
+    suspend fun getSemesterStartDate(): String? {
+        return semesterStartDateFlow.first()
     }
 }
 

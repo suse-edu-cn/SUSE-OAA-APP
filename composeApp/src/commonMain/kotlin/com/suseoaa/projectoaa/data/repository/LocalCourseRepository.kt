@@ -149,6 +149,16 @@ class LocalCourseRepository(private val database: CourseDatabase) {
     suspend fun deleteAllCoursesByStudent(studentId: String) = withContext(Dispatchers.IO) {
         database.courseQueries.deleteAllByStudent(studentId)
     }
+    
+    suspend fun deleteCourse(studentId: String, courseName: String, xnm: String, xqm: String, isCustom: Boolean) = withContext(Dispatchers.IO) {
+        database.courseQueries.deleteCourse(
+            studentId = studentId,
+            courseName = courseName,
+            xnm = xnm,
+            xqm = xqm,
+            isCustom = if (isCustom) 1L else 0L
+        )
+    }
 
     suspend fun updateTermCourses(
         studentId: String,

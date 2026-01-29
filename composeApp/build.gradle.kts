@@ -10,6 +10,11 @@ plugins {
 }
 
 kotlin {
+    // 抑制 expect/actual 类的 Beta 警告
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+    
     androidTarget {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
@@ -127,8 +132,8 @@ android {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 110010
-        versionName = "1.100.10"
+        versionCode = 110211
+        versionName = "1.102.11"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
