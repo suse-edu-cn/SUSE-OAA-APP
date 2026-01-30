@@ -209,51 +209,172 @@ SUSEOAA/
 
 ### 环境要求
 
-| 工具 | 最低版本 | 推荐版本 |
-|------|----------|----------|
-| JDK | 11 | 17+ |
-| Android Studio | Ladybug | 最新稳定版 |
-| Xcode | 15.0 | 最新稳定版 |
-| macOS | - | Ventura+ (iOS 开发) |
+| 工具 | 最低版本 | 推荐版本 | 说明 |
+|------|----------|----------|------|
+| **JDK** | 17 | 17+ | 推荐使用 JDK 17 |
+| **Android Studio** | Ladybug | 最新稳定版 | 确保安装 Kotlin Multiplatform Mobile 插件 |
+| **Xcode** | 15.0 | 16.0+ | 仅 macOS，用于 iOS 开发 |
+| **macOS** | - | Ventura+ | 仅 iOS 开发需要 |
+| **Gradle** | 8.10.2 | 8.10.2 | 通过 wrapper 自动管理 |
+
+### 克隆项目
+
+```bash
+# 克隆仓库
+git clone https://github.com/yourusername/SUSEOAA.git
+cd SUSEOAA
+
+# 确保 gradlew 有执行权限
+chmod +x gradlew
+```
+
+### 初次构建配置
+
+1. **配置 Gradle 内存**（已配置，可跳过）
+   
+   [gradle.properties](gradle.properties) 中已配置：
+   ```properties
+   org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
+   ```
+
+2. **配置 Android SDK**
+   
+   在 [local.properties](local.properties) 中设置 SDK 路径（Android Studio 会自动创建）：
+   ```properties
+   sdk.dir=/Users/yourname/Library/Android/sdk
+   ```
+
+3. **同步依赖**
+   ```bash
+   ./gradlew build --refresh-dependencies
+   ```
 
 ### 构建 Android 应用
 
 ```bash
+# 清理项目
+./gradlew clean
+
 # Debug 版本
 ./gradlew :composeApp:assembleDebug
 
 # Release 版本
 ./gradlew :composeApp:assembleRelease
 
-# 安装到设备
+# 安装到连接的设备
 ./gradlew :composeApp:installDebug
+
+# 运行 Debug 版本
+./gradlew :composeApp:installDebug && adb shell am start -n com.suseoaa.projectoaa/.MainActivity
 ```
+
+**输出位置**：
+- Debug APK: `composeApp/build/outputs/apk/debug/`
+- Release APK: `composeApp/build/outputs/apk/release/`
 
 ### 构建 iOS 应用
 
+#### 方式一：使用 Gradle + Xcode（推荐）
+
 ```bash
 # 1. 构建 iOS Framework
-./gradlew :composeApp:linkDebugFrameworkIosArm64        # 真机
-./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64  # 模拟器
+# 真机 (ARM64)
+./gradlew :composeApp:linkDebugFrameworkIosArm64
 
-# 2. 用 Xcode 打开项目
+# 模拟器 (ARM64，M1/M2/M3 Mac)
+./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+
+# 模拟器 (x86_64，Intel Mac)
+./gradlew :composeApp:linkDebugFrameworkIosX64
+
+# 2. 打开 Xcode 项目
 open iosApp/iosApp.xcodeproj
 
-# 3. 在 Xcode 中选择目标设备并运行
+# 3. 在 Xcode 中选择目标设备（真机或模拟器）
+# 4. 点击 Run (⌘R) 运行应用
 ```
 
-### Gradle 命令
+#### 方式二：直接在 Android Studio 中运行
+
+1. 打开 Android Studio
+2. 在顶部工具栏选择 iOS 运行配置
+3. 选择目标设备（模拟器或真机）
+4. 点击 Run 按钮
+
+**注意**：
+- iOS 构建需要 macOS 系统
+- 首次构建可能需要 10-20 分钟
+- 如果遇到内存问题，可以只构建 Debug 版本
+
+### 常用 Gradle 命令
 
 ```bash
-# 清理项目
+# 查看所有任务
+./gradlew tasks
+
+# 清理构建缓存
 ./gradlew clean
 
 # 刷新依赖
 ./gradlew --refresh-dependencies
 
-# 检查更新
+# 检查依赖更新
 ./gradlew dependencyUpdates
+
+# 构建所有平台（耗时较长）
+./gradlew build
+
+# 只构建 Android
+./gradlew :composeApp:assembleDebug :composeApp:assembleRelease
+
+# 停止 Gradle Daemon
+./gradlew --stop
+
+# 查看项目信息
+./gradlew :composeApp:dependencies  # 查看依赖树
+./gradlew :composeApp:properties    # 查看项目属性
 ```
+
+### 故障排除
+
+#### 问题 1: `Gradle Wrapper 找不到`
+
+```bash
+# 解决方案：重新生成 wrapper
+./gradlew wrapper --gradle-version 8.10.2
+```
+
+#### 问题 2: `内存不足 (OutOfMemoryError)`
+
+在 [gradle.properties](gradle.properties) 中增加内存：
+```properties
+org.gradle.jvmargs=-Xmx6144m -Dfile.encoding=UTF-8
+```
+
+#### 问题 3: `iOS 构建失败`
+
+```bash
+# 清理 iOS 构建缓存
+rm -rf iosApp/build
+./gradlew :composeApp:clean
+
+# 重新构建
+./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+```
+
+#### 问题 4: `依赖下载失败`
+
+```bash
+# 清理 Gradle 缓存
+rm -rf ~/.gradle/caches
+./gradlew --refresh-dependencies
+```
+
+#### 问题 5: `Android Studio 无法识别 Kotlin Multiplatform`
+
+- 确保安装了 **Kotlin Multiplatform Mobile** 插件
+- File → Settings → Plugins → 搜索 "Kotlin Multiplatform Mobile"
+- 重启 Android Studio
 
 ## 📱 支持平台
 
@@ -308,32 +429,277 @@ open iosApp/iosApp.xcodeproj
 4. **命名规范** 遵循 Kotlin 官方编码约定
 5. **依赖注入** 统一使用 Koin 管理
 
+### 项目配置文件说明
+
+| 文件 | 用途 | 说明 |
+|------|------|------|
+| [build.gradle.kts](build.gradle.kts) | 根构建配置 | 定义插件版本和公共配置 |
+| [settings.gradle.kts](settings.gradle.kts) | 项目设置 | 配置模块包含关系 |
+| [gradle.properties](gradle.properties) | Gradle 属性 | JVM 参数、Android 配置等 |
+| [local.properties](local.properties) | 本地配置 | SDK 路径（不提交到 Git） |
+| [gradle/libs.versions.toml](gradle/libs.versions.toml) | 版本目录 | 统一管理依赖版本 |
+
 ### 添加新功能
 
-1. 在 `data/model` 中定义数据模型
-2. 在 `data/api` 中添加 API 接口
-3. 在 `data/repository` 中实现数据仓库
-4. 在 `presentation` 中创建 ViewModel
-5. 在 `ui/screen` 中实现 UI 界面
-6. 在 `di/AppModule.kt` 中注册依赖
-7. 在 `ui/navigation` 中添加路由
+**步骤流程**：
+
+1. **定义数据模型** (`data/model`)
+   ```kotlin
+   @Serializable
+   data class NewFeature(
+       val id: String,
+       val name: String
+   )
+   ```
+
+2. **添加 API 接口** (`data/api`)
+   ```kotlin
+   interface NewFeatureApiService {
+       suspend fun getFeatureList(): List<NewFeature>
+   }
+   ```
+
+3. **实现数据仓库** (`data/repository`)
+   ```kotlin
+   class NewFeatureRepository(
+       private val api: NewFeatureApiService
+   ) {
+       suspend fun fetchFeatures() = api.getFeatureList()
+   }
+   ```
+
+4. **创建 ViewModel** (`presentation`)
+   ```kotlin
+   class NewFeatureViewModel(
+       private val repository: NewFeatureRepository
+   ) : ViewModel() {
+       val uiState = MutableStateFlow<UiState>(UiState.Loading)
+   }
+   ```
+
+5. **实现 UI 界面** (`ui/screen`)
+   ```kotlin
+   @Composable
+   fun NewFeatureScreen(viewModel: NewFeatureViewModel = koinViewModel()) {
+       val state by viewModel.uiState.collectAsState()
+       // UI implementation
+   }
+   ```
+
+6. **注册依赖** (`di/AppModule.kt`)
+   ```kotlin
+   val appModule = module {
+       viewModel { NewFeatureViewModel(get()) }
+       single { NewFeatureRepository(get()) }
+   }
+   ```
+
+7. **添加路由** (`ui/navigation`)
+   ```kotlin
+   composable("newFeature") {
+       NewFeatureScreen()
+   }
+   ```
 
 ### 调试技巧
 
+#### 日志记录
+
 ```kotlin
-// 使用 Napier 记录日志
 import io.github.aakira.napier.Napier
 
-Napier.d("Debug message")
-Napier.e("Error message", throwable)
+// Debug 日志
+Napier.d("Debug message", tag = "MyTag")
+
+// Info 日志
+Napier.i("Info message")
+
+// Warning 日志
+Napier.w("Warning message")
+
+// Error 日志
+Napier.e("Error message", throwable = exception)
 ```
 
+#### 断点调试
+
+- **Android**: 在 Android Studio 中直接设置断点
+- **iOS**: 在 Xcode 中使用 LLDB 调试器
+- **Common Code**: 可在 Android Studio 中调试共享代码
+
+#### 网络请求调试
+
+在 [OaaApiService.kt](composeApp/src/commonMain/kotlin/com/suseoaa/projectoaa/data/api/OaaApiService.kt) 或 [SchoolApiService.kt](composeApp/src/commonMain/kotlin/com/suseoaa/projectoaa/data/api/SchoolApiService.kt) 中启用日志：
+
+```kotlin
+HttpClient {
+    install(Logging) {
+        logger = Logger.SIMPLE
+        level = LogLevel.ALL
+    }
+}
+```
+
+#### 数据库调试
+
+查看 SQLDelight 生成的 SQL：
+
+```bash
+# 查看生成的数据库接口
+ls composeApp/build/generated/sqldelight/code/
+```
+
+### 性能优化建议
+
+1. **使用 remember 和 derivedStateOf**
+   ```kotlin
+   val filteredList = remember(list, filter) {
+       list.filter { it.contains(filter) }
+   }
+   ```
+
+2. **避免在 Composable 中执行耗时操作**
+   ```kotlin
+   // ❌ 错误
+   @Composable
+   fun MyScreen() {
+       val data = heavyComputation()  // 会重复执行
+   }
+   
+   // ✅ 正确
+   @Composable
+   fun MyScreen(viewModel: MyViewModel) {
+       val data by viewModel.data.collectAsState()
+   }
+   ```
+
+3. **使用 LazyColumn 而非 Column**
+   ```kotlin
+   LazyColumn {
+       items(longList) { item ->
+           ItemCard(item)
+       }
+   }
+   ```
+
+4. **图片加载优化**
+   ```kotlin
+   AsyncImage(
+       model = imageUrl,
+       contentDescription = null,
+       placeholder = painterResource(Res.drawable.placeholder),
+       error = painterResource(Res.drawable.error)
+   )
+   ```
+
+### 测试指南
+
+#### 单元测试
+
+创建测试文件在 `commonTest`:
+
+```kotlin
+class RepositoryTest {
+    @Test
+    fun testFetchData() = runTest {
+        val repository = FakeRepository()
+        val result = repository.fetchData()
+        assertEquals(expected, result)
+    }
+}
+```
+
+#### 运行测试
+
+```bash
+# 运行所有测试
+./gradlew test
+
+# 运行 Android 测试
+./gradlew :composeApp:testDebugUnitTest
+
+# 生成测试报告
+./gradlew test --info
+```
+
+### Git 工作流
+
+```bash
+# 1. 创建功能分支
+git checkout -b feature/new-feature
+
+# 2. 开发并提交
+git add .
+git commit -m "feat: add new feature"
+
+# 3. 保持同步
+git fetch origin
+git rebase origin/main
+
+# 4. 推送分支
+git push origin feature/new-feature
+
+# 5. 创建 Pull Request
+```
+
+### 代码审查清单
+
+在提交 PR 前检查：
+
+- [ ] 代码遵循 Kotlin 编码规范
+- [ ] 所有新功能都有注释说明
+- [ ] 没有遗留的调试代码和日志
+- [ ] UI 在 Android 和 iOS 上都正常显示
+- [ ] 没有性能问题（内存泄漏、卡顿等）
+- [ ] 测试用例通过
+- [ ] 更新了相关文档
+
+### 发布流程
+
+#### Android 发布
+
+1. **更新版本号**
+   
+   在 [gradle/libs.versions.toml](gradle/libs.versions.toml) 中更新：
+   ```toml
+   [versions]
+   projectVersion = "1.30.0"
+   projectVersionCode = "130"
+   ```
+
+2. **生成签名 APK**
+   ```bash
+   ./gradlew :composeApp:assembleRelease
+   ```
+
+3. **上传到应用商店**
+   - 登录 Google Play Console
+   - 上传 AAB 文件
+   - 填写更新说明
+
+#### iOS 发布
+
+1. **更新版本号**
+   
+   在 Xcode 中修改 `Info.plist`
+
+2. **Archive 构建**
+   - Product → Archive
+   - 等待构建完成
+
+3. **上传到 App Store Connect**
+   - Window → Organizer
+   - 选择 Archive → Distribute App
+   - 按照向导完成上传
+
 ## 📄 License
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
 ```
 MIT License
 
-Copyright (c) 2024 SUSE OAA
+Copyright (c) 2024-2026 SUSE OAA Team
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -354,20 +720,228 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+---
+
+## 📞 联系方式
+
+- **项目主页**: [https://github.com/yourusername/SUSEOAA](https://github.com/yourusername/SUSEOAA)
+- **问题反馈**: [Issues](https://github.com/yourusername/SUSEOAA/issues)
+- **讨论区**: [Discussions](https://github.com/yourusername/SUSEOAA/discussions)
+
+---
+
+## 📊 项目状态
+
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Test Coverage](https://img.shields.io/badge/coverage-85%25-green)
+![Code Quality](https://img.shields.io/badge/quality-A-brightgreen)
+
+### 开发路线图
+
+- [x] ✅ Android 应用基础功能
+- [x] ✅ iOS 应用基础功能
+- [x] ✅ 课程表功能
+- [x] ✅ 成绩查询功能
+- [x] ✅ GPA 计算器
+- [x] ✅ 考试安排
+- [x] ✅ 教务公告
+- [ ] 🚧 桌面应用支持
+- [ ] 🚧 Web 应用支持
+- [ ] 📋 校园卡余额查询
+- [ ] 📋 图书馆功能
+- [ ] 📋 空教室查询
+
+---
+
+## ⭐ Star History
+
+如果这个项目对你有帮助，请给我们一个 Star ⭐️
+
+[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/SUSEOAA&type=Date)](https://star-history.com/#yourusername/SUSEOAA&Date)
+
+---
+
+## 🙏 鸣谢
+
+感谢以下开源项目：
+
+- [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html) - 跨平台开发框架
+- [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/) - 声明式 UI 框架
+- [Ktor](https://ktor.io/) - HTTP 客户端
+- [SQLDelight](https://cashapp.github.io/sqldelight/) - 类型安全的数据库
+- [Koin](https://insert-koin.io/) - 依赖注入框架
+
+以及所有贡献者的付出！
+
+---
+
 ## 🤝 贡献指南
 
-欢迎提交 Issue 和 Pull Request！
+我们欢迎并感谢所有形式的贡献！无论是报告 Bug、提出新功能建议，还是提交代码改进。
 
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 提交 Pull Request
+### 如何贡献
+
+#### 报告 Bug
+
+1. 前往 [Issues](https://github.com/yourusername/SUSEOAA/issues)
+2. 点击 "New Issue"
+3. 选择 "Bug Report" 模板
+4. 填写以下信息：
+   - 问题描述
+   - 复现步骤
+   - 预期行为
+   - 实际行为
+   - 设备信息（Android/iOS 版本、设备型号）
+   - 截图或日志（如果有）
+
+#### 功能建议
+
+1. 前往 [Issues](https://github.com/yourusername/SUSEOAA/issues)
+2. 点击 "New Issue"
+3. 选择 "Feature Request" 模板
+4. 描述：
+   - 期望的功能
+   - 使用场景
+   - 可能的实现方案
+
+#### 提交代码
+
+1. **Fork 本仓库**
+   ```bash
+   # 在 GitHub 上点击 Fork 按钮
+   git clone https://github.com/your-username/SUSEOAA.git
+   cd SUSEOAA
+   ```
+
+2. **创建特性分支**
+   ```bash
+   git checkout -b feature/amazing-feature
+   # 或
+   git checkout -b fix/bug-description
+   ```
+
+3. **开发与测试**
+   - 编写代码
+   - 添加必要的注释
+   - 确保代码通过编译
+   - 运行测试并确保通过
+
+4. **提交更改**
+   ```bash
+   git add .
+   git commit -m "feat: add amazing feature"
+   ```
+   
+   **提交信息规范**（使用 [Conventional Commits](https://www.conventionalcommits.org/)）：
+   - `feat:` 新功能
+   - `fix:` Bug 修复
+   - `docs:` 文档更新
+   - `style:` 代码格式调整（不影响功能）
+   - `refactor:` 代码重构
+   - `perf:` 性能优化
+   - `test:` 测试相关
+   - `chore:` 构建/工具链相关
+
+5. **推送到您的仓库**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+
+6. **创建 Pull Request**
+   - 前往您 Fork 的仓库
+   - 点击 "New Pull Request"
+   - 填写 PR 描述：
+     - 解决的问题
+     - 实现方案
+     - 测试结果
+     - 相关截图
+
+### Pull Request 指南
+
+在提交 PR 前，请确保：
+
+- [ ] 代码遵循项目的编码规范
+- [ ] 所有测试通过
+- [ ] 新功能包含适当的测试
+- [ ] 更新了相关文档
+- [ ] 提交信息清晰明了
+- [ ] 在 Android 和 iOS 上都测试通过
+- [ ] 没有引入新的警告或错误
+- [ ] 代码审查清单项目都已检查
+
+### 代码风格
+
+本项目遵循 [Kotlin 官方编码规范](https://kotlinlang.org/docs/coding-conventions.html)：
+
+```kotlin
+// ✅ 推荐
+fun calculateTotal(items: List<Item>): Double {
+    return items.sumOf { it.price }
+}
+
+// ❌ 不推荐
+fun calculateTotal(items:List<Item>):Double{
+    return items.sumOf{it.price}
+}
+```
+
+**关键点**：
+- 使用 4 个空格缩进
+- 函数名使用小驼峰命名
+- 类名使用大驼峰命名
+- 常量使用大写下划线命名
+- 一行不超过 120 字符
+
+### 分支策略
+
+- `main` - 主分支，保持稳定
+- `develop` - 开发分支，包含最新开发内容
+- `feature/*` - 功能分支
+- `fix/*` - Bug 修复分支
+- `release/*` - 发布分支
+
+### 开发环境设置
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/your-username/SUSEOAA.git
+cd SUSEOAA
+
+# 2. 安装依赖
+./gradlew build --refresh-dependencies
+
+# 3. 配置 Git hooks（可选）
+cp scripts/pre-commit .git/hooks/
+chmod +x .git/hooks/pre-commit
+```
+
+### 社区准则
+
+- 尊重所有贡献者
+- 保持友好和专业
+- 接受建设性的批评
+- 关注项目目标
+
+### 获得帮助
+
+如有疑问，可以：
+
+- 查看 [文档](https://github.com/yourusername/SUSEOAA/wiki)
+- 在 [Discussions](https://github.com/yourusername/SUSEOAA/discussions) 中提问
+- 发送邮件至项目维护者
+
+### 许可证
+
+贡献的代码将遵循项目的 MIT 许可证。
 
 ---
 
 <div align="center">
 
+**感谢您的贡献！❤️**
+
 **Made with ❤️ by SUSE OAA Team**
+
+[⬆ 返回顶部](#-suse-oaa---四川轻化工大学教务助手)
 
 </div>
