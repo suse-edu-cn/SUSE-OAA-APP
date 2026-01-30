@@ -85,7 +85,7 @@ SUSE OAA 是一款专为四川轻化工大学学生设计的教务助手应用�
 SUSEOAA/
 ├── 📁 composeApp/                    # 主应用模块 (Compose Multiplatform)
 │   └── src/
-│       ├── 📁 commonMain/            # 共享代码
+│       ├── 📁 commonMain/            # 共享代码 (跨平台)
 │       │   ├── kotlin/com/suseoaa/projectoaa/
 │       │   │   ├── 📄 App.kt                    # 应用入口
 │       │   │   ├── 📁 core/                     # 核心工具
@@ -137,31 +137,46 @@ SUSEOAA/
 │       │           ├── ExamCache.sq             # 考试缓存表
 │       │           ├── MessageCache.sq          # 消息缓存表
 │       │           └── DegreeCourse.sq          # 学位课程表
-│       ├── 📁 androidMain/           # Android 特定代码
-│       └── 📁 iosMain/               # iOS 特定代码
+│       ├── 📁 androidMain/           # Android 平台特定代码
+│       │   └── kotlin/
+│       │       ├── MainActivity.kt              # Android Activity
+│       │       └── Platform.android.kt          # 平台实现
+│       └── 📁 iosMain/               # iOS 平台特定代码
+│           └── kotlin/
+│               ├── MainViewController.kt        # iOS ViewController
+│               └── Platform.ios.kt              # 平台实现
 │
-├── 📁 shared/                        # 共享业务逻辑模块 (遗留)
+├── 📁 shared/                        # 共享业务逻辑模块
 │   └── src/
-│       ├── commonMain/
-│       ├── androidMain/
-│       └── iosMain/
+│       ├── 📁 commonMain/            # 共享域模型和仓库
+│       │   └── kotlin/
+│       │       ├── domain/model/                # 领域模型
+│       │       ├── data/repository/             # 数据仓库
+│       │       └── data/remote/api/             # API 接口
+│       ├── 📁 androidMain/           # Android 平台实现
+│       └── 📁 iosMain/               # iOS 平台实现
 │
 ├── 📁 iosApp/                        # iOS 原生壳应用
 │   ├── iosApp/
-│   │   ├── ContentView.swift
-│   │   ├── iOSApp.swift
-│   │   └── Info.plist
-│   └── iosApp.xcodeproj/
-│
-├── 📁 app/                           # Android 原生模块 (遗留)
+│   │   ├── ContentView.swift                    # SwiftUI 入口
+│   │   ├── iOSApp.swift                         # App 配置
+│   │   ├── Info.plist                           # 应用配置
+│   │   └── Assets.xcassets/                     # 资源文件
+│   └── iosApp.xcodeproj/                        # Xcode 项目
 │
 ├── 📁 gradle/
-│   ├── libs.versions.toml            # 依赖版本管理
+│   ├── libs.versions.toml            # 依赖版本管理 (Version Catalog)
 │   └── wrapper/
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
 │
 ├── 📄 build.gradle.kts               # 根构建配置
-├── 📄 settings.gradle.kts            # 项目设置
-└── 📄 gradle.properties              # Gradle 属性
+├── 📄 settings.gradle.kts            # 项目设置 (模块配置)
+├── 📄 gradle.properties              # Gradle 属性 (JVM, Android 配置)
+├── 📄 README.MD                      # 项目说明
+├── 📄 CHANGELOG.md                   # 版本历史
+├── 📄 CONTRIBUTING.md                # 贡献指南
+└── 📄 SECURITY.md                    # 安全政策
 ```
 
 ## 🏗️ 架构设计
