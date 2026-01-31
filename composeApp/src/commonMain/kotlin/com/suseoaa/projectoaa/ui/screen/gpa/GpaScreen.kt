@@ -271,6 +271,36 @@ fun GpaCourseItem(
                         }
                         Spacer(modifier = Modifier.width(4.dp))
                     }
+                    // 如果是等级制成绩，显示等级标签
+                    if (item.isGradeLevel) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondary,
+                            shape = MaterialTheme.shapes.extraSmall
+                        ) {
+                            Text(
+                                "等级制",
+                                color = MaterialTheme.colorScheme.onSecondary,
+                                fontSize = 10.sp,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    // 如果是仅通过类成绩（合格/通过/免修），显示标签
+                    if (item.isPassOnly) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = MaterialTheme.shapes.extraSmall
+                        ) {
+                            Text(
+                                "通过制",
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                fontSize = 10.sp,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                     Text(
                         "学分: ${item.credit}",
                         style = MaterialTheme.typography.bodySmall
@@ -294,6 +324,7 @@ fun GpaCourseItem(
     if (showDialog) {
         EditScoreDialog(
             initialScore = item.displayScore,
+            isGradeLevel = item.isGradeLevel,
             onDismiss = { showDialog = false },
             onConfirm = { scoreStr ->
                 scoreStr.toDoubleOrNull()?.let { score ->
@@ -308,24 +339,74 @@ fun GpaCourseItem(
 @Composable
 fun EditScoreDialog(
     initialScore: String,
+    isGradeLevel: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
-    var text by remember { mutableStateOf(initialScore) }
+    var text by remember { mutableStateOf(if (isGradeLevel) "" else initialScore) }
+    var selectedGrade by remember { mutableStateOf<String?>(if (isGradeLevel) initialScore else null) }
+    
+    // 等级制成绩选项及对应的分数
+    val gradeOptions = listOf(
+        "优" to "95",
+        "良" to "85", 
+        "中" to "75",
+        "及格" to "65",
+        "差" to "55"
+    )
     
     AlertDialog(
         containerColor = MaterialTheme.colorScheme.background,
         onDismissRequest = onDismiss,
         title = { Text("修改模拟成绩") },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { if (it.length <= 3) text = it },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                label = { Text("分数 (0-100)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column {
+                // 等级制成绩快捷选择
+                Text(
+                    "等级制成绩 (点击选择):",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    gradeOptions.forEach { (grade, score) ->
+                        FilterChip(
+                            selected = selectedGrade == grade,
+                            onClick = { 
+                                selectedGrade = grade
+                                text = score
+                            },
+                            label = { Text(grade, fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    "或直接输入分数:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { 
+                        if (it.length <= 3) {
+                            text = it
+                            selectedGrade = null  // 清除等级选择
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    label = { Text("分数 (0-100)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         },
         confirmButton = {
             Button(onClick = { onConfirm(text) }) {

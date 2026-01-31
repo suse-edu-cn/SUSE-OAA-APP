@@ -61,8 +61,10 @@ class GpaRepository(
             // 4. 合并数据
             val result = uniqueGrades.map { entity ->
                 val scoreStr = entity.score.trim()
-                // 排除 "合格", "通过", "缓考", "免修" 等不计入绩点的成绩
-                val isExcluded = listOf("合格", "通过", "缓考", "免修").any { scoreStr.contains(it) }
+                // "缓考" 完全排除（未完成考试）
+                val isExcluded = scoreStr.contains("缓考")
+                // "合格", "通过", "免修" 等成绩标记为仅通过类（用于显示），但仍然参与绩点计算
+                val isPassOnly = listOf("合格", "通过", "免修").any { scoreStr.contains(it) }
                 
                 // 优先用课程号匹配，其次用课程名
                 val isDegree = if (isExcluded) false else {
@@ -71,13 +73,15 @@ class GpaRepository(
                         ?: false
                 }
 
-                val scoreVal = parseScore(entity.score)
+                val scoreVal = if (isPassOnly) 60.0 else parseScore(entity.score)  // 合格/通过默认60分
 
                 GpaCourseWrapper(
                     originalEntity = entity,
                     isDegreeCourse = isDegree,
                     simulatedScore = if (isExcluded) null else scoreVal,
-                    isExcluded = isExcluded
+                    isExcluded = isExcluded,
+                    isPassOnly = isPassOnly,
+                    originalScoreText = scoreStr
                 )
             }.filter { !it.isExcluded }
 
@@ -227,7 +231,9 @@ data class GpaCourseWrapper(
     val isDegreeCourse: Boolean,
     val simulatedScore: Double?,
     val simulatedGpa: Double? = null,  // 模拟绩点（用户修改后的值）
-    val isExcluded: Boolean = false
+    val isExcluded: Boolean = false,
+    val isPassOnly: Boolean = false,   // 仅通过类成绩（合格/通过/免修），用于显示标记
+    val originalScoreText: String = ""  // 原始成绩文本（用于显示优/良/中/差）
 ) {
     val credit: Double
         get() = originalEntity.credit.toDoubleOrNull() ?: 0.0
@@ -236,7 +242,17 @@ data class GpaCourseWrapper(
         get() = simulatedScore ?: 0.0
     
     /**
+     * 是否是等级制成绩（优/良/中/差等，不包括合格/通过/免修）
+     */
+    val isGradeLevel: Boolean
+        get() = originalScoreText.isNotEmpty() && 
+                originalScoreText.toDoubleOrNull() == null &&
+                !isPassOnly &&
+                simulatedGpa == null
+    
+    /**
      * 获取绩点值
+     * 所有成绩都参与绩点计算
      * 优先级：模拟绩点 > 数据库绩点 > 计算绩点
      */
     val gpaValue: Double
@@ -244,8 +260,11 @@ data class GpaCourseWrapper(
             ?: originalEntity.gpa.toDoubleOrNull() 
             ?: calculateGpa(scoreValue)
     
+    /**
+     * 显示成绩：如果是等级制成绩或仅通过类成绩且未被修改，显示原始等级文本
+     */
     val displayScore: String
-        get() = scoreValue.format(1)
+        get() = if (isGradeLevel || (isPassOnly && simulatedGpa == null)) originalScoreText else scoreValue.format(1)
     
     val displayGpa: String
         get() = gpaValue.format(2)

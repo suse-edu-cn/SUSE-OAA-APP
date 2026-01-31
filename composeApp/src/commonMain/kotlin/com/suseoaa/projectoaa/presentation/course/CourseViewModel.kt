@@ -185,8 +185,8 @@ class CourseViewModel(
         weekScheduleMap,
         dailySchedule
     ) { weekMap, schedule ->
-        weekMap.mapValues { (_, courses) ->
-            calculateLayoutItems(courses, schedule)
+        weekMap.mapValues { (week, courses) ->
+            calculateLayoutItems(week, courses, schedule)
         }
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
@@ -435,24 +435,52 @@ class CourseViewModel(
     }
     
     /**
-     * 解析周次字符串，如 "1-16周", "1,3,5周", "1-8,10-16周"
+     * 解析周次字符串，如 "1-16周", "1,3,5周", "1-8,10-16周", "1-16周(单)", "2-16周(双)"
      */
     private fun parseWeeksString(weeksStr: String, targetWeek: Int): Boolean {
         if (weeksStr.isBlank()) return true
         
-        val cleanStr = weeksStr.replace("周", "").replace(" ", "")
+        // 检测整个字符串是否包含单双周标记
+        val globalOddOnly = weeksStr.contains("单") && !weeksStr.contains("双")
+        val globalEvenOnly = weeksStr.contains("双") && !weeksStr.contains("单")
+        
+        // 清理字符串
+        val cleanStr = weeksStr
+            .replace("周", "")
+            .replace("(单)", "#ODD#")
+            .replace("（单）", "#ODD#")
+            .replace("(双)", "#EVEN#")
+            .replace("（双）", "#EVEN#")
+            .replace("单", "")
+            .replace("双", "")
+            .replace(" ", "")
+        
         val parts = cleanStr.split(",")
         
         for (part in parts) {
-            if (part.contains("-")) {
-                val range = part.split("-")
+            // 检查此部分是否有单双周标记
+            val isOddOnly = part.contains("#ODD#") || (globalOddOnly && !part.contains("#EVEN#"))
+            val isEvenOnly = part.contains("#EVEN#") || (globalEvenOnly && !part.contains("#ODD#"))
+            
+            val cleanPart = part.replace("#ODD#", "").replace("#EVEN#", "")
+            
+            if (cleanPart.contains("-")) {
+                val range = cleanPart.split("-")
                 if (range.size == 2) {
                     val start = range[0].toIntOrNull() ?: continue
                     val end = range[1].toIntOrNull() ?: continue
-                    if (targetWeek in start..end) return true
+                    if (targetWeek in start..end) {
+                        // 检查单双周是否匹配
+                        val weekMatches = when {
+                            isOddOnly -> targetWeek % 2 == 1
+                            isEvenOnly -> targetWeek % 2 == 0
+                            else -> true
+                        }
+                        if (weekMatches) return true
+                    }
                 }
             } else {
-                val single = part.toIntOrNull()
+                val single = cleanPart.toIntOrNull()
                 if (single == targetWeek) return true
             }
         }
@@ -461,8 +489,10 @@ class CourseViewModel(
 
     /**
      * 布局计算：将课程映射到时间网格
+     * @param week 当前周次，用于过滤不在该周的时间段
      */
     private fun calculateLayoutItems(
+        week: Int,
         courses: List<CourseWithTimes>, 
         schedule: List<TimeSlotConfig>
     ): List<ScheduleLayoutItem> {
@@ -477,6 +507,9 @@ class CourseViewModel(
         
         courses.forEach { courseWithTimes ->
             courseWithTimes.times.forEach { time ->
+                // 检查该时间段是否在当前周激活
+                if (!isWeekActive(week, time.weeks, time.weeksMask)) return@forEach
+                
                 val dayIndex = parseWeekday(time.weekday) - 1
                 if (dayIndex !in 0..6) return@forEach
                 

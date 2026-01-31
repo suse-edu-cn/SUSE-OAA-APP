@@ -292,24 +292,33 @@ class LocalCourseRepository(private val database: CourseDatabase) {
     private fun parseWeeksToMask(weeksStr: String): Long {
         var mask = 0L
         try {
-            val parts = weeksStr.replace("周", "").split(",")
+            // 先检测整个字符串是否包含单双周标记
+            val globalOddOnly = weeksStr.contains("单") && !weeksStr.contains("双")
+            val globalEvenOnly = weeksStr.contains("双") && !weeksStr.contains("单")
+            
+            // 清理字符串：移除"周"，用特殊标记保留单双周信息
+            val cleanedStr = weeksStr
+                .replace("周", "")
+                .replace("(单)", "#ODD#")  // 用特殊标记保留单双周信息
+                .replace("（单）", "#ODD#")
+                .replace("(双)", "#EVEN#")
+                .replace("（双）", "#EVEN#")
+                .replace("单", "")  // 移除单独的"单"字（如"单周"的"单"）
+                .replace("双", "")  // 移除单独的"双"字
+                .replace(" ", "")
+            
+            val parts = cleanedStr.split(",")
             for (part in parts) {
-                if (part.contains("-")) {
-                    val rangeParts = part.split("-")
-                    val start = rangeParts[0].toIntOrNull() ?: 1
-                    var endStr = rangeParts[1]
-                    var isOddOnly = false    // 单周
-                    var isEvenOnly = false   // 双周
-                    
-                    if (endStr.contains("(单)")) {
-                        isOddOnly = true
-                        endStr = endStr.replace("(单)", "")
-                    } else if (endStr.contains("(双)")) {
-                        isEvenOnly = true
-                        endStr = endStr.replace("(双)", "")
-                    }
-                    
-                    val end = endStr.toIntOrNull() ?: start
+                // 检查此部分是否有单双周标记
+                val isOddOnly = part.contains("#ODD#") || (globalOddOnly && !part.contains("#EVEN#"))
+                val isEvenOnly = part.contains("#EVEN#") || (globalEvenOnly && !part.contains("#ODD#"))
+                
+                val cleanPart = part.replace("#ODD#", "").replace("#EVEN#", "")
+                
+                if (cleanPart.contains("-")) {
+                    val rangeParts = cleanPart.split("-")
+                    val start = rangeParts[0].toIntOrNull() ?: continue
+                    val end = rangeParts[1].toIntOrNull() ?: continue
                     
                     for (week in start..end) {
                         if (week in 1..60) {
@@ -325,7 +334,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
                         }
                     }
                 } else {
-                    val week = part.toIntOrNull()
+                    val week = cleanPart.toIntOrNull()
                     if (week != null && week in 1..60) {
                          mask = mask or (1L shl (week - 1))
                     }

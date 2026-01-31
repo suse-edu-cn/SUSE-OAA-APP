@@ -218,6 +218,7 @@ class GpaViewModel(
         courses.forEach { item ->
             val credit = item.credit
             if (credit > 0.0) {
+                // 所有课程都参与绩点计算
                 totalPoints += item.gpaValue * credit
                 totalCredits += credit
                 
