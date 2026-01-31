@@ -131,6 +131,10 @@ cryptography-provider-apple = { group = "dev.whyoleg.cryptography", name = "cryp
 # Google Play Services (Android only)
 play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
 
+# ML Kit Text Recognition (Android only)
+mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version = "16.0.1" }
+mlkit-text-recognition-chinese = { module = "com.google.mlkit:text-recognition-chinese", version = "16.0.1" }
+
 # Window Size Class (Compose Multiplatform)
 material3-windowSize = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "material3WindowSizeClass" }
 

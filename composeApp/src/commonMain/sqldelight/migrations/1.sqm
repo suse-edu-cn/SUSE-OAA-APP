@@ -1,0 +1,12 @@
+-- Migration from version 1 to 2: Add CheckinAccount table
+CREATE TABLE IF NOT EXISTS CheckinAccount (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    studentId TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    remark TEXT NOT NULL DEFAULT '',
+    lastCheckinTime TEXT,
+    lastCheckinStatus TEXT,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+);

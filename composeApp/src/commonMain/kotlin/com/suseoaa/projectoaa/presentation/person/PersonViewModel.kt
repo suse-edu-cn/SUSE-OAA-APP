@@ -2,6 +2,7 @@ package com.suseoaa.projectoaa.presentation.person
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.core.dataStore.TokenManager
 import com.suseoaa.projectoaa.data.model.PersonData
 import com.suseoaa.projectoaa.data.repository.PersonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,11 +15,13 @@ data class PersonUiState(
     val isLoading: Boolean = false,
     val userInfo: PersonData? = null,
     val isLoggedOut: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    val isCheckinUnlocked: Boolean = false  // 652签到功能是否已解锁
 )
 
 class PersonViewModel(
-    private val personRepository: PersonRepository
+    private val personRepository: PersonRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(PersonUiState())
@@ -26,6 +29,28 @@ class PersonViewModel(
 
     init {
         loadUserInfo()
+        loadCheckinUnlockStatus()
+    }
+    
+    /**
+     * 加载652签到功能解锁状态
+     */
+    private fun loadCheckinUnlockStatus() {
+        viewModelScope.launch {
+            tokenManager.checkinUnlockedFlow.collect { unlocked ->
+                _uiState.update { it.copy(isCheckinUnlocked = unlocked) }
+            }
+        }
+    }
+    
+    /**
+     * 解锁652签到功能（永久保存）
+     */
+    fun unlockCheckinFeature() {
+        viewModelScope.launch {
+            tokenManager.unlockCheckinFeature()
+            _uiState.update { it.copy(isCheckinUnlocked = true) }
+        }
     }
 
     fun loadUserInfo() {

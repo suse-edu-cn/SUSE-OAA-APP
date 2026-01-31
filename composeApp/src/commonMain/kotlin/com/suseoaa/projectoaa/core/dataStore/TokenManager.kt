@@ -21,6 +21,8 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         private val KEY_UPDATE_DIALOG_SHOWN_VERSION = stringPreferencesKey("update_dialog_shown_version")
         // 开学日期
         private val KEY_SEMESTER_START_DATE = stringPreferencesKey("semester_start_date")
+        // 652签到功能是否已解锁
+        private val KEY_CHECKIN_UNLOCKED = booleanPreferencesKey("checkin_feature_unlocked")
     }
 
     // 内存缓存 (使用 kotlinx.atomicfu 或简单的 var 实现线程安全)
@@ -133,6 +135,31 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
      */
     suspend fun getSemesterStartDate(): String? {
         return semesterStartDateFlow.first()
+    }
+    
+    // ==================== 652签到功能解锁状态 ====================
+    
+    /**
+     * 652签到功能是否已解锁
+     */
+    val checkinUnlockedFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[KEY_CHECKIN_UNLOCKED] ?: false
+    }
+    
+    /**
+     * 解锁652签到功能（永久保存）
+     */
+    suspend fun unlockCheckinFeature() {
+        dataStore.edit { prefs ->
+            prefs[KEY_CHECKIN_UNLOCKED] = true
+        }
+    }
+    
+    /**
+     * 检查652签到功能是否已解锁
+     */
+    suspend fun isCheckinUnlocked(): Boolean {
+        return checkinUnlockedFlow.first()
     }
 }
 

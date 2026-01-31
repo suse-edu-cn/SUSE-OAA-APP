@@ -43,6 +43,7 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
@@ -108,6 +109,10 @@ kotlin {
 
             // Ktor Android Engine
             implementation(libs.ktor.client.okhttp)
+            
+            // ML Kit Text Recognition (验证码识别)
+            implementation(libs.mlkit.text.recognition)
+            implementation(libs.mlkit.text.recognition.chinese)
         }
 
         iosMain.dependencies {
@@ -132,8 +137,8 @@ android {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 110512
-        versionName = "1.105.12"
+        versionCode = 110713
+        versionName = "1.107.13"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

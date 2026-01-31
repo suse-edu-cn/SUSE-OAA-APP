@@ -154,7 +154,11 @@ fun RegisterScreen(
                     IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                         Icon(
                             imageVector = Icons.Filled.Lock,
-                            contentDescription = if (isPasswordVisible) "隐藏密码" else "显示密码"
+                            contentDescription = if (isPasswordVisible) "隐藏密码" else "显示密码",
+                            tint = if (isPasswordVisible) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -182,7 +186,11 @@ fun RegisterScreen(
                     IconButton(onClick = { isConfirmPasswordVisible = !isConfirmPasswordVisible }) {
                         Icon(
                             imageVector = Icons.Filled.Lock,
-                            contentDescription = if (isConfirmPasswordVisible) "隐藏密码" else "显示密码"
+                            contentDescription = if (isConfirmPasswordVisible) "隐藏密码" else "显示密码",
+                            tint = if (isConfirmPasswordVisible) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

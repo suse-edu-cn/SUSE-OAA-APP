@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.di
 
 import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.data.api.CheckinApiService
 import com.suseoaa.projectoaa.data.api.OaaApiService
 import com.suseoaa.projectoaa.data.api.SchoolApiService
 import com.suseoaa.projectoaa.data.database.CourseDatabaseDriverFactory
@@ -8,6 +9,7 @@ import com.suseoaa.projectoaa.data.network.OaaHttpClient
 import com.suseoaa.projectoaa.data.network.SchoolHttpClient
 import com.suseoaa.projectoaa.data.repository.AnnouncementRepository
 import com.suseoaa.projectoaa.data.repository.AppUpdateRepository
+import com.suseoaa.projectoaa.data.repository.CheckinRepository
 import com.suseoaa.projectoaa.data.repository.GpaRepository
 import com.suseoaa.projectoaa.data.repository.LocalCourseRepository
 import com.suseoaa.projectoaa.data.repository.OaaAuthRepository
@@ -23,6 +25,7 @@ import com.suseoaa.projectoaa.database.CourseDatabase
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.changepassword.ChangePasswordViewModel
+import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
 import com.suseoaa.projectoaa.presentation.course.CourseViewModel
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
@@ -161,7 +164,7 @@ val appModule = module {
     viewModel { ChangePasswordViewModel(get()) }
     viewModel { CourseViewModel(get(), get(), get(), get()) }
     viewModel { AcademicViewModel(get(), get(), get(), get()) }
-    viewModel { PersonViewModel(get()) }
+    viewModel { PersonViewModel(get(), get()) }
     viewModel { GpaViewModel(get(), get()) }
     viewModel { GradesViewModel(get(), get(), get(), get()) }
     viewModel { AppUpdateViewModel(get(), get()) }
@@ -170,4 +173,38 @@ val appModule = module {
     viewModel { StudyRequirementViewModel(get()) }
     viewModel { CourseInfoViewModel(get(), get(), get(), get()) }
     viewModel { AcademicStatusViewModel(get(), get()) }
+    
+    // ==================== 652打卡（隐藏功能）====================
+    // 打卡专用 HttpClient (使用独立的 Cookie 存储)
+    single(qualifier = org.koin.core.qualifier.named("checkin")) {
+        val jsonConfig = get<Json>()
+        io.ktor.client.HttpClient {
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(jsonConfig)
+            }
+            install(io.ktor.client.plugins.HttpTimeout) {
+                requestTimeoutMillis = 30_000
+                connectTimeoutMillis = 15_000
+            }
+            install(io.ktor.client.plugins.cookies.HttpCookies) {
+                storage = io.ktor.client.plugins.cookies.AcceptAllCookiesStorage()
+            }
+            followRedirects = false
+        }
+    }
+    
+    // 打卡 API 服务
+    single { CheckinApiService(get(qualifier = org.koin.core.qualifier.named("checkin"))) }
+    
+    // 打卡 Repository (使用 CourseDatabase)
+    single { 
+        CheckinRepository(
+            get<CheckinApiService>(),
+            get<CourseDatabase>(),
+            get<Json>()
+        )
+    }
+    
+    // 打卡 ViewModel
+    viewModel { CheckinViewModel(get()) }
 }

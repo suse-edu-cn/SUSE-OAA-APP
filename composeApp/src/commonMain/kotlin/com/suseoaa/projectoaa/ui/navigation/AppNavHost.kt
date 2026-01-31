@@ -8,6 +8,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.suseoaa.projectoaa.ui.screen.changepassword.ChangePasswordScreen
+import com.suseoaa.projectoaa.ui.screen.checkin.CheckinScreen
 import com.suseoaa.projectoaa.ui.screen.exam.ExamInfoScreen
 import com.suseoaa.projectoaa.ui.screen.gpa.GpaScreen
 import com.suseoaa.projectoaa.ui.screen.grades.GradesScreen
@@ -87,6 +88,9 @@ fun AppNavHost(
                 },
                 onNavigateToAcademicStatus = {
                     navController.navigate(Screen.AcademicStatus.route)
+                },
+                onNavigateToCheckin = {
+                    navController.navigate(Screen.Checkin.route)
                 }
             )
         }
@@ -146,6 +150,13 @@ fun AppNavHost(
         
         composable(Screen.AcademicStatus.route) {
             AcademicStatusScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        
+        // 隐藏功能 - 652打卡
+        composable(Screen.Checkin.route) {
+            CheckinScreen(
                 onBack = { navController.popBackStack() }
             )
         }

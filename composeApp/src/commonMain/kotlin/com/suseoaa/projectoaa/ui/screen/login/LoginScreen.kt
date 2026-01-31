@@ -107,7 +107,11 @@ fun LoginScreen(
                     IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                         Icon(
                             imageVector = Icons.Filled.Lock,
-                            contentDescription = if (isPasswordVisible) "隐藏密码" else "显示密码"
+                            contentDescription = if (isPasswordVisible) "隐藏密码" else "显示密码",
+                            tint = if (isPasswordVisible) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

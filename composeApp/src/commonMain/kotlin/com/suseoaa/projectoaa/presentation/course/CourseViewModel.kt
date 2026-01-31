@@ -139,6 +139,9 @@ class CourseViewModel(
 
     private val _termOptions = MutableStateFlow<List<TermOption>>(emptyList())
     val termOptions: StateFlow<List<TermOption>> = _termOptions.asStateFlow()
+    
+    // 防止重复自动刷新
+    private var hasAutoRefreshed = false
 
     // ==================== 账号管理（教务系统账号，与软件账号分开）====================
     
@@ -194,6 +197,7 @@ class CourseViewModel(
     init {
         initializeData()
         loadSemesterStart()
+        setupAutoRefresh()
     }
     
     private fun initializeData() {
@@ -207,6 +211,37 @@ class CourseViewModel(
                     val (realXnm, realXqm) = calculateCurrentRealTerm()
                     _selectedXnm.value = realXnm
                     _selectedXqm.value = realXqm
+                }
+        }
+    }
+    
+    /**
+     * 设置自动刷新：进入软件后自动获取最新课表
+     */
+    private fun setupAutoRefresh() {
+        // 防止重复执行
+        if (hasAutoRefreshed) {
+            println("[CourseVM] setupAutoRefresh: 已执行过，跳过")
+            return
+        }
+        hasAutoRefreshed = true
+        
+        viewModelScope.launch {
+            // 等待账号和学期数据都准备好
+            combine(
+                currentAccount.filterNotNull(),
+                selectedXnm,
+                selectedXqm
+            ) { account, xnm, xqm -> Triple(account, xnm, xqm) }
+                .first { (account, xnm, xqm) -> 
+                    xnm.isNotEmpty() && xqm.isNotEmpty() && account.password.isNotEmpty()
+                }
+                .let { (account, xnm, xqm) ->
+                    // 等待足够时间确保所有网络组件完全初始化
+                    kotlinx.coroutines.delay(2000)
+                    println("[CourseVM] setupAutoRefresh: 开始自动刷新课表")
+                    // 直接调用完整的登录+获取流程（和手动刷新一样）
+                    fetchAndSaveCourseSchedule(account.studentId, account.password, xnm, xqm)
                 }
         }
     }
@@ -253,6 +288,7 @@ class CourseViewModel(
             _uiState.value = _uiState.value.copy(errorMessage = "请先添加教务账号")
             return
         }
+        println("[CourseVM] refreshSchedule: studentId=${account.studentId}, password length=${account.password.length}, password hash=${account.password.hashCode()}")
         fetchAndSaveCourseSchedule(account.studentId, account.password, selectedXnm.value, selectedXqm.value)
     }
     
@@ -324,6 +360,7 @@ class CourseViewModel(
         xqm: String = selectedXqm.value
     ) {
         viewModelScope.launch {
+            println("[CourseVM] fetchAndSaveCourseSchedule: username=$username, password length=${password.length}, password hash=${password.hashCode()}")
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 statusMessage = "正在登录教务系统...",
@@ -332,10 +369,13 @@ class CourseViewModel(
             )
 
             // 1. 登录
+            println("[CourseVM] 开始调用 login...")
             val loginResult = schoolAuthRepository.login(username, password)
+            println("[CourseVM] login 返回: isSuccess=${loginResult.isSuccess}, error=${loginResult.exceptionOrNull()?.message}")
             
             if (loginResult.isFailure) {
                 val errorMsg = loginResult.exceptionOrNull()?.message ?: "教务系统登录失败"
+                println("[CourseVM] 登录失败: $errorMsg")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false, 
                     errorMessage = errorMsg, 
@@ -343,6 +383,8 @@ class CourseViewModel(
                 )
                 return@launch
             }
+            
+            println("[CourseVM] 登录成功，开始获取课表...")
 
             // 2. 获取课表
             _uiState.value = _uiState.value.copy(statusMessage = "正在获取课表 ($xnm-$xqm)...")

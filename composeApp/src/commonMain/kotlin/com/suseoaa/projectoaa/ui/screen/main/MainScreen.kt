@@ -61,6 +61,7 @@ fun MainScreen(
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
     onNavigateToAcademicStatus: () -> Unit = {},
+    onNavigateToCheckin: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // 使用 rememberSaveable 保持 Tab 状态，页面返回时不会丢失
@@ -82,6 +83,7 @@ fun MainScreen(
                 onNavigateToStudyRequirement = onNavigateToStudyRequirement,
                 onNavigateToCourseInfo = onNavigateToCourseInfo,
                 onNavigateToAcademicStatus = onNavigateToAcademicStatus,
+                onNavigateToCheckin = onNavigateToCheckin,
                 modifier = modifier
             )
         } else {
@@ -98,6 +100,7 @@ fun MainScreen(
                 onNavigateToStudyRequirement = onNavigateToStudyRequirement,
                 onNavigateToCourseInfo = onNavigateToCourseInfo,
                 onNavigateToAcademicStatus = onNavigateToAcademicStatus,
+                onNavigateToCheckin = onNavigateToCheckin,
                 modifier = modifier
             )
         }
@@ -121,6 +124,7 @@ private fun BoxWithConstraintsScope.TabletLandscapeLayout(
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
     onNavigateToAcademicStatus: () -> Unit,
+    onNavigateToCheckin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -181,6 +185,7 @@ private fun BoxWithConstraintsScope.TabletLandscapeLayout(
                     PersonScreen(
                         onNavigateToLogin = onNavigateToLogin,
                         onNavigateToChangePassword = onNavigateToChangePassword,
+                        onNavigateToCheckin = onNavigateToCheckin,
                         bottomBarHeight = 0.dp
                     )
                 }
@@ -205,6 +210,7 @@ private fun BoxWithConstraintsScope.PhoneLayout(
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
     onNavigateToAcademicStatus: () -> Unit,
+    onNavigateToCheckin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
@@ -261,6 +267,7 @@ private fun BoxWithConstraintsScope.PhoneLayout(
                     3 -> PersonScreen(
                         onNavigateToLogin = onNavigateToLogin,
                         onNavigateToChangePassword = onNavigateToChangePassword,
+                        onNavigateToCheckin = onNavigateToCheckin,
                         bottomBarHeight = bottomBarHeight
                     )
                 }

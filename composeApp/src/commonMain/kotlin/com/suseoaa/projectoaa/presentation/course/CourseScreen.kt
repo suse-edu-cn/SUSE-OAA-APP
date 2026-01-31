@@ -136,13 +136,6 @@ fun CourseScreen(
             viewModel.clearUiMessage()
         }
     }
-    
-    // 当有账号但课程为空时，自动获取课表
-    LaunchedEffect(currentAccount, allCourses, uiState.isLoading) {
-        if (currentAccount != null && allCourses.isEmpty() && !uiState.isLoading) {
-            viewModel.refreshSchedule()
-        }
-    }
 
     // 监听 Pager 变化
     LaunchedEffect(pagerState.settledPage) {

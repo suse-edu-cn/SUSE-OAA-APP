@@ -98,7 +98,11 @@ fun ChangePasswordScreen(
                     IconButton(onClick = { isOldPasswordVisible = !isOldPasswordVisible }) {
                         Icon(
                             imageVector = Icons.Filled.Lock,
-                            contentDescription = if (isOldPasswordVisible) "隐藏密码" else "显示密码"
+                            contentDescription = if (isOldPasswordVisible) "隐藏密码" else "显示密码",
+                            tint = if (isOldPasswordVisible) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -126,7 +130,11 @@ fun ChangePasswordScreen(
                     IconButton(onClick = { isNewPasswordVisible = !isNewPasswordVisible }) {
                         Icon(
                             imageVector = Icons.Filled.Lock,
-                            contentDescription = if (isNewPasswordVisible) "隐藏密码" else "显示密码"
+                            contentDescription = if (isNewPasswordVisible) "隐藏密码" else "显示密码",
+                            tint = if (isNewPasswordVisible) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -154,7 +162,11 @@ fun ChangePasswordScreen(
                     IconButton(onClick = { isConfirmPasswordVisible = !isConfirmPasswordVisible }) {
                         Icon(
                             imageVector = Icons.Filled.Lock,
-                            contentDescription = if (isConfirmPasswordVisible) "隐藏密码" else "显示密码"
+                            contentDescription = if (isConfirmPasswordVisible) "隐藏密码" else "显示密码",
+                            tint = if (isConfirmPasswordVisible) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

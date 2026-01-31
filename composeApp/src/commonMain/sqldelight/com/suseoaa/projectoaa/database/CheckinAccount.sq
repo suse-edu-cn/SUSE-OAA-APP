@@ -1,0 +1,53 @@
+-- 652打卡账号表
+CREATE TABLE CheckinAccount (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    studentId TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    remark TEXT NOT NULL DEFAULT '',
+    lastCheckinTime TEXT,
+    lastCheckinStatus TEXT,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+);
+
+-- 查询所有账号
+selectAll:
+SELECT * FROM CheckinAccount ORDER BY id ASC;
+
+-- 根据ID查询
+selectById:
+SELECT * FROM CheckinAccount WHERE id = ?;
+
+-- 根据学号查询
+selectByStudentId:
+SELECT * FROM CheckinAccount WHERE studentId = ?;
+
+-- 插入账号
+insert:
+INSERT INTO CheckinAccount(studentId, password, name, remark, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?);
+
+-- 更新账号
+update:
+UPDATE CheckinAccount 
+SET studentId = ?, password = ?, name = ?, remark = ?, updatedAt = ?
+WHERE id = ?;
+
+-- 更新打卡状态
+updateCheckinStatus:
+UPDATE CheckinAccount 
+SET lastCheckinTime = ?, lastCheckinStatus = ?, updatedAt = ?
+WHERE id = ?;
+
+-- 删除账号
+deleteById:
+DELETE FROM CheckinAccount WHERE id = ?;
+
+-- 删除所有账号
+deleteAll:
+DELETE FROM CheckinAccount;
+
+-- 获取账号数量
+count:
+SELECT COUNT(*) FROM CheckinAccount;

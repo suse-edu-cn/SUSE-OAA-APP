@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,6 +63,7 @@ private val DarkGradientColors = listOf(
 fun PersonScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
+    onNavigateToCheckin: () -> Unit = {},
     bottomBarHeight: Dp = 0.dp,
     viewModel: PersonViewModel = koinViewModel(),
     updateViewModel: AppUpdateViewModel = koinViewModel()
@@ -234,10 +236,28 @@ fun PersonScreen(
                             }
                         )
                     }
+                    
+                    // 652签到入口（解锁后永久显示）
+                    if (uiState.isCheckinUnlocked) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SettingCard(
+                                icon = Icons.Default.Edit,
+                                title = "652签到",
+                                subtitle = "快速签到打卡",
+                                onClick = onNavigateToCheckin
+                            )
+                        }
+                    }
 
                     // 应用信息
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        AppInfoCard()
+                        AppInfoCard(
+                            isUnlocked = uiState.isCheckinUnlocked,
+                            onSecretUnlocked = {
+                                viewModel.unlockCheckinFeature()
+                                onNavigateToCheckin()
+                            }
+                        )
                     }
                 }
                 }
@@ -494,7 +514,15 @@ fun SettingCard(
 }
 
 @Composable
-fun AppInfoCard() {
+fun AppInfoCard(
+    isUnlocked: Boolean = false,
+    onSecretUnlocked: () -> Unit = {}
+) {
+    // 连续点击计数和时间追踪（仅在未解锁时使用）
+    var clickCount by remember { mutableIntStateOf(0) }
+    var lastClickTime by remember { mutableStateOf(0L) }
+    val resetTimeoutMs = 2000L // 2秒内需完成5次点击
+    
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -514,10 +542,31 @@ fun AppInfoCard() {
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(4.dp))
+            // 版本号 - 未解锁时可点击解锁隐藏功能
             Text(
                 text = "版本 ${getAppVersionName()}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = if (!isUnlocked) {
+                    Modifier.clickable {
+                        val currentTime = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                        // 如果距上次点击超过超时时间，重置计数
+                        if (currentTime - lastClickTime > resetTimeoutMs) {
+                            clickCount = 1
+                        } else {
+                            clickCount++
+                        }
+                        lastClickTime = currentTime
+                        
+                        // 达到5次点击，触发隐藏功能
+                        if (clickCount >= 5) {
+                            clickCount = 0
+                            onSecretUnlocked()
+                        }
+                    }
+                } else {
+                    Modifier
+                }
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
