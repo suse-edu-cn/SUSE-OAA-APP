@@ -157,13 +157,25 @@ data class CourseInfoUiState(
     val planId: String = "",
     val totalCount: Int = 0,
     val errorMessage: String? = null,
-    // 筛选条件
+    // 学院/专业/年级筛选
+    val colleges: List<CollegeOption> = emptyList(),
+    val majors: List<MajorOption> = emptyList(),
+    val grades: List<String> = emptyList(),
+    val selectedCollegeId: String = "",
+    val selectedMajorId: String = "",
+    val selectedGrade: String = "",
+    val isLoadingColleges: Boolean = false,
+    val isLoadingMajors: Boolean = false,
+    val isLoadingPlan: Boolean = false,
+    val planInfo: TeachingPlanInfo? = null,
+    // 课程筛选条件
     val selectedYear: String = "",
     val selectedSemester: String = "",
     val searchKeyword: String = "",
     val selectedCourseType: String = "",
     // UI状态
-    val isFilterExpanded: Boolean = false  // 筛选区域是否展开
+    val isFilterExpanded: Boolean = true,  // 筛选区域是否展开（默认展开）
+    val isQueryMode: Boolean = false       // 是否为自定义查询模式（查其他专业）
 )
 
 /**
@@ -214,6 +226,116 @@ object SemesterConstants {
             FIRST_SEMESTER -> "第一学期"
             SECOND_SEMESTER -> "第二学期"
             else -> "未知"
+        }
+    }
+}
+
+// ==================== 学业情况查询相关模型 ====================
+
+/**
+ * 学业情况课程信息（API响应）
+ * 对应 API: xsxy/xsxyqk_cxJxzxjhxfyqKcxx.html
+ */
+@Serializable
+data class AcademicStatusCourseItem(
+    @SerialName("KCH_ID") val courseId: String = "",              // 课程ID
+    @SerialName("KCMC") val courseName: String = "",              // 课程名称
+    @SerialName("KCH") val courseCode: String = "",               // 课程号
+    @SerialName("XDZT") val studyStatus: String = "",             // 修读状态：1=未修, 2=不及格, 3=在修, 4=已修通过
+    @SerialName("XNM") val yearCode: String = "",                 // 学年代码（如2023）
+    @SerialName("XNMC") val yearName: String = "",                // 学年名称（如2023-2024）
+    @SerialName("XQM") val semesterCode: String = "",             // 学期代码
+    @SerialName("XQMMC") val semesterName: String = "",           // 学期名称（1或2）
+    @SerialName("CJ") val grade: String = "",                     // 成绩
+    @SerialName("MAXCJ") val maxGrade: String = "",               // 最高成绩
+    @SerialName("XF") val credits: String = "",                   // 学分
+    @SerialName("JD") val gradePoint: Double = 0.0,               // 绩点
+    @SerialName("KCXZMC") val courseType: String = "",            // 课程性质名称
+    @SerialName("KCLBMC") val courseCategory: String = "",        // 课程类别名称（专业课/公共课/基础课）
+    @SerialName("KCLBDM") val courseCategoryCode: String = "",    // 课程类别代码
+    @SerialName("XSXXXX") val hoursInfo: String = "",             // 学时详细信息
+    @SerialName("SFJHKC") val isPlannedCourse: String = "",       // 是否计划课程（是/否）
+    @SerialName("ZYZGKCBJ") val isMajorQualifiedCourse: String = "", // 专业资格课程标记
+    @SerialName("JYXDXNM") val suggestedYearCode: String = "",    // 建议修读学年代码
+    @SerialName("JYXDXNMC") val suggestedYearName: String = "",   // 建议修读学年名称
+    @SerialName("JYXDXQM") val suggestedSemesterCode: String = "", // 建议修读学期代码
+    @SerialName("JYXDXQMC") val suggestedSemesterName: String = "", // 建议修读学期名称
+    @SerialName("KCZT") val courseStatus: Int = 0,                // 课程状态
+    @SerialName("XBX") val electiveType: String = "",             // 选必修类型
+    @SerialName("KCZYXXS") val minHours: String = ""              // 课程最小学时
+)
+
+/**
+ * 学业情况课程类别
+ */
+data class AcademicStatusCategory(
+    val categoryId: String,                              // 类别ID (xfyqjd_id)
+    val categoryName: String,                            // 类别名称
+    val courses: List<AcademicStatusCourseItem> = emptyList(), // 该类别下的课程
+    val isLoading: Boolean = false,                      // 是否正在加载
+    val isLoaded: Boolean = false,                       // 是否已加载
+    val totalCredits: Double = 0.0,                      // 总学分
+    val earnedCredits: Double = 0.0,                     // 已获学分
+    val passedCount: Int = 0,                            // 已通过课程数
+    val failedCount: Int = 0,                            // 不及格课程数
+    val studyingCount: Int = 0,                          // 在修课程数
+    val notStudiedCount: Int = 0                         // 未修课程数
+)
+
+/**
+ * 学业情况UI状态
+ */
+data class AcademicStatusUiState(
+    val isLoading: Boolean = false,                      // 主页加载状态
+    val isRefreshing: Boolean = false,                   // 刷新状态
+    val categories: List<AcademicStatusCategory> = emptyList(), // 课程类别列表
+    val expandedCategories: Set<String> = emptySet(),    // 展开的类别ID集合
+    val selectedFilter: AcademicStatusFilter = AcademicStatusFilter.ALL, // 筛选条件
+    val errorMessage: String? = null,
+    // 统计数据
+    val totalCredits: Double = 0.0,                      // 应修总学分
+    val earnedCredits: Double = 0.0,                     // 已获学分
+    val studyingCredits: Double = 0.0,                   // 在修学分
+    val averageGradePoint: Double = 0.0                  // 平均绩点
+)
+
+/**
+ * 学业情况筛选器
+ */
+enum class AcademicStatusFilter(val displayName: String) {
+    ALL("全部"),
+    PASSED("已通过"),
+    FAILED("不及格"),
+    STUDYING("在修"),
+    NOT_STUDIED("未修")
+}
+
+/**
+ * 修读状态工具类
+ */
+object StudyStatusUtils {
+    const val NOT_STUDIED = "1"      // 未修
+    const val FAILED = "2"           // 不及格
+    const val STUDYING = "3"         // 在修
+    const val PASSED = "4"           // 已修通过
+
+    fun getStatusName(code: String): String {
+        return when (code) {
+            NOT_STUDIED -> "未修"
+            FAILED -> "不及格"
+            STUDYING -> "在修"
+            PASSED -> "已通过"
+            else -> "未知"
+        }
+    }
+
+    fun matchesFilter(statusCode: String, filter: AcademicStatusFilter): Boolean {
+        return when (filter) {
+            AcademicStatusFilter.ALL -> true
+            AcademicStatusFilter.PASSED -> statusCode == PASSED
+            AcademicStatusFilter.FAILED -> statusCode == FAILED
+            AcademicStatusFilter.STUDYING -> statusCode == STUDYING
+            AcademicStatusFilter.NOT_STUDIED -> statusCode == NOT_STUDIED
         }
     }
 }

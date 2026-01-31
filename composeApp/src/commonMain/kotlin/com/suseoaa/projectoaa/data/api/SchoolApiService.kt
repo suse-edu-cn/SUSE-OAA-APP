@@ -319,4 +319,62 @@ class SchoolApiService(
             header("X-Requested-With", "XMLHttpRequest")
         }
     }
+
+    // ==================== 学业情况查询 API ====================
+
+    /**
+     * 获取学业情况页面（包含课程类别树形结构）
+     * @param studentId 学号
+     */
+    suspend fun getAcademicStatusPage(studentId: String): HttpResponse {
+        return client.get("$baseUrl/xsxy/xsxyqk_cxXsxyqkIndex.html") {
+            parameter("gnmkdm", "N105515")
+            parameter("layout", "default")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    /**
+     * 获取学业情况 - 指定类别下的课程列表（计划内课程）
+     * @param categoryId 课程类别ID (xfyqjd_id)
+     * @param studentId 学号
+     */
+    suspend fun getAcademicStatusCourses(
+        categoryId: String,
+        studentId: String
+    ): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/xsxy/xsxyqk_cxJxzxjhxfyqKcxx.html",
+            formParameters = parameters {
+                append("fromXh_id", "")
+                append("xfyqjd_id", categoryId)
+                append("xh_id", studentId)
+            }
+        ) {
+            parameter("gnmkdm", "N105515")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    /**
+     * 获取学业情况 - 非计划内课程（如自由选修等）
+     * @param categoryId 课程类别ID (xfyqjd_id)
+     * @param studentId 学号
+     */
+    suspend fun getAcademicStatusNonPlanCourses(
+        categoryId: String,
+        studentId: String
+    ): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/xsxy/xsxyqk_cxJxzxjhxfyqFKcxx.html",
+            formParameters = parameters {
+                append("fromXh_id", "")
+                append("xfyqjd_id", categoryId)
+                append("xh_id", studentId)
+            }
+        ) {
+            parameter("gnmkdm", "N105515")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
 }

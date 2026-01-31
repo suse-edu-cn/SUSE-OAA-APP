@@ -17,6 +17,7 @@ import com.suseoaa.projectoaa.data.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.data.repository.SchoolCourseRepository
 import com.suseoaa.projectoaa.data.repository.SchoolGradeRepository
 import com.suseoaa.projectoaa.data.repository.SchoolInfoRepository
+import com.suseoaa.projectoaa.data.repository.AcademicStatusRepository
 import com.suseoaa.projectoaa.data.repository.TeachingPlanRepository
 import com.suseoaa.projectoaa.database.CourseDatabase
 import com.suseoaa.projectoaa.presentation.MainViewModel
@@ -29,6 +30,7 @@ import com.suseoaa.projectoaa.presentation.home.HomeViewModel
 import com.suseoaa.projectoaa.presentation.login.LoginViewModel
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.presentation.register.RegisterViewModel
+import com.suseoaa.projectoaa.presentation.teachingplan.AcademicStatusViewModel
 import com.suseoaa.projectoaa.presentation.teachingplan.CourseInfoViewModel
 import com.suseoaa.projectoaa.presentation.teachingplan.StudyRequirementViewModel
 import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
@@ -142,6 +144,14 @@ val appModule = module {
             get<SchoolAuthRepository>()
         )
     }
+    
+    // 学业情况仓库
+    single {
+        AcademicStatusRepository(
+            get<SchoolApiService>(),
+            get<Json>()
+        )
+    }
 
     // ==================== ViewModels ====================
     viewModel { MainViewModel(get()) }
@@ -159,4 +169,5 @@ val appModule = module {
     // 教学计划 ViewModels
     viewModel { StudyRequirementViewModel(get()) }
     viewModel { CourseInfoViewModel(get(), get(), get(), get()) }
+    viewModel { AcademicStatusViewModel(get(), get()) }
 }

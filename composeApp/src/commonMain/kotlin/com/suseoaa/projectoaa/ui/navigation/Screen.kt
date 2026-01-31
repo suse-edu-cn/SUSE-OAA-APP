@@ -18,6 +18,7 @@ sealed class Screen(val route: String) {
     // 教学计划相关
     data object StudyRequirement : Screen("studyRequirement")
     data object CourseInfo : Screen("courseInfo")
+    data object AcademicStatus : Screen("academicStatus")
     
     data object DepartmentDetail : Screen("department/{department}") {
         fun createRoute(department: String) = "department/$department"

@@ -60,6 +60,7 @@ fun MainScreen(
     onNavigateToDepartmentDetail: (String) -> Unit,
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
+    onNavigateToAcademicStatus: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // 使用 rememberSaveable 保持 Tab 状态，页面返回时不会丢失
@@ -80,6 +81,7 @@ fun MainScreen(
                 onNavigateToDepartmentDetail = onNavigateToDepartmentDetail,
                 onNavigateToStudyRequirement = onNavigateToStudyRequirement,
                 onNavigateToCourseInfo = onNavigateToCourseInfo,
+                onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                 modifier = modifier
             )
         } else {
@@ -95,6 +97,7 @@ fun MainScreen(
                 onNavigateToDepartmentDetail = onNavigateToDepartmentDetail,
                 onNavigateToStudyRequirement = onNavigateToStudyRequirement,
                 onNavigateToCourseInfo = onNavigateToCourseInfo,
+                onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                 modifier = modifier
             )
         }
@@ -117,6 +120,7 @@ private fun BoxWithConstraintsScope.TabletLandscapeLayout(
     onNavigateToDepartmentDetail: (String) -> Unit,
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
+    onNavigateToAcademicStatus: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -169,6 +173,7 @@ private fun BoxWithConstraintsScope.TabletLandscapeLayout(
                         onNavigateToExams = onNavigateToExams,
                         onNavigateToStudyRequirement = onNavigateToStudyRequirement,
                         onNavigateToCourseInfo = onNavigateToCourseInfo,
+                        onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                         bottomBarHeight = 0.dp
                     )
                 }
@@ -199,6 +204,7 @@ private fun BoxWithConstraintsScope.PhoneLayout(
     onNavigateToDepartmentDetail: (String) -> Unit,
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
+    onNavigateToAcademicStatus: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
@@ -249,6 +255,7 @@ private fun BoxWithConstraintsScope.PhoneLayout(
                         onNavigateToExams = onNavigateToExams,
                         onNavigateToStudyRequirement = onNavigateToStudyRequirement,
                         onNavigateToCourseInfo = onNavigateToCourseInfo,
+                        onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                         bottomBarHeight = bottomBarHeight
                     )
                     3 -> PersonScreen(

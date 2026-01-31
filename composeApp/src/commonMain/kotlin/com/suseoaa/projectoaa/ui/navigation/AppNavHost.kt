@@ -15,6 +15,7 @@ import com.suseoaa.projectoaa.ui.screen.home.DepartmentDetailScreen
 import com.suseoaa.projectoaa.ui.screen.login.LoginScreen
 import com.suseoaa.projectoaa.ui.screen.main.MainScreen
 import com.suseoaa.projectoaa.ui.screen.register.RegisterScreen
+import com.suseoaa.projectoaa.ui.screen.teachingplan.AcademicStatusScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.CourseInfoScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.StudyRequirementScreen
 
@@ -83,6 +84,9 @@ fun AppNavHost(
                 },
                 onNavigateToCourseInfo = {
                     navController.navigate(Screen.CourseInfo.route)
+                },
+                onNavigateToAcademicStatus = {
+                    navController.navigate(Screen.AcademicStatus.route)
                 }
             )
         }
@@ -136,6 +140,12 @@ fun AppNavHost(
         
         composable(Screen.CourseInfo.route) {
             CourseInfoScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.AcademicStatus.route) {
+            AcademicStatusScreen(
                 onBack = { navController.popBackStack() }
             )
         }

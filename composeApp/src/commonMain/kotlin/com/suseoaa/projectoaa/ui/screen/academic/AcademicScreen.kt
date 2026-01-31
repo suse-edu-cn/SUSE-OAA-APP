@@ -59,6 +59,7 @@ fun AcademicScreen(
     onNavigateToExams: () -> Unit,
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
+    onNavigateToAcademicStatus: () -> Unit = {},
     bottomBarHeight: Dp = 0.dp,
     viewModel: AcademicViewModel = koinViewModel()
 ) {
@@ -108,6 +109,12 @@ fun AcademicScreen(
             Icons.Default.Info,
             "courseInfo",
             MaterialTheme.colorScheme.error
+        ),
+        PortalFunction(
+            "学业情况",
+            Icons.Default.DateRange,
+            "academicStatus",
+            Color(0xFF9C27B0)
         )
     )
 
@@ -190,6 +197,7 @@ fun AcademicScreen(
                             "gpa" -> onNavigateToGpa()
                             "studyRequirement" -> onNavigateToStudyRequirement()
                             "courseInfo" -> onNavigateToCourseInfo()
+                            "academicStatus" -> onNavigateToAcademicStatus()
                         }
                     }
                 )

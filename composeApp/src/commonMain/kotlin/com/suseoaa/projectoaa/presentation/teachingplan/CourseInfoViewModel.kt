@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 /**
  * 课程信息查询 ViewModel
- * 只能查询当前学生自己专业的课程信息
+ * 支持查询任意学院、专业、年级的课程信息
  */
 class CourseInfoViewModel(
     private val tokenManager: TokenManager,
@@ -51,49 +51,201 @@ class CourseInfoViewModel(
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
-        // 监听账户变化，自动加载数据
+        // 初始化时加载学院列表和年级列表
+        loadCollegeList()
+        loadGradeList()
+        
+        // 监听账户变化，自动加载当前学生的课程信息
         viewModelScope.launch {
             currentAccount.collect { account ->
                 if (account != null && _uiState.value.courses.isEmpty()) {
-                    loadStudentCourseInfo()
+                    // 使用当前学生的信息作为默认选择
+                    val collegeId = account.jgId ?: ""
+                    val majorId = account.zyhId ?: ""
+                    val gradeId = account.njdmId
+                    
+                    _uiState.update { 
+                        it.copy(
+                            selectedCollegeId = collegeId,
+                            selectedMajorId = majorId,
+                            selectedGrade = gradeId
+                        )
+                    }
+                    
+                    if (collegeId.isNotEmpty()) {
+                        loadMajorList(collegeId)
+                    }
+                    
+                    // 自动加载当前学生的课程
+                    if (collegeId.isNotEmpty() && gradeId.isNotEmpty() && majorId.isNotEmpty()) {
+                        loadCourseInfoBySelection(collegeId, gradeId, majorId)
+                    }
                 }
             }
         }
     }
 
     /**
-     * 加载当前学生的课程信息
+     * 加载学院列表
      */
-    fun loadStudentCourseInfo() {
-        val account = currentAccount.value
-        if (account == null) {
-            _uiState.update { it.copy(errorMessage = "请先登录") }
-            return
-        }
-
+    private fun loadCollegeList() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoadingColleges = true) }
             
-            try {
-                // 1. 确保已登录
-                authRepository.login(account.studentId, account.password)
-                
-                // 2. 获取学生信息（包含专业、年级等）
-                val collegeId = account.jgId ?: ""
-                val gradeId = account.njdmId
-                val majorId = account.zyhId ?: ""
-                
-                if (collegeId.isEmpty() || gradeId.isEmpty() || majorId.isEmpty()) {
+            val result = teachingPlanRepository.getCollegeList()
+            result.fold(
+                onSuccess = { colleges ->
+                    _uiState.update { it.copy(colleges = colleges, isLoadingColleges = false) }
+                },
+                onFailure = { error ->
                     _uiState.update { 
                         it.copy(
-                            errorMessage = "学生信息不完整，请重新登录获取完整信息",
-                            isLoading = false
+                            errorMessage = "加载学院列表失败: ${error.message}",
+                            isLoadingColleges = false
                         )
                     }
-                    return@launch
+                }
+            )
+        }
+    }
+
+    /**
+     * 加载年级列表
+     */
+    private fun loadGradeList() {
+        val grades = teachingPlanRepository.generateGradeList()
+        _uiState.update { it.copy(grades = grades) }
+    }
+
+    /**
+     * 加载专业列表
+     */
+    private fun loadMajorList(collegeId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingMajors = true, majors = emptyList()) }
+            
+            val result = teachingPlanRepository.getMajorList(collegeId)
+            result.fold(
+                onSuccess = { majors ->
+                    _uiState.update { it.copy(majors = majors, isLoadingMajors = false) }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(
+                            errorMessage = "加载专业列表失败: ${error.message}",
+                            isLoadingMajors = false
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * 选择学院
+     */
+    fun selectCollege(collegeId: String) {
+        if (collegeId == _uiState.value.selectedCollegeId) return
+        
+        _uiState.update { 
+            it.copy(
+                selectedCollegeId = collegeId,
+                selectedMajorId = "",  // 重置专业选择
+                majors = emptyList(),
+                courses = emptyList(),
+                filteredCourses = emptyList(),
+                planId = "",
+                planInfo = null,
+                isQueryMode = true
+            )
+        }
+        
+        if (collegeId.isNotEmpty()) {
+            loadMajorList(collegeId)
+        }
+    }
+
+    /**
+     * 选择专业
+     */
+    fun selectMajor(majorId: String) {
+        if (majorId == _uiState.value.selectedMajorId) return
+        
+        _uiState.update { 
+            it.copy(
+                selectedMajorId = majorId,
+                courses = emptyList(),
+                filteredCourses = emptyList(),
+                planId = "",
+                planInfo = null,
+                isQueryMode = true
+            )
+        }
+        
+        // 如果三个条件都满足，自动加载课程
+        val state = _uiState.value
+        if (state.selectedCollegeId.isNotEmpty() && 
+            state.selectedGrade.isNotEmpty() && 
+            majorId.isNotEmpty()) {
+            loadCourseInfoBySelection(state.selectedCollegeId, state.selectedGrade, majorId)
+        }
+    }
+
+    /**
+     * 选择年级
+     */
+    fun selectGrade(grade: String) {
+        if (grade == _uiState.value.selectedGrade) return
+        
+        _uiState.update { 
+            it.copy(
+                selectedGrade = grade,
+                courses = emptyList(),
+                filteredCourses = emptyList(),
+                planId = "",
+                planInfo = null,
+                isQueryMode = true
+            )
+        }
+        
+        // 如果三个条件都满足，自动加载课程
+        val state = _uiState.value
+        if (state.selectedCollegeId.isNotEmpty() && 
+            grade.isNotEmpty() && 
+            state.selectedMajorId.isNotEmpty()) {
+            loadCourseInfoBySelection(state.selectedCollegeId, grade, state.selectedMajorId)
+        }
+    }
+
+    /**
+     * 手动查询课程（点击查询按钮时调用）
+     */
+    fun queryCourses() {
+        val state = _uiState.value
+        if (state.selectedCollegeId.isEmpty() || 
+            state.selectedGrade.isEmpty() || 
+            state.selectedMajorId.isEmpty()) {
+            _uiState.update { it.copy(errorMessage = "请选择完整的查询条件") }
+            return
+        }
+        loadCourseInfoBySelection(state.selectedCollegeId, state.selectedGrade, state.selectedMajorId)
+    }
+
+    /**
+     * 根据选择的学院、年级、专业加载课程信息
+     */
+    private fun loadCourseInfoBySelection(collegeId: String, gradeId: String, majorId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, isLoadingPlan = true, errorMessage = null) }
+            
+            try {
+                // 确保已登录
+                val account = currentAccount.value
+                if (account != null) {
+                    authRepository.login(account.studentId, account.password)
                 }
                 
-                // 3. 获取培养计划
+                // 获取培养计划
                 val planResult = teachingPlanRepository.getTeachingPlanInfo(
                     collegeId = collegeId,
                     gradeId = gradeId,
@@ -103,14 +255,21 @@ class CourseInfoViewModel(
                 planResult.fold(
                     onSuccess = { planInfo ->
                         if (planInfo != null) {
-                            _uiState.update { it.copy(planId = planInfo.planId) }
-                            // 4. 获取课程列表
+                            _uiState.update { 
+                                it.copy(
+                                    planId = planInfo.planId,
+                                    planInfo = planInfo,
+                                    isLoadingPlan = false
+                                )
+                            }
+                            // 加载课程列表
                             loadCourses(planInfo.planId)
                         } else {
                             _uiState.update { 
                                 it.copy(
-                                    errorMessage = "未找到您的培养计划",
-                                    isLoading = false
+                                    errorMessage = "未找到该专业的培养计划",
+                                    isLoading = false,
+                                    isLoadingPlan = false
                                 )
                             }
                         }
@@ -119,7 +278,8 @@ class CourseInfoViewModel(
                         _uiState.update { 
                             it.copy(
                                 errorMessage = "获取培养计划失败: ${error.message}",
-                                isLoading = false
+                                isLoading = false,
+                                isLoadingPlan = false
                             )
                         }
                     }
@@ -128,11 +288,47 @@ class CourseInfoViewModel(
                 _uiState.update { 
                     it.copy(
                         errorMessage = "加载失败: ${e.message}",
-                        isLoading = false
+                        isLoading = false,
+                        isLoadingPlan = false
                     )
                 }
             }
         }
+    }
+
+    /**
+     * 加载当前学生的课程信息（快捷入口）
+     */
+    fun loadStudentCourseInfo() {
+        val account = currentAccount.value
+        if (account == null) {
+            _uiState.update { it.copy(errorMessage = "请先登录") }
+            return
+        }
+
+        val collegeId = account.jgId ?: ""
+        val gradeId = account.njdmId
+        val majorId = account.zyhId ?: ""
+        
+        if (collegeId.isEmpty() || gradeId.isEmpty() || majorId.isEmpty()) {
+            _uiState.update { 
+                it.copy(errorMessage = "学生信息不完整，请重新登录获取完整信息")
+            }
+            return
+        }
+        
+        // 更新选择状态
+        _uiState.update { 
+            it.copy(
+                selectedCollegeId = collegeId,
+                selectedMajorId = majorId,
+                selectedGrade = gradeId,
+                isQueryMode = false
+            )
+        }
+        
+        loadMajorList(collegeId)
+        loadCourseInfoBySelection(collegeId, gradeId, majorId)
     }
 
     /**
