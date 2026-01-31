@@ -17,6 +17,7 @@ import com.suseoaa.projectoaa.data.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.data.repository.SchoolCourseRepository
 import com.suseoaa.projectoaa.data.repository.SchoolGradeRepository
 import com.suseoaa.projectoaa.data.repository.SchoolInfoRepository
+import com.suseoaa.projectoaa.data.repository.TeachingPlanRepository
 import com.suseoaa.projectoaa.database.CourseDatabase
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
@@ -28,6 +29,8 @@ import com.suseoaa.projectoaa.presentation.home.HomeViewModel
 import com.suseoaa.projectoaa.presentation.login.LoginViewModel
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.presentation.register.RegisterViewModel
+import com.suseoaa.projectoaa.presentation.teachingplan.CourseInfoViewModel
+import com.suseoaa.projectoaa.presentation.teachingplan.StudyRequirementViewModel
 import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -130,6 +133,15 @@ val appModule = module {
             get<CourseDatabase>()
         )
     }
+    
+    // 教学计划仓库
+    single {
+        TeachingPlanRepository(
+            get<SchoolApiService>(),
+            get<Json>(),
+            get<SchoolAuthRepository>()
+        )
+    }
 
     // ==================== ViewModels ====================
     viewModel { MainViewModel(get()) }
@@ -143,4 +155,8 @@ val appModule = module {
     viewModel { GpaViewModel(get(), get()) }
     viewModel { GradesViewModel(get(), get(), get(), get()) }
     viewModel { AppUpdateViewModel(get(), get()) }
+    
+    // 教学计划 ViewModels
+    viewModel { StudyRequirementViewModel(get()) }
+    viewModel { CourseInfoViewModel(get(), get(), get(), get()) }
 }

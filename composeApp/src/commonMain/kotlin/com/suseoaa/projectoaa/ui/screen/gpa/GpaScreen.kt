@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.getListColumns
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -187,24 +189,28 @@ private fun GpaContent(
         // 3. 课程列表
         val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(1),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                bottom = 16.dp + navBarHeight
-            ),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            items(courseList, key = { it.originalEntity.courseName }) { item ->
-                GpaCourseItem(
-                    item = item,
-                    onScoreChange = { newScore ->
-                        onScoreChange(item, newScore)
+        Box(modifier = Modifier.weight(1f)) {
+            AdaptiveLayout { config ->
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(config.getListColumns()),
+                    contentPadding = PaddingValues(
+                        start = config.horizontalPadding,
+                        end = config.horizontalPadding,
+                        bottom = 16.dp + navBarHeight
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(courseList, key = { it.originalEntity.courseName }) { item ->
+                        GpaCourseItem(
+                            item = item,
+                            onScoreChange = { newScore ->
+                                onScoreChange(item, newScore)
+                            }
+                        )
                     }
-                )
+                }
             }
         }
     }

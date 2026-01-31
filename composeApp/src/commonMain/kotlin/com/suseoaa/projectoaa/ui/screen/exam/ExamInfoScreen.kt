@@ -21,7 +21,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.academic.ExamUiState
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.BackButton
+import com.suseoaa.projectoaa.ui.component.getListColumns
 import com.suseoaa.projectoaa.util.getExamCountDown
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
@@ -117,25 +119,26 @@ fun ExamInfoScreen(
             else -> {
                 val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(1),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 8.dp,
-                        bottom = 16.dp + navBarHeight
-                    ),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize()
-                ) {
-                    items(examList) { exam ->
-                        ExamCard(
-                            exam = exam,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                AdaptiveLayout(modifier = Modifier.padding(innerPadding)) { config ->
+                    val columns = config.getListColumns()
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(columns),
+                        contentPadding = PaddingValues(
+                            start = config.horizontalPadding,
+                            end = config.horizontalPadding,
+                            top = 8.dp,
+                            bottom = 16.dp + navBarHeight
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(examList) { exam ->
+                            ExamCard(
+                                exam = exam,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             }

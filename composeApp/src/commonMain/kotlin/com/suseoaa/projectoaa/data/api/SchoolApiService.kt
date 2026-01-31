@@ -231,33 +231,90 @@ class SchoolApiService(
     }
 
     /**
-     * 获取课程列表（培养方案）
+     * 获取课程列表（培养方案）- 课程信息查询
      */
     suspend fun getTeachingPlan(
         planId: String,
-        showCount: Int = 1000
+        suggestedYear: String = "",
+        suggestedSemester: String = "",
+        courseCode: String = "",
+        studyType: String = "",
+        showCount: Int = 1000,
+        currentPage: Int = 1
     ): HttpResponse {
         return client.submitForm(
             url = "$baseUrl/jxzxjhgl/jxzxjhkcxx_cxJxzxjhkcxxIndex.html",
             formParameters = parameters {
                 append("jxzxjhxx_id", planId)
-                append("jyxdxnm", "")
-                append("jyxdxqm", "")
+                append("jyxdxnm", suggestedYear)
+                append("jyxdxqm", suggestedSemester)
                 append("yxxdxnm", "")
                 append("yxxdxqm", "")
                 append("shzt", "")
-                append("kch", "")
-                append("xdlx", "")
+                append("kch", courseCode)
+                append("xdlx", studyType)
                 append("_search", "false")
                 append("nd", kotlinx.datetime.Clock.System.now().toEpochMilliseconds().toString())
                 append("queryModel.showCount", showCount.toString())
-                append("queryModel.currentPage", "1")
+                append("queryModel.currentPage", currentPage.toString())
                 append("queryModel.sortName", "jyxdxnm,jyxdxqm,kch ")
                 append("queryModel.sortOrder", "asc")
                 append("time", "0")
             }
         ) {
             parameter("doType", "query")
+            parameter("gnmkdm", "N153540")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    // ==================== 教学执行计划查询 API ====================
+
+    /**
+     * 获取专业列表（不带学院ID参数时返回所有专业，可用于提取学院列表）
+     * @param collegeId 学院ID，为空时返回所有专业
+     */
+    suspend fun getAllMajorList(collegeId: String = ""): HttpResponse {
+        return client.get("$baseUrl/xtgl/comm_cxZydmList.html") {
+            if (collegeId.isNotEmpty()) {
+                parameter("jg_id", collegeId)
+            }
+            parameter("gnmkdm", "N153540")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    /**
+     * 获取修读要求节点下的课程列表
+     * @param requirementNodeId 修读要求节点ID
+     * @param nodeType 节点课程属性（1=课程，2=课程类别，3=课程归属，4=课程组）
+     */
+    suspend fun getStudyRequirementCourses(
+        requirementNodeId: String,
+        nodeType: String = "1"
+    ): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/jxzxjhgl/jxzxjhxfyq_cxJxzxjhxfyqKcxx.html",
+            formParameters = parameters {
+                append("xfyqjd_id", requirementNodeId)
+                append("jdkcsx", nodeType)
+            }
+        ) {
+            parameter("gnmkdm", "N153540")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    /**
+     * 获取修读要求树形结构
+     */
+    suspend fun getStudyRequirementTree(planId: String): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/jxzxjhgl/jxzxjhxfyq_cxJxzxjhxfyqIndex.html",
+            formParameters = parameters {
+                append("jxzxjhxx_id", planId)
+            }
+        ) {
             parameter("gnmkdm", "N153540")
             header("X-Requested-With", "XMLHttpRequest")
         }

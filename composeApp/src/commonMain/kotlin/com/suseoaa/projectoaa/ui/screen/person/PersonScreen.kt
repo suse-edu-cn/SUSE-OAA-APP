@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.getListColumns
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -180,24 +182,25 @@ fun PersonScreen(
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(1),
-                    contentPadding = PaddingValues(
-                        top = 16.dp + statusBarHeight,
-                        bottom = 16.dp + bottomBarHeight,
-                        start = 16.dp,
-                        end = 16.dp
-                    ),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Spacer(modifier = Modifier.height(HeaderHeight - 80.dp))
-                    }
+                AdaptiveLayout { config ->
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(config.getListColumns()),
+                        contentPadding = PaddingValues(
+                            top = 16.dp + statusBarHeight,
+                            bottom = 16.dp + bottomBarHeight,
+                            start = config.horizontalPadding,
+                            end = config.horizontalPadding
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Spacer(modifier = Modifier.height(HeaderHeight - 80.dp))
+                        }
 
-                    // 用户信息卡片
-                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        // 用户信息卡片
+                        item(span = { GridItemSpan(maxLineSpan) }) {
                         UserInfoCard(
                             userInfo = uiState.userInfo,
                             onLogout = { viewModel.logout() },
@@ -236,6 +239,7 @@ fun PersonScreen(
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         AppInfoCard()
                     }
+                }
                 }
             }
         }

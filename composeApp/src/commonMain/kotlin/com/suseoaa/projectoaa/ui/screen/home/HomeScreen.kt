@@ -25,6 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
 import com.suseoaa.projectoaa.data.model.AnnouncementData
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
+import com.suseoaa.projectoaa.ui.component.WindowSizeClass
 import com.suseoaa.projectoaa.ui.theme.*
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -58,57 +61,60 @@ fun DepartmentGrid(
     onItemClick: (String) -> Unit,
     bottomBarHeight: Dp = 0.dp
 ) {
-    val gridCells = GridCells.Fixed(2)
-    val spanCount = 2
-    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    AdaptiveLayout { config ->
+        val spanCount = config.gridColumns
+        val gridCells = GridCells.Fixed(spanCount)
+        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        val horizontalPadding = config.horizontalPadding
 
-    LazyVerticalGrid(
-        columns = gridCells,
-        contentPadding = PaddingValues(
-            top = 16.dp + statusBarHeight,
-            bottom = 16.dp + bottomBarHeight,
-            start = 16.dp,
-            end = 16.dp
-        ),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // 头部标题
-        item(span = { GridItemSpan(spanCount) }) {
-            Column(modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)) {
-                Text(
-                    "四川轻化工大学",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    "开放原子开源协会",
-                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                    color = MaterialTheme.colorScheme.onBackground
+        LazyVerticalGrid(
+            columns = gridCells,
+            contentPadding = PaddingValues(
+                top = 16.dp + statusBarHeight,
+                bottom = 16.dp + bottomBarHeight,
+                start = horizontalPadding,
+                end = horizontalPadding
+            ),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // 头部标题
+            item(span = { GridItemSpan(spanCount) }) {
+                Column(modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)) {
+                    Text(
+                        "四川轻化工大学",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        "开放原子开源协会",
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+
+            // 1. 协会大卡片 (独占一行)
+            item(span = { GridItemSpan(spanCount) }) {
+                BigAssociationCard(
+                    name = "开放原子开源协会",
+                    data = cardInfos["协会"],
+                    onClick = { onItemClick("协会") }
                 )
             }
-        }
 
-        // 1. 协会大卡片 (独占一行)
-        item(span = { GridItemSpan(spanCount) }) {
-            BigAssociationCard(
-                name = "开放原子开源协会",
-                data = cardInfos["协会"],
-                onClick = { onItemClick("协会") }
-            )
-        }
-
-        // 2. 其他部门卡片
-        val otherDepts = departments.filter { it != "协会" }
-        items(otherDepts) { dept ->
-            DepartmentCard(
-                name = dept,
-                data = cardInfos[dept],
-                icon = getIconForDepartment(dept),
-                onClick = { onItemClick(dept) }
-            )
+            // 2. 其他部门卡片
+            val otherDepts = departments.filter { it != "协会" }
+            items(otherDepts) { dept ->
+                DepartmentCard(
+                    name = dept,
+                    data = cardInfos[dept],
+                    icon = getIconForDepartment(dept),
+                    onClick = { onItemClick(dept) }
+                )
+            }
         }
     }
 }

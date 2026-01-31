@@ -15,6 +15,8 @@ import com.suseoaa.projectoaa.ui.screen.home.DepartmentDetailScreen
 import com.suseoaa.projectoaa.ui.screen.login.LoginScreen
 import com.suseoaa.projectoaa.ui.screen.main.MainScreen
 import com.suseoaa.projectoaa.ui.screen.register.RegisterScreen
+import com.suseoaa.projectoaa.ui.screen.teachingplan.CourseInfoScreen
+import com.suseoaa.projectoaa.ui.screen.teachingplan.StudyRequirementScreen
 
 @Composable
 fun AppNavHost(
@@ -75,6 +77,12 @@ fun AppNavHost(
                 },
                 onNavigateToDepartmentDetail = { department ->
                     navController.navigate(Screen.DepartmentDetail.createRoute(department))
+                },
+                onNavigateToStudyRequirement = {
+                    navController.navigate(Screen.StudyRequirement.route)
+                },
+                onNavigateToCourseInfo = {
+                    navController.navigate(Screen.CourseInfo.route)
                 }
             )
         }
@@ -115,6 +123,19 @@ fun AppNavHost(
             val department = backStackEntry.arguments?.getString("department") ?: ""
             DepartmentDetailScreen(
                 departmentName = department,
+                onBack = { navController.popBackStack() }
+            )
+        }
+        
+        // 教学计划相关
+        composable(Screen.StudyRequirement.route) {
+            StudyRequirementScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.CourseInfo.route) {
+            CourseInfoScreen(
                 onBack = { navController.popBackStack() }
             )
         }

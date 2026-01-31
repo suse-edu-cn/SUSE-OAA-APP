@@ -2,12 +2,14 @@ package com.suseoaa.projectoaa.ui.screen.academic
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -16,6 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
@@ -53,6 +57,8 @@ fun AcademicScreen(
     onNavigateToGrades: () -> Unit,
     onNavigateToGpa: () -> Unit,
     onNavigateToExams: () -> Unit,
+    onNavigateToStudyRequirement: () -> Unit,
+    onNavigateToCourseInfo: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
     viewModel: AcademicViewModel = koinViewModel()
 ) {
@@ -90,6 +96,18 @@ fun AcademicScreen(
             Icons.Default.Star,
             "gpa",
             MaterialTheme.colorScheme.tertiary
+        ),
+        PortalFunction(
+            "修读要求",
+            Icons.Default.Menu,
+            "studyRequirement",
+            MaterialTheme.colorScheme.secondary
+        ),
+        PortalFunction(
+            "课程信息",
+            Icons.Default.Info,
+            "courseInfo",
+            MaterialTheme.colorScheme.error
         )
     )
 
@@ -97,64 +115,410 @@ fun AcademicScreen(
         isRefreshing = uiState.isRefreshing,
         onRefresh = { viewModel.refresh() }
     ) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(
-                top = 16.dp + statusBarHeight,
-                bottom = 16.dp + bottomBarHeight,
-                start = 16.dp,
-                end = 16.dp
-            ),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // 1. 调课信息卡片
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            ReschedulingCard(
-                messageList = uiState.messages,
-                onClick = { showMessagesDialog = true }
-            )
-        }
-
-        // 2. 近期考试卡片
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            UpcomingExamsCard(
-                examList = uiState.exams,
-                onClick = onNavigateToExams
-            )
-        }
-
-        // 3. 常用功能标题
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                text = "常用功能",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-            )
-        }
-
-        // 4. 功能卡片
-        items(functions) { func ->
-            FunctionCard(
-                function = func,
-                onClick = {
-                    when (func.route) {
-                        "grades" -> onNavigateToGrades()
-                        "gpa" -> onNavigateToGpa()
-                    }
+        AdaptiveLayout { config ->
+            val isTabletLandscape = config.useSideNavigation
+            
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(config.gridColumns),
+                contentPadding = PaddingValues(
+                    top = 16.dp + statusBarHeight,
+                    bottom = 16.dp + bottomBarHeight,
+                    start = config.horizontalPadding,
+                    end = config.horizontalPadding
+                ),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            // 平板横屏：调课和考试并排显示，固定高度
+            if (isTabletLandscape) {
+                // 1. 调课信息卡片（占一半宽度）- 显示最新2条
+                item(span = { GridItemSpan(config.gridColumns / 2) }) {
+                    TabletReschedulingCard(
+                        messageList = uiState.messages,
+                        onClick = { showMessagesDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-            )
-        }
 
-        // 底部空间
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Spacer(modifier = Modifier.height(80.dp))
+                // 2. 近期考试卡片（占一半宽度）- 显示最近4条
+                item(span = { GridItemSpan(config.gridColumns - config.gridColumns / 2) }) {
+                    TabletUpcomingExamsCard(
+                        examList = uiState.exams,
+                        onClick = onNavigateToExams,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else {
+                // 手机/平板竖屏：垂直排列
+                // 1. 调课信息卡片
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    ReschedulingCard(
+                        messageList = uiState.messages,
+                        onClick = { showMessagesDialog = true }
+                    )
+                }
+
+                // 2. 近期考试卡片
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    UpcomingExamsCard(
+                        examList = uiState.exams,
+                        onClick = onNavigateToExams
+                    )
+                }
+            }
+
+            // 3. 常用功能标题
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    text = "常用功能",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                )
+            }
+
+            // 4. 功能卡片
+            items(functions) { func ->
+                FunctionCard(
+                    function = func,
+                    onClick = {
+                        when (func.route) {
+                            "grades" -> onNavigateToGrades()
+                            "gpa" -> onNavigateToGpa()
+                            "studyRequirement" -> onNavigateToStudyRequirement()
+                            "courseInfo" -> onNavigateToCourseInfo()
+                        }
+                    }
+                )
+            }
+
+            // 底部空间
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
         }
     }
+}
+
+// 平板卡片固定高度常量（基于4条考试信息的高度）
+private val TABLET_CARD_HEIGHT = 280.dp
+
+/**
+ * 平板端调课信息卡片 - 固定高度，显示最新2条
+ */
+@Composable
+fun TabletReschedulingCard(
+    messageList: List<MessageCacheEntity>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val cardBackgroundColor = if (isDarkTheme) NightSurface else OxygenWhite
+    val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
+    val textColor = if (isDarkTheme) Color.White else InkBlack
+    val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
+    val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
+    
+    Card(
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(TABLET_CARD_HEIGHT)
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // 标题栏
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = null,
+                    tint = primaryColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "最新调课",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "查看全部 >",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = subtextColor
+                )
+            }
+            
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 12.dp),
+                color = dividerColor
+            )
+            
+            // 内容区域
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (messageList.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "暂无调课通知",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = subtextColor
+                        )
+                    }
+                } else {
+                    // 显示最新2条
+                    messageList.take(2).forEach { message ->
+                        TabletMessageItem(message, textColor, subtextColor, dividerColor)
+                    }
+                    
+                    // 如果只有1条，添加占位
+                    if (messageList.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+            
+            // 底部提示
+            if (messageList.size > 2) {
+                Text(
+                    text = "还有 ${messageList.size - 2} 条通知",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = primaryColor,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 平板端消息项
+ */
+@Composable
+private fun TabletMessageItem(
+    message: MessageCacheEntity,
+    textColor: Color,
+    subtextColor: Color,
+    dividerColor: Color
+) {
+    Column {
+        Text(
+            text = message.content,
+            style = MaterialTheme.typography.bodyMedium,
+            color = textColor,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            lineHeight = 20.sp
+        )
+        if (message.date > 0) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = formatTimestamp(message.date),
+                style = MaterialTheme.typography.labelSmall,
+                color = subtextColor
+            )
+        }
+    }
+}
+
+/**
+ * 平板端近期考试卡片 - 固定高度，显示最近4条
+ */
+@Composable
+fun TabletUpcomingExamsCard(
+    examList: List<ExamUiState>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val cardBackgroundColor = if (isDarkTheme) NightSurface else OxygenWhite
+    val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
+    val secondaryColor = if (isDarkTheme) Color(0xFF4CAF50) else MaterialTheme.colorScheme.secondary
+    val textColor = if (isDarkTheme) Color.White else InkBlack
+    val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
+    val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
+    
+    Card(
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(TABLET_CARD_HEIGHT)
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // 标题栏
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = null,
+                        tint = secondaryColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "近期考试",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
+                    )
+                }
+                if (examList.isNotEmpty()) {
+                    Text(
+                        text = "共${examList.size}场",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = subtextColor
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 12.dp),
+                color = dividerColor
+            )
+
+            // 内容区域
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (examList.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "暂无考试安排",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = subtextColor
+                        )
+                    }
+                } else {
+                    // 显示最近4条
+                    examList.take(4).forEach { exam ->
+                        TabletExamRowItem(exam, textColor, subtextColor)
+                    }
+                    
+                    // 如果不足4条，填充空间
+                    if (examList.size < 4) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+            
+            // 底部提示
+            if (examList.size > 4) {
+                Text(
+                    text = "还有 ${examList.size - 4} 场考试",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = primaryColor,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 平板端考试行项目 - 更紧凑的布局
+ */
+@Composable
+private fun TabletExamRowItem(
+    exam: ExamUiState,
+    textColor: Color,
+    subtextColor: Color
+) {
+    val (countDownText, countColor) = remember(exam.time) {
+        getExamCountDown(exam.time)
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 左侧：时间块（月/日）
+        Surface(
+            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.size(width = 44.dp, height = 44.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val timeStr = exam.time
+                val datePart = timeStr.substringBefore("(")
+                val parts = datePart.split("-")
+                if (parts.size >= 3) {
+                    Text(
+                        text = parts[1], // 月
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        text = parts[2], // 日
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // 中间：课程名
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = exam.courseName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = textColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = exam.location,
+                style = MaterialTheme.typography.labelSmall,
+                color = subtextColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // 右侧：倒计时
+        Text(
+            text = countDownText,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = countColor
+        )
     }
 }
 
@@ -164,14 +528,15 @@ fun AcademicScreen(
 @Composable
 fun ReschedulingCard(
     messageList: List<MessageCacheEntity>,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val latestMessage = messageList.firstOrNull()?.content ?: "暂无最新调课通知"
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
@@ -336,18 +701,21 @@ private fun formatTimestamp(timestamp: Long): String {
     } catch (e: Exception) {
         ""
     }
-}/**
+}
+
+/**
  * 近期考试卡片
  */
 @Composable
 fun UpcomingExamsCard(
     examList: List<ExamUiState>,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
