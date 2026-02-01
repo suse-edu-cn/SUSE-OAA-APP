@@ -50,14 +50,15 @@ fun QrCodeLoginDialog(
     
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     
-    // 处理登录成功
-    fun handleLoginSuccess() {
-        loadingState = 2
-        
+    // 标记是否正在等待 /xg/ 页面加载以获取 SESSION
+    var waitingForXgSession by remember { mutableStateOf(false) }
+    
+    // 处理登录成功（从 /xg/ 页面获取 SESSION 后调用）
+    fun finalizeLogin() {
         val cookieManager = CookieManager.getInstance()
         val cookies = cookieManager.getCookie("https://qfhy.suse.edu.cn")
         
-        println("[QrCode] 获取到的cookies: $cookies")
+        println("[QrCode] finalizeLogin - cookies: $cookies")
         
         if (!cookies.isNullOrBlank()) {
             val cookieMap = cookies.split(";")
@@ -71,12 +72,120 @@ fun QrCodeLoginDialog(
                 .toMap()
             
             if (cookieMap.containsKey("_sop_session_")) {
+                val hasSession = cookieMap.containsKey("SESSION")
+                println("[QrCode] 最终 cookies: ${cookieMap.keys}, 包含 SESSION: $hasSession")
                 loadingState = 3
                 onLoginSuccess(cookieMap)
                 return
             }
         }
         
+        loadingState = 4
+        errorMessage = "未能获取登录凭证"
+    }
+    
+    // 处理登录成功
+    fun handleLoginSuccess() {
+        println("[QrCode] handleLoginSuccess 进入, loadingState=$loadingState")
+        
+        // 防止重复调用
+        if (loadingState >= 2) {
+            println("[QrCode] handleLoginSuccess 被阻止 (loadingState >= 2)")
+            return
+        }
+        
+        loadingState = 2
+        println("[QrCode] handleLoginSuccess 设置 loadingState=2")
+        
+        val cookieManager = CookieManager.getInstance()
+        val cookies = cookieManager.getCookie("https://qfhy.suse.edu.cn")
+        
+        println("[QrCode] 获取到的cookies: $cookies")
+        println("[QrCode] handleLoginSuccess loadingState=$loadingState, waitingForXgSession=$waitingForXgSession")
+        
+        // 检查是否已有 SESSION
+        val hasSession = cookies?.contains("SESSION=") == true
+        println("[QrCode] hasSession=$hasSession")
+        
+        if (!cookies.isNullOrBlank()) {
+            val cookieMap = cookies.split(";")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .mapNotNull { cookie ->
+                    val parts = cookie.split("=", limit = 2)
+                    if (parts.size == 2) parts[0].trim() to parts[1].trim()
+                    else null
+                }
+                .toMap()
+            
+            println("[QrCode] cookieMap keys: ${cookieMap.keys}")
+            
+            if (cookieMap.containsKey("_sop_session_")) {
+                // 如果已有 SESSION，直接完成登录
+                if (hasSession) {
+                    println("[QrCode] 已有 SESSION，直接完成登录")
+                    loadingState = 3
+                    onLoginSuccess(cookieMap)
+                    return
+                }
+                
+                // 没有 SESSION，让 WebView 访问 /xg/ 页面来获取 SESSION
+                println("[QrCode] 没有 SESSION，尝试访问 /xg/ 页面获取...")
+                
+                // 从 JWT 中提取 openId
+                val sopSession = cookieMap["_sop_session_"] ?: ""
+                val openId = try {
+                    val parts = sopSession.split(".")
+                    if (parts.size >= 2) {
+                        val payloadJson = String(android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE))
+                        println("[QrCode] JWT payload: $payloadJson")
+                        
+                        // 使用 JSONObject 解析
+                        val jsonObj = org.json.JSONObject(payloadJson)
+                        val extraStr = jsonObj.optString("extra", "")
+                        println("[QrCode] extra: $extraStr")
+                        
+                        if (extraStr.isNotEmpty()) {
+                            val extraObj = org.json.JSONObject(extraStr)
+                            val id = extraObj.optString("openId", "")
+                            if (id.isNotEmpty()) id else null
+                        } else null
+                    } else null
+                } catch (e: Exception) {
+                    println("[QrCode] 提取 openId 失败: ${e.message}")
+                    e.printStackTrace()
+                    null
+                }
+                
+                println("[QrCode] 提取到的 openId: $openId")
+                
+                if (openId != null) {
+                    // 标记正在等待 /xg/ 页面加载
+                    waitingForXgSession = true
+                    loadingState = 0 // 重置状态允许后续调用
+                    
+                    // 让 WebView 访问 /xg/ 页面，这会触发 SSO 并设置 SESSION cookie
+                    val xgUrl = "https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id=$openId"
+                    println("[QrCode] 访问 /xg/ 页面: $xgUrl")
+                    webView?.loadUrl(xgUrl)
+                    return
+                } else {
+                    println("[QrCode] openId 为空，直接使用现有 cookies")
+                }
+                
+                // 无法获取 SESSION，使用现有 cookies
+                loadingState = 3
+                println("[QrCode] 最终 cookies (无 SESSION): ${cookieMap.keys}")
+                onLoginSuccess(cookieMap)
+                return
+            } else {
+                println("[QrCode] cookieMap 不包含 _sop_session_ 键!")
+            }
+        } else {
+            println("[QrCode] cookies 为空或 blank!")
+        }
+        
+        println("[QrCode] 到达函数末尾，设置错误状态")
         loadingState = 4
         errorMessage = "未能获取登录凭证"
     }
@@ -356,11 +465,22 @@ fun QrCodeLoginDialog(
                                         super.onPageFinished(view, url)
                                         println("[QrCode] 页面加载完成: $url")
                                         
+                                        // 如果正在等待 /xg/ 页面加载以获取 SESSION
+                                        if (waitingForXgSession && url?.contains("/xg/app/") == true) {
+                                            println("[QrCode] /xg/ 页面加载完成，等待 cookie 设置...")
+                                            waitingForXgSession = false
+                                            
+                                            // 等待一段时间确保 cookie 被设置，然后完成登录
+                                            mainHandler.postDelayed({
+                                                finalizeLogin()
+                                            }, 1000)
+                                            return
+                                        }
+                                        
                                         // 检测登录成功 - 扫码后会跳转离开二维码页面
-                                        if (url != null && !url.contains("qrcodelogin")) {
+                                        if (url != null && !url.contains("qrcodelogin") && !waitingForXgSession) {
                                             // 只要离开二维码页面就检查 cookies
                                             if (url.contains("/callback/edu/") || 
-                                                url.contains("/xg/app/") || 
                                                 url.endsWith("/edu/") ||
                                                 url.endsWith("/edu")) {
                                                 println("[QrCode] 检测到登录成功，URL: $url")

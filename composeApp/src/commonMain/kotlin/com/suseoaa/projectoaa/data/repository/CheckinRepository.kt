@@ -6,6 +6,7 @@ import com.suseoaa.projectoaa.data.network.ClearableCookieStorage
 import com.suseoaa.projectoaa.database.CourseDatabase
 import com.suseoaa.projectoaa.util.CheckinRSAEncryptor
 import io.ktor.client.call.*
+import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,8 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.jsonObject
@@ -374,11 +377,42 @@ class CheckinRepository(
                 return@withContext Result.failure(Exception("获取用户组失败 (${response.status.value})"))
             }
             
-            // 解析 {"errorMsg":null,"result":{"data":"_sudy2_XDH6iuWnV4=","total":1},"resultCode":0,"success":true}
+            // 解析响应，支持两种格式：
+            // 格式1: {"result":{"data":"_sudy2_XDH6iuWnV4=","total":1},...}  - data 是字符串
+            // 格式2: {"result":{"data":[{"code":"xxx"}],"total":1},...}  - data 是数组
             val jsonObj = json.parseToJsonElement(responseText).jsonObject
-            val groupCode = jsonObj["result"]?.jsonObject?.get("data")?.jsonPrimitive?.content
+            
+            // 检查 resultCode 和 success
+            val resultCode = try { jsonObj["resultCode"]?.jsonPrimitive?.content?.toIntOrNull() ?: -1 } catch (e: Exception) { -1 }
+            val success = try { jsonObj["success"]?.jsonPrimitive?.content?.toBoolean() ?: false } catch (e: Exception) { false }
+            if (resultCode != 0 || !success) {
+                val errorMsg = try { jsonObj["errorMsg"]?.jsonPrimitive?.content } catch (e: Exception) { null } ?: "未知错误"
+                println("[Checkin] API 返回失败: resultCode=$resultCode, success=$success, errorMsg=$errorMsg")
+                return@withContext Result.failure(Exception("获取用户组失败: $errorMsg"))
+            }
+            
+            val resultObj = jsonObj["result"]?.jsonObject
+            val dataElement = resultObj?.get("data")
+            
+            val groupCode: String? = when {
+                // 格式1: data 是字符串
+                dataElement is JsonPrimitive -> {
+                    try { dataElement.content } catch (e: Exception) { null }
+                }
+                // 格式2: data 是数组，取第一个元素的 code
+                dataElement is JsonArray -> {
+                    try {
+                        dataElement.firstOrNull()?.jsonObject?.get("code")?.jsonPrimitive?.content
+                    } catch (e: Exception) { null }
+                }
+                else -> {
+                    println("[Checkin] 无法解析 data 字段，类型未知: $dataElement")
+                    null
+                }
+            }
             
             if (groupCode.isNullOrBlank()) {
+                println("[Checkin] 用户组编码为空，响应内容: $responseText")
                 return@withContext Result.failure(Exception("用户组编码为空"))
             }
             
@@ -480,6 +514,64 @@ class CheckinRepository(
     }
     
     /**
+     * 从 _sop_session_ JWT 中提取用户信息（学号和姓名）
+     * JWT payload 结构:
+     * {
+     *   "uid": "23341010304",  // 学号
+     *   "ticket": "xxx",
+     *   "extra": "{\"userName\":\"张三\",\"openId\":\"xxx\",...}"
+     * }
+     * 返回 Pair<studentId, name>
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    fun extractUserInfoFromSopSession(sopSessionValue: String): Pair<String, String>? {
+        try {
+            val parts = sopSessionValue.split(".")
+            if (parts.size != 3) {
+                println("[Checkin] JWT 格式错误，parts.size=${parts.size}")
+                return null
+            }
+            
+            val payload = parts[1]
+            val paddedPayload = when (payload.length % 4) {
+                2 -> payload + "=="
+                3 -> payload + "="
+                else -> payload
+            }
+            val decodedPayload = Base64.UrlSafe.decode(paddedPayload).decodeToString()
+            println("[Checkin] extractUserInfo JWT payload: $decodedPayload")
+            
+            val payloadJson = json.parseToJsonElement(decodedPayload).jsonObject
+            
+            // 提取学号 (uid)
+            val uid = payloadJson["uid"]?.jsonPrimitive?.content
+            if (uid.isNullOrBlank()) {
+                println("[Checkin] uid 字段为空")
+                return null
+            }
+            
+            // 尝试从 extra 中提取姓名
+            var userName = ""
+            val extraString = payloadJson["extra"]?.jsonPrimitive?.content
+            if (!extraString.isNullOrBlank()) {
+                try {
+                    val extraJson = json.parseToJsonElement(extraString).jsonObject
+                    userName = extraJson["userName"]?.jsonPrimitive?.content ?: ""
+                } catch (e: Exception) {
+                    println("[Checkin] 解析 extra 获取 userName 失败: ${e.message}")
+                }
+            }
+            
+            println("[Checkin] 从 JWT 提取到用户信息: uid=$uid, userName=$userName")
+            return Pair(uid, userName)
+        } catch (e: Exception) {
+            println("[Checkin] 提取用户信息失败: ${e.message}")
+            e.printStackTrace()
+            return null
+        }
+    }
+    
+    /**
      * 从 Cookie 字符串中提取 _sop_session_ 的值
      */
     private fun extractSopSessionValue(cookies: String): String? {
@@ -521,21 +613,46 @@ class CheckinRepository(
             if (openId != null) {
                 println("[Checkin] 方法1: 访问 /xg/ 页面...")
                 try {
-                    val xgResponse = api.accessXgPage(sopSessionCookie, openId)
-                    println("[Checkin] /xg/ 页面响应状态: ${xgResponse.status.value}")
+                    var currentCookies = sopSessionCookie
+                    var response = api.accessXgPage(currentCookies, openId)
+                    println("[Checkin] /xg/ 页面响应状态: ${response.status.value}")
                     
-                    // 打印所有响应头
-                    println("[Checkin] /xg/ 响应头:")
-                    xgResponse.headers.forEach { name, values ->
-                        values.forEach { value ->
-                            println("  $name: ${value.take(100)}")
+                    // 收集所有响应的 Set-Cookie
+                    val allSetCookies = mutableListOf<String>()
+                    response.headers.getAll("Set-Cookie")?.let { allSetCookies.addAll(it) }
+                    
+                    // 手动跟随重定向（最多 5 次）
+                    var redirectCount = 0
+                    while (response.status.value in 301..303 && redirectCount < 5) {
+                        val location = response.headers["Location"]
+                        if (location.isNullOrBlank()) break
+                        
+                        // 从 Set-Cookie 提取新的 cookie
+                        response.headers.getAll("Set-Cookie")?.forEach { setCookie ->
+                            allSetCookies.add(setCookie)
+                            // 提取 cookie 名=值
+                            val cookiePair = setCookie.substringBefore(";").trim()
+                            if (!currentCookies.contains(cookiePair.substringBefore("="))) {
+                                currentCookies = "$currentCookies; $cookiePair"
+                            }
                         }
+                        
+                        println("[Checkin] 重定向 ${redirectCount + 1}: $location")
+                        
+                        // 跟随重定向
+                        response = api.httpClient.get(location) {
+                            header("Cookie", currentCookies)
+                            header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                            header("User-Agent", "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                        }
+                        response.headers.getAll("Set-Cookie")?.let { allSetCookies.addAll(it) }
+                        redirectCount++
                     }
                     
-                    // 检查 Set-Cookie
-                    val xgSetCookies = xgResponse.headers.getAll("Set-Cookie")
+                    println("[Checkin] 收集到的 Set-Cookie: ${allSetCookies.size} 个")
                     
-                    sessionValue = xgSetCookies?.find { it.contains("SESSION=") }
+                    // 从所有 Set-Cookie 中查找 SESSION
+                    sessionValue = allSetCookies.find { it.contains("SESSION=") }
                         ?.let { cookie ->
                             val match = Regex("SESSION=([^;]+)").find(cookie)
                             match?.groupValues?.get(1)
@@ -547,6 +664,8 @@ class CheckinRepository(
                         sessionValue = storageCookies.find { it.name == "SESSION" }?.value
                         println("[Checkin] 从 cookie storage 获取 SESSION: ${sessionValue?.take(20)}...")
                     }
+                    
+                    println("[Checkin] 方法1 结果: SESSION=${sessionValue?.take(20)}...")
                 } catch (e: Exception) {
                     println("[Checkin] 访问 /xg/ 页面异常: ${e.message}")
                 }
@@ -653,6 +772,11 @@ class CheckinRepository(
             val openId = extractSopSessionValue(cookies)?.let { extractOpenIdFromSopSession(it) }
             println("[Checkin] 提取到的 openId: $openId")
             
+            // 如果没有 openId，这是一个严重问题，很可能会导致后续请求失败
+            if (openId.isNullOrBlank()) {
+                println("[Checkin] 警告: 无法从 _sop_session_ 提取 openId，这可能导致认证失败")
+            }
+            
             // 首先检查是否已有 SESSION cookie
             val hasSession = cookies.contains("SESSION=")
             var effectiveCookies = cookies
@@ -664,14 +788,20 @@ class CheckinRepository(
                 val ssoResult = completeSsoWithSopSession(cookies)
                 if (ssoResult.isSuccess) {
                     effectiveCookies = ssoResult.getOrThrow()
-                    println("[Checkin] SSO 成功，获取到完整 cookies")
+                    println("[Checkin] SSO 成功，获取到完整 cookies: ${effectiveCookies.take(100)}...")
                 } else {
-                    println("[Checkin] SSO 失败: ${ssoResult.exceptionOrNull()?.message}")
-                    // 继续尝试使用原始 cookies，可能服务器有特殊处理
+                    val ssoError = ssoResult.exceptionOrNull()?.message
+                    println("[Checkin] SSO 失败: $ssoError")
+                    // 仍然尝试继续，但记录更详细的信息
+                    println("[Checkin] 继续尝试使用原始 cookies (可能会失败)")
                 }
             } else {
                 println("[Checkin] 已有 SESSION cookie")
             }
+            
+            // 打印最终使用的 cookie（脱敏）
+            println("[Checkin] 最终 cookies 包含 SESSION: ${effectiveCookies.contains("SESSION=")}")
+            println("[Checkin] 最终 cookies 包含 _sop_session_: ${effectiveCookies.contains("_sop_session_=")}")
             
             // 1. 获取用户组编码（传入 openId 用于 Referer）
             val groupCodeResult = getGroupIdentityWithCookies(effectiveCookies, openId)

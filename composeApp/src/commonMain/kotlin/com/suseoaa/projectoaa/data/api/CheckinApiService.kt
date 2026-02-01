@@ -16,7 +16,7 @@ import io.ktor.http.*
  * 3. 获取待签任务列表 (GET /site/qddk/qdrw/api/myList.rst?status=1)
  * 4. 执行打卡 (POST /site/app/base/common/api/group/{group_code}/qddk/set.rst)
  */
-class CheckinApiService(private val httpClient: HttpClient) {
+class CheckinApiService(val httpClient: HttpClient) {
 
     companion object {
         private const val UIAS_BASE = "https://uias.suse.edu.cn"

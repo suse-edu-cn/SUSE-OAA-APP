@@ -509,74 +509,105 @@ class CheckinViewModel(
             val cookieString = cookies.entries.joinToString("; ") { "${it.key}=${it.value}" }
             println("[Checkin] WebView 登录成功，Cookie: $cookieString")
             
-            // 使用 Cookie 获取用户信息
-            val userInfoResult = repository.getEduUserInfoWithCookies(cookieString)
+            var studentId: String? = null
+            var studentName: String = ""
             
-            if (userInfoResult.isSuccess) {
-                val userInfo = userInfoResult.getOrThrow()
-                val studentId = userInfo.code
-                val studentName = userInfo.name ?: ""
-                
-                if (studentId.isNullOrBlank()) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "获取学号失败"
-                        )
-                    }
-                    return@launch
+            // 优先尝试从 _sop_session_ JWT 中提取用户信息
+            val sopSession = cookies["_sop_session_"]
+            if (!sopSession.isNullOrBlank()) {
+                val userInfo = repository.extractUserInfoFromSopSession(sopSession)
+                if (userInfo != null) {
+                    studentId = userInfo.first
+                    studentName = userInfo.second
+                    println("[Checkin] 从 JWT 获取到用户信息: $studentId, $studentName")
                 }
+            }
+            
+            // 如果 JWT 中没有获取到，尝试调用 API
+            if (studentId.isNullOrBlank()) {
+                println("[Checkin] JWT 中未获取到学号，尝试调用 API...")
+                val userInfoResult = repository.getEduUserInfoWithCookies(cookieString)
                 
-                println("[Checkin] 获取到用户信息: $studentId, $studentName")
-                
-                // 检查账号是否已存在
-                if (repository.isAccountExists(studentId)) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "该学号账号已存在"
-                        )
-                    }
-                    return@launch
-                }
-                
-                // 保存账号
-                val now = Clock.System.now()
-                    .toLocalDateTime(TimeZone.of("Asia/Shanghai"))
-                val expireTime = "${now.date.plus(kotlinx.datetime.DatePeriod(days = 7))} ${now.time}"
-                
-                val result = repository.addQrCodeAccount(
-                    studentId = studentId,
-                    name = studentName,
-                    sessionToken = cookieString,
-                    sessionExpireTime = expireTime,
-                    selectedLocation = CheckinLocations.DEFAULT.name
-                )
-                
-                if (result.isSuccess) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            showWebViewLoginDialog = false,
-                            successMessage = "账号添加成功！学号: $studentId, 姓名: $studentName",
-                            scannedUserInfo = null,
-                            scannedCookies = null
-                        )
-                    }
-                    loadAccounts()
+                if (userInfoResult.isSuccess) {
+                    val userInfo = userInfoResult.getOrThrow()
+                    studentId = userInfo.code
+                    studentName = userInfo.name ?: ""
+                    println("[Checkin] 从 API 获取到用户信息: $studentId, $studentName")
                 } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "添加账号失败: ${result.exceptionOrNull()?.message}"
-                        )
-                    }
+                    println("[Checkin] API 获取用户信息失败: ${userInfoResult.exceptionOrNull()?.message}")
                 }
+            }
+            
+            // 检查是否获取到学号
+            if (studentId.isNullOrBlank()) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "获取学号失败，请确保已完成微信扫码授权"
+                    )
+                }
+                return@launch
+            }
+            
+            println("[Checkin] 最终用户信息: studentId=$studentId, name=$studentName")
+            
+            // 检查账号是否已存在
+            val exists = repository.isAccountExists(studentId)
+            println("[Checkin] 账号是否已存在: $exists")
+            
+            if (exists) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "该学号账号已存在"
+                    )
+                }
+                return@launch
+            }
+            
+            // 在保存账号前，先完成 SSO 认证获取完整的 cookies（包含 SESSION）
+            var fullCookies = cookieString
+            if (!cookieString.contains("SESSION=")) {
+                println("[Checkin] 尝试完成 SSO 获取 SESSION...")
+                val ssoResult = repository.completeSsoWithSopSession(cookieString)
+                if (ssoResult.isSuccess) {
+                    fullCookies = ssoResult.getOrThrow()
+                    println("[Checkin] SSO 成功，获取到完整 cookies")
+                } else {
+                    println("[Checkin] SSO 获取 SESSION 失败: ${ssoResult.exceptionOrNull()?.message}")
+                    // 仍然继续保存，后续签到时会再次尝试 SSO
+                }
+            }
+            
+            // 保存账号
+            val now = Clock.System.now()
+                .toLocalDateTime(TimeZone.of("Asia/Shanghai"))
+            val expireTime = "${now.date.plus(kotlinx.datetime.DatePeriod(days = 7))} ${now.time}"
+            
+            val result = repository.addQrCodeAccount(
+                studentId = studentId,
+                name = studentName,
+                sessionToken = fullCookies,
+                sessionExpireTime = expireTime,
+                selectedLocation = CheckinLocations.DEFAULT.name
+            )
+            
+            if (result.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        showWebViewLoginDialog = false,
+                        successMessage = "账号添加成功！学号: $studentId, 姓名: $studentName",
+                        scannedUserInfo = null,
+                        scannedCookies = null
+                    )
+                }
+                loadAccounts()
             } else {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = "获取用户信息失败: ${userInfoResult.exceptionOrNull()?.message}"
+                        errorMessage = "添加账号失败: ${result.exceptionOrNull()?.message}"
                     )
                 }
             }
