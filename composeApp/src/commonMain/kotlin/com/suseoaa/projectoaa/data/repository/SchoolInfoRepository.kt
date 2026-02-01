@@ -8,6 +8,8 @@ import com.suseoaa.projectoaa.database.CourseDatabase
 import com.suseoaa.projectoaa.database.ExamCache
 import com.suseoaa.projectoaa.database.MessageCache
 import com.suseoaa.projectoaa.presentation.academic.ExamResponse
+import com.suseoaa.projectoaa.presentation.exam.ExamApiItem
+import com.suseoaa.projectoaa.presentation.exam.ExamApiResponse
 import com.suseoaa.projectoaa.util.HtmlParser
 import com.suseoaa.projectoaa.util.getCurrentTerm
 import io.ktor.client.call.*
@@ -28,7 +30,14 @@ data class ExamCacheEntity(
     val studentId: String,
     val courseName: String,
     val time: String,
-    val location: String
+    val location: String,
+    val credit: String = "",
+    val examType: String = "考试",
+    val examName: String = "",
+    val yearSemester: String = "",
+    val isCustom: Boolean = false,
+    val xnm: String = "",
+    val xqm: String = ""
 )
 
 /**
@@ -77,6 +86,8 @@ class SchoolInfoRepository(
                 // 2. 自动重试（检查是否需要登录）
                 val contentType = response.headers["Content-Type"] ?: ""
                 if (!response.status.value.let { it == 200 } || contentType.contains("html")) {
+                    // 先使当前 session 失效，再重新登录
+                    authRepository.invalidateSession()
                     authRepository.login(account.studentId, account.password)
                     response = api.getExamList(xnm, xqm)
                 }
@@ -86,6 +97,13 @@ class SchoolInfoRepository(
                     val bodyText = response.bodyAsText()
                     val examResponse = json.decodeFromString<ExamResponse>(bodyText)
                     val items = examResponse.items ?: emptyList()
+
+                    val semesterName = when (xqm) {
+                        "3" -> "第1学期"
+                        "12" -> "第2学期"
+                        "16" -> "第3学期"
+                        else -> "第?学期"
+                    }
 
                     val entities = items.map { item ->
                         val name = item.kcmc ?: "未知课程"
@@ -98,10 +116,17 @@ class SchoolInfoRepository(
                             studentId = account.studentId,
                             courseName = name,
                             time = time,
-                            location = location
+                            location = location,
+                            credit = item.xf ?: "",
+                            examType = item.khfs ?: "考试",
+                            examName = item.ksmc ?: "",
+                            yearSemester = "${item.xnmc ?: ""} $semesterName",
+                            isCustom = false,
+                            xnm = xnm,
+                            xqm = xqm
                         )
                     }
-                    updateExams(account.studentId, entities)
+                    updateExams(account.studentId, entities, xnm, xqm)
                     Result.success("刷新成功")
                 } else {
                     Result.failure(Exception("获取考试信息失败: ${response.status.value}"))
@@ -113,22 +138,127 @@ class SchoolInfoRepository(
         }
 
     /**
-     * 更新考试缓存
+     * 根据学期获取考试信息（不缓存，直接返回）
      */
-    private suspend fun updateExams(studentId: String, exams: List<ExamCacheEntity>) =
+    suspend fun fetchExamsByTerm(
+        account: CourseAccountEntity,
+        year: String,
+        semester: String
+    ): Result<List<ExamApiItem>> = withContext(Dispatchers.IO) {
+        try {
+            // 1. 发起请求
+            var response = api.getExamList(year, semester)
+
+            // 2. 自动重试（检查是否需要登录）
+            val contentType = response.headers["Content-Type"] ?: ""
+            if (!response.status.value.let { it == 200 } || contentType.contains("html")) {
+                // 先使当前 session 失效，再重新登录
+                authRepository.invalidateSession()
+                authRepository.login(account.studentId, account.password)
+                response = api.getExamList(year, semester)
+            }
+
+            // 3. 解析响应
+            if (response.status.value == 200) {
+                val bodyText = response.bodyAsText()
+                val examResponse = json.decodeFromString<ExamApiResponse>(bodyText)
+                Result.success(examResponse.items ?: emptyList())
+            } else {
+                Result.failure(Exception("获取考试信息失败: ${response.status.value}"))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 更新考试缓存（保留自定义考试）
+     */
+    private suspend fun updateExams(studentId: String, exams: List<ExamCacheEntity>, xnm: String, xqm: String) =
         withContext(Dispatchers.IO) {
             database.transaction {
-                database.examCacheQueries.deleteByStudent(studentId)
+                // 只删除非自定义的考试信息
+                database.examCacheQueries.deleteNonCustomByStudentAndSemester(studentId, xnm, xqm)
                 exams.forEach { exam ->
                     database.examCacheQueries.insert(
                         studentId = exam.studentId,
                         courseName = exam.courseName,
                         time = exam.time,
-                        location = exam.location
+                        location = exam.location,
+                        credit = exam.credit,
+                        examType = exam.examType,
+                        examName = exam.examName,
+                        yearSemester = exam.yearSemester,
+                        isCustom = if (exam.isCustom) 1L else 0L,
+                        xnm = exam.xnm,
+                        xqm = exam.xqm
                     )
                 }
             }
         }
+
+    /**
+     * 添加自定义考试
+     */
+    suspend fun addCustomExam(exam: ExamCacheEntity) = withContext(Dispatchers.IO) {
+        database.examCacheQueries.insert(
+            studentId = exam.studentId,
+            courseName = exam.courseName,
+            time = exam.time,
+            location = exam.location,
+            credit = exam.credit,
+            examType = exam.examType,
+            examName = exam.examName,
+            yearSemester = exam.yearSemester,
+            isCustom = 1L,
+            xnm = exam.xnm,
+            xqm = exam.xqm
+        )
+    }
+
+    /**
+     * 更新考试信息
+     */
+    suspend fun updateExam(exam: ExamCacheEntity) = withContext(Dispatchers.IO) {
+        database.examCacheQueries.updateById(
+            courseName = exam.courseName,
+            time = exam.time,
+            location = exam.location,
+            credit = exam.credit,
+            examType = exam.examType,
+            examName = exam.examName,
+            yearSemester = exam.yearSemester,
+            id = exam.id
+        )
+    }
+
+    /**
+     * 删除考试信息
+     */
+    suspend fun deleteExam(examId: Long) = withContext(Dispatchers.IO) {
+        database.examCacheQueries.deleteById(examId)
+    }
+
+    /**
+     * 获取指定学期的自定义考试信息（同步方法）
+     */
+    suspend fun getCustomExamsBySemester(studentId: String, xnm: String, xqm: String): List<ExamCacheEntity> =
+        withContext(Dispatchers.IO) {
+            database.examCacheQueries.selectCustomByStudentAndSemester(studentId, xnm, xqm)
+                .executeAsList()
+                .map { it.toEntity() }
+        }
+
+    /**
+     * 观察指定学期的考试信息
+     */
+    fun observeExamsBySemester(studentId: String, xnm: String, xqm: String): Flow<List<ExamCacheEntity>> {
+        return database.examCacheQueries.selectByStudentAndSemester(studentId, xnm, xqm)
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { list -> list.map { it.toEntity() } }
+    }
 
     // ==================== 调课通知 (缓存+网络) ====================
 
@@ -155,6 +285,8 @@ class SchoolInfoRepository(
                 var bodyString = response.bodyAsText()
 
                 if (response.status.value == 901 || response.status.value == 302 || isLoginRequired(bodyString)) {
+                    // 先使当前 session 失效，再重新登录
+                    authRepository.invalidateSession()
                     val loginResult = authRepository.login(account.studentId, account.password)
                     if (loginResult.isFailure) return@withContext Result.failure(Exception("自动登录失败"))
                     response = api.getAcademicMessageInfo()
@@ -213,6 +345,8 @@ class SchoolInfoRepository(
             var bodyString = response.bodyAsText()
 
             if (response.status.value == 901 || response.status.value == 302 || isLoginRequired(bodyString)) {
+                // 先使当前 session 失效，再重新登录
+                authRepository.invalidateSession()
                 val loginResult = authRepository.login(account.studentId, account.password)
                 if (loginResult.isFailure) return@withContext Result.failure(Exception("自动登录失败"))
 
@@ -245,7 +379,14 @@ private fun ExamCache.toEntity() = ExamCacheEntity(
     studentId = studentId,
     courseName = courseName,
     time = time,
-    location = location
+    location = location,
+    credit = credit,
+    examType = examType,
+    examName = examName,
+    yearSemester = yearSemester,
+    isCustom = isCustom == 1L,
+    xnm = xnm,
+    xqm = xqm
 )
 
 /**

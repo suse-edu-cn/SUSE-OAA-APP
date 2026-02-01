@@ -4,22 +4,55 @@ CREATE TABLE ExamCache (
     studentId TEXT NOT NULL,
     courseName TEXT NOT NULL,
     time TEXT NOT NULL,
-    location TEXT NOT NULL
+    location TEXT NOT NULL,
+    credit TEXT NOT NULL DEFAULT '',
+    examType TEXT NOT NULL DEFAULT '考试',
+    examName TEXT NOT NULL DEFAULT '',
+    yearSemester TEXT NOT NULL DEFAULT '',
+    isCustom INTEGER NOT NULL DEFAULT 0,
+    xnm TEXT NOT NULL DEFAULT '',
+    xqm TEXT NOT NULL DEFAULT ''
 );
 
 -- 创建索引
 CREATE INDEX idx_exam_student ON ExamCache(studentId);
+CREATE INDEX idx_exam_semester ON ExamCache(studentId, xnm, xqm);
 
 -- 查询指定学生的考试信息
 selectByStudent:
 SELECT * FROM ExamCache WHERE studentId = ?;
 
+-- 查询指定学生特定学期的考试信息
+selectByStudentAndSemester:
+SELECT * FROM ExamCache WHERE studentId = ? AND xnm = ? AND xqm = ?;
+
+-- 查询指定学生的自定义考试信息
+selectCustomByStudent:
+SELECT * FROM ExamCache WHERE studentId = ? AND isCustom = 1;
+
+-- 查询指定学生特定学期的自定义考试信息
+selectCustomByStudentAndSemester:
+SELECT * FROM ExamCache WHERE studentId = ? AND xnm = ? AND xqm = ? AND isCustom = 1;
+
 -- 插入考试信息
 insert:
-INSERT INTO ExamCache(studentId, courseName, time, location)
-VALUES (?, ?, ?, ?);
+INSERT INTO ExamCache(studentId, courseName, time, location, credit, examType, examName, yearSemester, isCustom, xnm, xqm)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 更新考试信息
+updateById:
+UPDATE ExamCache SET courseName = ?, time = ?, location = ?, credit = ?, examType = ?, examName = ?, yearSemester = ?
+WHERE id = ?;
+
+-- 删除指定考试
+deleteById:
+DELETE FROM ExamCache WHERE id = ?;
 
 -- 删除指定学生的所有考试信息
 deleteByStudent:
 DELETE FROM ExamCache WHERE studentId = ?;
+
+-- 删除指定学生特定学期的非自定义考试信息（用于刷新时）
+deleteNonCustomByStudentAndSemester:
+DELETE FROM ExamCache WHERE studentId = ? AND xnm = ? AND xqm = ? AND isCustom = 0;
 

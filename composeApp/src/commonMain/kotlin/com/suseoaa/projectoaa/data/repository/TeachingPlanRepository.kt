@@ -168,6 +168,8 @@ class TeachingPlanRepository(
             
             // 如果失败，尝试登录后重试
             if (result.isFailure) {
+                // 先使当前 session 失效，再重新登录
+                authRepository.invalidateSession()
                 authRepository.login(studentId, password)
                 result = getCourseInfoList(planId, suggestedYear, suggestedSemester, courseCode, studyType)
             }

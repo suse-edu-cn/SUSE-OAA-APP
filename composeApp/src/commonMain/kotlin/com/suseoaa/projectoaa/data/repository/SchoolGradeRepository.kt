@@ -256,6 +256,8 @@ class SchoolGradeRepository(
         return try {
             Result.success(block())
         } catch (e: SessionExpiredException) {
+            // 先使当前 session 失效，再重新登录
+            authRepository.invalidateSession()
             val loginResult = authRepository.login(account.studentId, account.password)
             if (loginResult.isSuccess) {
                 try {

@@ -10,28 +10,40 @@ import kotlinx.datetime.*
 
 /**
  * 解析考试时间字符串，返回开始时间和结束时间
- * 输入格式示例: "2026-01-08(09:30-11:30)"
+ * 支持格式: "2026-01-08(09:30-11:30)" 或 "2026-01-08 09:30-11:30"
  */
 fun parseExamTimeRange(timeStr: String): Pair<LocalDateTime, LocalDateTime>? {
     try {
-        // 1. 分割日期和时间段 -> ["2026-01-08", "09:30-11:30)"]
-        val parts = timeStr.split("(")
-        if (parts.size < 2) return null
+        val datePart: String
+        val timeRangePart: String
+        
+        if (timeStr.contains("(")) {
+            // 括号格式: "2026-01-08(09:30-11:30)"
+            val parts = timeStr.split("(")
+            if (parts.size < 2) return null
+            datePart = parts[0]
+            timeRangePart = parts[1].removeSuffix(")")
+        } else if (timeStr.contains(" ")) {
+            // 空格格式: "2026-01-08 09:30-11:30"
+            val parts = timeStr.split(" ", limit = 2)
+            if (parts.size < 2) return null
+            datePart = parts[0]
+            timeRangePart = parts[1]
+        } else {
+            return null
+        }
 
-        val datePart = parts[0]
-        val timeRangePart = parts[1].removeSuffix(")") // 去掉右括号
-
-        // 2. 解析日期
+        // 解析日期
         val date = LocalDate.parse(datePart)
 
-        // 3. 分割开始和结束时间 -> ["09:30", "11:30"]
+        // 分割开始和结束时间 -> ["09:30", "11:30"]
         val timeParts = timeRangePart.split("-")
         if (timeParts.size < 2) return null
 
         val startTime = LocalTime.parse(timeParts[0])
         val endTime = LocalTime.parse(timeParts[1])
 
-        // 4. 组合成 LocalDateTime
+        // 组合成 LocalDateTime
         return LocalDateTime(date, startTime) to LocalDateTime(date, endTime)
     } catch (e: Exception) {
         // 解析失败（如格式不对或"时间待定"）返回 null

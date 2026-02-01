@@ -213,7 +213,7 @@ fun AcademicScreen(
 }
 
 // 平板卡片固定高度常量（基于4条考试信息的高度）
-private val TABLET_CARD_HEIGHT = 280.dp
+private val TABLET_CARD_HEIGHT = 340.dp
 
 /**
  * 平板端调课信息卡片 - 固定高度，显示最新2条
@@ -330,8 +330,6 @@ private fun TabletMessageItem(
             text = message.content,
             style = MaterialTheme.typography.bodyMedium,
             color = textColor,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
             lineHeight = 20.sp
         )
         if (message.date > 0) {
@@ -428,22 +426,22 @@ fun TabletUpcomingExamsCard(
                         )
                     }
                 } else {
-                    // 显示最近4条
-                    examList.take(4).forEach { exam ->
+                    // 显示最近5条
+                    examList.take(5).forEach { exam ->
                         TabletExamRowItem(exam, textColor, subtextColor)
                     }
                     
-                    // 如果不足4条，填充空间
-                    if (examList.size < 4) {
+                    // 如果不足5条，填充空间
+                    if (examList.size < 5) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
             
             // 底部提示
-            if (examList.size > 4) {
+            if (examList.size > 5) {
                 Text(
-                    text = "还有 ${examList.size - 4} 场考试",
+                    text = "还有 ${examList.size - 5} 场考试",
                     style = MaterialTheme.typography.labelSmall,
                     color = primaryColor,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -481,8 +479,10 @@ private fun TabletExamRowItem(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 val timeStr = exam.time
-                val datePart = timeStr.substringBefore("(")
-                val parts = datePart.split("-")
+                // 兼容两种格式: "2024-06-15(09:00-11:00)" 或 "2024-06-15 09:00-11:00"
+                val datePart = timeStr.substringBefore("(").takeIf { it != timeStr }
+                    ?: timeStr.split(" ").firstOrNull() ?: ""
+                val parts = datePart.trim().split("-")
                 if (parts.size >= 3) {
                     Text(
                         text = parts[1], // 月
@@ -531,7 +531,7 @@ private fun TabletExamRowItem(
 }
 
 /**
- * 最新调课卡片
+ * 最新调课卡片 - 显示完整内容
  */
 @Composable
 fun ReschedulingCard(
@@ -539,7 +539,7 @@ fun ReschedulingCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val latestMessage = messageList.firstOrNull()?.content ?: "暂无最新调课通知"
+    val latestMessage = messageList.firstOrNull()
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -563,22 +563,41 @@ fun ReschedulingCard(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = "查看全部 >",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (messageList.size > 1) {
+                    Text(
+                        text = "共${messageList.size}条 >",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else if (messageList.isNotEmpty()) {
+                    Text(
+                        text = "查看详情 >",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
             )
-            Text(
-                text = latestMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (messageList.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
-            )
+            
+            if (latestMessage != null) {
+                // 显示完整的调课内容，不做截断
+                Text(
+                    text = latestMessage.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
+                )
+            } else {
+                Text(
+                    text = "暂无最新调课通知",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
+                )
+            }
         }
     }
 }

@@ -54,6 +54,16 @@ data class ExamItem(
     val cdmc: String? = "",   // 教室名称: "LA5-322"
     @SerialName("cdxqmc")
     val cdxqmc: String? = "", // 校区: "临港校区"
+    @SerialName("ksmc")
+    val ksmc: String? = "",   // 考试名称: "2025-2026-1 期末考试"
+    @SerialName("xnmc")
+    val xnmc: String? = "",   // 学年名称: "2025-2026"
+    @SerialName("xqm")
+    val xqm: String? = "",    // 学期码: "3"
+    @SerialName("khfs")
+    val khfs: String? = "",   // 考核方式: "考试"
+    @SerialName("xf")
+    val xf: String? = "",     // 学分: "3.0"
     @SerialName("zw")
     val zw: String? = "",     // 座位号
     @SerialName("xh")

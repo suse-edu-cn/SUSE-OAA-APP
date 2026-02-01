@@ -37,14 +37,14 @@ data class CheckinUiState(
 class CheckinViewModel(
     private val repository: CheckinRepository
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(CheckinUiState())
     val uiState: StateFlow<CheckinUiState> = _uiState.asStateFlow()
-    
+
     init {
         loadAccounts()
     }
-    
+
     /**
      * 加载所有账号
      */
@@ -55,7 +55,7 @@ class CheckinViewModel(
                 val accounts = repository.getAllAccounts()
                 _uiState.update { it.copy(accounts = accounts, isLoading = false) }
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         errorMessage = "加载账号失败: ${e.message}"
@@ -64,7 +64,7 @@ class CheckinViewModel(
             }
         }
     }
-    
+
     /**
      * 添加账号
      */
@@ -74,12 +74,12 @@ class CheckinViewModel(
                 _uiState.update { it.copy(errorMessage = "学号和密码不能为空") }
                 return@launch
             }
-            
+
             if (repository.isAccountExists(studentId)) {
                 _uiState.update { it.copy(errorMessage = "该学号已存在") }
                 return@launch
             }
-            
+
             val result = repository.addAccount(studentId, password, name, remark)
             if (result.isSuccess) {
                 _uiState.update { it.copy(successMessage = "添加成功", showAddDialog = false) }
@@ -89,7 +89,7 @@ class CheckinViewModel(
             }
         }
     }
-    
+
     /**
      * 更新账号
      */
@@ -99,10 +99,10 @@ class CheckinViewModel(
                 _uiState.update { it.copy(errorMessage = "学号和密码不能为空") }
                 return@launch
             }
-            
+
             val result = repository.updateAccount(id, studentId, password, name, remark)
             if (result.isSuccess) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         successMessage = "更新成功",
                         showEditDialog = false,
@@ -115,7 +115,7 @@ class CheckinViewModel(
             }
         }
     }
-    
+
     /**
      * 删除账号
      */
@@ -130,14 +130,14 @@ class CheckinViewModel(
             }
         }
     }
-    
+
     // ==================== 打卡操作（带验证码） ====================
-    
+
     /**
      * 开始打卡流程 - 显示验证码对话框
      */
     fun startCheckin(account: CheckinAccountData) {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 currentCheckingAccount = account,
                 showCaptchaDialog = true,
@@ -148,24 +148,24 @@ class CheckinViewModel(
         // 获取验证码
         refreshCaptcha()
     }
-    
+
     /**
      * 刷新验证码
      */
     fun refreshCaptcha() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingCaptcha = true) }
-            
+
             val result = repository.fetchCaptchaImage()
             if (result.isSuccess) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         captchaImageBytes = result.getOrNull(),
                         isLoadingCaptcha = false
                     )
                 }
             } else {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoadingCaptcha = false,
                         errorMessage = "获取验证码失败: ${result.exceptionOrNull()?.message}"
@@ -174,30 +174,30 @@ class CheckinViewModel(
             }
         }
     }
-    
+
     /**
      * 提交验证码并执行打卡
      */
     fun submitCaptchaAndCheckin(captchaCode: String) {
         val account = _uiState.value.currentCheckingAccount ?: return
-        
+
         if (captchaCode.isBlank()) {
             _uiState.update { it.copy(errorMessage = "请输入验证码") }
             return
         }
-        
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoggingIn = true) }
-            
+
             // 1. 登录
             val loginResult = repository.loginWithCaptcha(
                 username = account.studentId,
                 password = account.password,
                 captchaCode = captchaCode
             )
-            
+
             if (loginResult.isFailure) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoggingIn = false,
                         errorMessage = loginResult.exceptionOrNull()?.message ?: "登录失败"
@@ -207,7 +207,7 @@ class CheckinViewModel(
                 refreshCaptcha()
                 return@launch
             }
-            
+
             // 2. 执行打卡
             val checkinResult = repository.performCheckinAfterLogin(account)
             val message = when (checkinResult) {
@@ -216,8 +216,8 @@ class CheckinViewModel(
                 is CheckinResult.NoTask -> checkinResult.message
                 is CheckinResult.Failed -> checkinResult.error
             }
-            
-            _uiState.update { 
+
+            _uiState.update {
                 it.copy(
                     isLoggingIn = false,
                     showCaptchaDialog = false,
@@ -230,12 +230,12 @@ class CheckinViewModel(
             loadAccounts() // 刷新状态
         }
     }
-    
+
     /**
      * 取消打卡
      */
     fun cancelCheckin() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 showCaptchaDialog = false,
                 currentCheckingAccount = null,
@@ -245,25 +245,25 @@ class CheckinViewModel(
             )
         }
     }
-    
+
     // ==================== 对话框控制 ====================
-    
+
     fun showAddDialog() {
         _uiState.update { it.copy(showAddDialog = true) }
     }
-    
+
     fun hideAddDialog() {
         _uiState.update { it.copy(showAddDialog = false) }
     }
-    
+
     fun showEditDialog(account: CheckinAccountData) {
         _uiState.update { it.copy(showEditDialog = true, editingAccount = account) }
     }
-    
+
     fun hideEditDialog() {
         _uiState.update { it.copy(showEditDialog = false, editingAccount = null) }
     }
-    
+
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
