@@ -142,6 +142,26 @@ class CheckinApiService(private val httpClient: HttpClient) {
             header("appcode", "qddk")
         }
     }
+    
+    /**
+     * 获取打卡任务列表（使用 Cookie）
+     * @param status 任务状态：1=待签到, 2=已完成, 3=已缺勤
+     * @param cookies Cookie 字符串
+     * @param openId 微信 OpenID，用于 Referer 参数
+     */
+    suspend fun getTaskListWithCookies(status: Int = 1, cookies: String, openId: String? = null): HttpResponse {
+        val referer = if (openId != null) {
+            "$QFHY_BASE/xg/app/qddk/admin?open_id=$openId"
+        } else {
+            "$QFHY_BASE/xg/app/qddk/admin/qddkdk"
+        }
+        return httpClient.get("$TASK_LIST_BASE_URL?status=$status") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Cookie", cookies)
+            header("Referer", referer)
+            header("appcode", "qddk")
+        }
+    }
 
     /**
      * 执行签到
@@ -153,6 +173,259 @@ class CheckinApiService(private val httpClient: HttpClient) {
             header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
             header("appcode", "qddk")
             header("Content-Length", "0")
+        }
+    }
+
+    // ==================== 扫码登录相关 API ====================
+
+    /**
+     * 获取微信扫码登录的 ClientId
+     * GET https://qfhy.suse.edu.cn/edu/v2/weixin/getClientId
+     */
+    suspend fun getWechatClientId(): HttpResponse {
+        return httpClient.get("$QFHY_BASE/edu/v2/weixin/getClientId") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+        }
+    }
+
+    /**
+     * 获取微信扫码登录的二维码 URL
+     * POST https://qfhy.suse.edu.cn/edu/v2/weixin/getQrCodeUrl
+     */
+    suspend fun getWechatQrCodeUrl(appId: String, clientId: String): HttpResponse {
+        return httpClient.post("$QFHY_BASE/edu/v2/weixin/getQrCodeUrl") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Content-Type", "application/json")
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+            setBody("""{"app_id":"$appId","client_id":"$clientId"}""")
+        }
+    }
+
+    /**
+     * 处理微信扫码回调获取 Session
+     * GET https://qfhy.suse.edu.cn/callback/edu/?ybClientId=...
+     */
+    suspend fun handleWechatCallback(callbackUrl: String): HttpResponse {
+        return httpClient.get(callbackUrl) {
+            header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+        }
+    }
+
+    /**
+     * 检查微信扫码登录状态（轮询）
+     * POST https://qfhy.suse.edu.cn/edu/v2/weixin/checkScan
+     */
+    suspend fun checkWechatScanStatus(clientId: String): HttpResponse {
+        return httpClient.post("$QFHY_BASE/edu/v2/weixin/checkScan") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Content-Type", "application/json")
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+            setBody("""{"client_id":"$clientId"}""")
+        }
+    }
+
+    /**
+     * 获取用户信息（使用 edu API）
+     * GET https://qfhy.suse.edu.cn/edu/api/v1/user/getinfo
+     */
+    suspend fun getEduUserInfo(): HttpResponse {
+        return httpClient.get("$QFHY_BASE/edu/api/v1/user/getinfo") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+        }
+    }
+    
+    /**
+     * 获取用户信息（使用自定义 Cookie）
+     * GET https://qfhy.suse.edu.cn/edu/api/v1/user/getinfo
+     * 用于 WebView 扫码登录后获取用户信息
+     */
+    suspend fun getEduUserInfoWithCookies(cookies: String): HttpResponse {
+        return httpClient.get("$QFHY_BASE/edu/api/v1/user/getinfo") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Content-Type", "application/json")
+            header("Cookie", cookies)
+            header("Referer", "$QFHY_BASE/edu/admin/")
+        }
+    }
+    
+    /**
+     * 获取用户当前信息（qfhy site API）
+     * GET https://qfhy.suse.edu.cn/site/app/base/common/api/user/current.rst
+     * 用于获取 652 签到所需的用户信息
+     */
+    suspend fun getUserCurrentWithCookies(cookies: String): HttpResponse {
+        return httpClient.get("$QFHY_BASE/site/app/base/common/api/user/current.rst") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Cookie", cookies)
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+        }
+    }
+    
+    /**
+     * 获取用户组身份（用于签到）
+     * GET https://qfhy.suse.edu.cn/site/app/base/common/api/group/qddk/identity.rst
+     * 
+     * 重要：根据 HAR 分析，Referer 必须包含 open_id 参数才能正常认证
+     * 格式：https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id=xxx
+     */
+    suspend fun getGroupIdentityWithCookies(cookies: String, openId: String? = null): HttpResponse {
+        val referer = if (openId != null) {
+            "$QFHY_BASE/xg/app/qddk/admin?open_id=$openId"
+        } else {
+            "$QFHY_BASE/xg/app/qddk/admin/qddkdk"
+        }
+        return httpClient.get("$QFHY_BASE/site/app/base/common/api/group/qddk/identity.rst") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Cookie", cookies)
+            header("Referer", referer)
+            header("appcode", "qddk")
+        }
+    }
+    
+    /**
+     * 使用 ticket 完成 SSO 认证
+     * 从 _sop_session_ JWT 中提取的 ticket 可以用来获取 SESSION cookie
+     * GET https://qfhy.suse.edu.cn/site/appware/system/sso/login?ticket=xxx&target=xxx
+     */
+    suspend fun completeSsoWithTicket(ticket: String, sopSessionCookie: String): HttpResponse {
+        val targetUrl = "$QFHY_BASE/xg/app/qddk/admin/qddkdk"
+        return httpClient.get("$QFHY_BASE/site/appware/system/sso/login") {
+            parameter("ticket", ticket)
+            parameter("target", targetUrl)
+            header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Cookie", sopSessionCookie)
+            header("Referer", "$QFHY_BASE/edu/")
+        }
+    }
+    
+    /**
+     * 访问 /xg/ 签到页面，触发 SESSION cookie 生成
+     * 根据 HAR 分析，访问 /xg/app/qddk/admin?open_id=xxx 页面会自动设置 SESSION
+     * 这是从 /edu/ 跳转到 /xg/ 时的关键步骤
+     */
+    suspend fun accessXgPage(sopSessionCookie: String, openId: String): HttpResponse {
+        return httpClient.get("$QFHY_BASE/xg/app/qddk/admin") {
+            parameter("open_id", openId)
+            header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Cookie", sopSessionCookie)
+            header("Referer", "$QFHY_BASE/edu/")
+            header("User-Agent", "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+        }
+    }
+    
+    /**
+     * 访问 /site/user/current API 来初始化 SESSION
+     * 这个 API 可能会自动创建 SESSION
+     */
+    suspend fun initSiteSession(sopSessionCookie: String, openId: String): HttpResponse {
+        val referer = "$QFHY_BASE/xg/app/qddk/admin?open_id=$openId"
+        return httpClient.get("$QFHY_BASE/site/app/base/common/api/user/current.rst") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Cookie", sopSessionCookie)
+            header("Referer", referer)
+            header("appcode", "qddk")
+        }
+    }
+    
+    /**
+     * 执行签到（使用 Cookie）
+     * POST https://qfhy.suse.edu.cn/site/app/base/common/api/group/{groupCode}/qddk/set.rst
+     * 
+     * 重要：根据 HAR 分析，Referer 必须包含 open_id 参数
+     */
+    suspend fun submitCheckinWithCookies(groupCode: String, cookies: String, openId: String? = null): HttpResponse {
+        val referer = if (openId != null) {
+            "$QFHY_BASE/xg/app/qddk/admin?open_id=$openId"
+        } else {
+            "$QFHY_BASE/xg/app/qddk/admin/qddkdk"
+        }
+        return httpClient.post("$CHECKIN_BASE_URL/$groupCode/qddk/set.rst") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Cookie", cookies)
+            header("Referer", referer)
+            header("appcode", "qddk")
+            header("Content-Length", "0")
+        }
+    }
+
+    // ==================== 基于位置的签到 API（扫码登录使用）====================
+
+    /**
+     * 获取打卡任务列表（使用 Cookie）
+     * GET /site/qddk/qdrw/api/myList.rst?status={status}
+     * @param cookies 完整的 Cookie 字符串（包含 SESSION 和 _sop_session_）
+     * @param status 任务状态：1=待签到（未打卡）, 2=已完成（已打卡）, 3=已缺勤
+     */
+    suspend fun getTaskListWithCookies(cookies: String, status: Int = 1): HttpResponse {
+        return httpClient.get("$QFHY_BASE/site/qddk/qdrw/api/myList.rst?status=$status") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Cookie", cookies)
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+            header("appcode", "qddk")
+        }
+    }
+
+    /**
+     * 获取待签到任务列表（未打卡）
+     * 使用扫码登录的 Session 调用
+     */
+    suspend fun getPendingTasksWithSession(sessionToken: String): HttpResponse {
+        return getTaskListWithCookies(sessionToken, status = 1)
+    }
+    
+    /**
+     * 获取已完成任务列表（已打卡）
+     */
+    suspend fun getCompletedTasksWithCookies(cookies: String): HttpResponse {
+        return getTaskListWithCookies(cookies, status = 2)
+    }
+    
+    /**
+     * 获取已缺勤任务列表
+     */
+    suspend fun getAbsentTasksWithCookies(cookies: String): HttpResponse {
+        return getTaskListWithCookies(cookies, status = 3)
+    }
+
+    /**
+     * 获取签到任务详情
+     * GET /site/qddk/qdrw/qdxx/api/detailList.rst?qdrwId={taskId}
+     */
+    suspend fun getTaskDetailWithSession(sessionToken: String, taskId: Long): HttpResponse {
+        return httpClient.get("$QFHY_BASE/site/qddk/qdrw/qdxx/api/detailList.rst?qdrwId=$taskId") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Cookie", "SESSION=$sessionToken")
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+            header("appcode", "qddk")
+        }
+    }
+
+    /**
+     * 提交位置签到
+     * POST /site/qddk/qdrw/api/checkSignLocationWithPhoto.rst
+     */
+    suspend fun submitLocationCheckin(
+        sessionToken: String,
+        requestBody: String
+    ): HttpResponse {
+        return httpClient.post("$QFHY_BASE/site/qddk/qdrw/api/checkSignLocationWithPhoto.rst") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Content-Type", "application/json")
+            header("Cookie", "SESSION=$sessionToken")
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+            header("appcode", "qddk")
+            setBody(requestBody)
         }
     }
 }

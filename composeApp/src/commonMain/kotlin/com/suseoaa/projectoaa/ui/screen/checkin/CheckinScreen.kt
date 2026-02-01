@@ -30,13 +30,55 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
 import com.suseoaa.projectoaa.data.model.CheckinAccountData
+import com.suseoaa.projectoaa.data.model.CheckinLocations
 import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
+import com.suseoaa.projectoaa.presentation.checkin.QrCodeScanStatus
 import org.koin.compose.viewmodel.koinViewModel
 
-// 打卡状态颜色
-private val SuccessGreen = Color(0xFF4CAF50)
-private val InfoBlue = Color(0xFF2196F3)
-private val ErrorRed = Color(0xFFF44336)
+// 自定义颜色 - 适配暗色模式
+@Composable
+private fun getTaskPendingColor() = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+    Color(0xFF90CAF9) // 浅蓝色 - 暗色模式
+} else {
+    Color(0xFF1976D2) // 深蓝色 - 亮色模式
+}
+
+@Composable
+private fun getTaskCompletedColor() = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+    Color(0xFF81C784) // 浅绿色 - 暗色模式
+} else {
+    Color(0xFF388E3C) // 深绿色 - 亮色模式
+}
+
+@Composable
+private fun getTaskAbsentColor() = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+    Color(0xFFE57373) // 浅红色 - 暗色模式
+} else {
+    Color(0xFFD32F2F) // 深红色 - 亮色模式
+}
+
+@Composable
+private fun getTaskPendingBgColor() = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+    Color(0xFF1E3A5F) // 暗蓝色背景
+} else {
+    Color(0xFFE3F2FD) // 浅蓝色背景
+}
+
+@Composable
+private fun getTaskCompletedBgColor() = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+    Color(0xFF1B5E20) // 暗绿色背景
+} else {
+    Color(0xFFE8F5E9) // 浅绿色背景
+}
+
+@Composable
+private fun getTaskAbsentBgColor() = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+    Color(0xFF5F2120) // 暗红色背景
+} else {
+    Color(0xFFFFEBEE) // 浅红色背景
+}
+
+// 打卡状态颜色 - 已移除，改用MaterialTheme主题颜色适配暗色模式
 
 /**
  * 652打卡页面（隐藏功能）
@@ -48,37 +90,42 @@ fun CheckinScreen(
     viewModel: CheckinViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
     
-    // 显示消息
+    // 显示消息 - 使用跨平台 Toast
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         uiState.errorMessage?.let {
-            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            com.suseoaa.projectoaa.util.ToastManager.showToast(it)
             viewModel.clearMessages()
         }
         uiState.successMessage?.let {
-            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            com.suseoaa.projectoaa.util.ToastManager.showToast(it)
             viewModel.clearMessages()
         }
     }
     
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("652打卡") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+            // 只有在显示账号列表时才显示顶部栏，任务列表有自己的顶部栏
+            if (uiState.selectedAccount == null) {
+                TopAppBar(
+                    title = { Text("652打卡") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        }
+                    },
+                    actions = {
+                        // 扫码添加按钮
+                        IconButton(onClick = { viewModel.showQrCodeDialog() }) {
+                            Icon(Icons.Default.QrCodeScanner, "扫码添加")
+                        }
+                        // 密码添加账号按钮
+                        IconButton(onClick = { viewModel.showAddDialog() }) {
+                            Icon(Icons.Default.Add, "添加账号")
+                        }
                     }
-                },
-                actions = {
-                    // 添加账号按钮
-                    IconButton(onClick = { viewModel.showAddDialog() }) {
-                        Icon(Icons.Default.Add, "添加账号")
-                    }
-                }
-            )
+                )
+            }
         }
     ) { padding ->
         Box(
@@ -86,29 +133,64 @@ fun CheckinScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (uiState.isLoading && uiState.accounts.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.accounts.isEmpty()) {
-                EmptyState(onAddClick = { viewModel.showAddDialog() })
+            // 根据selectedAccount判断显示账号列表还是任务列表
+            if (uiState.selectedAccount != null) {
+                // 显示任务列表
+                TaskListView(
+                    viewModel = viewModel,
+                    uiState = uiState,
+                    onBack = { viewModel.clearTasks() }
+                )
             } else {
-                // 账号列表
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.accounts, key = { it.id }) { account ->
-                        AccountCard(
-                            account = account,
-                            isChecking = uiState.currentCheckingAccount?.studentId == account.studentId,
-                            onCheckin = { viewModel.startCheckin(account) },
-                            onEdit = { viewModel.showEditDialog(account) },
-                            onDelete = { viewModel.deleteAccount(account.id) }
-                        )
+                // 显示账号列表
+                if (uiState.isLoading && uiState.accounts.isEmpty()) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else if (uiState.accounts.isEmpty()) {
+                    EmptyState(onAddClick = { viewModel.showAddDialog() })
+                } else {
+                    // 账号列表 - 支持平板适配
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val isTablet = maxWidth > 600.dp
+                        val columns = if (isTablet) 2 else 1
+                        
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(
+                                count = (uiState.accounts.size + columns - 1) / columns,
+                                key = { it }
+                            ) { rowIndex ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    for (columnIndex in 0 until columns) {
+                                        val index = rowIndex * columns + columnIndex
+                                        if (index < uiState.accounts.size) {
+                                            val account = uiState.accounts[index]
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                AccountCard(
+                                                    account = account,
+                                                    isChecking = uiState.currentCheckingAccount?.studentId == account.studentId,
+                                                    onCheckin = { viewModel.startCheckin(account) },
+                                                    onEdit = { viewModel.showEditDialog(account) },
+                                                    onDelete = { viewModel.deleteAccount(account.id) },
+                                                    onViewTasks = { viewModel.loadTasksForAccount(account) }
+                                                )
+                                            }
+                                        } else {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // 底部留白
+                            item { Spacer(modifier = Modifier.height(80.dp)) }
+                        }
                     }
-                    
-                    // 底部留白
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
         }
@@ -152,6 +234,41 @@ fun CheckinScreen(
             onRefresh = { viewModel.refreshCaptcha() },
             onSubmit = { captchaCode -> viewModel.submitCaptchaAndCheckin(captchaCode) },
             onDismiss = { viewModel.cancelCheckin() }
+        )
+    }
+    
+    // WebView 扫码登录对话框
+    if (uiState.showWebViewLoginDialog) {
+        PlatformWebViewLoginDialog(
+            onLoginSuccess = { cookies ->
+                viewModel.onWebViewLoginSuccess(cookies)
+            },
+            onLoginError = { error ->
+                viewModel.onWebViewLoginError(error)
+            },
+            onDismiss = { viewModel.hideWebViewLoginDialog() }
+        )
+    }
+    
+    // Session过期重新登录对话框
+    if (uiState.showReloginDialog && uiState.accountNeedRelogin != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.hideReloginDialog() },
+            icon = { Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("登录已过期") },
+            text = { 
+                Text("账号 ${uiState.accountNeedRelogin?.name?.ifEmpty { uiState.accountNeedRelogin?.studentId }} 的登录已过期，需要重新扫码登录。")
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.startRelogin() }) {
+                    Text("重新扫码")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.hideReloginDialog() }) {
+                    Text("取消")
+                }
+            }
         )
     }
 }
@@ -204,7 +321,8 @@ private fun AccountCard(
     isChecking: Boolean,
     onCheckin: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onViewTasks: () -> Unit = {}  // 新增：查看任务回调
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
     
@@ -282,6 +400,58 @@ private fun AccountCard(
                 )
             }
             
+            // 登录类型和签到地点
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 登录类型标签
+                Surface(
+                    color = if (account.isQrCodeLogin) 
+                        MaterialTheme.colorScheme.secondaryContainer 
+                    else 
+                        MaterialTheme.colorScheme.tertiaryContainer,
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = if (account.isQrCodeLogin) "扫码登录" else "密码登录",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (account.isQrCodeLogin) 
+                            MaterialTheme.colorScheme.onSecondaryContainer 
+                        else 
+                            MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+                
+                // 签到地点标签（仅扫码登录显示）
+                if (account.isQrCodeLogin) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                null,
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = account.selectedLocation,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            
             // 上次打卡时间
             if (account.lastCheckinTime != null) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -314,6 +484,16 @@ private fun AccountCard(
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("打卡")
+                }
+                
+                // 查看任务（所有账号都可以查看）
+                OutlinedButton(
+                    onClick = onViewTasks,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.List, null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("任务")
                 }
                 
                 // 编辑
@@ -388,18 +568,18 @@ private fun StatusChip(
             "未打卡"
         )
         status.startsWith("✓") || status == "成功" -> Triple(
-            SuccessGreen,
-            Color.White,
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.onTertiaryContainer,
             "已打卡"
         )
         status.startsWith("○") || status == "已签到" -> Triple(
-            InfoBlue,
-            Color.White,
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.onPrimaryContainer,
             "已签到"
         )
         else -> Triple(
-            ErrorRed,
-            Color.White,
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer,
             status.removePrefix("✗ ").take(6)
         )
     }
@@ -577,6 +757,36 @@ private fun CaptchaDialog(
     onDismiss: () -> Unit
 ) {
     var captchaCode by remember { mutableStateOf("") }
+    var isRecognizing by remember { mutableStateOf(false) }
+    var ocrError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    
+    // 当验证码图片加载后自动进行OCR识别
+    LaunchedEffect(captchaImageBytes) {
+        if (captchaImageBytes != null && captchaImageBytes.isNotEmpty()) {
+            isRecognizing = true
+            ocrError = null
+            try {
+                val result = com.suseoaa.projectoaa.util.PlatformCaptchaOcr.recognize(captchaImageBytes)
+                result.onSuccess { recognizedCode ->
+                    if (recognizedCode.length == 4) {
+                        captchaCode = recognizedCode
+                        println("[OCR] 自动识别成功: $recognizedCode")
+                    } else {
+                        println("[OCR] 识别结果长度不正确: $recognizedCode (长度: ${recognizedCode.length})")
+                        ocrError = "识别结果异常，请手动输入"
+                    }
+                }.onFailure { e ->
+                    println("[OCR] 识别失败: ${e.message}")
+                    ocrError = "识别失败，请手动输入"
+                }
+            } catch (e: Exception) {
+                println("[OCR] 识别异常: ${e.message}")
+                ocrError = "识别异常，请手动输入"
+            }
+            isRecognizing = false
+        }
+    }
     
     AlertDialog(
         onDismissRequest = { if (!isLoggingIn) onDismiss() },
@@ -637,6 +847,36 @@ private fun CaptchaDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                
+                // OCR识别状态
+                if (isRecognizing) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            text = "正在自动识别验证码...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                } else if (captchaCode.length == 4 && ocrError == null) {
+                    Text(
+                        text = "已自动识别验证码",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else if (ocrError != null) {
+                    Text(
+                        text = ocrError!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 
                 // 验证码输入框
                 OutlinedTextField(
@@ -701,4 +941,814 @@ private fun CaptchaDialog(
             }
         }
     )
+}
+
+/**
+ * 扫码登录对话框
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QrCodeLoginDialog(
+    qrCodeUrl: String?,
+    isLoading: Boolean,
+    scanStatus: QrCodeScanStatus,
+    scannedStudentId: String?,
+    scannedName: String?,
+    onRefresh: () -> Unit,
+    onConfirm: (studentId: String, password: String, name: String, location: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // 当扫码成功后自动填充用户信息
+    var studentId by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var selectedLocation by remember { mutableStateOf(CheckinLocations.DEFAULT.name) }
+    var showLocationDropdown by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
+    
+    // 当扫码成功时自动填充
+    LaunchedEffect(scannedStudentId, scannedName) {
+        if (!scannedStudentId.isNullOrBlank()) {
+            studentId = scannedStudentId
+        }
+        if (!scannedName.isNullOrBlank()) {
+            name = scannedName
+        }
+    }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("添加签到账号") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 二维码图片区域（辅助查看学号）
+                Box(
+                    modifier = Modifier
+                        .size(160.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable(enabled = !isLoading) { onRefresh() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        isLoading -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(40.dp),
+                                    strokeWidth = 3.dp
+                                )
+                                Text(
+                                    text = "正在加载二维码...",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                        qrCodeUrl != null -> {
+                            // 解码 base64 图片 - 使用跨平台工具
+                            val imageBitmap = remember(qrCodeUrl) {
+                                com.suseoaa.projectoaa.util.PlatformImageUtils.decodeBase64ToImageBitmap(qrCodeUrl)
+                            }
+                            
+                            if (imageBitmap != null) {
+                                Image(
+                                    bitmap = imageBitmap,
+                                    contentDescription = "微信扫码登录",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            } else {
+                                Text(
+                                    text = "二维码加载失败",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                        else -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.QrCodeScanner,
+                                    null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "点击加载二维码",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // 扫码提示
+                Text(
+                    text = when (scanStatus) {
+                        QrCodeScanStatus.WAITING -> "请使用微信扫描上方二维码登录后查看学号"
+                        QrCodeScanStatus.SCANNED -> "已扫描，请在微信中确认"
+                        QrCodeScanStatus.CONFIRMED -> if (scannedStudentId != null) "扫码成功！已获取用户信息" else "确认成功！请填写信息"
+                        QrCodeScanStatus.EXPIRED -> "二维码已过期，请点击刷新"
+                        QrCodeScanStatus.ERROR -> "加载失败，请点击刷新"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = when (scanStatus) {
+                        QrCodeScanStatus.EXPIRED, QrCodeScanStatus.ERROR -> MaterialTheme.colorScheme.error
+                        QrCodeScanStatus.CONFIRMED -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+                
+                HorizontalDivider()
+                
+                // 说明文字
+                Text(
+                    text = "扫码登录后，在微信页面中查看您的学号并填写下方",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                OutlinedTextField(
+                    value = studentId,
+                    onValueChange = { studentId = it },
+                    label = { Text("学号 *") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("姓名（可选）") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                // 签到地点选择
+                ExposedDropdownMenuBox(
+                    expanded = showLocationDropdown,
+                    onExpandedChange = { showLocationDropdown = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedLocation,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("签到地点") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLocationDropdown)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    
+                    ExposedDropdownMenu(
+                        expanded = showLocationDropdown,
+                        onDismissRequest = { showLocationDropdown = false }
+                    ) {
+                        CheckinLocations.ALL.forEach { location ->
+                            DropdownMenuItem(
+                                text = { Text(location.name) },
+                                onClick = {
+                                    selectedLocation = location.name
+                                    showLocationDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(studentId, password, name, selectedLocation) },
+                enabled = studentId.isNotBlank() && password.isNotBlank()
+            ) {
+                Text("添加账号")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+/**
+ * 任务列表视图
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TaskListView(
+    viewModel: CheckinViewModel,
+    uiState: com.suseoaa.projectoaa.presentation.checkin.CheckinUiState,
+    onBack: () -> Unit
+) {
+    val account = uiState.selectedAccount ?: return
+    var selectedTab by remember { mutableStateOf(0) }
+    
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 顶部栏
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = account.name.ifEmpty { account.studentId },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "待打卡: ${uiState.pendingTasks.size} | 已打卡: ${uiState.completedTasks.size} | 缺勤: ${uiState.absentTasks.size}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = { viewModel.loadTasksForAccount(account) }) {
+                    Icon(Icons.Default.Refresh, "刷新")
+                }
+            }
+        }
+        
+        // 筛选Tab
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ) {
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                text = { Text("全部 (${uiState.pendingTasks.size + uiState.completedTasks.size + uiState.absentTasks.size})") }
+            )
+            Tab(
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                text = { Text("待打卡 (${uiState.pendingTasks.size})") }
+            )
+            Tab(
+                selected = selectedTab == 2,
+                onClick = { selectedTab = 2 },
+                text = { Text("已打卡 (${uiState.completedTasks.size})") }
+            )
+            Tab(
+                selected = selectedTab == 3,
+                onClick = { selectedTab = 3 },
+                text = { Text("缺勤 (${uiState.absentTasks.size})") }
+            )
+        }
+        
+        if (uiState.isLoadingTasks) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val isTablet = maxWidth > 600.dp
+                val columns = if (isTablet) 2 else 1
+                
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 根据选中Tab显示不同的任务
+                    when (selectedTab) {
+                        0 -> {
+                            // 全部任务
+                            if (uiState.pendingTasks.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        text = "待打卡任务 (${uiState.pendingTasks.size})",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = getTaskPendingColor()
+                                    )
+                                }
+                                items(
+                                    count = (uiState.pendingTasks.size + columns - 1) / columns
+                                ) { rowIndex ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        for (columnIndex in 0 until columns) {
+                                            val index = rowIndex * columns + columnIndex
+                                            if (index < uiState.pendingTasks.size) {
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TaskCard(
+                                                        task = uiState.pendingTasks[index],
+                                                        status = 1,
+                                                        isChecking = uiState.isLoading,
+                                                        onCheckin = { viewModel.checkinForTask(uiState.pendingTasks[index], allowRepeat = false) }
+                                                    )
+                                                }
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (uiState.completedTasks.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        text = "已打卡任务 (${uiState.completedTasks.size})",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = getTaskCompletedColor()
+                                    )
+                                }
+                                items(
+                                    count = (uiState.completedTasks.size + columns - 1) / columns
+                                ) { rowIndex ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        for (columnIndex in 0 until columns) {
+                                            val index = rowIndex * columns + columnIndex
+                                            if (index < uiState.completedTasks.size) {
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TaskCard(
+                                                        task = uiState.completedTasks[index],
+                                                        status = 2,
+                                                        isChecking = uiState.isLoading,
+                                                        onCheckin = { viewModel.checkinForTask(uiState.completedTasks[index], allowRepeat = true) }
+                                                    )
+                                                }
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (uiState.absentTasks.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        text = "缺勤任务 (${uiState.absentTasks.size})",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = getTaskAbsentColor()
+                                    )
+                                }
+                                items(
+                                    count = (uiState.absentTasks.size + columns - 1) / columns
+                                ) { rowIndex ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        for (columnIndex in 0 until columns) {
+                                            val index = rowIndex * columns + columnIndex
+                                            if (index < uiState.absentTasks.size) {
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TaskCard(
+                                                        task = uiState.absentTasks[index],
+                                                        status = 3,
+                                                        isChecking = uiState.isLoading,
+                                                        onCheckin = { viewModel.checkinForTask(uiState.absentTasks[index], allowRepeat = true) }
+                                                    )
+                                                }
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (uiState.pendingTasks.isEmpty() && uiState.completedTasks.isEmpty() && uiState.absentTasks.isEmpty()) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("暂无任务", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
+                        1 -> {
+                            // 仅待打卡任务
+                            if (uiState.pendingTasks.isNotEmpty()) {
+                                items(
+                                    count = (uiState.pendingTasks.size + columns - 1) / columns
+                                ) { rowIndex ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        for (columnIndex in 0 until columns) {
+                                            val index = rowIndex * columns + columnIndex
+                                            if (index < uiState.pendingTasks.size) {
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TaskCard(
+                                                        task = uiState.pendingTasks[index],
+                                                        status = 1,
+                                                        isChecking = uiState.isLoading,
+                                                        onCheckin = { viewModel.checkinForTask(uiState.pendingTasks[index], allowRepeat = false) }
+                                                    )
+                                                }
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("暂无待打卡任务", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
+                        2 -> {
+                            // 仅已打卡任务
+                            if (uiState.completedTasks.isNotEmpty()) {
+                                items(
+                                    count = (uiState.completedTasks.size + columns - 1) / columns
+                                ) { rowIndex ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        for (columnIndex in 0 until columns) {
+                                            val index = rowIndex * columns + columnIndex
+                                            if (index < uiState.completedTasks.size) {
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TaskCard(
+                                                        task = uiState.completedTasks[index],
+                                                        status = 2,
+                                                        isChecking = uiState.isLoading,
+                                                        onCheckin = { viewModel.checkinForTask(uiState.completedTasks[index], allowRepeat = true) }
+                                                    )
+                                                }
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("暂无已打卡任务", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
+                        3 -> {
+                            // 仅缺勤任务
+                            if (uiState.absentTasks.isNotEmpty()) {
+                                items(
+                                    count = (uiState.absentTasks.size + columns - 1) / columns
+                                ) { rowIndex ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        for (columnIndex in 0 until columns) {
+                                            val index = rowIndex * columns + columnIndex
+                                            if (index < uiState.absentTasks.size) {
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TaskCard(
+                                                        task = uiState.absentTasks[index],
+                                                        status = 3,
+                                                        isChecking = uiState.isLoading,
+                                                        onCheckin = { viewModel.checkinForTask(uiState.absentTasks[index], allowRepeat = true) }
+                                                    )
+                                                }
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("暂无缺勤任务", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                if (uiState.pendingTasks.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "待打卡任务 (${uiState.pendingTasks.size})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = getTaskPendingColor()
+                        )
+                    }
+                    items(
+                        count = (uiState.pendingTasks.size + columns - 1) / columns
+                    ) { rowIndex ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            for (columnIndex in 0 until columns) {
+                                val index = rowIndex * columns + columnIndex
+                                if (index < uiState.pendingTasks.size) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        TaskCard(
+                                            task = uiState.pendingTasks[index],
+                                            status = 1,
+                                            isChecking = uiState.isLoading,
+                                            onCheckin = { viewModel.checkinForTask(uiState.pendingTasks[index], allowRepeat = false) }
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 缺勤任务（未打卡）
+                if (uiState.absentTasks.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "缺勤任务 (${uiState.absentTasks.size})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = getTaskAbsentColor()
+                        )
+                    }
+                    items(
+                        count = (uiState.absentTasks.size + columns - 1) / columns
+                    ) { rowIndex ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            for (columnIndex in 0 until columns) {
+                                val index = rowIndex * columns + columnIndex
+                                if (index < uiState.absentTasks.size) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        TaskCard(
+                                            task = uiState.absentTasks[index],
+                                            status = 3,
+                                            isChecking = uiState.isLoading,
+                                            onCheckin = { viewModel.checkinForTask(uiState.absentTasks[index], allowRepeat = true) }
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 已打卡任务
+                if (uiState.completedTasks.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "已打卡任务 (${uiState.completedTasks.size})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = getTaskCompletedColor()
+                        )
+                    }
+                    items(
+                        count = (uiState.completedTasks.size + columns - 1) / columns
+                    ) { rowIndex ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            for (columnIndex in 0 until columns) {
+                                val index = rowIndex * columns + columnIndex
+                                if (index < uiState.completedTasks.size) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        TaskCard(
+                                            task = uiState.completedTasks[index],
+                                            status = 2,
+                                            isChecking = uiState.isLoading,
+                                            onCheckin = { viewModel.checkinForTask(uiState.completedTasks[index], allowRepeat = true) }
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 空状态
+                if (uiState.pendingTasks.isEmpty() && uiState.completedTasks.isEmpty() && uiState.absentTasks.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "暂无任务",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 任务卡片
+ */
+@Composable
+private fun TaskCard(
+    task: com.suseoaa.projectoaa.data.model.CheckinTask,
+    status: Int,  // 1=待打卡, 2=已打卡, 3=缺勤
+    isChecking: Boolean,
+    onCheckin: () -> Unit
+) {
+    val statusText = when(status) {
+        1 -> "待打卡"
+        2 -> "已打卡"
+        3 -> "缺勤"
+        else -> "未知"
+    }
+    
+    val statusColor = when(status) {
+        1 -> getTaskPendingColor()
+        2 -> getTaskCompletedColor()
+        3 -> getTaskAbsentColor()
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    
+    val cardColor = when(status) {
+        1 -> getTaskPendingBgColor()
+        2 -> getTaskCompletedBgColor()
+        3 -> getTaskAbsentBgColor()
+        else -> MaterialTheme.colorScheme.surface
+    }
+    
+    val statusTextColor = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+        Color.White
+    } else {
+        Color.White
+    }
+    
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = cardColor
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (status == 2) 0.dp else 2.dp
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            // 任务名称和状态
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = task.rwmc,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // 显示完整日期和时间
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.DateRange,
+                            null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = task.needTime.ifEmpty { task.qdksrq },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${task.qdkssj} - ${task.qdjssj}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                // 状态标签
+                Surface(
+                    color = statusColor,
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = statusTextColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
+            
+            // 打卡按钮
+            Spacer(modifier = Modifier.height(8.dp))
+            FilledTonalButton(
+                onClick = onCheckin,
+                enabled = !isChecking,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isChecking) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (status == 2 || status == 3) "再次打卡中..." else "打卡中...")
+                } else {
+                    Icon(
+                        if (status == 2 || status == 3) Icons.Default.Refresh else Icons.Default.CheckCircle,
+                        null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (status == 2 || status == 3) "再次打卡" else "立即打卡")
+                }
+            }
+        }
+    }
 }

@@ -8,7 +8,12 @@ CREATE TABLE CheckinAccount (
     lastCheckinTime TEXT,
     lastCheckinStatus TEXT,
     createdAt TEXT NOT NULL,
-    updatedAt TEXT NOT NULL
+    updatedAt TEXT NOT NULL,
+    -- 扫码登录相关字段
+    loginType INTEGER NOT NULL DEFAULT 0,  -- 0=密码登录, 1=扫码登录
+    sessionToken TEXT,                     -- 扫码登录的Session
+    sessionExpireTime TEXT,                -- Session过期时间
+    selectedLocation TEXT NOT NULL DEFAULT 'A4教学楼'  -- 签到地点
 );
 
 -- 查询所有账号
@@ -25,13 +30,18 @@ SELECT * FROM CheckinAccount WHERE studentId = ?;
 
 -- 插入账号
 insert:
-INSERT INTO CheckinAccount(studentId, password, name, remark, createdAt, updatedAt)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO CheckinAccount(studentId, password, name, remark, createdAt, updatedAt, loginType, sessionToken, sessionExpireTime, selectedLocation)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 插入扫码登录账号（密码为空）
+insertQrCodeAccount:
+INSERT INTO CheckinAccount(studentId, password, name, remark, createdAt, updatedAt, loginType, sessionToken, sessionExpireTime, selectedLocation)
+VALUES (?, '', ?, ?, ?, ?, 1, ?, ?, ?);
 
 -- 更新账号
 update:
 UPDATE CheckinAccount 
-SET studentId = ?, password = ?, name = ?, remark = ?, updatedAt = ?
+SET studentId = ?, password = ?, name = ?, remark = ?, updatedAt = ?, selectedLocation = ?
 WHERE id = ?;
 
 -- 更新打卡状态
@@ -51,3 +61,29 @@ DELETE FROM CheckinAccount;
 -- 获取账号数量
 count:
 SELECT COUNT(*) FROM CheckinAccount;
+
+-- 更新扫码登录的Session
+updateSession:
+UPDATE CheckinAccount 
+SET sessionToken = ?, sessionExpireTime = ?, updatedAt = ?
+WHERE id = ?;
+
+-- 清除Session（用于过期或登出）
+clearSession:
+UPDATE CheckinAccount 
+SET sessionToken = NULL, sessionExpireTime = NULL, updatedAt = ?
+WHERE id = ?;
+
+-- 更新签到地点
+updateLocation:
+UPDATE CheckinAccount 
+SET selectedLocation = ?, updatedAt = ?
+WHERE id = ?;
+
+-- 获取所有扫码登录账号
+selectQrCodeAccounts:
+SELECT * FROM CheckinAccount WHERE loginType = 1 ORDER BY id ASC;
+
+-- 获取所有密码登录账号
+selectPasswordAccounts:
+SELECT * FROM CheckinAccount WHERE loginType = 0 ORDER BY id ASC;

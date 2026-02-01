@@ -1,0 +1,5 @@
+-- Migration from version 2 to 3: Add QR code login fields to CheckinAccount table
+ALTER TABLE CheckinAccount ADD COLUMN loginType INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE CheckinAccount ADD COLUMN sessionToken TEXT;
+ALTER TABLE CheckinAccount ADD COLUMN sessionExpireTime TEXT;
+ALTER TABLE CheckinAccount ADD COLUMN selectedLocation TEXT NOT NULL DEFAULT 'A4教学楼';

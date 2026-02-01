@@ -177,9 +177,17 @@ val appModule = module {
     viewModel { AcademicStatusViewModel(get(), get()) }
     
     // ==================== 652打卡（隐藏功能）====================
-    // 打卡专用 HttpClient (使用独立的 Cookie 存储)
+    // 可清除的 Cookie 存储
+    single(qualifier = org.koin.core.qualifier.named("checkinCookieStorage")) {
+        com.suseoaa.projectoaa.data.network.ClearableCookieStorage()
+    }
+    
+    // 打卡专用 HttpClient (使用可清除的 Cookie 存储)
     single(qualifier = org.koin.core.qualifier.named("checkin")) {
         val jsonConfig = get<Json>()
+        val cookieStorage = get<com.suseoaa.projectoaa.data.network.ClearableCookieStorage>(
+            qualifier = org.koin.core.qualifier.named("checkinCookieStorage")
+        )
         io.ktor.client.HttpClient {
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
                 json(jsonConfig)
@@ -189,7 +197,7 @@ val appModule = module {
                 connectTimeoutMillis = 15_000
             }
             install(io.ktor.client.plugins.cookies.HttpCookies) {
-                storage = io.ktor.client.plugins.cookies.AcceptAllCookiesStorage()
+                storage = cookieStorage
             }
             followRedirects = false
         }
@@ -203,7 +211,10 @@ val appModule = module {
         CheckinRepository(
             get<CheckinApiService>(),
             get<CourseDatabase>(),
-            get<Json>()
+            get<Json>(),
+            get<com.suseoaa.projectoaa.data.network.ClearableCookieStorage>(
+                qualifier = org.koin.core.qualifier.named("checkinCookieStorage")
+            )
         )
     }
     

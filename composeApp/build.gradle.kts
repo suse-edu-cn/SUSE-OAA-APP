@@ -113,6 +113,9 @@ kotlin {
             // ML Kit Text Recognition (验证码识别)
             implementation(libs.mlkit.text.recognition)
             implementation(libs.mlkit.text.recognition.chinese)
+            
+            // ONNX Runtime (ddddocr 移植)
+            implementation(libs.onnxruntime.android)
         }
 
         iosMain.dependencies {
