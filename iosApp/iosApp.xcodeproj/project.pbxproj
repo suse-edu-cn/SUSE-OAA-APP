@@ -15,7 +15,7 @@
 		DDDD0CR100000003 /* DdddOcrRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDDD0CR100000004 /* DdddOcrRecognizer.swift */; };
 		DDDD0CR100000005 /* common_old.onnx in Resources */ = {isa = PBXBuildFile; fileRef = DDDD0CR100000006 /* common_old.onnx */; };
 		DDDD0CR100000007 /* charsets_old.json in Resources */ = {isa = PBXBuildFile; fileRef = DDDD0CR100000008 /* charsets_old.json */; };
-		DDDD0CR100000009 /* onnxruntime_objc in Frameworks */ = {isa = PBXBuildFile; productRef = DDDD0CR10000000A /* onnxruntime_objc */; };
+		DDDD0CR100000009 /* onnxruntime in Frameworks */ = {isa = PBXBuildFile; productRef = DDDD0CR10000000A /* onnxruntime */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,7 +35,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DDDD0CR100000009 /* onnxruntime_objc in Frameworks */,
+				DDDD0CR100000009 /* onnxruntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -99,7 +99,7 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
-				DDDD0CR10000000A /* onnxruntime_objc */,
+				DDDD0CR10000000A /* onnxruntime */,
 			);
 			productName = iosApp;
 			productReference = 7555FF7B242A565900829871 /* 青蟹.app */;
@@ -403,10 +403,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		DDDD0CR10000000A /* onnxruntime_objc */ = {
+		DDDD0CR10000000A /* onnxruntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DDDD0CR10000000B /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */;
-			productName = onnxruntime_objc;
+			productName = onnxruntime;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

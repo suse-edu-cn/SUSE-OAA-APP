@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 import UIKit
-import onnxruntime_objc
+import OnnxRuntimeBindings
 
 /// ddddocr 的 iOS 移植版本
 /// 使用 ONNX Runtime 进行验证码识别
@@ -29,7 +29,7 @@ import onnxruntime_objc
             loadCharset()
             
             // 创建 ONNX Runtime 环境
-            ortEnv = try ORTEnv(loggingLevel: .warning)
+            ortEnv = try ORTEnv(loggingLevel: ORTLoggingLevel.warning)
             
             // 从 Bundle 加载模型
             guard let modelPath = Bundle.main.path(forResource: "common_old", ofType: "onnx") else {
@@ -39,7 +39,7 @@ import onnxruntime_objc
             
             // 创建会话选项
             let sessionOptions = try ORTSessionOptions()
-            try sessionOptions.setGraphOptimizationLevel(.all)
+            try sessionOptions.setGraphOptimizationLevel(ORTGraphOptimizationLevel.all)
             
             // 创建推理会话
             ortSession = try ORTSession(env: ortEnv!, modelPath: modelPath, sessionOptions: sessionOptions)
@@ -79,20 +79,26 @@ import onnxruntime_objc
             let inputTensor = try preprocessImage(cgImage)
             
             // 3. 运行推理
+            // Objective-C 方法 inputNamesWithError: 在 Swift 中变为 inputNames()
             let inputNames = try session.inputNames()
             guard let inputName = inputNames.first else {
                 print("[DdddOcr] 无法获取输入名称")
                 return nil
             }
             
+            // 获取输出名称
+            let outputNames = try session.outputNames()
+            let outputNameSet = Set(outputNames)
+            
             let outputs = try session.run(
                 withInputs: [inputName: inputTensor],
-                outputNames: nil,
+                outputNames: outputNameSet,
                 runOptions: nil
             )
             
             // 4. CTC 解码
-            guard let outputTensor = outputs.first?.value else {
+            guard let firstOutputName = outputNames.first,
+                  let outputTensor = outputs[firstOutputName] else {
                 print("[DdddOcr] 无法获取输出")
                 return nil
             }
@@ -152,7 +158,7 @@ import onnxruntime_objc
         
         let inputTensor = try ORTValue(
             tensorData: NSMutableData(data: inputData),
-            elementType: .float,
+            elementType: ORTTensorElementDataType.float,
             shape: shape
         )
         

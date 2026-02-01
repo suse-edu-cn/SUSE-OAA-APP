@@ -12,9 +12,28 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 /**
+ * OCR 识别器接口 - 可由 Swift 实现
+ */
+interface IOSOcrRecognizer {
+    fun recognize(imageData: NSData): String?
+}
+
+/**
+ * 全局 OCR 识别器，可由 Swift 端设置
+ */
+object IOSOcrRegistry {
+    var ocrRecognizer: IOSOcrRecognizer? = null
+    
+    fun setRecognizer(recognizer: IOSOcrRecognizer) {
+        ocrRecognizer = recognizer
+        println("[iOS OCR] 已注册外部 OCR 识别器")
+    }
+}
+
+/**
  * iOS平台的OCR验证码识别实现
- * 优先尝试调用 Swift 的 CaptchaOCR（内部使用 ddddocr），
- * 如果不可用则回退到 Kotlin/Native 直接调用 Vision Framework
+ * 优先使用注册的 Swift OCR（ddddocr），
+ * 如果不可用则回退到 Vision Framework
  */
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 actual object PlatformCaptchaOcr {
@@ -28,38 +47,42 @@ actual object PlatformCaptchaOcr {
                 // 将字节数组转换为 NSData
                 val nsData = imageBytes.toNSData()
                 
-                // 尝试使用 Swift CaptchaOCR（如果可用）
-                // 注意：由于 Kotlin/Native 无法直接调用 Swift 类，
-                // 我们继续使用 Vision Framework
-                // 如果需要使用 ddddocr，请在 Swift 侧通过桥接实现
+                // 优先尝试使用注册的 OCR 识别器（ddddocr）
+                val externalOcr = IOSOcrRegistry.ocrRecognizer
+                if (externalOcr != null) {
+                    val result = externalOcr.recognize(nsData)
+                    if (result != null && result.isNotEmpty()) {
+                        println("[iOS OCR] ddddocr 识别结果: $result")
+                        continuation.resume(Result.success(result))
+                        return@suspendCoroutine
+                    }
+                    println("[iOS OCR] ddddocr 识别失败，回退到 Vision Framework")
+                }
                 
-                // 创建 UIImage
+                // 回退到 Vision Framework
                 val uiImage = UIImage.imageWithData(nsData)
                 if (uiImage == null) {
                     continuation.resume(Result.failure(Exception("无法解码图片")))
                     return@suspendCoroutine
                 }
                 
-                // 获取 CGImage
                 val cgImage = uiImage.CGImage
                 if (cgImage == null) {
                     continuation.resume(Result.failure(Exception("无法获取CGImage")))
                     return@suspendCoroutine
                 }
                 
-                // 创建文字识别请求
                 var recognizedText = ""
                 
                 val request = VNRecognizeTextRequest { request, error ->
                     if (error != null) {
-                        println("[iOS OCR] 识别错误: ${error.localizedDescription}")
+                        println("[iOS OCR] Vision 识别错误: ${error.localizedDescription}")
                     } else {
                         @Suppress("UNCHECKED_CAST")
                         val observations = request?.results as? List<VNRecognizedTextObservation>
                         observations?.forEach { observation ->
                             val candidates = observation.topCandidates(1u)
                             candidates.firstOrNull()?.let { candidate ->
-                                // VNRecognizedText 的 string 属性
                                 @Suppress("UNCHECKED_CAST")
                                 val text = (candidate as? Any)?.toString() ?: ""
                                 if (text.isNotEmpty() && !text.startsWith("<")) {
@@ -70,13 +93,11 @@ actual object PlatformCaptchaOcr {
                     }
                 }
                 
-                // 配置识别参数 - 增加更多设置以提高验证码识别率
                 request.recognitionLevel = VNRequestTextRecognitionLevelAccurate
                 request.setRecognitionLanguages(listOf("en-US"))
                 request.usesLanguageCorrection = false
-                request.setMinimumTextHeight(0.0f) // 识别更小的文字
+                request.setMinimumTextHeight(0.0f)
                 
-                // 执行识别
                 val handler = VNImageRequestHandler(cgImage, emptyMap<Any?, Any?>())
                 val success = handler.performRequests(listOf(request), null)
                 
@@ -85,13 +106,12 @@ actual object PlatformCaptchaOcr {
                     return@suspendCoroutine
                 }
                 
-                // 清理识别结果
                 val cleanedText = cleanCaptchaText(recognizedText)
                 
                 if (cleanedText.isBlank()) {
                     continuation.resume(Result.failure(Exception("未能识别出验证码")))
                 } else {
-                    println("[iOS OCR] 识别结果: $cleanedText (原始: $recognizedText)")
+                    println("[iOS OCR] Vision 识别结果: $cleanedText (原始: $recognizedText)")
                     continuation.resume(Result.success(cleanedText))
                 }
             } catch (e: Exception) {
@@ -115,13 +135,9 @@ actual object PlatformCaptchaOcr {
      * 清理识别结果
      */
     private fun cleanCaptchaText(text: String): String {
-        // 移除空格和换行
         val cleaned = text.replace(Regex("[\\s\\n\\r]"), "")
-        
-        // 保留数字和字母
         val alphanumeric = cleaned.filter { it.isLetterOrDigit() }
         
-        // 处理常见的OCR误识别
         val corrected = StringBuilder()
         for (c in alphanumeric) {
             val fixed = when (c) {
