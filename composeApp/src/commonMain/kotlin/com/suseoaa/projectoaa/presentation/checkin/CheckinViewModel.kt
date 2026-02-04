@@ -47,10 +47,9 @@ data class CheckinUiState(
     val absentTasks: List<CheckinTask> = emptyList(),       // 缺勤任务（未打卡）
     val isLoadingTasks: Boolean = false,
     val selectedAccount: CheckinAccountData? = null,        // 当前查看任务的账号
-    // 已打卡任务分页加载状态
-    val loadedCheckinTimeCount: Int = 5,                    // 已加载打卡时间的任务数量
-    val isLoadingMoreCheckinTime: Boolean = false,          // 是否正在加载更多打卡时间
-    val hasMoreCheckinTime: Boolean = false,                // 是否还有更多打卡时间可加载
+    // 已打卡任务分页显示状态
+    val displayedCompletedCount: Int = 6,                   // 当前显示的已打卡任务数量
+    val isLoadingMoreCompleted: Boolean = false,            // 是否正在加载更多
     // 编辑对话框状态
     val showAddDialog: Boolean = false,
     val showEditDialog: Boolean = false,
@@ -776,27 +775,30 @@ class CheckinViewModel(
      */
     fun loadTasksForAccount(account: CheckinAccountData) {
         viewModelScope.launch {
+            val initialDisplayCount = 6  // 初始显示的已打卡任务数量
+            
             _uiState.update {
                 it.copy(
                     isLoadingTasks = true,
                     selectedAccount = account,
                     pendingTasks = emptyList(),
                     completedTasks = emptyList(),
-                    absentTasks = emptyList()
+                    absentTasks = emptyList(),
+                    displayedCompletedCount = initialDisplayCount
                 )
             }
             
             try {
-                // 根据登录类型获取任务
+                // 根据登录类型获取任务（初始加载打卡时间的数量与显示数量一致）
                 val (pending, completed, absent) = if (account.isQrCodeLogin && account.isSessionValid()) {
                     // 扫码登录：使用已保存的sessionToken
                     println("[TaskList] 使用扫码登录的Session Token")
-                    qrCodeRepository.getAllTasksWithCookies(account.sessionToken ?: "")
+                    qrCodeRepository.getAllTasksWithCookies(account.sessionToken ?: "", initialDisplayCount)
                 } else {
                     // 密码登录：使用cookieStorage中的当前cookies
                     // 假设用户已经通过打卡操作登录过了
                     println("[TaskList] 使用cookieStorage中的cookies")
-                    passwordRepository.getAllTasks()
+                    passwordRepository.getAllTasks(initialDisplayCount)
                 }
                 
                 _uiState.update {
@@ -805,6 +807,7 @@ class CheckinViewModel(
                         pendingTasks = pending,
                         completedTasks = completed,
                         absentTasks = absent,
+                        displayedCompletedCount = initialDisplayCount,
                         successMessage = "加载成功：${pending.size}个待打卡，${completed.size}个已打卡，${absent.size}个缺勤"
                     )
                 }
@@ -828,8 +831,68 @@ class CheckinViewModel(
             it.copy(
                 selectedAccount = null,
                 pendingTasks = emptyList(),
-                completedTasks = emptyList()
+                completedTasks = emptyList(),
+                absentTasks = emptyList(),
+                displayedCompletedCount = 6
             )
+        }
+    }
+    
+    /**
+     * 加载更多已打卡任务（显示更多 + 加载打卡时间）
+     * 每次加载 6 个
+     */
+    fun loadMoreCompletedTasks() {
+        val state = _uiState.value
+        val account = state.selectedAccount ?: return
+        
+        // 如果已经显示全部，不再加载
+        if (state.displayedCompletedCount >= state.completedTasks.size || state.isLoadingMoreCompleted) {
+            return
+        }
+        
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingMoreCompleted = true) }
+            
+            try {
+                val loadCount = 6
+                val startIndex = state.displayedCompletedCount
+                val endIndex = minOf(startIndex + loadCount, state.completedTasks.size)
+                
+                // 为新显示的任务加载打卡时间
+                val updatedTasks = if (account.isQrCodeLogin && account.isSessionValid()) {
+                    val cookies = account.sessionToken ?: ""
+                    qrCodeRepository.loadCheckinTimeForTasks(
+                        tasks = state.completedTasks,
+                        startIndex = startIndex,
+                        endIndex = endIndex,
+                        cookies = cookies
+                    ).getOrNull() ?: state.completedTasks
+                } else {
+                    passwordRepository.loadCheckinTimeForTasks(
+                        tasks = state.completedTasks,
+                        startIndex = startIndex,
+                        endIndex = endIndex,
+                        cookies = ""
+                    ).getOrNull() ?: state.completedTasks
+                }
+                
+                _uiState.update {
+                    it.copy(
+                        completedTasks = updatedTasks,
+                        displayedCompletedCount = endIndex,
+                        isLoadingMoreCompleted = false
+                    )
+                }
+            } catch (e: Exception) {
+                println("[TaskList] 加载更多失败: ${e.message}")
+                _uiState.update {
+                    it.copy(
+                        isLoadingMoreCompleted = false,
+                        errorMessage = "加载更多失败: ${e.message}"
+                    )
+                }
+            }
         }
     }
     

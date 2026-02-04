@@ -476,8 +476,8 @@ class QrCodeCheckinRepository(
     /**
      * 获取所有任务 (使用 Cookies)
      */
-    suspend fun getAllTasksWithCookies(cookies: String): Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>> {
-        return getAllTasks(cookies)
+    suspend fun getAllTasksWithCookies(cookies: String, initialLoadCount: Int = 5): Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>> {
+        return getAllTasks(cookies, initialLoadCount = initialLoadCount)
     }
 
     /**
@@ -665,9 +665,9 @@ class QrCodeCheckinRepository(
      * 获取所有任务
      * @return Triple<待签到, 已完成, 缺勤>
      */
-    suspend fun getAllTasks(cookies: String, openId: String? = null): Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>> {
+    suspend fun getAllTasks(cookies: String, openId: String? = null, initialLoadCount: Int = 5): Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>> {
         val pending = getPendingTasks(cookies, openId).getOrElse { emptyList() }
-        val completed = getCompletedTasks(cookies, openId).getOrElse { emptyList() }
+        val completed = getCompletedTasks(cookies, openId, initialLoadCount).getOrElse { emptyList() }
         val absent = getAbsentTasks(cookies, openId).getOrElse { emptyList() }
         return Triple(pending, completed, absent)
     }

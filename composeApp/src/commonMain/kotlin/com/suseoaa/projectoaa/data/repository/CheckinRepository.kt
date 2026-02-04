@@ -1131,11 +1131,12 @@ class CheckinRepository(
     
     /**
      * 获取已完成任务列表（已打卡）
-     * 会同时获取最近 5 个任务的签到时间（避免卡顿）
+     * 初始加载时会获取前 initialLoadCount 个任务的签到时间
      * 任务按时间倒序排列，最近的在最上面
      * @param cookies 完整的Cookie字符串
+     * @param initialLoadCount 初始加载打卡时间的任务数量
      */
-    suspend fun getCompletedTasksWithCookies(cookies: String): Result<List<CheckinTask>> = withContext(Dispatchers.IO) {
+    suspend fun getCompletedTasksWithCookies(cookies: String, initialLoadCount: Int = 5): Result<List<CheckinTask>> = withContext(Dispatchers.IO) {
         try {
             println("[Checkin] getCompletedTasksWithCookies 请求")
             val response = api.getCompletedTasksWithCookies(cookies)
@@ -1152,9 +1153,9 @@ class CheckinRepository(
                     task.needTime.ifEmpty { task.qdksrq }
                 }
                 
-                // 只为最近 5 个任务获取签到时间（避免卡顿）
+                // 只为前 initialLoadCount 个任务获取签到时间
                 val tasksWithTime = sortedTasks.mapIndexed { index, task ->
-                    if (index < 5) {
+                    if (index < initialLoadCount) {
                         try {
                             val detailResponse = api.getTaskDetailWithSession(cookies, task.id)
                             if (detailResponse.status.value == 200) {
@@ -1174,7 +1175,7 @@ class CheckinRepository(
                             task
                         }
                     } else {
-                        task // 超过 5 个的不获取详情
+                        task // 超过 initialLoadCount 的不获取详情
                     }
                 }
                 
@@ -1185,6 +1186,54 @@ class CheckinRepository(
             }
         } catch (e: Exception) {
             println("[Checkin] getCompletedTasksWithCookies 异常: ${e.message}")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * 为指定范围的任务加载打卡时间
+     * @param tasks 任务列表
+     * @param startIndex 起始索引（包含）
+     * @param endIndex 结束索引（不包含）
+     * @param cookies 完整的Cookie字符串
+     * @return 更新后的任务列表
+     */
+    suspend fun loadCheckinTimeForTasks(
+        tasks: List<CheckinTask>,
+        startIndex: Int,
+        endIndex: Int,
+        cookies: String
+    ): Result<List<CheckinTask>> = withContext(Dispatchers.IO) {
+        try {
+            println("[Checkin] 加载打卡时间: [$startIndex, $endIndex)")
+            
+            val updatedTasks = tasks.toMutableList()
+            
+            for (i in startIndex until minOf(endIndex, tasks.size)) {
+                val task = tasks[i]
+                // 如果已经有打卡时间，跳过
+                if (!task.qdsj.isNullOrBlank()) {
+                    continue
+                }
+                
+                try {
+                    val detailResponse = api.getTaskDetailWithSession(cookies, task.id)
+                    if (detailResponse.status.value == 200) {
+                        val detailText = detailResponse.bodyAsText()
+                        val detailResult = json.decodeFromString<CheckinDetailResponse>(detailText)
+                        val dkxx = detailResult.result?.data?.dkxx
+                        if (dkxx != null && !dkxx.qdsj.isNullOrBlank()) {
+                            updatedTasks[i] = task.copy(qdsj = dkxx.qdsj, qdzt = dkxx.qdzt)
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("[Checkin] 获取任务 ${task.id} 详情失败: ${e.message}")
+                }
+            }
+            
+            Result.success(updatedTasks)
+        } catch (e: Exception) {
+            println("[Checkin] 批量加载打卡时间异常: ${e.message}")
             Result.failure(e)
         }
     }
@@ -1309,9 +1358,9 @@ class CheckinRepository(
      * 获取所有任务（使用当前cookieStorage中的cookies）
      * @return Triple<待打卡任务列表, 已打卡任务列表, 缺勤任务列表>
      */
-    suspend fun getAllTasks(): Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>> {
+    suspend fun getAllTasks(initialLoadCount: Int = 5): Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>> {
         val pendingTasks = getPendingTasksWithCookies("").getOrElse { emptyList() }
-        val completedTasks = getCompletedTasksWithCookies("").getOrElse { emptyList() }
+        val completedTasks = getCompletedTasksWithCookies("", initialLoadCount).getOrElse { emptyList() }
         val absentTasks = getAbsentTasksWithCookies("").getOrElse { emptyList() }
         return Triple(pendingTasks, completedTasks, absentTasks)
     }
@@ -1319,11 +1368,12 @@ class CheckinRepository(
     /**
      * 获取所有任务（包括未打卡和已打卡）
      * @param cookies 完整的Cookie字符串
+     * @param initialLoadCount 初始加载打卡时间的数量
      * @return Pair<未打卡任务列表, 已打卡任务列表>
      */
-    suspend fun getAllTasksWithCookies(cookies: String): Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>> {
+    suspend fun getAllTasksWithCookies(cookies: String, initialLoadCount: Int = 5): Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>> {
         val pendingTasks = getPendingTasksWithCookies(cookies).getOrElse { emptyList() }
-        val completedTasks = getCompletedTasksWithCookies(cookies).getOrElse { emptyList() }
+        val completedTasks = getCompletedTasksWithCookies(cookies, initialLoadCount).getOrElse { emptyList() }
         val absentTasks = getAbsentTasksWithCookies(cookies).getOrElse { emptyList() }
         return Triple(pendingTasks, completedTasks, absentTasks)
     }

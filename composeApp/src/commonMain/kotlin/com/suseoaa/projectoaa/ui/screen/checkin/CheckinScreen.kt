@@ -34,6 +34,7 @@ import com.suseoaa.projectoaa.data.model.CheckinLocations
 import com.suseoaa.projectoaa.presentation.checkin.AccountFilterType
 import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
 import com.suseoaa.projectoaa.presentation.checkin.QrCodeScanStatus
+import com.suseoaa.projectoaa.util.PlatformBackHandler
 import org.koin.compose.viewmodel.koinViewModel
 
 // 自定义颜色 - 适配暗色模式
@@ -91,6 +92,11 @@ fun CheckinScreen(
     viewModel: CheckinViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // 处理系统返回键：如果在任务列表页面，返回到账号列表；否则退出打卡页面
+    PlatformBackHandler(enabled = uiState.selectedAccount != null) {
+        viewModel.clearTasks()
+    }
 
     // 显示消息 - 使用跨平台 Toast
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
@@ -1365,6 +1371,10 @@ private fun TaskListView(
                             }
 
                             if (uiState.completedTasks.isNotEmpty()) {
+                                // 只显示 displayedCompletedCount 个任务
+                                val displayCount = minOf(uiState.displayedCompletedCount, uiState.completedTasks.size)
+                                val hasMore = uiState.completedTasks.size > uiState.displayedCompletedCount
+                                
                                 item {
                                     Text(
                                         text = "已打卡任务 (${uiState.completedTasks.size})",
@@ -1374,7 +1384,7 @@ private fun TaskListView(
                                     )
                                 }
                                 items(
-                                    count = (uiState.completedTasks.size + columns - 1) / columns
+                                    count = (displayCount + columns - 1) / columns
                                 ) { rowIndex ->
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -1382,7 +1392,7 @@ private fun TaskListView(
                                     ) {
                                         for (columnIndex in 0 until columns) {
                                             val index = rowIndex * columns + columnIndex
-                                            if (index < uiState.completedTasks.size) {
+                                            if (index < displayCount) {
                                                 Box(modifier = Modifier.weight(1f)) {
                                                     TaskCard(
                                                         task = uiState.completedTasks[index],
@@ -1398,6 +1408,34 @@ private fun TaskListView(
                                                 }
                                             } else {
                                                 Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // 加载更多按钮
+                                if (hasMore) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Button(
+                                                onClick = { viewModel.loadMoreCompletedTasks() },
+                                                enabled = !uiState.isLoadingMoreCompleted,
+                                                modifier = Modifier.height(40.dp)
+                                            ) {
+                                                if (uiState.isLoadingMoreCompleted) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(20.dp),
+                                                        strokeWidth = 2.dp,
+                                                        color = MaterialTheme.colorScheme.onPrimary
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text("加载中...")
+                                                } else {
+                                                    Text("加载更多 (${uiState.completedTasks.size - displayCount})")
+                                                }
                                             }
                                         }
                                     }
@@ -1511,8 +1549,12 @@ private fun TaskListView(
                         2 -> {
                             // 仅已打卡任务
                             if (uiState.completedTasks.isNotEmpty()) {
+                                // 只显示 displayedCompletedCount 个任务
+                                val displayCount = minOf(uiState.displayedCompletedCount, uiState.completedTasks.size)
+                                val hasMore = uiState.completedTasks.size > uiState.displayedCompletedCount
+                                
                                 items(
-                                    count = (uiState.completedTasks.size + columns - 1) / columns
+                                    count = (displayCount + columns - 1) / columns
                                 ) { rowIndex ->
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -1520,7 +1562,7 @@ private fun TaskListView(
                                     ) {
                                         for (columnIndex in 0 until columns) {
                                             val index = rowIndex * columns + columnIndex
-                                            if (index < uiState.completedTasks.size) {
+                                            if (index < displayCount) {
                                                 Box(modifier = Modifier.weight(1f)) {
                                                     TaskCard(
                                                         task = uiState.completedTasks[index],
@@ -1536,6 +1578,34 @@ private fun TaskListView(
                                                 }
                                             } else {
                                                 Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // 加载更多按钮
+                                if (hasMore) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Button(
+                                                onClick = { viewModel.loadMoreCompletedTasks() },
+                                                enabled = !uiState.isLoadingMoreCompleted,
+                                                modifier = Modifier.height(40.dp)
+                                            ) {
+                                                if (uiState.isLoadingMoreCompleted) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(20.dp),
+                                                        strokeWidth = 2.dp,
+                                                        color = MaterialTheme.colorScheme.onPrimary
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text("加载中...")
+                                                } else {
+                                                    Text("加载更多 (${uiState.completedTasks.size - displayCount})")
+                                                }
                                             }
                                         }
                                     }
@@ -1690,6 +1760,10 @@ private fun TaskListView(
 
                     // 已打卡任务
                     if (uiState.completedTasks.isNotEmpty()) {
+                        // 只显示 displayedCompletedCount 个任务
+                        val displayCount = minOf(uiState.displayedCompletedCount, uiState.completedTasks.size)
+                        val hasMore = uiState.completedTasks.size > uiState.displayedCompletedCount
+                        
                         item {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -1700,7 +1774,7 @@ private fun TaskListView(
                             )
                         }
                         items(
-                            count = (uiState.completedTasks.size + columns - 1) / columns
+                            count = (displayCount + columns - 1) / columns
                         ) { rowIndex ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1708,7 +1782,7 @@ private fun TaskListView(
                             ) {
                                 for (columnIndex in 0 until columns) {
                                     val index = rowIndex * columns + columnIndex
-                                    if (index < uiState.completedTasks.size) {
+                                    if (index < displayCount) {
                                         Box(modifier = Modifier.weight(1f)) {
                                             TaskCard(
                                                 task = uiState.completedTasks[index],
@@ -1724,6 +1798,34 @@ private fun TaskListView(
                                         }
                                     } else {
                                         Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 加载更多按钮
+                        if (hasMore) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Button(
+                                        onClick = { viewModel.loadMoreCompletedTasks() },
+                                        enabled = !uiState.isLoadingMoreCompleted,
+                                        modifier = Modifier.height(40.dp)
+                                    ) {
+                                        if (uiState.isLoadingMoreCompleted) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                strokeWidth = 2.dp,
+                                                color = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("加载中...")
+                                        } else {
+                                            Text("加载更多 (${uiState.completedTasks.size - displayCount})")
+                                        }
                                     }
                                 }
                             }
