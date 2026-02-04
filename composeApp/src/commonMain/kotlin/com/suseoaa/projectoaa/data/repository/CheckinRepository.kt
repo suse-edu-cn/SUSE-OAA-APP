@@ -1113,8 +1113,12 @@ class CheckinRepository(
             val taskListResponse = json.decodeFromString<CheckinTaskListResponse>(responseText)
             if (taskListResponse.success && taskListResponse.resultCode == 0) {
                 val tasks = taskListResponse.result?.data ?: emptyList()
-                println("[Checkin] 获取到 ${tasks.size} 个未打卡任务")
-                Result.success(tasks)
+                // 按时间倒序排列（最近的在最上面）
+                val sortedTasks = tasks.sortedByDescending { task ->
+                    task.needTime.ifEmpty { task.qdksrq }
+                }
+                println("[Checkin] 获取到 ${sortedTasks.size} 个未打卡任务")
+                Result.success(sortedTasks)
             } else {
                 println("[Checkin] 获取未打卡任务失败: ${taskListResponse.errorMsg}")
                 Result.failure(Exception(taskListResponse.errorMsg ?: "获取任务列表失败"))
@@ -1127,6 +1131,8 @@ class CheckinRepository(
     
     /**
      * 获取已完成任务列表（已打卡）
+     * 会同时获取最近 5 个任务的签到时间（避免卡顿）
+     * 任务按时间倒序排列，最近的在最上面
      * @param cookies 完整的Cookie字符串
      */
     suspend fun getCompletedTasksWithCookies(cookies: String): Result<List<CheckinTask>> = withContext(Dispatchers.IO) {
@@ -1140,7 +1146,39 @@ class CheckinRepository(
             if (taskListResponse.success && taskListResponse.resultCode == 0) {
                 val tasks = taskListResponse.result?.data ?: emptyList()
                 println("[Checkin] 获取到 ${tasks.size} 个已打卡任务")
-                Result.success(tasks)
+                
+                // 先按时间倒序排列（最近的在最上面）
+                val sortedTasks = tasks.sortedByDescending { task ->
+                    task.needTime.ifEmpty { task.qdksrq }
+                }
+                
+                // 只为最近 5 个任务获取签到时间（避免卡顿）
+                val tasksWithTime = sortedTasks.mapIndexed { index, task ->
+                    if (index < 5) {
+                        try {
+                            val detailResponse = api.getTaskDetailWithSession(cookies, task.id)
+                            if (detailResponse.status.value == 200) {
+                                val detailText = detailResponse.bodyAsText()
+                                val detailResult = json.decodeFromString<CheckinDetailResponse>(detailText)
+                                val dkxx = detailResult.result?.data?.dkxx
+                                if (dkxx != null && !dkxx.qdsj.isNullOrBlank()) {
+                                    task.copy(qdsj = dkxx.qdsj, qdzt = dkxx.qdzt)
+                                } else {
+                                    task
+                                }
+                            } else {
+                                task
+                            }
+                        } catch (e: Exception) {
+                            println("[Checkin] 获取任务 ${task.id} 详情失败: ${e.message}")
+                            task
+                        }
+                    } else {
+                        task // 超过 5 个的不获取详情
+                    }
+                }
+                
+                Result.success(tasksWithTime)
             } else {
                 println("[Checkin] 获取已打卡任务失败: ${taskListResponse.errorMsg}")
                 Result.failure(Exception(taskListResponse.errorMsg ?: "获取任务列表失败"))
@@ -1165,8 +1203,12 @@ class CheckinRepository(
             val taskListResponse = json.decodeFromString<CheckinTaskListResponse>(responseText)
             if (taskListResponse.success && taskListResponse.resultCode == 0) {
                 val tasks = taskListResponse.result?.data ?: emptyList()
-                println("[Checkin] 获取到 ${tasks.size} 个缺勤任务")
-                Result.success(tasks)
+                // 按时间倒序排列（最近的在最上面）
+                val sortedTasks = tasks.sortedByDescending { task ->
+                    task.needTime.ifEmpty { task.qdksrq }
+                }
+                println("[Checkin] 获取到 ${sortedTasks.size} 个缺勤任务")
+                Result.success(sortedTasks)
             } else {
                 println("[Checkin] 获取缺勤任务失败: ${taskListResponse.errorMsg}")
                 Result.failure(Exception(taskListResponse.errorMsg ?: "获取任务列表失败"))

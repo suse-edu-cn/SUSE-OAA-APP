@@ -156,6 +156,20 @@ android {
         }
     }
 
+    // 打包选项：排除 ONNX Runtime 的 16KB 页面对齐检查
+    // ONNX Runtime 的 JNI 库目前尚未完全支持 16KB 页面对齐
+    packaging {
+        jniLibs {
+            // 保持 .so 文件不压缩以获得更好的性能
+            useLegacyPackaging = true
+        }
+    }
+
+    // 禁用 16KB 页面对齐检查（lint 警告）
+    lint {
+        disable += "Aligned16KB"
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

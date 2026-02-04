@@ -136,7 +136,8 @@ mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version
 mlkit-text-recognition-chinese = { module = "com.google.mlkit:text-recognition-chinese", version = "16.0.1" }
 
 # ONNX Runtime (跨平台深度学习推理)
-onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version = "1.18.0" }
+# 1.22.0+ 完全支持 Android 16KB 页面对齐
+onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version = "1.22.0" }
 
 # Window Size Class (Compose Multiplatform)
 material3-windowSize = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "material3WindowSizeClass" }

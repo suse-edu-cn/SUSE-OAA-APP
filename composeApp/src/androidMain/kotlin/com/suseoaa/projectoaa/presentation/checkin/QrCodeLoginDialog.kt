@@ -50,10 +50,10 @@ fun QrCodeLoginDialog(
     
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     
-    // 标记是否正在等待 /xg/ 页面加载以获取 SESSION
+    // 标记是否正在等待 SSO 流程完成以获取 SESSION
     var waitingForXgSession by remember { mutableStateOf(false) }
     
-    // 处理登录成功（从 /xg/ 页面获取 SESSION 后调用）
+    // 处理登录成功（从 SSO API 获取 SESSION 后调用）
     fun finalizeLogin() {
         val cookieManager = CookieManager.getInstance()
         val cookies = cookieManager.getCookie("https://qfhy.suse.edu.cn")
@@ -129,8 +129,8 @@ fun QrCodeLoginDialog(
                     return
                 }
                 
-                // 没有 SESSION，让 WebView 访问 /xg/ 页面来获取 SESSION
-                println("[QrCode] 没有 SESSION，尝试访问 /xg/ 页面获取...")
+                // 没有 SESSION，需要调用 SSO API 获取
+                println("[QrCode] 没有 SESSION，调用 SSO API 获取...")
                 
                 // 从 JWT 中提取 openId
                 val sopSession = cookieMap["_sop_session_"] ?: ""
@@ -160,14 +160,19 @@ fun QrCodeLoginDialog(
                 println("[QrCode] 提取到的 openId: $openId")
                 
                 if (openId != null) {
-                    // 标记正在等待 /xg/ 页面加载
+                    // 标记正在等待 SSO 流程完成
                     waitingForXgSession = true
                     loadingState = 0 // 重置状态允许后续调用
                     
-                    // 让 WebView 访问 /xg/ 页面，这会触发 SSO 并设置 SESSION cookie
-                    val xgUrl = "https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id=$openId"
-                    println("[QrCode] 访问 /xg/ 页面: $xgUrl")
-                    webView?.loadUrl(xgUrl)
+                    // ★★★ 关键修复 (2025年验证) ★★★
+                    // 直接访问 SSO API 获取 SESSION，而不是访问 /xg/ 页面
+                    // SSO API: /site/appware/system/sso/loginUrl?service=<redirect_url>
+                    val serviceUrl = "https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id=$openId"
+                    val encodedService = java.net.URLEncoder.encode(serviceUrl, "UTF-8")
+                    val ssoUrl = "https://qfhy.suse.edu.cn/site/appware/system/sso/loginUrl?service=$encodedService"
+                    
+                    println("[QrCode] ★★★ 访问 SSO API 获取 SESSION: $ssoUrl ★★★")
+                    webView?.loadUrl(ssoUrl)
                     return
                 } else {
                     println("[QrCode] openId 为空，直接使用现有 cookies")
@@ -465,9 +470,9 @@ fun QrCodeLoginDialog(
                                         super.onPageFinished(view, url)
                                         println("[QrCode] 页面加载完成: $url")
                                         
-                                        // 如果正在等待 /xg/ 页面加载以获取 SESSION
-                                        if (waitingForXgSession && url?.contains("/xg/app/") == true) {
-                                            println("[QrCode] /xg/ 页面加载完成，等待 cookie 设置...")
+                                        // 如果正在等待 SSO 流程完成以获取 SESSION
+                                        if (waitingForXgSession && (url?.contains("/xg/app/") == true || url?.contains("/site/") == true)) {
+                                            println("[QrCode] ★★★ SSO 流程完成，URL: $url ★★★")
                                             waitingForXgSession = false
                                             
                                             // 等待一段时间确保 cookie 被设置，然后完成登录

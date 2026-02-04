@@ -246,7 +246,10 @@ data class CheckinTask(
     @SerialName("start_date")
     val startDate: String = "",          // 开始日期
     @SerialName("end_date")
-    val endDate: String = ""             // 结束日期
+    val endDate: String = "",            // 结束日期
+    // 签到信息（从详情API获取或任务列表返回）
+    val qdsj: String? = null,            // 签到时间 (如 2025-09-08 20:33:02)
+    val qdzt: Int? = null                // 签到状态: 0=未签到, 1=已签到
 )
 
 // ==================== 打卡提交 API ====================
@@ -301,7 +304,28 @@ data class CheckinDkxxData(
     val qtzt: Int = 0,           // 签退状态
     val qtsj: String? = null,    // 签退时间
     val qdddjtdz: String? = null,// 签到地点具体地址
-    val location: String? = null // 签到位置JSON
+    val location: String? = null, // 签到位置JSON
+    val needTime: String? = null, // 签到日期 (如 "2025-09-08")
+    val need: Boolean = true,    // 是否需要签到
+    val xgh: String? = null,     // 学号
+    val xm: String? = null,      // 姓名
+    val qdrwid: Long? = null,    // 签到任务ID
+    val qddakafs: Int? = null,   // 签到打卡方式: 1=定位签到, 2=二维码签到
+    val isOuted: Boolean = false, // 是否超出范围
+    val isLated: Boolean = false, // 是否迟到
+    val dkddPhoto: String? = null, // 打卡照片
+    val qdddmc: String? = null,  // 签到地点名称
+    val qdddjd: String? = null,  // 签到地点经度
+    val qdddwd: String? = null,  // 签到地点纬度
+    val sfccfw: Boolean = false, // 是否超出范围
+    val sfhq: String? = null,    // 是否缺勤
+    val sfwg: Boolean = false,   // 是否未归
+    val qjsy: String? = null,    // 请假事由
+    val cdsy: String? = null,    // 迟到事由
+    val wgsy: String? = null,    // 未归事由
+    val fwwsy: String? = null,   // 范围外事由
+    val noNeedRemark: String? = null, // 不需要备注
+    val txxx: String? = null     // 体温信息
 )
 
 /**
@@ -354,6 +378,13 @@ object CheckinLocations {
      * 默认地点
      */
     val DEFAULT = A4_BUILDING
+
+    /**
+     * 根据名称获取地点
+     */
+    fun fromName(name: String?): CheckinLocation {
+        return ALL.find { it.name == name } ?: DEFAULT
+    }
 }
 
 // ==================== 其他模型 ====================

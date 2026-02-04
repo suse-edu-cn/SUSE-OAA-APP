@@ -182,7 +182,12 @@ val appModule = module {
         com.suseoaa.projectoaa.data.network.ClearableCookieStorage()
     }
     
-    // 打卡专用 HttpClient (使用可清除的 Cookie 存储)
+    // 扫码签到专用 Cookie 存储 (与密码登录隔离)
+    single(qualifier = org.koin.core.qualifier.named("qrCheckinCookieStorage")) {
+        com.suseoaa.projectoaa.data.network.ClearableCookieStorage()
+    }
+    
+    // 打卡专用 HttpClient (使用可清除的 Cookie 存储) - 密码登录用
     single(qualifier = org.koin.core.qualifier.named("checkin")) {
         val jsonConfig = get<Json>()
         val cookieStorage = get<com.suseoaa.projectoaa.data.network.ClearableCookieStorage>(
@@ -203,10 +208,34 @@ val appModule = module {
         }
     }
     
-    // 打卡 API 服务
+    // 扫码签到专用 HttpClient (独立的 Cookie 存储)
+    single(qualifier = org.koin.core.qualifier.named("qrCheckin")) {
+        val jsonConfig = get<Json>()
+        val cookieStorage = get<com.suseoaa.projectoaa.data.network.ClearableCookieStorage>(
+            qualifier = org.koin.core.qualifier.named("qrCheckinCookieStorage")
+        )
+        io.ktor.client.HttpClient {
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(jsonConfig)
+            }
+            install(io.ktor.client.plugins.HttpTimeout) {
+                requestTimeoutMillis = 30_000
+                connectTimeoutMillis = 15_000
+            }
+            install(io.ktor.client.plugins.cookies.HttpCookies) {
+                storage = cookieStorage
+            }
+            followRedirects = false
+        }
+    }
+    
+    // 打卡 API 服务 (密码登录)
     single { CheckinApiService(get(qualifier = org.koin.core.qualifier.named("checkin"))) }
     
-    // 打卡 Repository (使用 CourseDatabase)
+    // 扫码签到 API 服务
+    single { com.suseoaa.projectoaa.data.api.QrCodeCheckinApiService(get(qualifier = org.koin.core.qualifier.named("qrCheckin"))) }
+    
+    // 打卡 Repository - 密码登录 (使用 CourseDatabase)
     single { 
         CheckinRepository(
             get<CheckinApiService>(),
@@ -218,6 +247,18 @@ val appModule = module {
         )
     }
     
-    // 打卡 ViewModel
-    viewModel { CheckinViewModel(get()) }
+    // 扫码签到 Repository (独立)
+    single {
+        com.suseoaa.projectoaa.data.repository.QrCodeCheckinRepository(
+            get<com.suseoaa.projectoaa.data.api.QrCodeCheckinApiService>(),
+            get<CourseDatabase>(),
+            get<Json>(),
+            get<com.suseoaa.projectoaa.data.network.ClearableCookieStorage>(
+                qualifier = org.koin.core.qualifier.named("qrCheckinCookieStorage")
+            )
+        )
+    }
+    
+    // 打卡 ViewModel (同时注入两个 Repository)
+    viewModel { CheckinViewModel(get(), get()) }
 }
