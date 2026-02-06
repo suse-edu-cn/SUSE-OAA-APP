@@ -15,17 +15,19 @@ class OaaRegisterRepository(
         studentId: String,
         name: String,
         username: String,
-        password: String
+        password: String,
+        email: String
     ): Result<String> {
         return try {
             val request = RegisterRequest(
                 studentId = studentId,
                 name = name,
                 username = username,
-                password = password
+                password = password,
+                email = email
             )
             val response = api.register(request)
-            
+
             if (response.code == 200) {
                 Result.success(response.message)
             } else {

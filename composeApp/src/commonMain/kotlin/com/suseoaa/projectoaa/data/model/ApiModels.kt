@@ -36,7 +36,10 @@ data class RegisterRequest(
     @SerialName("student_id")
     val studentId: String,
     @SerialName("username")
-    val username: String
+    val username: String,
+
+    @SerialName("email")
+    val email: String
 )
 
 @Serializable

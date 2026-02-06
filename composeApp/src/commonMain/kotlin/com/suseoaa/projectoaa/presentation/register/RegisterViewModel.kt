@@ -17,6 +17,7 @@ data class RegisterUiState(
     val realName: String = "",       // 姓名
     val userName: String = "",       // 用户名
     val password: String = "",
+    val email: String = "",
     val confirmPassword: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
@@ -51,6 +52,12 @@ class RegisterViewModel(
         }
     }
 
+    fun updateEmail(email: String) {
+        if (email.length <= 40) {
+            _uiState.update { it.copy(email = email, errorMessage = null) }
+        }
+    }
+
     fun updatePassword(password: String) {
         _uiState.update { it.copy(password = password, errorMessage = null) }
     }
@@ -64,6 +71,7 @@ class RegisterViewModel(
         val cleanStudentId = currentState.studentId.trim()
         val cleanRealName = currentState.realName.trim()
         val cleanUserName = currentState.userName.trim()
+        val email = currentState.email.trim()
         val cleanPassword = currentState.password.trim()
         val cleanConfirmPassword = currentState.confirmPassword.trim()
 
@@ -85,6 +93,10 @@ class RegisterViewModel(
                 _uiState.update { it.copy(errorMessage = "密码不能为空") }
                 return
             }
+            email.isBlank() -> {
+                _uiState.update { it.copy(errorMessage = "密码不能为空") }
+                return
+            }
             cleanPassword.length < 6 -> {
                 _uiState.update { it.copy(errorMessage = "密码长度至少6位") }
                 return
@@ -102,7 +114,8 @@ class RegisterViewModel(
                 studentId = cleanStudentId,
                 name = cleanRealName,
                 username = cleanUserName,
-                password = cleanPassword
+                password = cleanPassword,
+                email = email
             )
             
             result.onSuccess {

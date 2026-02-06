@@ -1,7 +1,6 @@
 # 🦀 青蟹 (Project OAA)
 
 <div align="center">
-  <img src="https://via.placeholder.com/150/4285F4/FFFFFF?text=OAA" alt="Logo" width="120" height="120">
   <br>
   <b>SUSE 学生的口袋教务助手</b>
   <br>

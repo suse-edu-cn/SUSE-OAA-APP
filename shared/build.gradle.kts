@@ -101,7 +101,7 @@ kotlin {
 
 android {
     namespace = "com.suseoaa.projectoaa.shared"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 28

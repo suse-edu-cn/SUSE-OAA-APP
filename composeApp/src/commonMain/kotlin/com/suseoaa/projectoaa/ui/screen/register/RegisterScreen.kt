@@ -131,6 +131,20 @@ fun RegisterScreen(
                     imeAction = ImeAction.Next
                 )
             )
+            Spacer(modifier = Modifier.height(16.dp))
+//            邮箱输入框
+            OutlinedTextField(
+                value = uiState.email,
+                onValueChange = viewModel::updateEmail,
+                label = { Text("邮箱") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                )
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -155,9 +169,9 @@ fun RegisterScreen(
                         Icon(
                             imageVector = Icons.Filled.Lock,
                             contentDescription = if (isPasswordVisible) "隐藏密码" else "显示密码",
-                            tint = if (isPasswordVisible) 
-                                MaterialTheme.colorScheme.primary 
-                            else 
+                            tint = if (isPasswordVisible)
+                                MaterialTheme.colorScheme.primary
+                            else
                                 MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -187,9 +201,9 @@ fun RegisterScreen(
                         Icon(
                             imageVector = Icons.Filled.Lock,
                             contentDescription = if (isConfirmPasswordVisible) "隐藏密码" else "显示密码",
-                            tint = if (isConfirmPasswordVisible) 
-                                MaterialTheme.colorScheme.primary 
-                            else 
+                            tint = if (isConfirmPasswordVisible)
+                                MaterialTheme.colorScheme.primary
+                            else
                                 MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
