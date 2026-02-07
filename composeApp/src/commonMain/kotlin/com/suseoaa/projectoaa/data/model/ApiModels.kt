@@ -87,12 +87,12 @@ data class UploadAvatarResponse(
     @SerialName("data") val data: String? = null
 )
 
-// ==================== Change Password API ====================
+// ==================== 修改密码 API ====================
 @Serializable
 data class ChangePasswordRequest(
-    @SerialName("old_password") val oldPassword: String,
-    @SerialName("new_password") val newPassword: String,
-    @SerialName("emailCode") val code: String
+    @SerialName("oldpassword") val oldPassword: String,
+    @SerialName("password") val newPassword: String,
+    @SerialName("code") val emailCode: String
 )
 
 @Serializable
