@@ -16,6 +16,7 @@ data class ChangePasswordUiState(
     val oldPassword: String = "",
     val newPassword: String = "",
     val confirmPassword: String = "",
+    val emailCode: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
@@ -42,6 +43,10 @@ class ChangePasswordViewModel(
 
     fun updateConfirmPassword(password: String) {
         _uiState.update { it.copy(confirmPassword = password, errorMessage = null) }
+    }
+
+    fun updateEmailCode(emailCode: String) {
+        _uiState.update { it.copy(emailCode = emailCode, errorMessage = null) }
     }
 
     fun changePassword() {
@@ -80,7 +85,8 @@ class ChangePasswordViewModel(
 
             val result = personRepository.changePassword(
                 currentState.oldPassword,
-                currentState.newPassword
+                currentState.newPassword,
+                currentState.emailCode
             )
 
             result.onSuccess { msg ->
@@ -108,5 +114,28 @@ class ChangePasswordViewModel(
 
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+    }
+
+    //获取邮箱验证码
+    fun getEmailCode() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(errorMessage = null) }
+            val result = personRepository.getEmailCode()
+            result.onSuccess { msg ->
+                _uiState.update {
+                    it.copy(
+                        successMessage = msg
+                    )
+                }
+            }
+
+            result.onFailure { e ->
+                _uiState.update {
+                    it.copy(
+                        errorMessage = e.message ?: "发送失败"
+                    )
+                }
+            }
+        }
     }
 }

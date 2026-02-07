@@ -73,6 +73,14 @@ class OaaApiService(
         return response.body()
     }
 
+    //获取邮箱验证码
+    suspend fun getEmailCode(): ChangePasswordResponse {
+        val response = client.get("$baseUrl/user/captcha") {
+            contentType(ContentType.Application.Json)
+        }
+        return response.body()
+    }
+
     // ==================== 公告 ====================
     suspend fun getAnnouncementInfo(department: String): FetchAnnouncementInfoResponse {
         val response = client.get("$baseUrl/announcement/GetAnnouncement") {

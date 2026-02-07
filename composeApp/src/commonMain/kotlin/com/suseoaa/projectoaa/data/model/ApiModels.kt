@@ -88,7 +88,8 @@ data class UploadAvatarResponse(
 @Serializable
 data class ChangePasswordRequest(
     @SerialName("old_password") val oldPassword: String,
-    @SerialName("new_password") val newPassword: String
+    @SerialName("new_password") val newPassword: String,
+    @SerialName("emailCode") val code: String
 )
 
 @Serializable

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.changepassword.ChangePasswordViewModel
 import com.suseoaa.projectoaa.ui.component.BackButton
 import com.suseoaa.projectoaa.util.showToast
+import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,11 +33,24 @@ fun ChangePasswordScreen(
     var isOldPasswordVisible by remember { mutableStateOf(false) }
     var isNewPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmPasswordVisible by remember { mutableStateOf(false) }
+    var isSend by remember { mutableStateOf(false) }
+    var timeLeft by remember { mutableIntStateOf(30) }
 
     // 监听修改成功
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             onSuccess()
+        }
+    }
+//    监听是否有刁民点击了发送验证码的按钮
+    LaunchedEffect(isSend) {
+        if (isSend) {
+            timeLeft = 30;
+            while (timeLeft > 0) {
+                delay(1000L)
+                timeLeft--
+            }
+            isSend = false
         }
     }
 
@@ -77,7 +91,6 @@ fun ChangePasswordScreen(
             verticalArrangement = Arrangement.Top
         ) {
             Spacer(modifier = Modifier.height(32.dp))
-
             // 旧密码输入框
             OutlinedTextField(
                 value = uiState.oldPassword,
@@ -159,7 +172,9 @@ fun ChangePasswordScreen(
                     imeAction = ImeAction.Done
                 ),
                 trailingIcon = {
-                    IconButton(onClick = { isConfirmPasswordVisible = !isConfirmPasswordVisible }) {
+                    IconButton(onClick = {
+                        isConfirmPasswordVisible = !isConfirmPasswordVisible
+                    }) {
                         Icon(
                             imageVector = Icons.Filled.Lock,
                             contentDescription = if (isConfirmPasswordVisible) "隐藏密码" else "显示密码",
@@ -174,6 +189,38 @@ fun ChangePasswordScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                OutlinedTextField(
+                    value = uiState.emailCode,
+                    onValueChange = viewModel::updateEmailCode,
+                    label = { Text("输入邮箱验证吗") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth(0.5f)
+                        .padding(end = 8.dp)
+                )
+
+                Button(
+                    onClick = {
+                        if (!isSend) run {
+                            viewModel.getEmailCode()
+                            isSend = true
+                        }
+                    },
+                    enabled = !isSend
+                ) {
+                    Text(
+                        text = if (isSend) "${timeLeft}s 后重新发送" else "获取验证码"
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(32.dp))
             // 确认按钮
             Button(
                 onClick = viewModel::changePassword,

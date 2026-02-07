@@ -31,10 +31,28 @@ class PersonRepository(
         }
     }
 
-    suspend fun changePassword(oldPassword: String, newPassword: String): Result<String> {
+    suspend fun changePassword(
+        oldPassword: String,
+        newPassword: String,
+        emailCode: String
+    ): Result<String> {
         return try {
-            val request = ChangePasswordRequest(oldPassword, newPassword)
+            val request = ChangePasswordRequest(oldPassword, newPassword, emailCode)
             val response = api.changePassword(request)
+            if (response.code == 200) {
+                Result.success(response.message)
+            } else {
+                Result.failure(Exception(response.message))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    //获取邮箱验证码
+    suspend fun getEmailCode(): Result<String> {
+        return try {
+            val response = api.getEmailCode()
             if (response.code == 200) {
                 Result.success(response.message)
             } else {
