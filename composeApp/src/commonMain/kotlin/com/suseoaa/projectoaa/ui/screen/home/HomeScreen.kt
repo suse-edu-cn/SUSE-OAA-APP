@@ -34,6 +34,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun HomeScreen(
     onNavigateToDetail: (String) -> Unit,
+    onNavigateToRecruitment: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
     viewModel: HomeViewModel = koinViewModel()
 ) {
@@ -49,6 +50,7 @@ fun HomeScreen(
             departments = departments,
             cardInfos = uiState.cardInfos,
             onItemClick = onNavigateToDetail,
+            onRecruitmentClick = onNavigateToRecruitment,
             bottomBarHeight = bottomBarHeight
         )
     }
@@ -59,6 +61,7 @@ fun DepartmentGrid(
     departments: List<String>,
     cardInfos: Map<String, AnnouncementData?>,
     onItemClick: (String) -> Unit,
+    onRecruitmentClick: () -> Unit,
     bottomBarHeight: Dp = 0.dp
 ) {
     AdaptiveLayout { config ->
@@ -90,7 +93,10 @@ fun DepartmentGrid(
                     )
                     Text(
                         "开放原子开源协会",
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        style = MaterialTheme
+                            .typography
+                            .headlineLarge
+                            .copy(fontWeight = FontWeight.ExtraBold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
@@ -115,6 +121,16 @@ fun DepartmentGrid(
                     onClick = { onItemClick(dept) }
                 )
             }
+
+            item(span = { GridItemSpan(1) }) {
+                DepartmentCard(
+                    name = "招新换届",
+//                    TODO 这里记得改数据源
+                    data = null,
+                    icon = Icons.Default.Person,
+                    onClick = onRecruitmentClick
+                )
+            }
         }
     }
 }
@@ -137,7 +153,11 @@ fun BigAssociationCard(
         color = MaterialTheme.colorScheme.primary,
         shadowElevation = 4.dp
     ) {
-        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = name,
@@ -184,7 +204,11 @@ fun DepartmentCard(
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = 2.dp
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = CircleShape,
@@ -192,7 +216,12 @@ fun DepartmentCard(
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(icon, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            icon,
+                            null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
@@ -207,7 +236,11 @@ fun DepartmentCard(
             Text(
                 text = summary,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (data == null) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (data == null) MaterialTheme
+                    .colorScheme
+                    .onSurfaceVariant
+                    .copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 18.sp
@@ -230,8 +263,7 @@ fun DepartmentCard(
  */
 fun String.stripMarkdown(): String {
     return this
-        .lines()  // 按行分割
-        .map { line ->
+        .lines().joinToString(" ") { line ->
             var result = line
             // 去除标题符号 (行首的 # 符号)
             while (result.startsWith("#")) {
@@ -239,8 +271,7 @@ fun String.stripMarkdown(): String {
             }
             result = result.trimStart()  // 去除标题后的空格
             result
-        }
-        .joinToString(" ")  // 用空格连接各行
+        }  // 用空格连接各行
         .let { text ->
             var result = text
             // 去除粗体 **text** -> text
@@ -248,9 +279,9 @@ fun String.stripMarkdown(): String {
                 val start = result.indexOf("**")
                 val end = result.indexOf("**", start + 2)
                 if (end > start) {
-                    result = result.substring(0, start) + 
-                             result.substring(start + 2, end) + 
-                             result.substring(end + 2)
+                    result = result.substring(0, start) +
+                            result.substring(start + 2, end) +
+                            result.substring(end + 2)
                 } else {
                     // 没有配对的 **，直接移除
                     result = result.replaceFirst("**", "")
@@ -261,9 +292,9 @@ fun String.stripMarkdown(): String {
                 val start = result.indexOf("*")
                 val end = result.indexOf("*", start + 1)
                 if (end > start) {
-                    result = result.substring(0, start) + 
-                             result.substring(start + 1, end) + 
-                             result.substring(end + 1)
+                    result = result.substring(0, start) +
+                            result.substring(start + 1, end) +
+                            result.substring(end + 1)
                 } else {
                     result = result.replaceFirst("*", "")
                 }
@@ -273,9 +304,9 @@ fun String.stripMarkdown(): String {
                 val start = result.indexOf("`")
                 val end = result.indexOf("`", start + 1)
                 if (end > start) {
-                    result = result.substring(0, start) + 
-                             result.substring(start + 1, end) + 
-                             result.substring(end + 1)
+                    result = result.substring(0, start) +
+                            result.substring(start + 1, end) +
+                            result.substring(end + 1)
                 } else {
                     result = result.replaceFirst("`", "")
                 }
@@ -296,10 +327,10 @@ fun String.stripMarkdown(): String {
 fun getIconForDepartment(name: String): ImageVector {
     return when (name) {
         "协会" -> Icons.Default.Home
-        "算法竞赛部" -> Icons.Default.Star        // 原版 Code，KMP 用 Star
+        "算法竞赛部" -> Icons.Default.Star
         "项目实践部" -> Icons.Default.Build
-        "组织宣传部" -> Icons.Default.Notifications // 原版 Campaign，KMP 用 Notifications
-        "秘书处" -> Icons.Default.Create           // 原版 EditNote，KMP 用 Create
+        "组织宣传部" -> Icons.Default.Notifications
+        "秘书处" -> Icons.Default.Create
         else -> Icons.Default.Star
     }
 }

@@ -16,7 +16,7 @@ fun parseExamTimeRange(timeStr: String): Pair<LocalDateTime, LocalDateTime>? {
     try {
         val datePart: String
         val timeRangePart: String
-        
+
         if (timeStr.contains("(")) {
             // 括号格式: "2026-01-08(09:30-11:30)"
             val parts = timeStr.split("(")
@@ -59,7 +59,7 @@ fun getExamCountDown(timeStr: String): Pair<String, Color> {
         val timeZone = TimeZone.currentSystemDefault()
         val now = Clock.System.now().toLocalDateTime(timeZone)
         val today = now.date
-        
+
         // 1. 尝试解析完整时间
         val timeRange = parseExamTimeRange(timeStr)
         if (timeRange == null) {
@@ -100,7 +100,8 @@ fun getExamCountDown(timeStr: String): Pair<String, Color> {
                         // 如果是今天，计算小时和分钟
                         val nowInstant = now.toInstant(timeZone)
                         val startInstant = startDateTime.toInstant(timeZone)
-                        val minutesTotal = (startInstant.toEpochMilliseconds() - nowInstant.toEpochMilliseconds()) / (1000 * 60)
+                        val minutesTotal =
+                            (startInstant.toEpochMilliseconds() - nowInstant.toEpochMilliseconds()) / (1000 * 60)
                         val hours = minutesTotal / 60
                         val minutes = minutesTotal % 60
                         if (hours > 0) {

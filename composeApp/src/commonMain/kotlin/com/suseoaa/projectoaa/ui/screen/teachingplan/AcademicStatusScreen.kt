@@ -51,16 +51,19 @@ private fun formatDouble(value: Double, decimals: Int = 1): String {
             val decPart = ((rounded - intPart) * 10).roundToInt()
             "$intPart.$decPart"
         }
+
         2 -> {
             val intPart = rounded.toInt()
             val decPart = ((rounded - intPart) * 100).roundToInt()
             "$intPart.${decPart.toString().padStart(2, '0')}"
         }
+
         else -> rounded.toString()
     }
 }
 
-private fun formatDouble(value: Float, decimals: Int = 1): String = formatDouble(value.toDouble(), decimals)
+private fun formatDouble(value: Float, decimals: Int = 1): String =
+    formatDouble(value.toDouble(), decimals)
 
 /**
  * 学业情况查询界面
@@ -73,7 +76,7 @@ fun AcademicStatusScreen(
     viewModel: AcademicStatusViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -119,7 +122,7 @@ fun AcademicStatusScreen(
                 viewModel.clearError()
             }
         }
-        
+
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -127,7 +130,7 @@ fun AcademicStatusScreen(
                 .background(MaterialTheme.colorScheme.background)
         ) {
             val isTablet = maxWidth > 600.dp
-            
+
             if (uiState.isLoading && uiState.categories.isEmpty()) {
                 // 初始加载
                 Box(
@@ -162,7 +165,7 @@ fun AcademicStatusScreen(
                                 isTablet = isTablet
                             )
                         }
-                        
+
                         // 筛选器
                         item {
                             FilterChipRow(
@@ -170,7 +173,7 @@ fun AcademicStatusScreen(
                                 onFilterSelect = viewModel::setFilter
                             )
                         }
-                        
+
                         // 课程类别列表
                         items(
                             items = uiState.categories,
@@ -355,7 +358,7 @@ private fun AcademicCategoryCard(
         targetValue = if (isExpanded) 180f else 0f,
         label = "arrow_rotation"
     )
-    
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -392,9 +395,9 @@ private fun AcademicCategoryCard(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.width(12.dp))
-                    
+
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = category.categoryName,
@@ -406,14 +409,19 @@ private fun AcademicCategoryCard(
                         if (category.isLoaded) {
                             Text(
                                 text = "${category.passedCount}门已过 · ${category.studyingCount}门在修 · " +
-                                       "${formatDouble(category.earnedCredits, 1)}/${formatDouble(category.totalCredits, 1)}学分",
+                                        "${formatDouble(category.earnedCredits, 1)}/${
+                                            formatDouble(
+                                                category.totalCredits,
+                                                1
+                                            )
+                                        }学分",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-                
+
                 // 加载指示器或展开箭头
                 if (category.isLoading) {
                     CircularProgressIndicator(
@@ -429,7 +437,7 @@ private fun AcademicCategoryCard(
                     )
                 }
             }
-            
+
             // 展开的课程列表
             AnimatedVisibility(
                 visible = isExpanded && category.isLoaded,
@@ -441,7 +449,7 @@ private fun AcademicCategoryCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                    
+
                     if (filteredCourses.isEmpty()) {
                         Text(
                             text = "无匹配课程",
@@ -533,7 +541,7 @@ private fun CourseTableRow(
     modifier: Modifier = Modifier
 ) {
     val statusColor = getStatusColor(course.studyStatus)
-    
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -595,7 +603,7 @@ private fun CourseItemCard(
     modifier: Modifier = Modifier
 ) {
     val statusColor = getStatusColor(course.studyStatus)
-    
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -648,7 +656,7 @@ private fun CourseItemCard(
                     )
                 }
             }
-            
+
             StatusBadge(status = course.studyStatus)
         }
     }
@@ -664,7 +672,7 @@ private fun StatusBadge(
 ) {
     val statusColor = getStatusColor(status)
     val statusName = StudyStatusUtils.getStatusName(status)
-    
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(6.dp),

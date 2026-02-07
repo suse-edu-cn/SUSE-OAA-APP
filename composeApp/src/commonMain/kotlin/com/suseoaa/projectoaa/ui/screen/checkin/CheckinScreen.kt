@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -164,10 +165,10 @@ fun CheckinScreen(
                             passwordCount = uiState.accounts.count { !it.isQrCodeLogin },
                             qrCodeCount = uiState.accounts.count { it.isQrCodeLogin }
                         )
-                        
+
                         // 筛选后的账号列表
                         val filteredAccounts = viewModel.getFilteredAccounts()
-                        
+
                         BoxWithConstraints(modifier = Modifier.weight(1f)) {
                             val isTablet = maxWidth > 600.dp
                             val columns = if (isTablet) 2 else 1
@@ -213,7 +214,7 @@ fun CheckinScreen(
                                 // 底部留白
                                 item { Spacer(modifier = Modifier.height(80.dp)) }
                             }
-                            
+
                             // 如果筛选后列表为空
                             if (filteredAccounts.isEmpty()) {
                                 Box(
@@ -231,7 +232,7 @@ fun CheckinScreen(
                                 }
                             }
                         }
-                        
+
                         // 批量打卡按钮 - 仅当有密码登录账号时显示
                         val passwordAccountCount = uiState.accounts.count { !it.isQrCodeLogin }
                         if (passwordAccountCount > 0 && uiState.accountFilter != AccountFilterType.QRCODE) {
@@ -255,7 +256,11 @@ fun CheckinScreen(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("正在批量打卡...")
                                     } else {
-                                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp))
+                                        Icon(
+                                            Icons.Default.PlayArrow,
+                                            null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("批量打卡 ($passwordAccountCount 个密码账号)")
                                     }
@@ -325,11 +330,24 @@ fun CheckinScreen(
     // Session过期重新登录对话框
     if (uiState.showReloginDialog && uiState.accountNeedRelogin != null) {
         AlertDialog(
+            containerColor = MaterialTheme.colorScheme.background,
             onDismissRequest = { viewModel.hideReloginDialog() },
-            icon = { Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error) },
+            icon = {
+                Icon(
+                    Icons.Default.Warning,
+                    null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
             title = { Text("登录已过期") },
             text = {
-                Text("账号 ${uiState.accountNeedRelogin?.name?.ifEmpty { uiState.accountNeedRelogin?.studentId }} 的登录已过期，需要重新扫码登录。")
+                Text(
+                    "账号 " +
+                            "${
+                                uiState.accountNeedRelogin?.name?.ifEmpty
+                                { uiState.accountNeedRelogin?.studentId }
+                            } 的登录已过期，需要重新扫码登录。"
+                )
             },
             confirmButton = {
                 Button(onClick = { viewModel.startRelogin() }) {
@@ -377,7 +395,11 @@ private fun EmptyState(onAddClick: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onAddClick) {
-            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+            Icon(
+                Icons.Default.Add,
+                null,
+                modifier = Modifier.size(18.dp)
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Text("添加账号")
         }
@@ -439,7 +461,7 @@ private fun AccountCard(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = if (account.name.isNotEmpty()) account.name else account.studentId,
+                            text = account.name.ifEmpty { account.studentId },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -552,7 +574,11 @@ private fun AccountCard(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            null,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("打卡")
@@ -563,7 +589,11 @@ private fun AccountCard(
                     onClick = onViewTasks,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.List, null, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.AutoMirrored.Filled.List,
+                        null,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("任务")
                 }
@@ -603,7 +633,11 @@ private fun AccountCard(
             },
             title = { Text("确认删除") },
             text = {
-                Text("确定要删除账号 ${account.name.ifEmpty { account.studentId }} 吗？此操作不可撤销。")
+                Text(
+                    "确定要删除账号 " +
+                            account.name.ifEmpty { account.studentId } +
+                            " 吗？此操作不可撤销。"
+                )
             },
             confirmButton = {
                 TextButton(
@@ -1372,9 +1406,13 @@ private fun TaskListView(
 
                             if (uiState.completedTasks.isNotEmpty()) {
                                 // 只显示 displayedCompletedCount 个任务
-                                val displayCount = minOf(uiState.displayedCompletedCount, uiState.completedTasks.size)
-                                val hasMore = uiState.completedTasks.size > uiState.displayedCompletedCount
-                                
+                                val displayCount = minOf(
+                                    uiState.displayedCompletedCount,
+                                    uiState.completedTasks.size
+                                )
+                                val hasMore =
+                                    uiState.completedTasks.size > uiState.displayedCompletedCount
+
                                 item {
                                     Text(
                                         text = "已打卡任务 (${uiState.completedTasks.size})",
@@ -1412,12 +1450,13 @@ private fun TaskListView(
                                         }
                                     }
                                 }
-                                
+
                                 // 加载更多按钮
                                 if (hasMore) {
                                     item {
                                         Box(
-                                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                                .padding(vertical = 8.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Button(
@@ -1550,9 +1589,13 @@ private fun TaskListView(
                             // 仅已打卡任务
                             if (uiState.completedTasks.isNotEmpty()) {
                                 // 只显示 displayedCompletedCount 个任务
-                                val displayCount = minOf(uiState.displayedCompletedCount, uiState.completedTasks.size)
-                                val hasMore = uiState.completedTasks.size > uiState.displayedCompletedCount
-                                
+                                val displayCount = minOf(
+                                    uiState.displayedCompletedCount,
+                                    uiState.completedTasks.size
+                                )
+                                val hasMore =
+                                    uiState.completedTasks.size > uiState.displayedCompletedCount
+
                                 items(
                                     count = (displayCount + columns - 1) / columns
                                 ) { rowIndex ->
@@ -1582,12 +1625,13 @@ private fun TaskListView(
                                         }
                                     }
                                 }
-                                
+
                                 // 加载更多按钮
                                 if (hasMore) {
                                     item {
                                         Box(
-                                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                                .padding(vertical = 8.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Button(
@@ -1761,9 +1805,10 @@ private fun TaskListView(
                     // 已打卡任务
                     if (uiState.completedTasks.isNotEmpty()) {
                         // 只显示 displayedCompletedCount 个任务
-                        val displayCount = minOf(uiState.displayedCompletedCount, uiState.completedTasks.size)
+                        val displayCount =
+                            minOf(uiState.displayedCompletedCount, uiState.completedTasks.size)
                         val hasMore = uiState.completedTasks.size > uiState.displayedCompletedCount
-                        
+
                         item {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -1802,7 +1847,7 @@ private fun TaskListView(
                                 }
                             }
                         }
-                        
+
                         // 加载更多按钮
                         if (hasMore) {
                             item {
@@ -1959,7 +2004,7 @@ private fun TaskCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    
+
                     // 显示已打卡时间（如果有）
                     if (status == 2 && !task.qdsj.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
@@ -2058,7 +2103,7 @@ private fun AccountFilterBar(
                     { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
                 } else null
             )
-            
+
             // 密码登录
             FilterChip(
                 selected = currentFilter == AccountFilterType.PASSWORD,
@@ -2070,7 +2115,7 @@ private fun AccountFilterBar(
                     { Icon(Icons.Default.Password, null, modifier = Modifier.size(18.dp)) }
                 }
             )
-            
+
             // 扫码登录
             FilterChip(
                 selected = currentFilter == AccountFilterType.QRCODE,

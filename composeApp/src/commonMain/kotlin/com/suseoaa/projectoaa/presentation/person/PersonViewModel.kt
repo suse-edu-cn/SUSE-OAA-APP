@@ -23,7 +23,7 @@ class PersonViewModel(
     private val personRepository: PersonRepository,
     private val tokenManager: TokenManager
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(PersonUiState())
     val uiState: StateFlow<PersonUiState> = _uiState.asStateFlow()
 
@@ -31,7 +31,7 @@ class PersonViewModel(
         loadUserInfo()
         loadCheckinUnlockStatus()
     }
-    
+
     /**
      * 加载652签到功能解锁状态
      */
@@ -42,7 +42,7 @@ class PersonViewModel(
             }
         }
     }
-    
+
     /**
      * 解锁652签到功能（永久保存）
      */
@@ -56,20 +56,20 @@ class PersonViewModel(
     fun loadUserInfo() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
+
             val result = personRepository.getPersonInfo()
-            
+
             result.onSuccess { data ->
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         userInfo = data
                     )
                 }
             }
-            
+
             result.onFailure { e ->
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         message = e.message
@@ -91,14 +91,14 @@ class PersonViewModel(
             _uiState.update { it.copy(message = "用户名或姓名不能为空") }
             return
         }
-        
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
+
             val result = personRepository.updateUserInfo(username, name)
-            
+
             result.onSuccess {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         message = "信息更新成功"
@@ -107,9 +107,9 @@ class PersonViewModel(
                 // 重新加载用户信息
                 loadUserInfo()
             }
-            
+
             result.onFailure { e ->
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         message = e.message
@@ -122,11 +122,11 @@ class PersonViewModel(
     fun uploadAvatar(imageData: ByteArray) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, message = "正在上传头像...") }
-            
+
             val result = personRepository.uploadAvatar(imageData)
-            
+
             result.onSuccess {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         message = "头像更新成功"
@@ -135,9 +135,9 @@ class PersonViewModel(
                 // 重新加载用户信息
                 loadUserInfo()
             }
-            
+
             result.onFailure { e ->
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         message = "头像上传失败: ${e.message}"
@@ -146,7 +146,7 @@ class PersonViewModel(
             }
         }
     }
-    
+
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
     }

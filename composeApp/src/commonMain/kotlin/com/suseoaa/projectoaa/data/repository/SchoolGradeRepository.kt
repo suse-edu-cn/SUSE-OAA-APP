@@ -119,7 +119,7 @@ class SchoolGradeRepository(
         semester: String
     ) = coroutineScope {
         val response = api.getStudentGrade(year = year, semester = semester)
-        
+
         if (response.status.value == 200) {
             val bodyString = response.bodyAsText()
             if (isLoginRequired(bodyString)) throw SessionExpiredException()

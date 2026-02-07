@@ -39,7 +39,7 @@ class AcademicStatusRepository(
      * 获取学业情况页面，解析课程类别
      * @param studentId 学号
      */
-    suspend fun getAcademicStatusCategories(studentId: String): Result<List<AcademicStatusCategory>> = 
+    suspend fun getAcademicStatusCategories(studentId: String): Result<List<AcademicStatusCategory>> =
         withContext(Dispatchers.IO) {
             try {
                 val response = api.getAcademicStatusPage(studentId)
@@ -62,16 +62,16 @@ class AcademicStatusRepository(
      */
     private fun parseCategoriesFromHtml(html: String): List<AcademicStatusCategory> {
         val categories = mutableListOf<AcademicStatusCategory>()
-        
+
         // 使用正则匹配 xfyqjd_id 和对应的类别名称
         val pattern = Regex("xfyqjd_id='([A-F0-9]+)'\\s+data-content='([^']+)'")
         val matches = pattern.findAll(html)
-        
+
         val seenIds = mutableSetOf<String>()
         for (match in matches) {
             val categoryId = match.groupValues[1]
             val categoryName = match.groupValues[2]
-            
+
             // 去重
             if (categoryId !in seenIds && categoryName.isNotEmpty()) {
                 seenIds.add(categoryId)
@@ -83,7 +83,7 @@ class AcademicStatusRepository(
                 )
             }
         }
-        
+
         // 按类别名称排序
         return categories.sortedBy { category ->
             when {
@@ -174,12 +174,15 @@ class AcademicStatusRepository(
                     passedCount++
                     earnedCredits += credits
                 }
+
                 StudyStatusUtils.FAILED -> {
                     failedCount++
                 }
+
                 StudyStatusUtils.STUDYING -> {
                     studyingCount++
                 }
+
                 StudyStatusUtils.NOT_STUDIED -> {
                     notStudiedCount++
                 }

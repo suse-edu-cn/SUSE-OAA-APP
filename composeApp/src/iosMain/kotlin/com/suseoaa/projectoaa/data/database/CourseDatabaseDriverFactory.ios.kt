@@ -7,10 +7,11 @@ import com.suseoaa.projectoaa.database.CourseDatabase
 actual class CourseDatabaseDriverFactory {
     actual fun createDriver(): SqlDriver {
         val driver = NativeSqliteDriver(CourseDatabase.Schema, "course.db")
-        
+
         // 确保 CheckinAccount 表存在（兼容旧版本数据库）
         try {
-            driver.execute(null, """
+            driver.execute(
+                null, """
                 CREATE TABLE IF NOT EXISTS CheckinAccount (
                     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     studentId TEXT NOT NULL UNIQUE,
@@ -22,17 +23,18 @@ actual class CourseDatabaseDriverFactory {
                     createdAt TEXT NOT NULL,
                     updatedAt TEXT NOT NULL
                 )
-            """.trimIndent(), 0)
+            """.trimIndent(), 0
+            )
         } catch (_: Exception) {
             // 表已存在或其他错误，忽略
         }
-        
+
         // 迁移 ExamCache 表：为旧版本数据库添加新字段
         migrateExamCacheTable(driver)
-        
+
         return driver
     }
-    
+
     /**
      * 迁移 ExamCache 表，为旧版本数据库添加新字段
      */
@@ -47,7 +49,7 @@ actual class CourseDatabaseDriverFactory {
             "ALTER TABLE ExamCache ADD COLUMN xnm TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE ExamCache ADD COLUMN xqm TEXT NOT NULL DEFAULT ''"
         )
-        
+
         // 逐个执行 ALTER TABLE，忽略已存在字段的错误
         alterStatements.forEach { sql ->
             try {
@@ -56,14 +58,24 @@ actual class CourseDatabaseDriverFactory {
                 // 字段已存在或其他错误，忽略
             }
         }
-        
+
         // 确保索引存在
         try {
-            driver.execute(null, "CREATE INDEX IF NOT EXISTS idx_exam_student ON ExamCache(studentId)", 0)
-        } catch (_: Exception) {}
-        
+            driver.execute(
+                null,
+                "CREATE INDEX IF NOT EXISTS idx_exam_student ON ExamCache(studentId)",
+                0
+            )
+        } catch (_: Exception) {
+        }
+
         try {
-            driver.execute(null, "CREATE INDEX IF NOT EXISTS idx_exam_semester ON ExamCache(studentId, xnm, xqm)", 0)
-        } catch (_: Exception) {}
+            driver.execute(
+                null,
+                "CREATE INDEX IF NOT EXISTS idx_exam_semester ON ExamCache(studentId, xnm, xqm)",
+                0
+            )
+        } catch (_: Exception) {
+        }
     }
 }

@@ -52,20 +52,20 @@ class AppUpdateViewModel(
     private val appUpdateRepository: AppUpdateRepository,
     private val tokenManager: TokenManager
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(AppUpdateUiState())
     val uiState: StateFlow<AppUpdateUiState> = _uiState.asStateFlow()
-    
+
     private val _events = MutableSharedFlow<UpdateEvent>()
     val events: SharedFlow<UpdateEvent> = _events.asSharedFlow()
-    
+
     private var currentDownloadId: Long = -1L
-    
+
     /**
      * 是否是 iOS 平台
      */
     val isIos: Boolean = isIosPlatform()
-    
+
     /**
      * 检查更新（用于手动触发，不检查是否已弹窗）
      */
@@ -75,7 +75,7 @@ class AppUpdateViewModel(
                 isChecking = true,
                 errorMessage = null
             )
-            
+
             appUpdateRepository.checkUpdate()
                 .onSuccess { release ->
                     if (release != null) {
@@ -101,7 +101,7 @@ class AppUpdateViewModel(
                 }
         }
     }
-    
+
     /**
      * 检查更新（自动触发，会检查是否已弹窗）
      * 只有在该版本还未弹过窗时才会弹窗
@@ -112,13 +112,13 @@ class AppUpdateViewModel(
                 isChecking = true,
                 errorMessage = null
             )
-            
+
             appUpdateRepository.checkUpdate()
                 .onSuccess { release ->
                     if (release != null) {
                         // 检查是否已经为这个版本弹过窗
                         val hasShown = tokenManager.hasShownUpdateDialogForVersion(release.tagName)
-                        
+
                         _uiState.value = _uiState.value.copy(
                             isChecking = false,
                             hasUpdate = true,
@@ -140,7 +140,7 @@ class AppUpdateViewModel(
                 }
         }
     }
-    
+
     /**
      * 标记已经显示过更新弹窗
      */
@@ -151,38 +151,38 @@ class AppUpdateViewModel(
             _uiState.value = _uiState.value.copy(hasShownAutoDialog = true)
         }
     }
-    
+
     /**
      * 开始下载更新
      */
     fun startDownload() {
         val release = _uiState.value.latestRelease ?: return
-        
+
         // 查找 APK 资源
-        val apkAsset = release.assets.firstOrNull { 
-            it.name.endsWith(".apk") 
+        val apkAsset = release.assets.firstOrNull {
+            it.name.endsWith(".apk")
         }
-        
+
         if (apkAsset == null) {
             viewModelScope.launch {
                 _events.emit(UpdateEvent.ShowToast("未找到 APK 下载链接"))
             }
             return
         }
-        
+
         _uiState.value = _uiState.value.copy(isDownloading = true)
-        
+
         currentDownloadId = appUpdateRepository.downloadApk(
             url = apkAsset.downloadUrl,
             fileName = apkAsset.name
         )
-        
+
         if (currentDownloadId == -1L) {
             // iOS 平台不支持直接下载
             _uiState.value = _uiState.value.copy(isDownloading = false)
         }
     }
-    
+
     /**
      * 安装已下载的 APK
      */
@@ -190,12 +190,12 @@ class AppUpdateViewModel(
         if (currentDownloadId == -1L) {
             currentDownloadId = appUpdateRepository.currentDownloadId
         }
-        
+
         if (currentDownloadId != -1L) {
             appUpdateRepository.installApkById(currentDownloadId)
         }
     }
-    
+
     /**
      * 处理下载完成回调
      */
@@ -210,14 +210,14 @@ class AppUpdateViewModel(
             }
         }
     }
-    
+
     /**
      * 清除错误信息
      */
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
-    
+
     /**
      * 关闭更新弹窗
      */

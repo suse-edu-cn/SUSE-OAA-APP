@@ -51,26 +51,27 @@ class TeachingPlanRepository(
     /**
      * 获取专业列表
      */
-    suspend fun getMajorList(collegeId: String): Result<List<MajorOption>> = withContext(Dispatchers.IO) {
-        try {
-            val response = api.getAllMajorList(collegeId)
-            if (response.status.value == 200) {
-                val bodyText = response.bodyAsText()
-                val allMajors = json.decodeFromString<List<MajorApiResponse>>(bodyText)
-                // 转换为 MajorOption
-                val majors = allMajors
-                    .filter { it.majorId.isNotEmpty() }
-                    .map { MajorOption(code = it.majorId, name = it.majorName) }
-                    .sortedBy { it.name }
-                Result.success(majors)
-            } else {
-                Result.failure(Exception("获取专业列表失败: ${response.status.value}"))
+    suspend fun getMajorList(collegeId: String): Result<List<MajorOption>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = api.getAllMajorList(collegeId)
+                if (response.status.value == 200) {
+                    val bodyText = response.bodyAsText()
+                    val allMajors = json.decodeFromString<List<MajorApiResponse>>(bodyText)
+                    // 转换为 MajorOption
+                    val majors = allMajors
+                        .filter { it.majorId.isNotEmpty() }
+                        .map { MajorOption(code = it.majorId, name = it.majorName) }
+                        .sortedBy { it.name }
+                    Result.success(majors)
+                } else {
+                    Result.failure(Exception("获取专业列表失败: ${response.status.value}"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Result.failure(e)
         }
-    }
 
     /**
      * 获取培养计划信息
@@ -164,16 +165,23 @@ class TeachingPlanRepository(
     ): Result<CourseInfoListResponse> = withContext(Dispatchers.IO) {
         try {
             // 先尝试获取
-            var result = getCourseInfoList(planId, suggestedYear, suggestedSemester, courseCode, studyType)
-            
+            var result =
+                getCourseInfoList(planId, suggestedYear, suggestedSemester, courseCode, studyType)
+
             // 如果失败，尝试登录后重试
             if (result.isFailure) {
                 // 先使当前 session 失效，再重新登录
                 authRepository.invalidateSession()
                 authRepository.login(studentId, password)
-                result = getCourseInfoList(planId, suggestedYear, suggestedSemester, courseCode, studyType)
+                result = getCourseInfoList(
+                    planId,
+                    suggestedYear,
+                    suggestedSemester,
+                    courseCode,
+                    studyType
+                )
             }
-            
+
             result
         } catch (e: Exception) {
             e.printStackTrace()
@@ -194,7 +202,7 @@ class TeachingPlanRepository(
         try {
             // 确保已登录
             authRepository.login(studentId, password)
-            
+
             // 获取培养计划
             val planResult = getTeachingPlanInfo(collegeId, gradeId, majorId)
             if (planResult.isSuccess) {
@@ -234,7 +242,7 @@ class TeachingPlanRepository(
      * 按学期分组课程
      */
     fun groupCoursesBySemester(courses: List<CourseInfoItem>): Map<String, List<CourseInfoItem>> {
-        return courses.groupBy { 
+        return courses.groupBy {
             "${it.suggestedYear} ${SemesterConstants.getSemesterName(it.suggestedSemester)}"
         }
     }
@@ -243,8 +251,8 @@ class TeachingPlanRepository(
      * 计算总学分
      */
     fun calculateTotalCredits(courses: List<CourseInfoItem>): Double {
-        return courses.sumOf { 
-            it.credits.toDoubleOrNull() ?: 0.0 
+        return courses.sumOf {
+            it.credits.toDoubleOrNull() ?: 0.0
         }
     }
 }

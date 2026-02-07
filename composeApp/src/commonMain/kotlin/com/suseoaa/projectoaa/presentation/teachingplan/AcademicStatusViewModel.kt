@@ -36,7 +36,7 @@ class AcademicStatusViewModel(
             }
 
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            
+
             val result = academicStatusRepository.getAcademicStatusCategories(studentId)
             result.fold(
                 onSuccess = { categories ->
@@ -52,7 +52,7 @@ class AcademicStatusViewModel(
                     loadAllCategoryCourses(studentId, categories)
                 },
                 onFailure = { error ->
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             errorMessage = "加载学业情况失败: ${error.message}",
                             isLoading = false
@@ -67,7 +67,7 @@ class AcademicStatusViewModel(
      * 加载所有类别的课程
      */
     private suspend fun loadAllCategoryCourses(
-        studentId: String, 
+        studentId: String,
         categories: List<AcademicStatusCategory>
     ) {
         for (category in categories) {
@@ -144,14 +144,14 @@ class AcademicStatusViewModel(
         for (category in state.categories) {
             totalCredits += category.totalCredits
             earnedCredits += category.earnedCredits
-            
+
             for (course in category.courses) {
                 val credits = course.credits.toDoubleOrNull() ?: 0.0
-                
+
                 if (course.studyStatus == StudyStatusUtils.STUDYING) {
                     studyingCredits += credits
                 }
-                
+
                 // 计算绩点（只计算已通过的课程）
                 if (course.studyStatus == StudyStatusUtils.PASSED && course.gradePoint > 0) {
                     totalGradePoints += course.gradePoint * credits
@@ -164,7 +164,7 @@ class AcademicStatusViewModel(
             totalGradePoints / totalCreditsForGpa
         } else 0.0
 
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 totalCredits = totalCredits,
                 earnedCredits = earnedCredits,
@@ -180,9 +180,9 @@ class AcademicStatusViewModel(
     fun refresh() {
         viewModelScope.launch {
             val studentId = tokenManager.currentStudentId.first() ?: return@launch
-            
+
             _uiState.update { it.copy(isRefreshing = true) }
-            
+
             val result = academicStatusRepository.getAcademicStatusCategories(studentId)
             result.fold(
                 onSuccess = { categories ->
@@ -195,7 +195,7 @@ class AcademicStatusViewModel(
                     loadAllCategoryCourses(studentId, categories)
                 },
                 onFailure = { error ->
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             errorMessage = "刷新失败: ${error.message}",
                             isRefreshing = false

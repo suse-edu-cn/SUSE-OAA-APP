@@ -58,14 +58,14 @@ fun ExamInfoScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isDarkTheme = isSystemInDarkTheme()
-    
+
     // 颜色定义
     val backgroundColor = if (isDarkTheme) NightBackground else OxygenBackground
     val surfaceColor = if (isDarkTheme) NightSurface else OxygenWhite
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    
+
     // 错误提示
     uiState.errorMessage?.let { error ->
         LaunchedEffect(error) {
@@ -73,7 +73,7 @@ fun ExamInfoScreen(
             viewModel.clearError()
         }
     }
-    
+
     // 编辑对话框
     val editingExam = uiState.editingExam
     if (uiState.showEditDialog && editingExam != null) {
@@ -86,7 +86,7 @@ fun ExamInfoScreen(
             onDismiss = { viewModel.hideEditDialog() }
         )
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -94,7 +94,7 @@ fun ExamInfoScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             "返回",
                             tint = textColor
                         )
@@ -109,7 +109,7 @@ fun ExamInfoScreen(
                             tint = primaryColor
                         )
                     }
-                    
+
                     // 刷新按钮
                     IconButton(
                         onClick = { viewModel.refresh() },
@@ -143,7 +143,7 @@ fun ExamInfoScreen(
                 .padding(padding)
         ) {
             val isTablet = maxWidth > 600.dp
-            
+
             if (isTablet) {
                 // 平板布局：左侧筛选面板，右侧内容
                 TabletExamLayout(
@@ -178,7 +178,7 @@ private fun TabletExamLayout(
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
     val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else OutlineSoft
-    
+
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -206,17 +206,17 @@ private fun TabletExamLayout(
                     fontWeight = FontWeight.SemiBold,
                     color = primaryColor
                 )
-                
+
                 HorizontalDivider(color = dividerColor)
-                
+
                 // 学期列表
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(uiState.availableSemesters) { semester ->
-                        val isSelected = semester.year == uiState.selectedYear && 
-                                        semester.semester == uiState.selectedSemester
-                        
+                        val isSelected = semester.year == uiState.selectedYear &&
+                                semester.semester == uiState.selectedSemester
+
                         SemesterOptionItem(
                             option = semester,
                             isSelected = isSelected,
@@ -227,7 +227,7 @@ private fun TabletExamLayout(
                 }
             }
         }
-        
+
         // 右侧内容区域
         Column(modifier = Modifier.weight(1f)) {
             // 统计信息
@@ -238,10 +238,10 @@ private fun TabletExamLayout(
                     endedCount = uiState.exams.count { it.isEnded },
                     isDarkTheme = isDarkTheme
                 )
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
             }
-            
+
             // 考试列表
             ExamContentArea(
                 uiState = uiState,
@@ -269,7 +269,7 @@ private fun PhoneExamLayout(
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
     val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else OutlineSoft
-    
+
     Column(modifier = Modifier.fillMaxSize()) {
         // 可折叠学期选择器
         CollapsibleSemesterSelector(
@@ -282,7 +282,7 @@ private fun PhoneExamLayout(
             onSelect = { viewModel.selectSemester(it) },
             isDarkTheme = isDarkTheme
         )
-        
+
         // 统计信息
         if (uiState.exams.isNotEmpty()) {
             ExamStatisticsBar(
@@ -292,7 +292,7 @@ private fun PhoneExamLayout(
                 isDarkTheme = isDarkTheme
             )
         }
-        
+
         // 考试列表
         ExamContentArea(
             uiState = uiState,
@@ -327,7 +327,7 @@ private fun CollapsibleSemesterSelector(
     val containerColor = if (isDarkTheme) NightContainer else SoftBlueWait
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else OutlineSoft
-    
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = surfaceColor
@@ -353,7 +353,7 @@ private fun CollapsibleSemesterSelector(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    
+
                     // 当前选中的学期标签
                     Surface(
                         color = primaryColor,
@@ -368,7 +368,7 @@ private fun CollapsibleSemesterSelector(
                         )
                     }
                 }
-                
+
                 // 展开/收起按钮
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -386,7 +386,7 @@ private fun CollapsibleSemesterSelector(
                     )
                 }
             }
-            
+
             // 可折叠的学期选项列表
             AnimatedVisibility(
                 visible = isExpanded,
@@ -400,9 +400,9 @@ private fun CollapsibleSemesterSelector(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(semesters) { semester ->
-                        val isSelected = semester.year == selectedYear && 
-                                        semester.semester == selectedSemester
-                        
+                        val isSelected = semester.year == selectedYear &&
+                                semester.semester == selectedSemester
+
                         SemesterChip(
                             option = semester,
                             isSelected = isSelected,
@@ -412,7 +412,7 @@ private fun CollapsibleSemesterSelector(
                     }
                 }
             }
-            
+
             HorizontalDivider(color = dividerColor)
         }
     }
@@ -438,7 +438,7 @@ private fun SemesterOptionItem(
     )
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
     val textColor = if (isDarkTheme) Color.White else InkBlack
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -455,7 +455,7 @@ private fun SemesterOptionItem(
             color = if (isSelected) primaryColor else textColor,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
         )
-        
+
         if (isSelected) {
             Icon(
                 Icons.Default.Check,
@@ -487,7 +487,7 @@ private fun SemesterChip(
     } else {
         if (isDarkTheme) Color.White else InkBlack
     }
-    
+
     Surface(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
@@ -519,7 +519,7 @@ private fun ExamStatisticsBar(
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
     val warningColor = Color(0xFFFF9500) // iOS 橙色
     val successColor = Color(0xFF34C759) // iOS 绿色
-    
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = surfaceColor
@@ -582,7 +582,7 @@ private fun ExamContentArea(
 ) {
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
-    
+
     when {
         uiState.isLoading -> {
             Box(
@@ -600,6 +600,7 @@ private fun ExamContentArea(
                 }
             }
         }
+
         uiState.exams.isEmpty() -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -625,9 +626,11 @@ private fun ExamContentArea(
                 }
             }
         }
+
         else -> {
-            val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-            
+            val navBarHeight =
+                WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 contentPadding = PaddingValues(
@@ -669,15 +672,15 @@ private fun ExamCard(
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
     val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else OutlineSoft
     val customBadgeColor = Color(0xFF34C759) // iOS 绿色
-    
+
     // 倒计时
     val (countDownText, countColor) = remember(exam.time) {
         getExamCountDown(exam.time)
     }
-    
+
     // 已结束的考试使用淡化效果
     val cardAlpha = if (exam.isEnded) 0.6f else 1f
-    
+
     Card(
         modifier = modifier.then(
             if (exam.isCustom) {
@@ -714,7 +717,7 @@ private fun ExamCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
                     )
-                    
+
                     // 自定义考试标签
                     if (exam.isCustom) {
                         Spacer(modifier = Modifier.width(6.dp))
@@ -731,7 +734,7 @@ private fun ExamCard(
                         }
                     }
                 }
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (countDownText.isNotEmpty()) {
                         Surface(
@@ -748,7 +751,7 @@ private fun ExamCard(
                             )
                         }
                     }
-                    
+
                     // 自定义考试显示编辑图标
                     if (exam.isCustom) {
                         Icon(
@@ -762,9 +765,9 @@ private fun ExamCard(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             // 考试时间
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -780,9 +783,9 @@ private fun ExamCard(
                     color = textColor.copy(alpha = cardAlpha)
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(6.dp))
-            
+
             // 考试地点
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -798,13 +801,13 @@ private fun ExamCard(
                     color = textColor.copy(alpha = cardAlpha)
                 )
             }
-            
+
             // 如果有学分信息，显示分割线和额外信息
             if (exam.credit.isNotEmpty() || exam.examName.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(color = dividerColor)
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -825,7 +828,7 @@ private fun ExamCard(
                             )
                         }
                     }
-                    
+
                     Text(
                         text = exam.examType,
                         style = MaterialTheme.typography.labelSmall,
@@ -854,37 +857,41 @@ private fun ExamEditDialog(
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
     val errorColor = AlertRed // iOS 风格红
-    
+
     // 编辑状态
     var courseName by remember { mutableStateOf(exam.courseName) }
     var location by remember { mutableStateOf(exam.location) }
     var credit by remember { mutableStateOf(exam.credit) }
     var examType by remember { mutableStateOf(exam.examType) }
-    
+
     // 日期时间状态
     val now = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) }
-    var selectedDate by remember { 
-        mutableStateOf(parseExamDate(exam.time) ?: now.date) 
+    var selectedDate by remember {
+        mutableStateOf(parseExamDate(exam.time) ?: now.date)
     }
     var startHour by remember { mutableStateOf(parseExamStartHour(exam.time) ?: 9) }
     var startMinute by remember { mutableStateOf(parseExamStartMinute(exam.time) ?: 0) }
     var endHour by remember { mutableStateOf(parseExamEndHour(exam.time) ?: 11) }
     var endMinute by remember { mutableStateOf(parseExamEndMinute(exam.time) ?: 0) }
-    
+
     // 显示日期选择器
     var showDatePicker by remember { mutableStateOf(false) }
-    
+
     // 显示删除确认
     var showDeleteConfirm by remember { mutableStateOf(false) }
-    
+
     // 格式化时间字符串 - 使用与API一致的格式: "2024-06-15(09:00-11:00)"
     fun formatTime(): String {
-        val dateStr = "${selectedDate.year}-${selectedDate.monthNumber.toString().padStart(2, '0')}-${selectedDate.dayOfMonth.toString().padStart(2, '0')}"
-        val startStr = "${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}"
-        val endStr = "${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}"
+        val dateStr = "${selectedDate.year}-${
+            selectedDate.monthNumber.toString().padStart(2, '0')
+        }-${selectedDate.dayOfMonth.toString().padStart(2, '0')}"
+        val startStr =
+            "${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}"
+        val endStr =
+            "${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}"
         return "$dateStr($startStr-$endStr)"
     }
-    
+
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
@@ -908,24 +915,24 @@ private fun ExamEditDialog(
             }
         )
     }
-    
+
     // 日期选择器对话框
     if (showDatePicker) {
         ExamDatePicker(
             currentDate = selectedDate,
             isDarkTheme = isDarkTheme,
-            onDateSelected = { 
+            onDateSelected = {
                 selectedDate = it
                 showDatePicker = false
             },
             onDismiss = { showDatePicker = false }
         )
     }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = surfaceColor,
-        title = { 
+        title = {
             Text(
                 text = if (isAddMode) "添加考试" else "编辑考试",
                 color = textColor,
@@ -953,7 +960,7 @@ private fun ExamEditDialog(
                         cursorColor = primaryColor
                     )
                 )
-                
+
                 // 考试日期（点击选择）
                 Text(
                     text = "考试日期 *",
@@ -963,7 +970,9 @@ private fun ExamEditDialog(
                 Surface(
                     onClick = { showDatePicker = true },
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isDarkTheme) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f),
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.05f) else Color.Black.copy(
+                        alpha = 0.05f
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -991,7 +1000,7 @@ private fun ExamEditDialog(
                         )
                     }
                 }
-                
+
                 // 考试时间选择（开始-结束）
                 Text(
                     text = "考试时间 *",
@@ -1011,9 +1020,9 @@ private fun ExamEditDialog(
                         isDarkTheme = isDarkTheme,
                         modifier = Modifier.weight(1f)
                     )
-                    
+
                     Text("-", color = textColor, style = MaterialTheme.typography.titleMedium)
-                    
+
                     // 结束时间
                     TimePickerField(
                         hour = endHour,
@@ -1023,7 +1032,7 @@ private fun ExamEditDialog(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                
+
                 // 考试地点（必填）
                 OutlinedTextField(
                     value = location,
@@ -1041,7 +1050,7 @@ private fun ExamEditDialog(
                         cursorColor = primaryColor
                     )
                 )
-                
+
                 // 学分和考试类型（选填）
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1063,7 +1072,7 @@ private fun ExamEditDialog(
                             cursorColor = primaryColor
                         )
                     )
-                    
+
                     OutlinedTextField(
                         value = examType,
                         onValueChange = { examType = it },
@@ -1081,7 +1090,7 @@ private fun ExamEditDialog(
                         )
                     )
                 }
-                
+
                 // 学期信息（只读）
                 Text(
                     text = "学期：${exam.yearSemester}",
@@ -1104,7 +1113,10 @@ private fun ExamEditDialog(
                 },
                 enabled = courseName.isNotBlank() && location.isNotBlank()
             ) {
-                Text("保存", color = if (courseName.isNotBlank() && location.isNotBlank()) primaryColor else subtextColor)
+                Text(
+                    "保存",
+                    color = if (courseName.isNotBlank() && location.isNotBlank()) primaryColor else subtextColor
+                )
             }
         },
         dismissButton = {
@@ -1115,7 +1127,7 @@ private fun ExamEditDialog(
                         Text("删除", color = errorColor)
                     }
                 }
-                
+
                 TextButton(onClick = onDismiss) {
                     Text("取消", color = subtextColor)
                 }
@@ -1142,16 +1154,19 @@ private fun ExamDatePicker(
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    val selectedBgColor = if (isDarkTheme) NightBlue.copy(alpha = 0.2f) else ElectricBlue.copy(alpha = 0.1f)
-    
+    val selectedBgColor =
+        if (isDarkTheme) NightBlue.copy(alpha = 0.2f) else ElectricBlue.copy(alpha = 0.1f)
+
     var selectedYear by remember { mutableStateOf(currentDate.year) }
     var selectedMonth by remember { mutableStateOf(currentDate.monthNumber) }
     var selectedDay by remember { mutableStateOf(currentDate.dayOfMonth) }
-    
-    val monthNames = listOf("1月", "2月", "3月", "4月", "5月", "6月", 
-                           "7月", "8月", "9月", "10月", "11月", "12月")
+
+    val monthNames = listOf(
+        "1月", "2月", "3月", "4月", "5月", "6月",
+        "7月", "8月", "9月", "10月", "11月", "12月"
+    )
     val weekDayNames = listOf("一", "二", "三", "四", "五", "六", "日")
-    
+
     // 计算某月的天数
     fun daysInMonth(year: Int, month: Int): Int {
         return when (month) {
@@ -1161,13 +1176,13 @@ private fun ExamDatePicker(
             else -> 30
         }
     }
-    
+
     // 获取某月第一天是星期几 (0=周一, 6=周日)
     fun firstDayOfMonth(year: Int, month: Int): Int {
         val date = LocalDate(year, month, 1)
         return date.dayOfWeek.ordinal
     }
-    
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -1189,9 +1204,9 @@ private fun ExamDatePicker(
                     fontWeight = FontWeight.Bold,
                     color = textColor
                 )
-                
+
                 Spacer(Modifier.height(16.dp))
-                
+
                 // 选中日期显示
                 Text(
                     "${selectedYear}年${monthNames[selectedMonth - 1]}${selectedDay}日",
@@ -1200,7 +1215,7 @@ private fun ExamDatePicker(
                     color = primaryColor,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 // 年月选择器
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1226,16 +1241,18 @@ private fun ExamDatePicker(
                             Icon(Icons.Default.ChevronRight, null, tint = textColor)
                         }
                     }
-                    
+
                     // 月份选择
                     Row(
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = { 
+                        IconButton(onClick = {
                             if (selectedMonth > 1) selectedMonth--
-                            else { selectedMonth = 12; selectedYear-- }
+                            else {
+                                selectedMonth = 12; selectedYear--
+                            }
                             val maxDay = daysInMonth(selectedYear, selectedMonth)
                             if (selectedDay > maxDay) selectedDay = maxDay
                         }) {
@@ -1247,9 +1264,11 @@ private fun ExamDatePicker(
                             fontWeight = FontWeight.SemiBold,
                             color = textColor
                         )
-                        IconButton(onClick = { 
+                        IconButton(onClick = {
                             if (selectedMonth < 12) selectedMonth++
-                            else { selectedMonth = 1; selectedYear++ }
+                            else {
+                                selectedMonth = 1; selectedYear++
+                            }
                             val maxDay = daysInMonth(selectedYear, selectedMonth)
                             if (selectedDay > maxDay) selectedDay = maxDay
                         }) {
@@ -1257,9 +1276,9 @@ private fun ExamDatePicker(
                         }
                     }
                 }
-                
+
                 Spacer(Modifier.height(12.dp))
-                
+
                 // 星期标题
                 Row(modifier = Modifier.fillMaxWidth()) {
                     weekDayNames.forEach { day ->
@@ -1276,22 +1295,22 @@ private fun ExamDatePicker(
                         }
                     }
                 }
-                
+
                 Spacer(Modifier.height(8.dp))
-                
+
                 // 日期网格
                 val firstDay = firstDayOfMonth(selectedYear, selectedMonth)
                 val daysCount = daysInMonth(selectedYear, selectedMonth)
                 val totalCells = firstDay + daysCount
                 val rows = (totalCells + 6) / 7
-                
+
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     for (row in 0 until rows) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             for (col in 0..6) {
                                 val cellIndex = row * 7 + col
                                 val day = cellIndex - firstDay + 1
-                                
+
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -1320,9 +1339,9 @@ private fun ExamDatePicker(
                         }
                     }
                 }
-                
+
                 Spacer(Modifier.height(20.dp))
-                
+
                 // 按钮
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1361,10 +1380,11 @@ private fun TimePickerField(
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    val bgColor = if (isDarkTheme) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
-    
+    val bgColor =
+        if (isDarkTheme) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
+
     var showPicker by remember { mutableStateOf(false) }
-    
+
     if (showPicker) {
         TimePickerDialog(
             hour = hour,
@@ -1377,7 +1397,7 @@ private fun TimePickerField(
             onDismiss = { showPicker = false }
         )
     }
-    
+
     Surface(
         onClick = { showPicker = true },
         shape = RoundedCornerShape(8.dp),
@@ -1421,10 +1441,10 @@ private fun TimePickerDialog(
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    
+
     var selectedHour by remember { mutableStateOf(hour) }
     var selectedMinute by remember { mutableStateOf(minute) }
-    
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(20.dp),
@@ -1441,9 +1461,9 @@ private fun TimePickerDialog(
                     fontWeight = FontWeight.Bold,
                     color = textColor
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // 时间选择器
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1460,11 +1480,13 @@ private fun TimePickerDialog(
                             fontWeight = FontWeight.Bold,
                             color = primaryColor
                         )
-                        IconButton(onClick = { selectedHour = if (selectedHour > 0) selectedHour - 1 else 23 }) {
+                        IconButton(onClick = {
+                            selectedHour = if (selectedHour > 0) selectedHour - 1 else 23
+                        }) {
                             Icon(Icons.Default.KeyboardArrowDown, null, tint = textColor)
                         }
                     }
-                    
+
                     Text(
                         ":",
                         style = MaterialTheme.typography.displaySmall,
@@ -1472,7 +1494,7 @@ private fun TimePickerDialog(
                         color = textColor,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
-                    
+
                     // 分钟选择
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         IconButton(onClick = { selectedMinute = (selectedMinute + 5) % 60 }) {
@@ -1484,14 +1506,16 @@ private fun TimePickerDialog(
                             fontWeight = FontWeight.Bold,
                             color = primaryColor
                         )
-                        IconButton(onClick = { selectedMinute = if (selectedMinute >= 5) selectedMinute - 5 else 55 }) {
+                        IconButton(onClick = {
+                            selectedMinute = if (selectedMinute >= 5) selectedMinute - 5 else 55
+                        }) {
                             Icon(Icons.Default.KeyboardArrowDown, null, tint = textColor)
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // 按钮
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1524,8 +1548,8 @@ private fun TimePickerDialog(
 private fun parseExamDate(timeStr: String): LocalDate? {
     return try {
         // 先尝试括号格式，再尝试空格格式
-        val datePart = timeStr.substringBefore("(").takeIf { it != timeStr } 
-            ?: timeStr.split(" ").firstOrNull() 
+        val datePart = timeStr.substringBefore("(").takeIf { it != timeStr }
+            ?: timeStr.split(" ").firstOrNull()
             ?: return null
         val parts = datePart.trim().split("-")
         if (parts.size >= 3) {

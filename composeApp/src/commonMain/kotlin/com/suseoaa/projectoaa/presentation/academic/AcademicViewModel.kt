@@ -95,7 +95,7 @@ class AcademicViewModel(
     private val schoolAuthRepository: SchoolAuthRepository,
     private val schoolInfoRepository: SchoolInfoRepository
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(AcademicUiState())
     val uiState: StateFlow<AcademicUiState> = _uiState.asStateFlow()
 
@@ -179,7 +179,7 @@ class AcademicViewModel(
                 _uiState.update { it.copy(messages = messages) }
             }
         }
-        
+
         // 监听账号切换，自动刷新数据
         viewModelScope.launch {
             var previousStudentId: String? = null
@@ -196,9 +196,9 @@ class AcademicViewModel(
     fun loadData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            
+
             // 数据会通过 Flow 自动更新
-            
+
             _uiState.update { it.copy(isLoading = false) }
         }
     }

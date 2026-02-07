@@ -106,9 +106,13 @@ fun CourseScreen(
     val semesterStartDate by viewModel.semesterStartDate.collectAsStateWithLifecycle()
 
     val scope = rememberCoroutineScope()
-    
+
     // 对话框状态
-    var selectedCourses by remember { mutableStateOf<List<Pair<CourseWithTimes, ClassTimeEntity>>?>(null) }
+    var selectedCourses by remember {
+        mutableStateOf<List<Pair<CourseWithTimes, ClassTimeEntity>>?>(
+            null
+        )
+    }
     // 记录点击位置用于动画
     var clickedCardBounds by remember { mutableStateOf<Rect?>(null) }
     var showLoginDialog by remember { mutableStateOf(false) }
@@ -238,7 +242,9 @@ fun CourseScreen(
                                 )
                                 DropdownMenuItem(
                                     text = { Text("添加自定义课程") },
-                                    onClick = { menuExpanded = false; showCustomCourseDialog = true }
+                                    onClick = {
+                                        menuExpanded = false; showCustomCourseDialog = true
+                                    }
                                 )
                                 DropdownMenuItem(
                                     text = { Text("查看/切换账号") },
@@ -371,11 +377,11 @@ fun CourseScreen(
         }
 
         // ==================== 对话框 ====================
-        
+
         // 课程详情对话框（带缩放动画）
         selectedCourses?.let { courses ->
             ScaleAnimatedDialog(
-                onDismissRequest = { 
+                onDismissRequest = {
                     selectedCourses = null
                     clickedCardBounds = null
                 },
@@ -392,7 +398,7 @@ fun CourseScreen(
                 ) {
                     CourseDetailContent(
                         infoList = courses,
-                        onClose = { 
+                        onClose = {
                             selectedCourses = null
                             clickedCardBounds = null
                         },
@@ -479,12 +485,12 @@ fun ScaleAnimatedDialog(
     content: @Composable () -> Unit
 ) {
     var isVisible by remember { mutableStateOf(false) }
-    
+
     // 启动时触发动画
     LaunchedEffect(Unit) {
         isVisible = true
     }
-    
+
     // 缩放动画
     val scale by animateFloatAsState(
         targetValue = if (isVisible) 1f else 0f,
@@ -494,14 +500,14 @@ fun ScaleAnimatedDialog(
         ),
         label = "dialogScale"
     )
-    
+
     // 透明度动画
     val alpha by animateFloatAsState(
         targetValue = if (isVisible) 1f else 0f,
         animationSpec = tween(durationMillis = 200),
         label = "dialogAlpha"
     )
-    
+
     Dialog(
         onDismissRequest = {
             isVisible = false
@@ -563,8 +569,8 @@ fun CourseScheduleLayout(
         ) {
             val totalHeight = maxHeight
             val gridHeight = totalHeight - DateHeaderHeight
-            val totalWeight = remember(dailySchedule) { 
-                dailySchedule.sumOf { it.weight.toDouble() }.toFloat() 
+            val totalWeight = remember(dailySchedule) {
+                dailySchedule.sumOf { it.weight.toDouble() }.toFloat()
             }
             val unitHeightPx = with(density) { gridHeight.toPx() } / totalWeight
             val parentMaxWidth = maxWidth
@@ -653,7 +659,7 @@ fun ScheduleCourseOverlay(
     val density = LocalDensity.current
     val verticalPaddingPx = with(density) { CardVerticalPadding.toPx() }
     val horizontalPaddingPx = with(density) { CardHorizontalPadding.toPx() }
-    
+
     val preparedGroups = remember(items) {
         items.groupBy { it.dayIndex }.mapValues { (_, dayItems) ->
             dayItems.groupBy { "${it.startNodeIndex}-${it.endNodeIndex}" }
@@ -730,7 +736,7 @@ private fun CourseCard(
     modifier: Modifier = Modifier
 ) {
     var cardBounds by remember { mutableStateOf<Rect?>(null) }
-    
+
     Card(
         colors = CardDefaults.cardColors(containerColor = color),
         shape = RoundedCornerShape(6.dp),
@@ -834,7 +840,8 @@ fun StaticTimeAxis(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Float, hei
         }
     }) { measurables, constraints ->
         val heightPx = height.roundToPx()
-        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0, maxWidth = 100)) }
+        val placeables =
+            measurables.map { it.measure(constraints.copy(minWidth = 0, maxWidth = 100)) }
         layout(constraints.maxWidth, heightPx) {
             var y = 0f
             placeables.forEachIndexed { index, placeable ->
@@ -995,7 +1002,7 @@ fun CourseDetailContent(
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         if (infoList.isNotEmpty()) {
             val pagerState = rememberPagerState(pageCount = { infoList.size })
             HorizontalPager(
@@ -1019,9 +1026,9 @@ fun CourseDetailContent(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     repeat(pagerState.pageCount) { iteration ->
-                        val color = if (pagerState.currentPage == iteration) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
+                        val color = if (pagerState.currentPage == iteration)
+                            MaterialTheme.colorScheme.primary
+                        else
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                         Box(
                             modifier = Modifier
@@ -1052,12 +1059,12 @@ fun CourseDetailCard(
             if (timeData.teacher.isNotBlank()) {
                 add(DetailInfo(Icons.Default.Person, "教师", timeData.teacher))
             }
-            
+
             // 人性化显示时间
             val weekdayText = formatWeekday(timeData.weekday)
             val periodText = formatPeriod(timeData.period)
             add(DetailInfo(Icons.Default.Refresh, "时间", "$weekdayText $periodText"))
-            
+
             // 周次
             add(DetailInfo(Icons.Default.DateRange, "周次", timeData.weeks))
 
@@ -1076,7 +1083,13 @@ fun CourseDetailCard(
                 }
                 // 上课班级
                 if (timeData.classGroup.isNotBlank()) {
-                    add(DetailInfo(Icons.Default.Person, "上课班级", timeData.classGroup.replace(";", "\n")))
+                    add(
+                        DetailInfo(
+                            Icons.Default.Person,
+                            "上课班级",
+                            timeData.classGroup.replace(";", "\n")
+                        )
+                    )
                 }
             }
         }
@@ -1193,11 +1206,11 @@ fun AccountSelectionDialog(
         containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 6.dp,
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
                 "教务系统账号管理",
                 style = MaterialTheme.typography.titleMedium
-            ) 
+            )
         },
         text = {
             Column {
@@ -1230,7 +1243,10 @@ fun AccountSelectionDialog(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("${acc.name} - ${acc.className}", fontWeight = FontWeight.Bold)
+                                        Text(
+                                            "${acc.name} - ${acc.className}",
+                                            fontWeight = FontWeight.Bold
+                                        )
                                         if (acc.studentId == currentId) {
                                             Text(
                                                 "当前选中",
@@ -1357,7 +1373,7 @@ fun AddCustomCourseDialog(
     var dayOfWeek by remember { mutableStateOf(1f) }
     var startNode by remember { mutableStateOf(1f) }
     var duration by remember { mutableStateOf(2f) }
-    
+
     val weekDayNames = listOf("", "周一", "周二", "周三", "周四", "周五", "周六", "周日")
 
     Dialog(
@@ -1435,16 +1451,18 @@ fun AddCustomCourseDialog(
                                 )
                             }
                             Spacer(Modifier.height(16.dp))
-                            
+
                             OutlinedTextField(
                                 value = name,
                                 onValueChange = { name = it },
                                 label = { Text("课程名称") },
                                 placeholder = { Text("请输入课程名称") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Star, "课程名称", 
-                                        tint = if (name.isNotBlank()) MaterialTheme.colorScheme.primary 
-                                        else MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Icon(
+                                        Icons.Default.Star, "课程名称",
+                                        tint = if (name.isNotBlank()) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
@@ -1457,8 +1475,10 @@ fun AddCustomCourseDialog(
                                 label = { Text("上课地点") },
                                 placeholder = { Text("选填") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Place, "地点",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Icon(
+                                        Icons.Default.Place, "地点",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
@@ -1471,8 +1491,10 @@ fun AddCustomCourseDialog(
                                 label = { Text("授课教师") },
                                 placeholder = { Text("选填") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Person, "教师",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Icon(
+                                        Icons.Default.Person, "教师",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
@@ -1507,23 +1529,25 @@ fun AddCustomCourseDialog(
                                 )
                             }
                             Spacer(Modifier.height(16.dp))
-                            
+
                             OutlinedTextField(
                                 value = weeks,
                                 onValueChange = { weeks = it },
                                 label = { Text("上课周次") },
                                 placeholder = { Text("例如: 1-16") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.DateRange, "周次",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Icon(
+                                        Icons.Default.DateRange, "周次",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            
+
                             Spacer(Modifier.height(20.dp))
-                            
+
                             // 星期选择
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1647,7 +1671,7 @@ fun AddCustomCourseDialog(
                         }
                     }
                 }
-                
+
                 // 底部按钮区域 - 固定在底部
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -1710,11 +1734,13 @@ fun SemesterStartDatePicker(
     var selectedYear by remember { mutableStateOf(currentDate.year) }
     var selectedMonth by remember { mutableStateOf(currentDate.monthNumber) }
     var selectedDay by remember { mutableStateOf(currentDate.dayOfMonth) }
-    
-    val monthNames = listOf("1月", "2月", "3月", "4月", "5月", "6月", 
-                           "7月", "8月", "9月", "10月", "11月", "12月")
+
+    val monthNames = listOf(
+        "1月", "2月", "3月", "4月", "5月", "6月",
+        "7月", "8月", "9月", "10月", "11月", "12月"
+    )
     val weekDayNames = listOf("一", "二", "三", "四", "五", "六", "日")
-    
+
     // 计算某月的天数
     fun daysInMonth(year: Int, month: Int): Int {
         return when (month) {
@@ -1724,13 +1750,13 @@ fun SemesterStartDatePicker(
             else -> 30
         }
     }
-    
+
     // 获取某月第一天是星期几 (0=周一, 6=周日)
     fun firstDayOfMonth(year: Int, month: Int): Int {
         val date = LocalDate(year, month, 1)
         return date.dayOfWeek.ordinal
     }
-    
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -1751,16 +1777,16 @@ fun SemesterStartDatePicker(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Text(
                     "选择本学期第一周的周一",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
                 )
-                
+
                 Spacer(Modifier.height(20.dp))
-                
+
                 // 选中日期显示
                 Text(
                     "${selectedYear}年${monthNames[selectedMonth - 1]}${selectedDay}日",
@@ -1769,7 +1795,7 @@ fun SemesterStartDatePicker(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 // 年月选择器
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1783,8 +1809,10 @@ fun SemesterStartDatePicker(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = { selectedYear-- }) {
-                            Icon(Icons.Default.ArrowDropDown, null, 
-                                modifier = Modifier.scale(-1f, 1f).rotate(90f))
+                            Icon(
+                                Icons.Default.ArrowDropDown, null,
+                                modifier = Modifier.scale(-1f, 1f).rotate(90f)
+                            )
                         }
                         Text(
                             "${selectedYear}年",
@@ -1792,47 +1820,57 @@ fun SemesterStartDatePicker(
                             fontWeight = FontWeight.SemiBold
                         )
                         IconButton(onClick = { selectedYear++ }) {
-                            Icon(Icons.Default.ArrowDropDown, null, 
-                                modifier = Modifier.rotate(-90f))
+                            Icon(
+                                Icons.Default.ArrowDropDown, null,
+                                modifier = Modifier.rotate(-90f)
+                            )
                         }
                     }
-                    
+
                     // 月份选择
                     Row(
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = { 
+                        IconButton(onClick = {
                             if (selectedMonth > 1) selectedMonth--
-                            else { selectedMonth = 12; selectedYear-- }
+                            else {
+                                selectedMonth = 12; selectedYear--
+                            }
                             // 调整日期
                             val maxDay = daysInMonth(selectedYear, selectedMonth)
                             if (selectedDay > maxDay) selectedDay = maxDay
                         }) {
-                            Icon(Icons.Default.ArrowDropDown, null, 
-                                modifier = Modifier.scale(-1f, 1f).rotate(90f))
+                            Icon(
+                                Icons.Default.ArrowDropDown, null,
+                                modifier = Modifier.scale(-1f, 1f).rotate(90f)
+                            )
                         }
                         Text(
                             monthNames[selectedMonth - 1],
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
-                        IconButton(onClick = { 
+                        IconButton(onClick = {
                             if (selectedMonth < 12) selectedMonth++
-                            else { selectedMonth = 1; selectedYear++ }
+                            else {
+                                selectedMonth = 1; selectedYear++
+                            }
                             // 调整日期
                             val maxDay = daysInMonth(selectedYear, selectedMonth)
                             if (selectedDay > maxDay) selectedDay = maxDay
                         }) {
-                            Icon(Icons.Default.ArrowDropDown, null, 
-                                modifier = Modifier.rotate(-90f))
+                            Icon(
+                                Icons.Default.ArrowDropDown, null,
+                                modifier = Modifier.rotate(-90f)
+                            )
                         }
                     }
                 }
-                
+
                 Spacer(Modifier.height(16.dp))
-                
+
                 // 星期标题
                 Row(modifier = Modifier.fillMaxWidth()) {
                     weekDayNames.forEach { day ->
@@ -1849,21 +1887,21 @@ fun SemesterStartDatePicker(
                         }
                     }
                 }
-                
+
                 Spacer(Modifier.height(8.dp))
-                
+
                 // 日期网格
                 val daysInCurrentMonth = daysInMonth(selectedYear, selectedMonth)
                 val firstDay = firstDayOfMonth(selectedYear, selectedMonth)
                 val totalCells = ((daysInCurrentMonth + firstDay + 6) / 7) * 7
-                
+
                 Column(modifier = Modifier.fillMaxWidth()) {
                     for (week in 0 until (totalCells / 7)) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             for (dayOfWeek in 0..6) {
                                 val cellIndex = week * 7 + dayOfWeek
                                 val dayNumber = cellIndex - firstDay + 1
-                                
+
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -1878,10 +1916,10 @@ fun SemesterStartDatePicker(
                                 ) {
                                     if (dayNumber in 1..daysInCurrentMonth) {
                                         val isSelected = dayNumber == selectedDay
-                                        val isToday = selectedYear == currentDate.year && 
-                                                     selectedMonth == currentDate.monthNumber && 
-                                                     dayNumber == currentDate.dayOfMonth
-                                        
+                                        val isToday = selectedYear == currentDate.year &&
+                                                selectedMonth == currentDate.monthNumber &&
+                                                dayNumber == currentDate.dayOfMonth
+
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
@@ -1916,9 +1954,9 @@ fun SemesterStartDatePicker(
                         }
                     }
                 }
-                
+
                 Spacer(Modifier.height(20.dp))
-                
+
                 // 按钮
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1983,9 +2021,9 @@ fun TermSelectionDialog(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Spacer(modifier = Modifier.height(20.dp))
-                
+
                 // 学期列表
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 400.dp),
@@ -1994,17 +2032,17 @@ fun TermSelectionDialog(
                     items(termOptions.size) { index ->
                         val option = termOptions[index]
                         val isSelected = option.xnm == currentXnm && option.xqm == currentXqm
-                        
+
                         Surface(
                             onClick = { onTermSelected(option.xnm, option.xqm) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) 
-                                MaterialTheme.colorScheme.primaryContainer 
-                            else 
+                            color = if (isSelected)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
                                 MaterialTheme.colorScheme.surfaceVariant,
-                            border = if (isSelected) 
-                                BorderStroke(2.dp, MaterialTheme.colorScheme.primary) 
+                            border = if (isSelected)
+                                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
                             else null
                         ) {
                             Row(
@@ -2018,9 +2056,9 @@ fun TermSelectionDialog(
                                     option.label,
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) 
-                                        MaterialTheme.colorScheme.onPrimaryContainer 
-                                    else 
+                                    color = if (isSelected)
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    else
                                         MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (isSelected) {
@@ -2035,9 +2073,9 @@ fun TermSelectionDialog(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // 取消按钮
                 TextButton(
                     onClick = onDismiss,

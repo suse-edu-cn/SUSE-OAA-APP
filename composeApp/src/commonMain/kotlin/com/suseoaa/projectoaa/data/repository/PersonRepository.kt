@@ -57,7 +57,7 @@ class PersonRepository(
             Result.failure(e)
         }
     }
-    
+
     suspend fun uploadAvatar(imageData: ByteArray): Result<String> {
         return try {
             val response = api.uploadAvatar(imageData)

@@ -15,6 +15,7 @@ import com.suseoaa.projectoaa.ui.screen.grades.GradesScreen
 import com.suseoaa.projectoaa.ui.screen.home.DepartmentDetailScreen
 import com.suseoaa.projectoaa.ui.screen.login.LoginScreen
 import com.suseoaa.projectoaa.ui.screen.main.MainScreen
+import com.suseoaa.projectoaa.ui.screen.recruitment.RecruitmentScreen
 import com.suseoaa.projectoaa.ui.screen.register.RegisterScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.AcademicStatusScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.CourseInfoScreen
@@ -57,13 +58,20 @@ fun AppNavHost(
                 }
             )
         }
-
+        composable(Screen.Recruitment.route) {
+            RecruitmentScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable(Screen.Main.route) {
             MainScreen(
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Main.route) { inclusive = true }
                     }
+                },
+                onNavigateToRecruitment = {
+                    navController.navigate(Screen.Recruitment.route)
                 },
                 onNavigateToChangePassword = {
                     navController.navigate(Screen.ChangePassword.route)
@@ -134,26 +142,26 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() }
             )
         }
-        
+
         // 教学计划相关
         composable(Screen.StudyRequirement.route) {
             StudyRequirementScreen(
                 onBack = { navController.popBackStack() }
             )
         }
-        
+
         composable(Screen.CourseInfo.route) {
             CourseInfoScreen(
                 onBack = { navController.popBackStack() }
             )
         }
-        
+
         composable(Screen.AcademicStatus.route) {
             AcademicStatusScreen(
                 onBack = { navController.popBackStack() }
             )
         }
-        
+
         // 隐藏功能 - 652打卡
         composable(Screen.Checkin.route) {
             CheckinScreen(

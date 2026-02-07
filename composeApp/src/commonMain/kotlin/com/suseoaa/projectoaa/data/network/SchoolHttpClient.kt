@@ -17,7 +17,7 @@ import kotlinx.serialization.json.Json
 class ClearableCookiesStorage : CookiesStorage {
     private val storage = mutableListOf<Cookie>()
     private val mutex = Mutex()
-    
+
     override suspend fun addCookie(requestUrl: Url, cookie: Cookie) {
         mutex.withLock {
             // 移除同名旧 cookie
@@ -26,24 +26,24 @@ class ClearableCookiesStorage : CookiesStorage {
             println("[Cookie] Added: ${cookie.name}=${cookie.value.take(20)}...")
         }
     }
-    
+
     override suspend fun get(requestUrl: Url): List<Cookie> {
         return mutex.withLock {
             val cookies = storage.filter { cookie ->
                 // 简单匹配：检查域名和路径
-                (cookie.domain.isNullOrEmpty() || 
-                 requestUrl.host.endsWith(cookie.domain ?: "") || 
-                 cookie.domain == requestUrl.host)
+                (cookie.domain.isNullOrEmpty() ||
+                        requestUrl.host.endsWith(cookie.domain ?: "") ||
+                        cookie.domain == requestUrl.host)
             }
             println("[Cookie] Get for ${requestUrl.host}: ${cookies.map { it.name }}")
             cookies
         }
     }
-    
+
     override fun close() {
         storage.clear()
     }
-    
+
     suspend fun clear() {
         mutex.withLock {
             println("[Cookie] Cleared all cookies")
@@ -55,7 +55,7 @@ class ClearableCookiesStorage : CookiesStorage {
 object SchoolHttpClient {
     // 暴露 cookie storage 以便清除
     val cookieStorage = ClearableCookiesStorage()
-    
+
     fun create(json: Json): HttpClient {
         return HttpClient {
             install(HttpTimeout) {
@@ -72,21 +72,27 @@ object SchoolHttpClient {
                 level = LogLevel.ALL
                 logger = Logger.DEFAULT
             }
-            
+
             install(HttpCookies) {
                 storage = cookieStorage
             }
-            
+
             // 添加默认请求头（模拟浏览器）
             defaultRequest {
-                headers.append("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                headers.append(
+                    "User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                )
                 headers.append("Accept-Language", "zh-CN,zh;q=0.9")
                 headers.append("Connection", "keep-alive")
-                headers.append("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+                headers.append(
+                    "Accept",
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+                )
             }
-            
+
             // Allow redirects but we might need to handle 302 manually for auth
-            followRedirects = false 
+            followRedirects = false
         }
     }
 }

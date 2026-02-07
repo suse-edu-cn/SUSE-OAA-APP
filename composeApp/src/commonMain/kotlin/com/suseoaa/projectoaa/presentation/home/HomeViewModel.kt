@@ -123,7 +123,7 @@ class HomeViewModel(
 
         viewModelScope.launch {
             val result = announcementRepository.fetchAnnouncementInfo(department)
-            
+
             result.onSuccess { info ->
                 _uiState.update {
                     it.copy(
@@ -134,7 +134,7 @@ class HomeViewModel(
                     )
                 }
             }
-            
+
             result.onFailure { e ->
                 _uiState.update {
                     it.copy(
@@ -162,12 +162,12 @@ class HomeViewModel(
     }
 
     fun clearSelection() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 selectedDepartment = null,
                 detailData = null,
                 detailError = null
-            ) 
+            )
         }
     }
 

@@ -53,11 +53,11 @@ fun StudyRequirementScreen(
     viewModel: StudyRequirementViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     // 找到选中的学院和专业对象
     val selectedCollegeObj = uiState.colleges.find { it.code == uiState.selectedCollegeId }
     val selectedMajorObj = uiState.majors.find { it.code == uiState.selectedMajorId }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -105,7 +105,7 @@ fun StudyRequirementScreen(
         ) {
             val isTablet = maxWidth > 600.dp
             val horizontalPadding = if (isTablet) 24.dp else 0.dp
-            
+
             if (isTablet) {
                 // 平板布局：左侧筛选，右侧内容
                 Row(
@@ -129,7 +129,7 @@ fun StudyRequirementScreen(
                         isLoading = uiState.isLoading,
                         modifier = Modifier.width(320.dp)
                     )
-                    
+
                     // 右侧内容区域
                     Column(modifier = Modifier.weight(1f)) {
                         // 错误提示 - 使用 Toast
@@ -139,7 +139,7 @@ fun StudyRequirementScreen(
                                 viewModel.clearError()
                             }
                         }
-                        
+
                         // 课程列表
                         when {
                             uiState.isLoading -> {
@@ -152,12 +152,15 @@ fun StudyRequirementScreen(
                                     CircularProgressIndicator()
                                 }
                             }
+
                             uiState.categories.isEmpty() && selectedMajorObj != null -> {
                                 EmptyState(message = "暂无课程数据")
                             }
+
                             uiState.categories.isEmpty() -> {
                                 EmptyState(message = "请选择年级、学院、专业后查询")
                             }
+
                             else -> {
                                 CourseListByCategory(
                                     categories = uiState.categories,
@@ -165,7 +168,7 @@ fun StudyRequirementScreen(
                                     onToggleCategory = viewModel::toggleCategoryExpanded,
                                     modifier = Modifier.weight(1f)
                                 )
-                                
+
                                 TotalCreditsBar(
                                     totalCredits = uiState.categories.sumOf { it.totalCredits }
                                 )
@@ -193,7 +196,7 @@ fun StudyRequirementScreen(
                         isLoading = uiState.isLoading,
                         hasResult = uiState.categories.isNotEmpty()
                     )
-                    
+
                     // 错误提示 - 使用 Toast
                     uiState.errorMessage?.let { error ->
                         LaunchedEffect(error) {
@@ -201,7 +204,7 @@ fun StudyRequirementScreen(
                             viewModel.clearError()
                         }
                     }
-                    
+
                     // 课程列表
                     when {
                         uiState.isLoading -> {
@@ -214,12 +217,15 @@ fun StudyRequirementScreen(
                                 CircularProgressIndicator()
                             }
                         }
+
                         uiState.categories.isEmpty() && selectedMajorObj != null -> {
                             EmptyState(message = "暂无课程数据")
                         }
+
                         uiState.categories.isEmpty() -> {
                             EmptyState(message = "请选择年级、学院、专业后查询")
                         }
+
                         else -> {
                             CourseListByCategory(
                                 categories = uiState.categories,
@@ -227,7 +233,7 @@ fun StudyRequirementScreen(
                                 onToggleCategory = viewModel::toggleCategoryExpanded,
                                 modifier = Modifier.weight(1f)
                             )
-                            
+
                             TotalCreditsBar(
                                 totalCredits = uiState.categories.sumOf { it.totalCredits }
                             )
@@ -318,7 +324,7 @@ private fun CollapsibleFilterSection(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             // 可折叠内容
             AnimatedVisibility(
                 visible = isExpanded,
@@ -330,7 +336,7 @@ private fun CollapsibleFilterSection(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                    
+
                     // 年级选择
                     ChipSelector(
                         label = "入学年份",
@@ -339,7 +345,7 @@ private fun CollapsibleFilterSection(
                         onSelect = onGradeSelect,
                         displayText = { grade -> if (grade.isNotEmpty()) "${grade}级" else "" }
                     )
-                    
+
                     // 学院选择
                     ChipSelector(
                         label = "学院",
@@ -348,7 +354,7 @@ private fun CollapsibleFilterSection(
                         onSelect = onCollegeSelect,
                         displayText = { it.name }
                     )
-                    
+
                     // 专业选择
                     if (majors.isNotEmpty()) {
                         ChipSelector(
@@ -365,14 +371,14 @@ private fun CollapsibleFilterSection(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    
+
                     // 查询按钮
                     Button(
                         onClick = onQuery,
-                        enabled = selectedGrade.isNotEmpty() && 
-                                 selectedCollege != null && 
-                                 selectedMajor != null && 
-                                 !isLoading,
+                        enabled = selectedGrade.isNotEmpty() &&
+                                selectedCollege != null &&
+                                selectedMajor != null &&
+                                !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
@@ -433,9 +439,9 @@ private fun TabletFilterPanel(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
-            
+
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            
+
             // 年级选择
             ChipSelector(
                 label = "入学年份",
@@ -444,7 +450,7 @@ private fun TabletFilterPanel(
                 onSelect = onGradeSelect,
                 displayText = { grade -> if (grade.isNotEmpty()) "${grade}级" else "" }
             )
-            
+
             // 学院选择
             ChipSelector(
                 label = "学院",
@@ -453,7 +459,7 @@ private fun TabletFilterPanel(
                 onSelect = onCollegeSelect,
                 displayText = { it.name }
             )
-            
+
             // 专业选择
             if (majors.isNotEmpty()) {
                 ChipSelector(
@@ -470,16 +476,16 @@ private fun TabletFilterPanel(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             Spacer(modifier = Modifier.weight(1f))
-            
+
             // 查询按钮
             Button(
                 onClick = onQuery,
-                enabled = selectedGrade.isNotEmpty() && 
-                         selectedCollege != null && 
-                         selectedMajor != null && 
-                         !isLoading,
+                enabled = selectedGrade.isNotEmpty() &&
+                        selectedCollege != null &&
+                        selectedMajor != null &&
+                        !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
@@ -539,7 +545,7 @@ private fun FilterSection(
                 onSelect = onGradeSelect,
                 displayText = { grade -> if (grade.isNotEmpty()) "${grade}级" else "" }
             )
-            
+
             // 学院选择
             ChipSelector(
                 label = "学院",
@@ -548,7 +554,7 @@ private fun FilterSection(
                 onSelect = onCollegeSelect,
                 displayText = { it.name }
             )
-            
+
             // 专业选择
             if (majors.isNotEmpty()) {
                 ChipSelector(
@@ -559,14 +565,14 @@ private fun FilterSection(
                     displayText = { it.name }
                 )
             }
-            
+
             // 查询按钮
             Button(
                 onClick = onQuery,
-                enabled = selectedGrade.isNotEmpty() && 
-                         selectedCollege != null && 
-                         selectedMajor != null && 
-                         !isLoading,
+                enabled = selectedGrade.isNotEmpty() &&
+                        selectedCollege != null &&
+                        selectedMajor != null &&
+                        !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
@@ -606,7 +612,7 @@ private fun <T> ChipSelector(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium
         )
-        
+
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 2.dp)
@@ -615,17 +621,17 @@ private fun <T> ChipSelector(
                 val option = options[index]
                 val isSelected = option == selectedOption
                 val backgroundColor by animateColorAsState(
-                    targetValue = if (isSelected) 
+                    targetValue = if (isSelected)
                         MaterialTheme.colorScheme.primary
-                    else 
+                    else
                         MaterialTheme.colorScheme.surfaceVariant,
                     animationSpec = tween(200),
                     label = "chipBg"
                 )
                 val contentColor by animateColorAsState(
-                    targetValue = if (isSelected) 
+                    targetValue = if (isSelected)
                         MaterialTheme.colorScheme.onPrimary
-                    else 
+                    else
                         MaterialTheme.colorScheme.onSurfaceVariant,
                     animationSpec = tween(200),
                     label = "chipContent"
@@ -635,7 +641,7 @@ private fun <T> ChipSelector(
                     animationSpec = tween(200),
                     label = "chipBorder"
                 )
-                
+
                 Surface(
                     onClick = { onSelect(option) },
                     shape = RoundedCornerShape(10.dp),
@@ -678,12 +684,12 @@ private fun <T> SearchableChipSelector(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    
+
     val filteredOptions = remember(options, searchQuery) {
         if (searchQuery.isEmpty()) options
         else options.filter { displayText(it).contains(searchQuery, ignoreCase = true) }
     }
-    
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = label,
@@ -691,7 +697,7 @@ private fun <T> SearchableChipSelector(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium
         )
-        
+
         // 已选中的选项显示
         if (selectedOption != null) {
             Surface(
@@ -713,7 +719,7 @@ private fun <T> SearchableChipSelector(
                         modifier = Modifier.weight(1f)
                     )
                     Icon(
-                        if (isExpanded) Icons.Default.KeyboardArrowUp 
+                        if (isExpanded) Icons.Default.KeyboardArrowUp
                         else Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -748,7 +754,7 @@ private fun <T> SearchableChipSelector(
                 }
             }
         }
-        
+
         // 展开的选项列表
         AnimatedVisibility(
             visible = isExpanded,
@@ -769,12 +775,12 @@ private fun <T> SearchableChipSelector(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
                             placeholder = { Text("搜索...") },
-                            leadingIcon = { 
+                            leadingIcon = {
                                 Icon(
-                                    Icons.Default.Search, 
+                                    Icons.Default.Search,
                                     null,
                                     modifier = Modifier.size(18.dp)
-                                ) 
+                                )
                             },
                             trailingIcon = {
                                 if (searchQuery.isNotEmpty()) {
@@ -799,7 +805,7 @@ private fun <T> SearchableChipSelector(
                                 .padding(bottom = 8.dp)
                         )
                     }
-                    
+
                     // 选项网格
                     val maxHeight = if (filteredOptions.size > 6) 200.dp else Dp.Unspecified
                     Column(
@@ -811,15 +817,15 @@ private fun <T> SearchableChipSelector(
                         filteredOptions.take(20).forEach { option ->
                             val isSelected = option == selectedOption
                             Surface(
-                                onClick = { 
+                                onClick = {
                                     onSelect(option)
                                     isExpanded = false
                                     searchQuery = ""
                                 },
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isSelected) 
+                                color = if (isSelected)
                                     MaterialTheme.colorScheme.primaryContainer
-                                else 
+                                else
                                     Color.Transparent
                             ) {
                                 Row(
@@ -831,9 +837,9 @@ private fun <T> SearchableChipSelector(
                                     Text(
                                         text = displayText(option),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = if (isSelected) 
+                                        color = if (isSelected)
                                             MaterialTheme.colorScheme.onPrimaryContainer
-                                        else 
+                                        else
                                             MaterialTheme.colorScheme.onSurface,
                                         fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
                                         modifier = Modifier.weight(1f)
@@ -849,7 +855,7 @@ private fun <T> SearchableChipSelector(
                                 }
                             }
                         }
-                        
+
                         if (filteredOptions.size > 20) {
                             Text(
                                 text = "还有 ${filteredOptions.size - 20} 个选项，请搜索缩小范围",
@@ -858,7 +864,7 @@ private fun <T> SearchableChipSelector(
                                 modifier = Modifier.padding(12.dp)
                             )
                         }
-                        
+
                         if (filteredOptions.isEmpty()) {
                             Text(
                                 text = "未找到匹配项",
@@ -888,7 +894,7 @@ private fun <T> DropdownSelector(
     enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
-    
+
     ExposedDropdownMenuBox(
         expanded = expanded && enabled,
         onExpandedChange = { if (enabled) expanded = it }
@@ -912,7 +918,7 @@ private fun <T> DropdownSelector(
                 .fillMaxWidth()
                 .menuAnchor(MenuAnchorType.PrimaryNotEditable)
         )
-        
+
         ExposedDropdownMenu(
             expanded = expanded && enabled,
             onDismissRequest = { expanded = false }
@@ -1002,15 +1008,15 @@ private fun CourseCategoryCard(
                         )
                     }
                 }
-                
+
                 Icon(
-                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp 
-                                  else Icons.Default.KeyboardArrowDown,
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp
+                    else Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = fadeIn() + expandVertically(),
@@ -1080,7 +1086,7 @@ private fun CourseItem(course: StudyRequirementCourse) {
                 )
             }
         }
-        
+
         // 学分标签
         Surface(
             color = MaterialTheme.colorScheme.secondaryContainer,

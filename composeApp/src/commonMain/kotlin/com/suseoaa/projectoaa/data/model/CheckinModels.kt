@@ -39,7 +39,11 @@ data class CheckinAccountData(
         return try {
             val currentTime = kotlinx.datetime.Clock.System.now()
                 .toLocalDateTime(kotlinx.datetime.TimeZone.of("Asia/Shanghai"))
-            val currentTimeStr = "${currentTime.date} ${currentTime.hour.toString().padStart(2, '0')}:${currentTime.minute.toString().padStart(2, '0')}:${currentTime.second.toString().padStart(2, '0')}"
+            val currentTimeStr = "${currentTime.date} ${
+                currentTime.hour.toString().padStart(2, '0')
+            }:${currentTime.minute.toString().padStart(2, '0')}:${
+                currentTime.second.toString().padStart(2, '0')
+            }"
             sessionExpireTime > currentTimeStr
         } catch (e: Exception) {
             false

@@ -46,25 +46,29 @@ class ChangePasswordViewModel(
 
     fun changePassword() {
         val currentState = _uiState.value
-        
+
         // 验证
         when {
             currentState.oldPassword.isBlank() -> {
                 _uiState.update { it.copy(errorMessage = "请输入原密码") }
                 return
             }
+
             currentState.newPassword.isBlank() -> {
                 _uiState.update { it.copy(errorMessage = "请输入新密码") }
                 return
             }
+
             currentState.newPassword.length < 6 -> {
                 _uiState.update { it.copy(errorMessage = "新密码长度至少6位") }
                 return
             }
+
             currentState.newPassword != currentState.confirmPassword -> {
                 _uiState.update { it.copy(errorMessage = "两次密码输入不一致") }
                 return
             }
+
             currentState.oldPassword == currentState.newPassword -> {
                 _uiState.update { it.copy(errorMessage = "新密码不能与原密码相同") }
                 return
@@ -78,9 +82,9 @@ class ChangePasswordViewModel(
                 currentState.oldPassword,
                 currentState.newPassword
             )
-            
+
             result.onSuccess { msg ->
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         isSuccess = true,
@@ -90,9 +94,9 @@ class ChangePasswordViewModel(
                 // 修改密码后强制登出
                 personRepository.logout()
             }
-            
+
             result.onFailure { e ->
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         errorMessage = e.message ?: "修改失败"

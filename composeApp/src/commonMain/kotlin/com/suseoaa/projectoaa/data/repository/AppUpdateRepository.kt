@@ -34,18 +34,18 @@ expect class AppUpdateRepository {
      * @return 如果有新版本返回 GithubRelease，否则返回 null
      */
     suspend fun checkUpdate(): Result<GithubRelease?>
-    
+
     /**
      * 下载 APK (仅 Android)
      * @return 下载任务ID
      */
     fun downloadApk(url: String, fileName: String): Long
-    
+
     /**
      * 根据下载ID安装 APK (仅 Android)
      */
     fun installApkById(downloadId: Long)
-    
+
     /**
      * 获取当前下载任务ID
      */

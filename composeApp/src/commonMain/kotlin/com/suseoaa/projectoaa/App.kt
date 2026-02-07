@@ -38,7 +38,7 @@ fun App(
     mainViewModel: MainViewModel = koinViewModel()
 ) {
     val startDestination by mainViewModel.startDestination.collectAsState()
-    
+
     ProjectOAATheme {
         Box(modifier = Modifier.fillMaxSize()) {
             // 等待加载完成
@@ -46,7 +46,7 @@ fun App(
                 val isDarkTheme = isSystemInDarkTheme()
                 val gradientColors = if (isDarkTheme) DarkGradientColors else LightGradientColors
                 val headerTextColor = if (isDarkTheme) Color.White else Color.Black
-                
+
                 // 启动加载界面 - 渐变背景
                 Box(
                     modifier = Modifier
@@ -79,7 +79,7 @@ fun App(
                     startDestination = startDestination!!
                 )
             }
-            
+
             // 全局 Toast 处理器 - 放在最上层
             ToastHandler()
         }

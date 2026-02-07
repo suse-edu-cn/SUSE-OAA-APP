@@ -64,6 +64,7 @@ fun GpaScreen(
                 uiState.isLoading -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
+
                 uiState.errorMessage != null -> {
                     Column(
                         modifier = Modifier.align(Alignment.Center),
@@ -79,6 +80,7 @@ fun GpaScreen(
                         }
                     }
                 }
+
                 else -> {
                     GpaContent(
                         courseList = uiState.courseList,
@@ -90,7 +92,12 @@ fun GpaScreen(
                         filterType = uiState.filterType,
                         onSortOrderChange = { viewModel.setSortOrder(it) },
                         onFilterTypeChange = { viewModel.setFilterType(it) },
-                        onScoreChange = { item, score -> viewModel.updateSimulatedScore(item, score) }
+                        onScoreChange = { item, score ->
+                            viewModel.updateSimulatedScore(
+                                item,
+                                score
+                            )
+                        }
                     )
                 }
             }
@@ -188,7 +195,7 @@ private fun GpaContent(
 
         // 3. 课程列表
         val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-        
+
         Box(modifier = Modifier.weight(1f)) {
             AdaptiveLayout { config ->
                 LazyVerticalGrid(
@@ -351,16 +358,16 @@ fun EditScoreDialog(
 ) {
     var text by remember { mutableStateOf(if (isGradeLevel) "" else initialScore) }
     var selectedGrade by remember { mutableStateOf<String?>(if (isGradeLevel) initialScore else null) }
-    
+
     // 等级制成绩选项及对应的分数
     val gradeOptions = listOf(
         "优" to "95",
-        "良" to "85", 
+        "良" to "85",
         "中" to "75",
         "及格" to "65",
         "差" to "55"
     )
-    
+
     AlertDialog(
         containerColor = MaterialTheme.colorScheme.background,
         onDismissRequest = onDismiss,
@@ -381,7 +388,7 @@ fun EditScoreDialog(
                     gradeOptions.forEach { (grade, score) ->
                         FilterChip(
                             selected = selectedGrade == grade,
-                            onClick = { 
+                            onClick = {
                                 selectedGrade = grade
                                 text = score
                             },
@@ -390,9 +397,9 @@ fun EditScoreDialog(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Text(
                     "或直接输入分数:",
                     style = MaterialTheme.typography.bodySmall,
@@ -401,7 +408,7 @@ fun EditScoreDialog(
                 )
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { 
+                    onValueChange = {
                         if (it.length <= 3) {
                             text = it
                             selectedGrade = null  // 清除等级选择

@@ -120,7 +120,7 @@ private fun BoxWithConstraintsScope.TabletGradesLayout(
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    
+
     Row(modifier = modifier.fillMaxSize().padding(16.dp)) {
         // 左侧筛选面板 - 使用Card圆角包裹
         Card(
@@ -143,21 +143,23 @@ private fun BoxWithConstraintsScope.TabletGradesLayout(
                     color = primaryColor,
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
-                
+
                 VerticalFilterSection(
                     selectedYear = uiState.selectedYear,
                     selectedSemester = uiState.selectedSemester,
                     startYear = uiState.startYear,
                     onFilterChange = onFilterChange
                 )
-                
+
                 Spacer(modifier = Modifier.weight(1f))
-                
+
                 // 统计信息
                 if (uiState.grades.isNotEmpty()) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 16.dp),
-                        color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
+                        color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(
+                            alpha = 0.2f
+                        )
                     )
                     Text(
                         text = "共 ${uiState.grades.size} 门课程",
@@ -167,9 +169,9 @@ private fun BoxWithConstraintsScope.TabletGradesLayout(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         // 右侧内容区
         Box(
             modifier = Modifier
@@ -239,6 +241,7 @@ private fun GradesContent(
                 }
             }
         }
+
         uiState.grades.isEmpty() && uiState.isRefreshing -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -252,10 +255,12 @@ private fun GradesContent(
                 }
             }
         }
+
         else -> {
-            val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val navBarHeight =
+                WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             val columns = config.getListColumns()
-            
+
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 contentPadding = PaddingValues(
@@ -268,7 +273,9 @@ private fun GradesContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(uiState.grades, key = { "${it.studentId}_${it.courseId}_${it.xnm}_${it.xqm}" }) { item ->
+                items(
+                    uiState.grades,
+                    key = { "${it.studentId}_${it.courseId}_${it.xnm}_${it.xqm}" }) { item ->
                     GradeItemCard(item)
                 }
             }
@@ -291,7 +298,7 @@ private fun VerticalFilterSection(
     val selectedBgColor = if (isDarkTheme) NightContainer else SoftBlueWait
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    
+
     val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
     val yearOptions = remember(startYear) {
         val endYear = currentYear + 1
@@ -302,7 +309,7 @@ private fun VerticalFilterSection(
         list
     }
     val semesterOptions = listOf("上学期" to "3", "下学期" to "12")
-    
+
     // 学年选择
     Text(
         text = "学年",
@@ -311,18 +318,18 @@ private fun VerticalFilterSection(
         color = subtextColor,
         modifier = Modifier.padding(bottom = 12.dp)
     )
-    
+
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         yearOptions.forEach { (label, value) ->
             val isSelected = selectedYear == value
             FilterChip(
                 selected = isSelected,
                 onClick = { onFilterChange(value, selectedSemester) },
-                label = { 
+                label = {
                     Text(
                         label,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                    ) 
+                    )
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = FilterChipDefaults.filterChipColors(
@@ -331,7 +338,9 @@ private fun VerticalFilterSection(
                     labelColor = textColor
                 ),
                 border = FilterChipDefaults.filterChipBorder(
-                    borderColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f),
+                    borderColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(
+                        alpha = 0.2f
+                    ),
                     selectedBorderColor = primaryColor.copy(alpha = 0.3f),
                     enabled = true,
                     selected = isSelected
@@ -339,9 +348,9 @@ private fun VerticalFilterSection(
             )
         }
     }
-    
+
     Spacer(modifier = Modifier.height(28.dp))
-    
+
     // 学期选择
     Text(
         text = "学期",
@@ -350,18 +359,18 @@ private fun VerticalFilterSection(
         color = subtextColor,
         modifier = Modifier.padding(bottom = 12.dp)
     )
-    
+
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         semesterOptions.forEach { (label, value) ->
             val isSelected = selectedSemester == value
             FilterChip(
                 selected = isSelected,
                 onClick = { onFilterChange(selectedYear, value) },
-                label = { 
+                label = {
                     Text(
                         label,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                    ) 
+                    )
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = FilterChipDefaults.filterChipColors(
@@ -370,7 +379,9 @@ private fun VerticalFilterSection(
                     labelColor = textColor
                 ),
                 border = FilterChipDefaults.filterChipBorder(
-                    borderColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f),
+                    borderColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(
+                        alpha = 0.2f
+                    ),
                     selectedBorderColor = primaryColor.copy(alpha = 0.3f),
                     enabled = true,
                     selected = isSelected
@@ -398,8 +409,10 @@ fun SelectOption(
     }
 
     val semesterOptions = listOf("上学期" to "3", "下学期" to "12")
-    val currentYearLabel = yearOptions.find { it.second == selectedYear }?.first ?: "${selectedYear}学年"
-    val currentSemesterLabel = semesterOptions.find { it.second == selectedSemester }?.first ?: "未知学期"
+    val currentYearLabel =
+        yearOptions.find { it.second == selectedYear }?.first ?: "${selectedYear}学年"
+    val currentSemesterLabel =
+        semesterOptions.find { it.second == selectedSemester }?.first ?: "未知学期"
 
     var expandedYear by remember { mutableStateOf(false) }
     var expandedSemester by remember { mutableStateOf(false) }
@@ -485,8 +498,9 @@ fun GradeItemCard(item: GradeEntity) {
     val cardBackgroundColor = if (isDarkTheme) NightSurface else OxygenWhite
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
-    
+    val dividerColor =
+        if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
+
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
@@ -547,13 +561,13 @@ fun GradeItemCard(item: GradeEntity) {
                     color = dividerColor
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     if (item.regularScore.isNotEmpty()) {
-                        val regularLabel = if (item.regularRatio.isNotEmpty()) 
+                        val regularLabel = if (item.regularRatio.isNotEmpty())
                             "平时(${item.regularRatio})" else "平时"
                         GradeInfoChip(regularLabel, item.regularScore, subtextColor, textColor)
                     }
@@ -577,14 +591,14 @@ fun GradeItemCard(item: GradeEntity) {
                 color = dividerColor
             )
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 // 教师 - 最多显示4个字
-                GradeInfoChip("教师", item.teacher?.take(4)?.let { 
-                    if ((item.teacher?.length ?: 0) > 4) "$it…" else it 
+                GradeInfoChip("教师", item.teacher?.take(4)?.let {
+                    if ((item.teacher?.length ?: 0) > 4) "$it…" else it
                 }, subtextColor, textColor)
 
                 // 课程ID - 最多显示9位
@@ -628,7 +642,7 @@ private fun GradeInfoChip(
 
 @Composable
 fun LabelValueText(
-    label: String, 
+    label: String,
     value: String?,
     modifier: Modifier = Modifier
 ) {

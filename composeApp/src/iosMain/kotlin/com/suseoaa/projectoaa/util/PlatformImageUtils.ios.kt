@@ -12,7 +12,7 @@ import platform.posix.memcpy
  */
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 actual object PlatformImageUtils {
-    
+
     /**
      * 将 Base64 字符串解码为 ImageBitmap
      */
@@ -24,24 +24,24 @@ actual object PlatformImageUtils {
             } else {
                 base64String
             }
-            
+
             // 使用 NSData 解码 Base64
             val nsData = NSData.create(
                 base64EncodedString = base64Data,
                 options = NSDataBase64DecodingIgnoreUnknownCharacters
             ) ?: return null
-            
+
             // 转换为字节数组
             val bytes = nsData.toByteArray()
             if (bytes.isEmpty()) return null
-            
+
             decodeByteArrayToImageBitmap(bytes)
         } catch (e: Exception) {
             println("[PlatformImageUtils] Base64解码失败: ${e.message}")
             null
         }
     }
-    
+
     /**
      * 将字节数组解码为 ImageBitmap
      */
@@ -55,7 +55,7 @@ actual object PlatformImageUtils {
             null
         }
     }
-    
+
     /**
      * NSData 转 ByteArray
      */

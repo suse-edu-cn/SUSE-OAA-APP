@@ -70,12 +70,12 @@ fun PersonScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    
+
     // 更新相关状态
     var showUpdateDialog by remember { mutableStateOf(false) }
     var isManualUpdateCheck by remember { mutableStateOf(false) }
     val updateUiState by updateViewModel.uiState.collectAsState()
-    
+
     // 头像选择对话框状态
     var showAvatarDialog by remember { mutableStateOf(false) }
 
@@ -85,12 +85,12 @@ fun PersonScreen(
             onNavigateToLogin()
         }
     }
-    
+
     // 启动时自动检查更新（使用自动检查方法，会检查是否已弹过窗）
     LaunchedEffect(Unit) {
         updateViewModel.checkForUpdateAuto()
     }
-    
+
     // 监听更新事件
     LaunchedEffect(Unit) {
         updateViewModel.events.collectLatest { event ->
@@ -99,9 +99,11 @@ fun PersonScreen(
                     // 自动提示安装
                     updateViewModel.installDownloadedApk()
                 }
+
                 is UpdateEvent.NoUpdateAvailable -> {
                     // 无更新，可以显示 Snackbar
                 }
+
                 is UpdateEvent.ShowToast -> {
                     // 显示错误消息
                 }
@@ -116,7 +118,7 @@ fun PersonScreen(
             viewModel.clearMessage()
         }
     }
-    
+
     // 自动弹出更新对话框（只在有更新且未弹过时弹出）
     LaunchedEffect(updateUiState.hasUpdate, updateUiState.hasShownAutoDialog) {
         if (updateUiState.hasUpdate && !updateUiState.hasShownAutoDialog) {
@@ -124,7 +126,7 @@ fun PersonScreen(
             isManualUpdateCheck = false
         }
     }
-    
+
     // 更新对话框
     if (showUpdateDialog) {
         UpdateDialog(
@@ -133,7 +135,7 @@ fun PersonScreen(
             isManualCheck = isManualUpdateCheck
         )
     }
-    
+
     // 头像选择
     if (showAvatarDialog) {
         pickImageForAvatar { imageData ->
@@ -151,7 +153,7 @@ fun PersonScreen(
         val isDarkTheme = isSystemInDarkTheme()
         val gradientColors = if (isDarkTheme) DarkGradientColors else LightGradientColors
         val headerTextColor = if (isDarkTheme) Color.White else Color.Black
-        
+
         Box(modifier = Modifier.fillMaxSize()) {
             // 底层：动态背景
             Box(
@@ -203,63 +205,63 @@ fun PersonScreen(
 
                         // 用户信息卡片
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                        UserInfoCard(
-                            userInfo = uiState.userInfo,
-                            onLogout = { viewModel.logout() },
-                            onAvatarClick = { showAvatarDialog = true },
-                            onEditInfo = { username, name ->
-                                viewModel.updateInfo(username, name)
-                            }
-                        )
-                    }
+                            UserInfoCard(
+                                userInfo = uiState.userInfo,
+                                onLogout = { viewModel.logout() },
+                                onAvatarClick = { showAvatarDialog = true },
+                                onEditInfo = { username, name ->
+                                    viewModel.updateInfo(username, name)
+                                }
+                            )
+                        }
 
-                    // 修改密码卡片
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        SettingCard(
-                            icon = Icons.Default.Lock,
-                            title = "修改密码",
-                            subtitle = "更新您的账户密码",
-                            onClick = onNavigateToChangePassword
-                        )
-                    }
-                    
-                    // 检查更新卡片
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        SettingCard(
-                            icon = Icons.Default.Refresh,
-                            title = "检查更新",
-                            subtitle = if (updateUiState.isChecking) "正在检查..." else "点击检查是否有新版本",
-                            onClick = { 
-                                isManualUpdateCheck = true
-                                showUpdateDialog = true
-                                updateViewModel.checkForUpdate()
-                            }
-                        )
-                    }
-                    
-                    // 652签到入口（解锁后永久显示）
-                    if (uiState.isCheckinUnlocked) {
+                        // 修改密码卡片
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             SettingCard(
-                                icon = Icons.Default.Edit,
-                                title = "652签到",
-                                subtitle = "快速签到打卡",
-                                onClick = onNavigateToCheckin
+                                icon = Icons.Default.Lock,
+                                title = "修改密码",
+                                subtitle = "更新您的账户密码",
+                                onClick = onNavigateToChangePassword
+                            )
+                        }
+
+                        // 检查更新卡片
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SettingCard(
+                                icon = Icons.Default.Refresh,
+                                title = "检查更新",
+                                subtitle = if (updateUiState.isChecking) "正在检查..." else "点击检查是否有新版本",
+                                onClick = {
+                                    isManualUpdateCheck = true
+                                    showUpdateDialog = true
+                                    updateViewModel.checkForUpdate()
+                                }
+                            )
+                        }
+
+                        // 652签到入口（解锁后永久显示）
+                        if (uiState.isCheckinUnlocked) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                SettingCard(
+                                    icon = Icons.Default.Edit,
+                                    title = "652签到",
+                                    subtitle = "快速签到打卡",
+                                    onClick = onNavigateToCheckin
+                                )
+                            }
+                        }
+
+                        // 应用信息
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            AppInfoCard(
+                                isUnlocked = uiState.isCheckinUnlocked,
+                                onSecretUnlocked = {
+                                    viewModel.unlockCheckinFeature()
+                                    onNavigateToCheckin()
+                                }
                             )
                         }
                     }
-
-                    // 应用信息
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        AppInfoCard(
-                            isUnlocked = uiState.isCheckinUnlocked,
-                            onSecretUnlocked = {
-                                viewModel.unlockCheckinFeature()
-                                onNavigateToCheckin()
-                            }
-                        )
-                    }
-                }
                 }
             }
         }
@@ -315,7 +317,11 @@ fun UserInfoCard(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(SoftBlueWait)
-                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant,
+                                        CircleShape
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -334,11 +340,15 @@ fun UserInfoCard(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(SoftBlueWait)
-                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant,
+                                        CircleShape
+                                    )
                             )
                         }
                     }
-                    
+
                     // 编辑图标提示 - 放在头像外层
                     Icon(
                         imageVector = Icons.Default.Edit,
@@ -522,7 +532,7 @@ fun AppInfoCard(
     var clickCount by remember { mutableIntStateOf(0) }
     var lastClickTime by remember { mutableStateOf(0L) }
     val resetTimeoutMs = 2000L // 2秒内需完成5次点击
-    
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -557,7 +567,7 @@ fun AppInfoCard(
                             clickCount++
                         }
                         lastClickTime = currentTime
-                        
+
                         // 达到5次点击，触发隐藏功能
                         if (clickCount >= 5) {
                             clickCount = 0

@@ -20,7 +20,7 @@ class StudyRequirementViewModel(
 
     init {
         // 初始化年级列表
-        _uiState.update { 
+        _uiState.update {
             it.copy(grades = teachingPlanRepository.generateGradeList())
         }
         // 加载学院列表
@@ -33,11 +33,11 @@ class StudyRequirementViewModel(
     private fun loadColleges() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
+
             val result = teachingPlanRepository.getCollegeList()
             result.fold(
                 onSuccess = { colleges ->
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             colleges = colleges,
                             isLoading = false
@@ -45,7 +45,7 @@ class StudyRequirementViewModel(
                     }
                 },
                 onFailure = { error ->
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             errorMessage = "加载学院列表失败: ${error.message}",
                             isLoading = false
@@ -61,8 +61,8 @@ class StudyRequirementViewModel(
      */
     fun selectCollege(collegeId: String) {
         if (collegeId == _uiState.value.selectedCollegeId) return
-        
-        _uiState.update { 
+
+        _uiState.update {
             it.copy(
                 selectedCollegeId = collegeId,
                 selectedMajorId = "",
@@ -71,7 +71,7 @@ class StudyRequirementViewModel(
                 planInfo = null
             )
         }
-        
+
         if (collegeId.isNotEmpty()) {
             loadMajors(collegeId)
         }
@@ -83,11 +83,11 @@ class StudyRequirementViewModel(
     private fun loadMajors(collegeId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
+
             val result = teachingPlanRepository.getMajorList(collegeId)
             result.fold(
                 onSuccess = { majors ->
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             majors = majors,
                             isLoading = false
@@ -95,7 +95,7 @@ class StudyRequirementViewModel(
                     }
                 },
                 onFailure = { error ->
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             errorMessage = "加载专业列表失败: ${error.message}",
                             isLoading = false
@@ -111,7 +111,7 @@ class StudyRequirementViewModel(
      */
     fun selectGrade(grade: String) {
         if (grade == _uiState.value.selectedGrade) return
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 selectedGrade = grade,
                 categories = emptyList(),
@@ -127,7 +127,7 @@ class StudyRequirementViewModel(
      */
     fun selectMajor(majorId: String) {
         if (majorId == _uiState.value.selectedMajorId) return
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 selectedMajorId = majorId,
                 categories = emptyList(),
@@ -143,9 +143,10 @@ class StudyRequirementViewModel(
      */
     private fun checkAndQuery() {
         val state = _uiState.value
-        if (state.selectedGrade.isNotEmpty() && 
-            state.selectedCollegeId.isNotEmpty() && 
-            state.selectedMajorId.isNotEmpty()) {
+        if (state.selectedGrade.isNotEmpty() &&
+            state.selectedCollegeId.isNotEmpty() &&
+            state.selectedMajorId.isNotEmpty()
+        ) {
             queryStudyRequirements()
         }
     }
@@ -155,16 +156,17 @@ class StudyRequirementViewModel(
      */
     fun queryStudyRequirements() {
         val state = _uiState.value
-        if (state.selectedGrade.isEmpty() || 
-            state.selectedCollegeId.isEmpty() || 
-            state.selectedMajorId.isEmpty()) {
+        if (state.selectedGrade.isEmpty() ||
+            state.selectedCollegeId.isEmpty() ||
+            state.selectedMajorId.isEmpty()
+        ) {
             _uiState.update { it.copy(errorMessage = "请选择完整的查询条件") }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            
+
             try {
                 // 1. 获取培养计划信息
                 val planResult = teachingPlanRepository.getTeachingPlanInfo(
@@ -172,7 +174,7 @@ class StudyRequirementViewModel(
                     gradeId = state.selectedGrade,
                     majorId = state.selectedMajorId
                 )
-                
+
                 planResult.fold(
                     onSuccess = { planInfo ->
                         if (planInfo != null) {
@@ -180,7 +182,7 @@ class StudyRequirementViewModel(
                             // 2. 获取课程列表
                             loadCoursesByPlan(planInfo.planId)
                         } else {
-                            _uiState.update { 
+                            _uiState.update {
                                 it.copy(
                                     errorMessage = "未找到该专业的培养计划",
                                     isLoading = false
@@ -189,7 +191,7 @@ class StudyRequirementViewModel(
                         }
                     },
                     onFailure = { error ->
-                        _uiState.update { 
+                        _uiState.update {
                             it.copy(
                                 errorMessage = "查询失败: ${error.message}",
                                 isLoading = false
@@ -198,7 +200,7 @@ class StudyRequirementViewModel(
                     }
                 )
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         errorMessage = "查询失败: ${e.message}",
                         isLoading = false
@@ -237,7 +239,7 @@ class StudyRequirementViewModel(
                         totalCredits = courses.sumOf { it.credits.toDoubleOrNull() ?: 0.0 },
                         requiredCredits = 0.0 // 实际要求需要从其他接口获取
                     )
-                }.sortedBy { 
+                }.sortedBy {
                     // 按课程类型排序
                     when {
                         it.categoryName.contains("基础必修") -> 0
@@ -248,7 +250,7 @@ class StudyRequirementViewModel(
                         else -> 5
                     }
                 }
-                
+
                 _uiState.update { state ->
                     state.copy(
                         categories = categories,
@@ -259,7 +261,7 @@ class StudyRequirementViewModel(
                 }
             },
             onFailure = { error ->
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         errorMessage = "加载课程失败: ${error.message}",
                         isLoading = false
@@ -280,9 +282,10 @@ class StudyRequirementViewModel(
                 loadCoursesByPlan(state.planInfo!!.planId)
                 _uiState.update { it.copy(isRefreshing = false) }
             }
-        } else if (state.selectedGrade.isNotEmpty() && 
-                   state.selectedCollegeId.isNotEmpty() && 
-                   state.selectedMajorId.isNotEmpty()) {
+        } else if (state.selectedGrade.isNotEmpty() &&
+            state.selectedCollegeId.isNotEmpty() &&
+            state.selectedMajorId.isNotEmpty()
+        ) {
             queryStudyRequirements()
         } else {
             loadColleges()

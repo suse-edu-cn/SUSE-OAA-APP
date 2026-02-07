@@ -79,7 +79,7 @@ class SchoolInfoRepository(
         withContext(Dispatchers.IO) {
             try {
                 val (xnm, xqm) = getCurrentTerm()
-                
+
                 // 1. 发起请求
                 var response = api.getExamList(xnm, xqm)
 
@@ -175,7 +175,12 @@ class SchoolInfoRepository(
     /**
      * 更新考试缓存（保留自定义考试）
      */
-    private suspend fun updateExams(studentId: String, exams: List<ExamCacheEntity>, xnm: String, xqm: String) =
+    private suspend fun updateExams(
+        studentId: String,
+        exams: List<ExamCacheEntity>,
+        xnm: String,
+        xqm: String
+    ) =
         withContext(Dispatchers.IO) {
             database.transaction {
                 // 只删除非自定义的考试信息
@@ -243,7 +248,11 @@ class SchoolInfoRepository(
     /**
      * 获取指定学期的自定义考试信息（同步方法）
      */
-    suspend fun getCustomExamsBySemester(studentId: String, xnm: String, xqm: String): List<ExamCacheEntity> =
+    suspend fun getCustomExamsBySemester(
+        studentId: String,
+        xnm: String,
+        xqm: String
+    ): List<ExamCacheEntity> =
         withContext(Dispatchers.IO) {
             database.examCacheQueries.selectCustomByStudentAndSemester(studentId, xnm, xqm)
                 .executeAsList()
@@ -253,7 +262,11 @@ class SchoolInfoRepository(
     /**
      * 观察指定学期的考试信息
      */
-    fun observeExamsBySemester(studentId: String, xnm: String, xqm: String): Flow<List<ExamCacheEntity>> {
+    fun observeExamsBySemester(
+        studentId: String,
+        xnm: String,
+        xqm: String
+    ): Flow<List<ExamCacheEntity>> {
         return database.examCacheQueries.selectByStudentAndSemester(studentId, xnm, xqm)
             .asFlow()
             .mapToList(Dispatchers.IO)
@@ -284,7 +297,10 @@ class SchoolInfoRepository(
                 var response = api.getAcademicMessageInfo()
                 var bodyString = response.bodyAsText()
 
-                if (response.status.value == 901 || response.status.value == 302 || isLoginRequired(bodyString)) {
+                if (response.status.value == 901 || response.status.value == 302 || isLoginRequired(
+                        bodyString
+                    )
+                ) {
                     // 先使当前 session 失效，再重新登录
                     authRepository.invalidateSession()
                     val loginResult = authRepository.login(account.studentId, account.password)
@@ -344,7 +360,10 @@ class SchoolInfoRepository(
             var response = request()
             var bodyString = response.bodyAsText()
 
-            if (response.status.value == 901 || response.status.value == 302 || isLoginRequired(bodyString)) {
+            if (response.status.value == 901 || response.status.value == 302 || isLoginRequired(
+                    bodyString
+                )
+            ) {
                 // 先使当前 session 失效，再重新登录
                 authRepository.invalidateSession()
                 val loginResult = authRepository.login(account.studentId, account.password)

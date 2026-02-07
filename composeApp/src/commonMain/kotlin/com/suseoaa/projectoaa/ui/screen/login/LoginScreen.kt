@@ -95,9 +95,9 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                visualTransformation = if (isPasswordVisible) 
-                    VisualTransformation.None 
-                else 
+                visualTransformation = if (isPasswordVisible)
+                    VisualTransformation.None
+                else
                     PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
@@ -108,9 +108,9 @@ fun LoginScreen(
                         Icon(
                             imageVector = Icons.Filled.Lock,
                             contentDescription = if (isPasswordVisible) "隐藏密码" else "显示密码",
-                            tint = if (isPasswordVisible) 
-                                MaterialTheme.colorScheme.primary 
-                            else 
+                            tint = if (isPasswordVisible)
+                                MaterialTheme.colorScheme.primary
+                            else
                                 MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

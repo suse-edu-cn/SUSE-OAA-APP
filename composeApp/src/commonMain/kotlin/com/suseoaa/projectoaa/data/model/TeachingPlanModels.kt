@@ -220,7 +220,7 @@ object CourseTypeConstants {
 object SemesterConstants {
     const val FIRST_SEMESTER = "1"
     const val SECOND_SEMESTER = "2"
-    
+
     fun getSemesterName(code: String): String {
         return when (code) {
             FIRST_SEMESTER -> "第一学期"

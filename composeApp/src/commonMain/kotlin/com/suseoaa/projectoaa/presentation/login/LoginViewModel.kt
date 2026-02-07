@@ -56,24 +56,24 @@ class LoginViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             val result = authRepository.login(cleanAccount, cleanPassword)
-            
+
             result.onSuccess { response ->
                 // 保存 Token 和学号
                 response.data?.token?.let { token ->
                     tokenManager.saveToken(token)
                 }
                 tokenManager.saveCurrentStudentId(cleanAccount)
-                
-                _uiState.update { 
+
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         isLoginSuccess = true
                     )
                 }
             }
-            
+
             result.onFailure { error ->
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         errorMessage = error.message ?: "登录失败"

@@ -25,15 +25,16 @@ fun UpdateDialog(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isIos = viewModel.isIos
-    
+
     // 自动弹窗且已经弹过，则不显示
     if (!isManualCheck && uiState.hasShownAutoDialog && uiState.hasUpdate) {
         return
     }
-    
+
     // 显示对话框的条件：正在检查、有更新、或手动检查无更新时显示“已是最新”
-    val shouldShow = uiState.isChecking || uiState.hasUpdate || (isManualCheck && !uiState.isChecking && !uiState.hasUpdate)
-    
+    val shouldShow =
+        uiState.isChecking || uiState.hasUpdate || (isManualCheck && !uiState.isChecking && !uiState.hasUpdate)
+
     if (shouldShow) {
         // 如果是自动弹窗，标记已显示
         LaunchedEffect(uiState.hasUpdate) {
@@ -41,7 +42,7 @@ fun UpdateDialog(
                 viewModel.markDialogShown()
             }
         }
-        
+
         AlertDialog(
             containerColor = MaterialTheme.colorScheme.background,
             onDismissRequest = {
@@ -89,7 +90,7 @@ fun UpdateDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            
+
                             // iOS 显示提示信息
                             if (isIos) {
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -99,7 +100,7 @@ fun UpdateDialog(
                                     color = MaterialTheme.colorScheme.outline
                                 )
                             }
-                            
+
                             // Android 显示下载进度
                             if (!isIos && uiState.isDownloading) {
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -115,6 +116,7 @@ fun UpdateDialog(
                                 )
                             }
                         }
+
                         uiState.isChecking -> {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 CircularProgressIndicator(
@@ -128,6 +130,7 @@ fun UpdateDialog(
                                 )
                             }
                         }
+
                         uiState.errorMessage != null -> {
                             Text(
                                 text = uiState.errorMessage!!,
@@ -204,7 +207,7 @@ fun CheckUpdateCard(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
-    
+
     if (showDialog) {
         UpdateDialog(
             viewModel = viewModel,
@@ -212,7 +215,7 @@ fun CheckUpdateCard(
             isManualCheck = true
         )
     }
-    
+
     Card(
         onClick = {
             showDialog = true
@@ -243,7 +246,7 @@ fun CheckUpdateCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             if (uiState.isChecking) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(20.dp),

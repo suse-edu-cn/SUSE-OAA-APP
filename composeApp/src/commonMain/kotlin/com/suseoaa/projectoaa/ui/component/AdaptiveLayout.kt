@@ -16,8 +16,10 @@ import androidx.compose.ui.unit.dp
 enum class WindowSizeClass {
     /** 紧凑型 - 手机竖屏 (< 600dp) */
     COMPACT,
+
     /** 中等型 - 大手机/小平板 (600dp - 840dp) */
     MEDIUM,
+
     /** 扩展型 - 平板/桌面 (> 840dp) */
     EXPANDED
 }
@@ -58,41 +60,41 @@ data class AdaptiveLayoutConfig(
                 screenWidth < 840.dp -> WindowSizeClass.MEDIUM
                 else -> WindowSizeClass.EXPANDED
             }
-            
+
             val isTablet = screenWidth >= 600.dp || screenHeight >= 600.dp
             val isLandscape = screenWidth > screenHeight
-            
+
             // 平板横屏时使用侧边导航
             val useSideNavigation = isTablet && isLandscape
-            
+
             val gridColumns = when (windowSizeClass) {
                 WindowSizeClass.COMPACT -> 2
                 WindowSizeClass.MEDIUM -> 3
                 WindowSizeClass.EXPANDED -> 4
             }
-            
+
             val maxContentWidth = when (windowSizeClass) {
                 WindowSizeClass.COMPACT -> screenWidth
                 WindowSizeClass.MEDIUM -> 840.dp
                 WindowSizeClass.EXPANDED -> 1200.dp
             }
-            
+
             val horizontalPadding = when (windowSizeClass) {
                 WindowSizeClass.COMPACT -> 16.dp
                 WindowSizeClass.MEDIUM -> 24.dp
                 WindowSizeClass.EXPANDED -> 32.dp
             }
-            
+
             val useTwoPaneLayout = windowSizeClass == WindowSizeClass.EXPANDED
-            
+
             val sidePanelWidth = when (windowSizeClass) {
                 WindowSizeClass.COMPACT -> 0.dp
                 WindowSizeClass.MEDIUM -> 280.dp
                 WindowSizeClass.EXPANDED -> 320.dp
             }
-            
+
             val navigationRailWidth = 80.dp
-            
+
             return AdaptiveLayoutConfig(
                 windowSizeClass = windowSizeClass,
                 screenWidth = screenWidth,
@@ -113,7 +115,7 @@ data class AdaptiveLayoutConfig(
 
 /**
  * 自适应布局容器 - 自动检测屏幕尺寸并提供布局配置
- * 
+ *
  * @param modifier 修饰符
  * @param content 内容 lambda，提供 AdaptiveLayoutConfig 配置
  */
@@ -139,7 +141,7 @@ fun AdaptiveLayoutConfig.toGridCells(): GridCells = GridCells.Fixed(gridColumns)
 
 /**
  * 获取卡片列表的推荐列数
- * 
+ *
  * @param minItemWidth 每个卡片的最小宽度
  */
 fun AdaptiveLayoutConfig.getCardColumns(minItemWidth: Dp = 160.dp): Int {

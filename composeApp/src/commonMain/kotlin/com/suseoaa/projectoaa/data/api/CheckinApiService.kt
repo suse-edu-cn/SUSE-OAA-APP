@@ -142,14 +142,18 @@ class CheckinApiService(val httpClient: HttpClient) {
             header("appcode", "qddk")
         }
     }
-    
+
     /**
      * 获取打卡任务列表（使用 Cookie）
      * @param status 任务状态：1=待签到, 2=已完成, 3=已缺勤
      * @param cookies Cookie 字符串
      * @param openId 微信 OpenID，用于 Referer 参数
      */
-    suspend fun getTaskListWithCookies(status: Int = 1, cookies: String, openId: String? = null): HttpResponse {
+    suspend fun getTaskListWithCookies(
+        status: Int = 1,
+        cookies: String,
+        openId: String? = null
+    ): HttpResponse {
         val referer = if (openId != null) {
             "$QFHY_BASE/xg/app/qddk/admin?open_id=$openId"
         } else {
@@ -238,7 +242,7 @@ class CheckinApiService(val httpClient: HttpClient) {
             header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
         }
     }
-    
+
     /**
      * 获取用户信息（使用自定义 Cookie）
      * GET https://qfhy.suse.edu.cn/edu/api/v1/user/getinfo
@@ -253,7 +257,7 @@ class CheckinApiService(val httpClient: HttpClient) {
             header("Referer", "$QFHY_BASE/edu/admin/")
         }
     }
-    
+
     /**
      * 获取用户当前信息（qfhy site API）
      * GET https://qfhy.suse.edu.cn/site/app/base/common/api/user/current.rst
@@ -267,11 +271,11 @@ class CheckinApiService(val httpClient: HttpClient) {
             header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
         }
     }
-    
+
     /**
      * 获取用户组身份（用于签到）
      * GET https://qfhy.suse.edu.cn/site/app/base/common/api/group/qddk/identity.rst
-     * 
+     *
      * 重要：根据 HAR 分析，Referer 必须包含 open_id 参数才能正常认证
      * 格式：https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id=xxx
      */
@@ -289,7 +293,7 @@ class CheckinApiService(val httpClient: HttpClient) {
             header("appcode", "qddk")
         }
     }
-    
+
     /**
      * 使用 ticket 完成 SSO 认证
      * 从 _sop_session_ JWT 中提取的 ticket 可以用来获取 SESSION cookie
@@ -306,7 +310,7 @@ class CheckinApiService(val httpClient: HttpClient) {
             header("Referer", "$QFHY_BASE/edu/")
         }
     }
-    
+
     /**
      * 访问 /xg/ 签到页面，触发 SESSION cookie 生成
      * 根据 HAR 分析，访问 /xg/app/qddk/admin?open_id=xxx 页面会自动设置 SESSION
@@ -319,10 +323,13 @@ class CheckinApiService(val httpClient: HttpClient) {
             header("Accept-Language", "zh-CN,zh;q=0.9")
             header("Cookie", sopSessionCookie)
             header("Referer", "$QFHY_BASE/edu/")
-            header("User-Agent", "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+            header(
+                "User-Agent",
+                "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            )
         }
     }
-    
+
     /**
      * 访问 /site/user/current API 来初始化 SESSION
      * 这个 API 可能会自动创建 SESSION
@@ -337,14 +344,18 @@ class CheckinApiService(val httpClient: HttpClient) {
             header("appcode", "qddk")
         }
     }
-    
+
     /**
      * 执行签到（使用 Cookie）
      * POST https://qfhy.suse.edu.cn/site/app/base/common/api/group/{groupCode}/qddk/set.rst
-     * 
+     *
      * 重要：根据 HAR 分析，Referer 必须包含 open_id 参数
      */
-    suspend fun submitCheckinWithCookies(groupCode: String, cookies: String, openId: String? = null): HttpResponse {
+    suspend fun submitCheckinWithCookies(
+        groupCode: String,
+        cookies: String,
+        openId: String? = null
+    ): HttpResponse {
         val referer = if (openId != null) {
             "$QFHY_BASE/xg/app/qddk/admin?open_id=$openId"
         } else {
@@ -383,14 +394,14 @@ class CheckinApiService(val httpClient: HttpClient) {
     suspend fun getPendingTasksWithSession(sessionToken: String): HttpResponse {
         return getTaskListWithCookies(sessionToken, status = 1)
     }
-    
+
     /**
      * 获取已完成任务列表（已打卡）
      */
     suspend fun getCompletedTasksWithCookies(cookies: String): HttpResponse {
         return getTaskListWithCookies(cookies, status = 2)
     }
-    
+
     /**
      * 获取已缺勤任务列表
      */

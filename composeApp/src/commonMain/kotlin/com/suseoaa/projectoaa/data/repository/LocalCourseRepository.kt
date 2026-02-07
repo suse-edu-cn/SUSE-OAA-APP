@@ -23,9 +23,10 @@ class LocalCourseRepository(private val database: CourseDatabase) {
             }
     }
 
-    suspend fun getAccountById(studentId: String): CourseAccountEntity? = withContext(Dispatchers.IO) {
-        database.courseAccountQueries.selectById(studentId).executeAsOneOrNull()?.toEntity()
-    }
+    suspend fun getAccountById(studentId: String): CourseAccountEntity? =
+        withContext(Dispatchers.IO) {
+            database.courseAccountQueries.selectById(studentId).executeAsOneOrNull()?.toEntity()
+        }
 
     suspend fun insertOrReplaceAccount(account: CourseAccountEntity) = withContext(Dispatchers.IO) {
         database.courseAccountQueries.insertOrReplace(
@@ -53,18 +54,20 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         database.courseAccountQueries.deleteById(studentId)
     }
 
-    suspend fun updateMajorInfo(studentId: String, jgId: String, zyhId: String, njdmId: String) = withContext(Dispatchers.IO) {
-        database.courseAccountQueries.updateMajorInfo(jgId, zyhId, njdmId, studentId)
-    }
+    suspend fun updateMajorInfo(studentId: String, jgId: String, zyhId: String, njdmId: String) =
+        withContext(Dispatchers.IO) {
+            database.courseAccountQueries.updateMajorInfo(jgId, zyhId, njdmId, studentId)
+        }
 
-    suspend fun updateAllSortIndices(accounts: List<CourseAccountEntity>) = withContext(Dispatchers.IO) {
-        database.transaction {
-            accounts.forEachIndexed { index, account ->
-                // transaction is synchronous, so we call generated updateSortIndex.
-                database.courseAccountQueries.updateSortIndex(index.toLong(), account.studentId)
+    suspend fun updateAllSortIndices(accounts: List<CourseAccountEntity>) =
+        withContext(Dispatchers.IO) {
+            database.transaction {
+                accounts.forEachIndexed { index, account ->
+                    // transaction is synchronous, so we call generated updateSortIndex.
+                    database.courseAccountQueries.updateSortIndex(index.toLong(), account.studentId)
+                }
             }
         }
-    }
 
     // ===== 课程管理 =====
 
@@ -75,7 +78,11 @@ class LocalCourseRepository(private val database: CourseDatabase) {
             .map { list -> list.map { it.toEntity() } }
     }
 
-    fun getClassTimesByTerm(studentId: String, xnm: String, xqm: String): Flow<List<ClassTimeEntity>> {
+    fun getClassTimesByTerm(
+        studentId: String,
+        xnm: String,
+        xqm: String
+    ): Flow<List<ClassTimeEntity>> {
         return database.classTimeQueries.selectByTerm(studentId, xnm, xqm)
             .asFlow()
             .mapToList(Dispatchers.IO)
@@ -113,7 +120,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
             totalHours = course.totalHours
         )
     }
-    
+
     suspend fun insertCourse(course: CourseEntity) = withContext(Dispatchers.IO) {
         insertCourseInternal(course)
     }
@@ -139,18 +146,25 @@ class LocalCourseRepository(private val database: CourseDatabase) {
     }
 
     suspend fun insertClassTime(time: ClassTimeEntity) = withContext(Dispatchers.IO) {
-         insertClassTimeInternal(time)
+        insertClassTimeInternal(time)
     }
 
-    suspend fun deleteRemoteCoursesByTerm(studentId: String, xnm: String, xqm: String) = withContext(Dispatchers.IO) {
-        database.courseQueries.deleteRemoteCoursesByTerm(studentId, xnm, xqm)
-    }
+    suspend fun deleteRemoteCoursesByTerm(studentId: String, xnm: String, xqm: String) =
+        withContext(Dispatchers.IO) {
+            database.courseQueries.deleteRemoteCoursesByTerm(studentId, xnm, xqm)
+        }
 
     suspend fun deleteAllCoursesByStudent(studentId: String) = withContext(Dispatchers.IO) {
         database.courseQueries.deleteAllByStudent(studentId)
     }
-    
-    suspend fun deleteCourse(studentId: String, courseName: String, xnm: String, xqm: String, isCustom: Boolean) = withContext(Dispatchers.IO) {
+
+    suspend fun deleteCourse(
+        studentId: String,
+        courseName: String,
+        xnm: String,
+        xqm: String,
+        isCustom: Boolean
+    ) = withContext(Dispatchers.IO) {
         database.courseQueries.deleteCourse(
             studentId = studentId,
             courseName = courseName,
@@ -176,30 +190,31 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         }
     }
 
-    suspend fun insertCustomCourse(course: CourseEntity, time: ClassTimeEntity) = withContext(Dispatchers.IO) {
-        database.transaction {
-            insertCourseInternal(course)
-            insertClassTimeInternal(time)
+    suspend fun insertCustomCourse(course: CourseEntity, time: ClassTimeEntity) =
+        withContext(Dispatchers.IO) {
+            database.transaction {
+                insertCourseInternal(course)
+                insertClassTimeInternal(time)
+            }
         }
-    }
 
     suspend fun saveFromResponse(
         studentId: String,
-        password: String, 
+        password: String,
         response: CourseResponseJson
     ) = withContext(Dispatchers.IO) {
         val xsxx = response.xsxx
         val list = response.kbList ?: emptyList()
-        
+
         // 确定学年学期
         val xnm = xsxx?.xnm ?: list.firstOrNull()?.xnm ?: "2024"
         val xqm = xsxx?.xqm ?: list.firstOrNull()?.xqm ?: "3"
-        
+
         // 保存账号信息（非常重要！）
         if (xsxx != null) {
             val oldAccount = getAccountById(studentId)
             val newSortIndex = oldAccount?.sortIndex ?: (getMaxSortIndex() + 1)
-            
+
             val account = CourseAccountEntity(
                 studentId = studentId,
                 password = password,
@@ -241,12 +256,12 @@ class LocalCourseRepository(private val database: CourseDatabase) {
 
         val courseEntities = mutableListOf<CourseEntity>()
         val timeEntities = mutableListOf<ClassTimeEntity>()
-        
+
         val processedCourseNames = mutableSetOf<String>()
 
         list.forEach { item ->
             val courseName = item.kcmc ?: "未知课程"
-            
+
             // Deduplicate courses
             if (courseName !in processedCourseNames) {
                 processedCourseNames.add(courseName)
@@ -261,8 +276,8 @@ class LocalCourseRepository(private val database: CourseDatabase) {
                         nature = item.kcxzmc ?: "",
                         category = item.kclbmc ?: item.kclb ?: "",  // 优先 kclbmc，备选 kclb
                         assessment = item.khfsmc ?: "",
-                        totalHours = item.xf ?: "", 
-                        background = "#FFFFFF" 
+                        totalHours = item.xf ?: "",
+                        background = "#FFFFFF"
                     )
                 )
             }
@@ -295,7 +310,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
             // 先检测整个字符串是否包含单双周标记
             val globalOddOnly = weeksStr.contains("单") && !weeksStr.contains("双")
             val globalEvenOnly = weeksStr.contains("双") && !weeksStr.contains("单")
-            
+
             // 清理字符串：移除"周"，用特殊标记保留单双周信息
             val cleanedStr = weeksStr
                 .replace("周", "")
@@ -306,20 +321,22 @@ class LocalCourseRepository(private val database: CourseDatabase) {
                 .replace("单", "")  // 移除单独的"单"字（如"单周"的"单"）
                 .replace("双", "")  // 移除单独的"双"字
                 .replace(" ", "")
-            
+
             val parts = cleanedStr.split(",")
             for (part in parts) {
                 // 检查此部分是否有单双周标记
-                val isOddOnly = part.contains("#ODD#") || (globalOddOnly && !part.contains("#EVEN#"))
-                val isEvenOnly = part.contains("#EVEN#") || (globalEvenOnly && !part.contains("#ODD#"))
-                
+                val isOddOnly =
+                    part.contains("#ODD#") || (globalOddOnly && !part.contains("#EVEN#"))
+                val isEvenOnly =
+                    part.contains("#EVEN#") || (globalEvenOnly && !part.contains("#ODD#"))
+
                 val cleanPart = part.replace("#ODD#", "").replace("#EVEN#", "")
-                
+
                 if (cleanPart.contains("-")) {
                     val rangeParts = cleanPart.split("-")
                     val start = rangeParts[0].toIntOrNull() ?: continue
                     val end = rangeParts[1].toIntOrNull() ?: continue
-                    
+
                     for (week in start..end) {
                         if (week in 1..60) {
                             // 检查单双周过滤
@@ -336,7 +353,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
                 } else {
                     val week = cleanPart.toIntOrNull()
                     if (week != null && week in 1..60) {
-                         mask = mask or (1L shl (week - 1))
+                        mask = mask or (1L shl (week - 1))
                     }
                 }
             }

@@ -106,27 +106,27 @@ val appModule = module {
     single { SchoolApiService(get(qualifier = org.koin.core.qualifier.named("school")), get()) }
     single { SchoolAuthRepository(get<SchoolApiService>()) }
     single { SchoolCourseRepository(get<SchoolApiService>(), get()) }
-    
+
     // 成绩和信息仓库
-    single { 
+    single {
         SchoolGradeRepository(
-            get<SchoolApiService>(), 
-            get<CourseDatabase>(), 
-            get<Json>(), 
+            get<SchoolApiService>(),
+            get<CourseDatabase>(),
+            get<Json>(),
             get<SchoolAuthRepository>(),
             get<LocalCourseRepository>(),
             get<TokenManager>()
-        ) 
+        )
     }
-    single { 
+    single {
         SchoolInfoRepository(
-            get<SchoolApiService>(), 
-            get<CourseDatabase>(), 
+            get<SchoolApiService>(),
+            get<CourseDatabase>(),
             get<Json>(),
             get<SchoolAuthRepository>()
-        ) 
+        )
     }
-    
+
     // GPA 仓库
     single {
         GpaRepository(
@@ -139,7 +139,7 @@ val appModule = module {
             get<CourseDatabase>()
         )
     }
-    
+
     // 教学计划仓库
     single {
         TeachingPlanRepository(
@@ -148,7 +148,7 @@ val appModule = module {
             get<SchoolAuthRepository>()
         )
     }
-    
+
     // 学业情况仓库
     single {
         AcademicStatusRepository(
@@ -170,23 +170,23 @@ val appModule = module {
     viewModel { GpaViewModel(get(), get()) }
     viewModel { GradesViewModel(get(), get(), get(), get()) }
     viewModel { AppUpdateViewModel(get(), get()) }
-    
+
     // 教学计划 ViewModels
     viewModel { StudyRequirementViewModel(get()) }
     viewModel { CourseInfoViewModel(get(), get(), get(), get()) }
     viewModel { AcademicStatusViewModel(get(), get()) }
-    
+
     // ==================== 652打卡（隐藏功能）====================
     // 可清除的 Cookie 存储
     single(qualifier = org.koin.core.qualifier.named("checkinCookieStorage")) {
         com.suseoaa.projectoaa.data.network.ClearableCookieStorage()
     }
-    
+
     // 扫码签到专用 Cookie 存储 (与密码登录隔离)
     single(qualifier = org.koin.core.qualifier.named("qrCheckinCookieStorage")) {
         com.suseoaa.projectoaa.data.network.ClearableCookieStorage()
     }
-    
+
     // 打卡专用 HttpClient (使用可清除的 Cookie 存储) - 密码登录用
     single(qualifier = org.koin.core.qualifier.named("checkin")) {
         val jsonConfig = get<Json>()
@@ -207,7 +207,7 @@ val appModule = module {
             followRedirects = false
         }
     }
-    
+
     // 扫码签到专用 HttpClient (独立的 Cookie 存储)
     single(qualifier = org.koin.core.qualifier.named("qrCheckin")) {
         val jsonConfig = get<Json>()
@@ -228,15 +228,23 @@ val appModule = module {
             followRedirects = false
         }
     }
-    
+
     // 打卡 API 服务 (密码登录)
     single { CheckinApiService(get(qualifier = org.koin.core.qualifier.named("checkin"))) }
-    
+
     // 扫码签到 API 服务
-    single { com.suseoaa.projectoaa.data.api.QrCodeCheckinApiService(get(qualifier = org.koin.core.qualifier.named("qrCheckin"))) }
-    
+    single {
+        com.suseoaa.projectoaa.data.api.QrCodeCheckinApiService(
+            get(
+                qualifier = org.koin.core.qualifier.named(
+                    "qrCheckin"
+                )
+            )
+        )
+    }
+
     // 打卡 Repository - 密码登录 (使用 CourseDatabase)
-    single { 
+    single {
         CheckinRepository(
             get<CheckinApiService>(),
             get<CourseDatabase>(),
@@ -246,7 +254,7 @@ val appModule = module {
             )
         )
     }
-    
+
     // 扫码签到 Repository (独立)
     single {
         com.suseoaa.projectoaa.data.repository.QrCodeCheckinRepository(
@@ -258,7 +266,7 @@ val appModule = module {
             )
         )
     }
-    
+
     // 打卡 ViewModel (同时注入两个 Repository)
     viewModel { CheckinViewModel(get(), get()) }
 }

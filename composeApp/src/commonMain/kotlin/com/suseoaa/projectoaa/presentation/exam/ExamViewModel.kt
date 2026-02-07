@@ -114,15 +114,15 @@ data class ExamUiState(
     val isRefreshing: Boolean = false,
     val exams: List<ExamUiItem> = emptyList(),
     val errorMessage: String? = null,
-    
+
     // 学期筛选
     val availableSemesters: List<SemesterOption> = emptyList(),
     val selectedYear: String = "",
     val selectedSemester: String = "",
-    
+
     // 筛选面板展开状态（手机端）
     val isFilterExpanded: Boolean = false,
-    
+
     // 编辑对话框状态
     val showEditDialog: Boolean = false,
     val editingExam: ExamUiItem? = null,
@@ -135,7 +135,7 @@ class ExamViewModel(
     private val schoolAuthRepository: SchoolAuthRepository,
     private val schoolInfoRepository: SchoolInfoRepository
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(ExamUiState())
     val uiState: StateFlow<ExamUiState> = _uiState.asStateFlow()
 
@@ -149,13 +149,13 @@ class ExamViewModel(
     init {
         // 初始化时设置当前学期
         val (currentYear, currentSemester) = getCurrentTerm()
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 selectedYear = currentYear,
                 selectedSemester = currentSemester
-            ) 
+            )
         }
-        
+
         // 监听账户变化，动态生成学期选项
         viewModelScope.launch {
             currentAccount.filterNotNull().collect { account ->
@@ -173,28 +173,29 @@ class ExamViewModel(
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val currentYear = now.year
         val currentMonth = now.monthNumber
-        
+
         // 解析入学年份（年级代码通常就是入学年份）
         val enrollmentYear = njdmId.toIntOrNull() ?: (currentYear - 4)
-        
+
         val semesters = mutableListOf<SemesterOption>()
-        
+
         // 确定当前所在的学年和学期
         // 学年规则：8月-次年1月为第一学期，2月-7月为第二学期
         // 当前学年的起始年份
         val currentAcademicYear = if (currentMonth >= 8) currentYear else currentYear - 1
         // 当前学期：8-1月是第一学期(3)，2-7月是第二学期(12)
         val currentSemesterCode = if (currentMonth >= 8 || currentMonth <= 1) "3" else "12"
-        
+
         // 从当前学年往前推到入学年份
         for (academicYear in currentAcademicYear downTo enrollmentYear) {
             // 判断该学年的两个学期是否应该显示
             val isCurrentAcademicYear = (academicYear == currentAcademicYear)
-            
+
             // 第一学期（学年秋季学期）
             // 对于当前学年，需要检查是否已经到了第一学期
-            val showFirstSemester = !isCurrentAcademicYear || currentMonth >= 8 || currentMonth <= 1 || currentSemesterCode == "12"
-            
+            val showFirstSemester =
+                !isCurrentAcademicYear || currentMonth >= 8 || currentMonth <= 1 || currentSemesterCode == "12"
+
             // 第二学期（学年春季学期）
             // 对于当前学年，如果当前是第一学期，则第二学期还没开始
             val showSecondSemester = if (isCurrentAcademicYear) {
@@ -202,31 +203,35 @@ class ExamViewModel(
             } else {
                 true // 往年的两个学期都显示
             }
-            
+
             if (showFirstSemester) {
-                semesters.add(SemesterOption(
-                    year = academicYear.toString(),
-                    semester = "3",
-                    displayName = "${academicYear}-${academicYear + 1} 第1学期"
-                ))
+                semesters.add(
+                    SemesterOption(
+                        year = academicYear.toString(),
+                        semester = "3",
+                        displayName = "${academicYear}-${academicYear + 1} 第1学期"
+                    )
+                )
             }
-            
+
             if (showSecondSemester && academicYear >= enrollmentYear) {
-                semesters.add(SemesterOption(
-                    year = academicYear.toString(),
-                    semester = "12",
-                    displayName = "${academicYear}-${academicYear + 1} 第2学期"
-                ))
+                semesters.add(
+                    SemesterOption(
+                        year = academicYear.toString(),
+                        semester = "12",
+                        displayName = "${academicYear}-${academicYear + 1} 第2学期"
+                    )
+                )
             }
         }
-        
+
         // 按学年降序、学期降序排序（最新的在前面）
         val sortedSemesters = semesters.sortedWith { a, b ->
             val yearCompare = b.year.compareTo(a.year)
             if (yearCompare != 0) yearCompare
             else b.semester.compareTo(a.semester) // "3" < "12"，所以第二学期会排在前面
         }
-        
+
         _uiState.update { it.copy(availableSemesters = sortedSemesters) }
     }
 
@@ -234,12 +239,12 @@ class ExamViewModel(
      * 选择学期
      */
     fun selectSemester(option: SemesterOption) {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 selectedYear = option.year,
                 selectedSemester = option.semester
                 // 不自动折叠，让用户可以继续切换学期
-            ) 
+            )
         }
         loadExams()
     }
@@ -258,19 +263,19 @@ class ExamViewModel(
         val account = currentAccount.value ?: return
         val year = _uiState.value.selectedYear
         val semester = _uiState.value.selectedSemester
-        
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            
+
             try {
                 // 获取 API 考试数据
                 val result = schoolInfoRepository.fetchExamsByTerm(account, year, semester)
-                
+
                 // 获取本地自定义考试
                 val customExams = schoolInfoRepository.getCustomExamsBySemester(
                     account.studentId, year, semester
                 )
-                
+
                 result.fold(
                     onSuccess = { apiItems ->
                         // 处理 API 考试
@@ -281,11 +286,11 @@ class ExamViewModel(
                         val allItems = (apiUiItems + customUiItems).sortedWith { a, b ->
                             val timesA = parseExamTimeRange(a.time)
                             val timesB = parseExamTimeRange(b.time)
-                            
+
                             if (timesA == null && timesB == null) return@sortedWith 0
                             if (timesA == null) return@sortedWith 1
                             if (timesB == null) return@sortedWith -1
-                            
+
                             if (a.isEnded != b.isEnded) {
                                 if (a.isEnded) 1 else -1
                             } else {
@@ -297,21 +302,21 @@ class ExamViewModel(
                     onFailure = { e ->
                         // API 失败时仍然显示自定义考试
                         val customUiItems = processCustomExams(customExams)
-                        _uiState.update { 
+                        _uiState.update {
                             it.copy(
                                 exams = customUiItems,
                                 errorMessage = e.message ?: "获取考试信息失败",
                                 isLoading = false
-                            ) 
+                            )
                         }
                     }
                 )
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         errorMessage = e.message ?: "网络错误",
                         isLoading = false
-                    ) 
+                    )
                 }
             }
         }
@@ -323,11 +328,11 @@ class ExamViewModel(
     private fun processCustomExams(exams: List<ExamCacheEntity>): List<ExamUiItem> {
         val timeZone = TimeZone.currentSystemDefault()
         val now = Clock.System.now().toLocalDateTime(timeZone)
-        
+
         return exams.map { exam ->
             val timeRange = parseExamTimeRange(exam.time)
             val isEnded = if (timeRange != null) now > timeRange.second else false
-            
+
             ExamUiItem(
                 id = exam.id,
                 courseName = exam.courseName,
@@ -350,14 +355,14 @@ class ExamViewModel(
         val account = currentAccount.value ?: return
         val year = _uiState.value.selectedYear
         val semester = _uiState.value.selectedSemester
-        
+
         viewModelScope.launch {
             if (_uiState.value.isRefreshing) return@launch
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
-            
+
             try {
                 val result = schoolInfoRepository.fetchExamsByTerm(account, year, semester)
-                
+
                 result.fold(
                     onSuccess = { items ->
                         val uiItems = processExamItems(items)
@@ -381,23 +386,23 @@ class ExamViewModel(
     private fun processExamItems(items: List<ExamApiItem>): List<ExamUiItem> {
         val timeZone = TimeZone.currentSystemDefault()
         val now = Clock.System.now().toLocalDateTime(timeZone)
-        
+
         return items.map { item ->
             val timeRange = parseExamTimeRange(item.kssj ?: "")
             val isEnded = if (timeRange != null) now > timeRange.second else false
-            
+
             var location = item.cdmc ?: "地点待定"
             if (!item.cdxqmc.isNullOrBlank()) {
                 location += "(${item.cdxqmc})"
             }
-            
+
             val semesterName = when (item.xqm) {
                 "3" -> "第1学期"
                 "12" -> "第2学期"
                 "16" -> "第3学期"
                 else -> "第${item.xqmmc ?: "?"}学期"
             }
-            
+
             ExamUiItem(
                 id = 0, // API 返回的没有本地 ID
                 courseName = item.kcmc ?: "未知课程",
@@ -414,11 +419,11 @@ class ExamViewModel(
             // 已结束的排后面，未结束的按时间升序
             val timesA = parseExamTimeRange(a.time)
             val timesB = parseExamTimeRange(b.time)
-            
+
             if (timesA == null && timesB == null) return@sortedWith 0
             if (timesA == null) return@sortedWith 1
             if (timesB == null) return@sortedWith -1
-            
+
             if (a.isEnded != b.isEnded) {
                 if (a.isEnded) 1 else -1
             } else {
@@ -440,7 +445,7 @@ class ExamViewModel(
     fun getSelectedSemesterDisplay(): String {
         val year = _uiState.value.selectedYear
         val semester = _uiState.value.selectedSemester
-        
+
         return _uiState.value.availableSemesters
             .find { it.year == year && it.semester == semester }
             ?.displayName ?: "选择学期"
@@ -460,8 +465,8 @@ class ExamViewModel(
             "16" -> "第3学期"
             else -> "第?学期"
         }
-        
-        _uiState.update { 
+
+        _uiState.update {
             it.copy(
                 showEditDialog = true,
                 isAddMode = true,
@@ -476,7 +481,7 @@ class ExamViewModel(
                     yearSemester = "$year-${year.toIntOrNull()?.plus(1) ?: ""} $semesterName",
                     isCustom = true
                 )
-            ) 
+            )
         }
     }
 
@@ -484,12 +489,12 @@ class ExamViewModel(
      * 显示编辑考试对话框
      */
     fun showEditExamDialog(exam: ExamUiItem) {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 showEditDialog = true,
                 isAddMode = false,
                 editingExam = exam
-            ) 
+            )
         }
     }
 
@@ -497,12 +502,12 @@ class ExamViewModel(
      * 隐藏编辑对话框
      */
     fun hideEditDialog() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 showEditDialog = false,
                 editingExam = null,
                 isAddMode = false
-            ) 
+            )
         }
     }
 
@@ -513,7 +518,7 @@ class ExamViewModel(
         val account = currentAccount.value ?: return
         val year = _uiState.value.selectedYear
         val semester = _uiState.value.selectedSemester
-        
+
         viewModelScope.launch {
             try {
                 val entity = ExamCacheEntity(
@@ -530,13 +535,13 @@ class ExamViewModel(
                     xnm = year,
                     xqm = semester
                 )
-                
+
                 if (_uiState.value.isAddMode) {
                     schoolInfoRepository.addCustomExam(entity)
                 } else {
                     schoolInfoRepository.updateExam(entity)
                 }
-                
+
                 hideEditDialog()
                 loadExams() // 刷新列表
             } catch (e: Exception) {

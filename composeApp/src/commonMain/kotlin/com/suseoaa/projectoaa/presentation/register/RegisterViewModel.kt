@@ -81,26 +81,32 @@ class RegisterViewModel(
                 _uiState.update { it.copy(errorMessage = "学号不能为空") }
                 return
             }
+
             cleanRealName.isBlank() -> {
                 _uiState.update { it.copy(errorMessage = "姓名不能为空") }
                 return
             }
+
             cleanUserName.isBlank() -> {
                 _uiState.update { it.copy(errorMessage = "用户名不能为空") }
                 return
             }
+
             cleanPassword.isBlank() -> {
                 _uiState.update { it.copy(errorMessage = "密码不能为空") }
                 return
             }
+
             email.isBlank() -> {
                 _uiState.update { it.copy(errorMessage = "密码不能为空") }
                 return
             }
+
             cleanPassword.length < 6 -> {
                 _uiState.update { it.copy(errorMessage = "密码长度至少6位") }
                 return
             }
+
             cleanPassword != cleanConfirmPassword -> {
                 _uiState.update { it.copy(errorMessage = "两次密码输入不一致") }
                 return
@@ -117,18 +123,18 @@ class RegisterViewModel(
                 password = cleanPassword,
                 email = email
             )
-            
+
             result.onSuccess {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         isRegisterSuccess = true
                     )
                 }
             }
-            
+
             result.onFailure { error ->
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         errorMessage = error.message ?: "注册失败"

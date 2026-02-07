@@ -53,11 +53,11 @@ fun CourseInfoScreen(
     val availableYears by viewModel.availableYears.collectAsState()
     val availableCourseTypes by viewModel.availableCourseTypes.collectAsState()
     val focusManager = LocalFocusManager.current
-    
+
     // 找到选中的学院和专业对象
     val selectedCollegeObj = uiState.colleges.find { it.code == uiState.selectedCollegeId }
     val selectedMajorObj = uiState.majors.find { it.code == uiState.selectedMajorId }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -90,7 +90,7 @@ fun CourseInfoScreen(
         ) {
             val isTablet = maxWidth > 600.dp
             val horizontalPadding = if (isTablet) 24.dp else 0.dp
-            
+
             // 错误提示 - 使用 Toast
             uiState.errorMessage?.let { error ->
                 LaunchedEffect(error) {
@@ -98,7 +98,7 @@ fun CourseInfoScreen(
                     viewModel.clearError()
                 }
             }
-            
+
             if (isTablet) {
                 // 平板布局：左侧统一筛选面板，右侧纯内容
                 TabletLayout(
@@ -181,7 +181,7 @@ private fun TabletLayout(
             onClearFilters = viewModel::clearFilters,
             modifier = Modifier.width(320.dp)
         )
-        
+
         // 右侧纯内容区域
         Column(modifier = Modifier.weight(1f)) {
             // 统计信息
@@ -191,7 +191,7 @@ private fun TabletLayout(
                     totalCredits = viewModel.getTotalCredits()
                 )
             }
-            
+
             // 课程列表
             CourseContentArea(
                 uiState = uiState,
@@ -248,7 +248,7 @@ private fun PhoneLayout(
             onCourseTypeSelect = viewModel::setCourseTypeFilter,
             onClearFilters = viewModel::clearFilters
         )
-        
+
         // 统计信息
         if (uiState.filteredCourses.isNotEmpty()) {
             StatisticsBar(
@@ -256,7 +256,7 @@ private fun PhoneLayout(
                 totalCredits = viewModel.getTotalCredits()
             )
         }
-        
+
         // 课程列表
         CourseContentArea(
             uiState = uiState,
@@ -288,15 +288,19 @@ private fun CourseContentArea(
                 CircularProgressIndicator()
             }
         }
+
         uiState.courses.isEmpty() && selectedMajorObj != null -> {
             EmptyState(message = "暂无课程数据")
         }
+
         uiState.courses.isEmpty() -> {
             EmptyState(message = "请选择年级、学院、专业后查询")
         }
+
         uiState.filteredCourses.isEmpty() -> {
             EmptyFilterState(onClearFilters = onClearFilters)
         }
+
         else -> {
             CourseInfoList(
                 courses = uiState.filteredCourses,
@@ -345,19 +349,19 @@ private fun CollapsibleFilterPanel(
     onCourseTypeSelect: (String) -> Unit,
     onClearFilters: () -> Unit
 ) {
-    val hasActiveFilters = selectedYear.isNotEmpty() || 
-                          selectedSemester.isNotEmpty() || 
-                          selectedCourseType.isNotEmpty() ||
-                          searchKeyword.isNotEmpty()
-    
+    val hasActiveFilters = selectedYear.isNotEmpty() ||
+            selectedSemester.isNotEmpty() ||
+            selectedCourseType.isNotEmpty() ||
+            searchKeyword.isNotEmpty()
+
     Column(modifier = Modifier.fillMaxWidth()) {
         // 筛选面板头部（始终可见，点击可折叠/展开）
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onToggleExpand() },
-            color = if (isExpanded) 
-                MaterialTheme.colorScheme.surface 
+            color = if (isExpanded)
+                MaterialTheme.colorScheme.surface
             else if (hasActiveFilters || hasCourses)
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             else
@@ -400,7 +404,7 @@ private fun CollapsibleFilterPanel(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                
+
                 // 筛选状态指示
                 if (!isExpanded && hasActiveFilters) {
                     Surface(
@@ -417,7 +421,7 @@ private fun CollapsibleFilterPanel(
                 }
             }
         }
-        
+
         // 可折叠内容
         AnimatedVisibility(
             visible = isExpanded,
@@ -454,7 +458,7 @@ private fun CollapsibleFilterPanel(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
-        
+
         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
     }
 }
@@ -514,9 +518,9 @@ private fun TabletFilterPanel(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            
+
             item { HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant) }
-            
+
             // 查询条件区域
             item {
                 QueryConditionSection(
@@ -533,11 +537,11 @@ private fun TabletFilterPanel(
                     isLoading = isLoading
                 )
             }
-            
+
             // 课程筛选区域（仅在有课程时显示）
             if (hasCourses) {
                 item { HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant) }
-                
+
                 item {
                     CourseFilterContent(
                         searchKeyword = searchKeyword,
@@ -624,22 +628,22 @@ private fun FilterPanelContent(
                     isLoading = isLoading
                 )
             }
-            
+
             // 课程筛选区域（仅在有课程时显示）
             if (hasCourses) {
                 item {
                     CourseFilterContent(
-                    searchKeyword = searchKeyword,
-                    onSearchChange = onSearchChange,
-                    onSearch = onSearch,
-                    selectedYear = selectedYear,
-                    selectedSemester = selectedSemester,
-                    selectedCourseType = selectedCourseType,
-                    availableYears = availableYears,
-                    availableCourseTypes = availableCourseTypes,
-                    onYearSelect = onYearSelect,
-                    onSemesterSelect = onSemesterSelect,
-                    onCourseTypeSelect = onCourseTypeSelect,
+                        searchKeyword = searchKeyword,
+                        onSearchChange = onSearchChange,
+                        onSearch = onSearch,
+                        selectedYear = selectedYear,
+                        selectedSemester = selectedSemester,
+                        selectedCourseType = selectedCourseType,
+                        availableYears = availableYears,
+                        availableCourseTypes = availableCourseTypes,
+                        onYearSelect = onYearSelect,
+                        onSemesterSelect = onSemesterSelect,
+                        onCourseTypeSelect = onCourseTypeSelect,
                         onClearFilters = onClearFilters
                     )
                 }
@@ -673,7 +677,7 @@ private fun QueryConditionSection(
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary
         )
-        
+
         // 年级选择
         ChipSelector(
             label = "入学年份",
@@ -682,7 +686,7 @@ private fun QueryConditionSection(
             onSelect = onGradeSelect,
             displayText = { grade -> if (grade.isNotEmpty()) "${grade}级" else "" }
         )
-        
+
         // 学院选择
         ChipSelector(
             label = "学院",
@@ -691,7 +695,7 @@ private fun QueryConditionSection(
             onSelect = onCollegeSelect,
             displayText = { it.name }
         )
-        
+
         // 专业选择
         if (majors.isNotEmpty()) {
             ChipSelector(
@@ -717,14 +721,14 @@ private fun QueryConditionSection(
                 )
             }
         }
-        
+
         // 查询按钮
         Button(
             onClick = onQuery,
-            enabled = selectedGrade.isNotEmpty() && 
-                     selectedCollege != null && 
-                     selectedMajor != null && 
-                     !isLoading,
+            enabled = selectedGrade.isNotEmpty() &&
+                    selectedCollege != null &&
+                    selectedMajor != null &&
+                    !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -763,11 +767,11 @@ private fun CourseFilterContent(
     onCourseTypeSelect: (String) -> Unit,
     onClearFilters: () -> Unit
 ) {
-    val hasActiveFilters = selectedYear.isNotEmpty() || 
-                          selectedSemester.isNotEmpty() || 
-                          selectedCourseType.isNotEmpty() ||
-                          searchKeyword.isNotEmpty()
-    
+    val hasActiveFilters = selectedYear.isNotEmpty() ||
+            selectedSemester.isNotEmpty() ||
+            selectedCourseType.isNotEmpty() ||
+            searchKeyword.isNotEmpty()
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // 搜索栏
         OutlinedTextField(
@@ -789,7 +793,7 @@ private fun CourseFilterContent(
             modifier = Modifier.fillMaxWidth(),
             textStyle = MaterialTheme.typography.bodyMedium
         )
-        
+
         // 学年筛选
         FilterChipRow(
             title = "学年",
@@ -798,14 +802,14 @@ private fun CourseFilterContent(
             onSelect = onYearSelect,
             displayText = { if (it.isEmpty()) "全部" else "${it}年" }
         )
-        
+
         // 学期筛选
         FilterChipRow(
             title = "学期",
             options = listOf("", "1", "2"),
             selectedOption = selectedSemester,
             onSelect = onSemesterSelect,
-            displayText = { 
+            displayText = {
                 when (it) {
                     "" -> "全部"
                     "1" -> "第一学期"
@@ -814,7 +818,7 @@ private fun CourseFilterContent(
                 }
             }
         )
-        
+
         // 课程类型筛选
         if (availableCourseTypes.isNotEmpty()) {
             FilterChipRow(
@@ -825,7 +829,7 @@ private fun CourseFilterContent(
                 displayText = { if (it.isEmpty()) "全部" else it }
             )
         }
-        
+
         // 清除筛选按钮
         if (hasActiveFilters) {
             TextButton(
@@ -860,7 +864,7 @@ private fun buildFilterSummaryText(
     selectedCourseType: String
 ): String {
     if (isExpanded) return "查询与筛选"
-    
+
     return buildString {
         // 查询条件摘要
         if (selectedGrade.isNotEmpty()) append("${selectedGrade}级")
@@ -872,7 +876,7 @@ private fun buildFilterSummaryText(
             if (isNotEmpty()) append(" · ")
             append(selectedMajor.name)
         }
-        
+
         // 筛选条件摘要
         if (hasActiveFilters) {
             if (isNotEmpty()) append(" | ")
@@ -880,16 +884,18 @@ private fun buildFilterSummaryText(
             if (searchKeyword.isNotEmpty()) filters.add("\"$searchKeyword\"")
             if (selectedYear.isNotEmpty()) filters.add("${selectedYear}年")
             if (selectedSemester.isNotEmpty()) {
-                filters.add(when (selectedSemester) {
-                    "1" -> "第一学期"
-                    "2" -> "第二学期"
-                    else -> selectedSemester
-                })
+                filters.add(
+                    when (selectedSemester) {
+                        "1" -> "第一学期"
+                        "2" -> "第二学期"
+                        else -> selectedSemester
+                    }
+                )
             }
             if (selectedCourseType.isNotEmpty()) filters.add(selectedCourseType)
             append(filters.joinToString("·"))
         }
-        
+
         if (isEmpty()) append("请选择查询条件")
     }
 }
@@ -911,7 +917,7 @@ private fun <T> ChipSelector(
     displayText: (T) -> String
 ) {
     val listState = rememberLazyListState()
-    
+
     // 当选中项改变时，自动滚动到该项使其居中
     LaunchedEffect(selectedOption) {
         selectedOption?.let { selected ->
@@ -925,7 +931,7 @@ private fun <T> ChipSelector(
             }
         }
     }
-    
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = label,
@@ -933,7 +939,7 @@ private fun <T> ChipSelector(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium
         )
-        
+
         LazyRow(
             state = listState,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -943,22 +949,22 @@ private fun <T> ChipSelector(
                 val option = options[index]
                 val isSelected = option == selectedOption
                 val backgroundColor by animateColorAsState(
-                    targetValue = if (isSelected) 
+                    targetValue = if (isSelected)
                         MaterialTheme.colorScheme.primary
-                    else 
+                    else
                         MaterialTheme.colorScheme.surfaceVariant,
                     animationSpec = androidx.compose.animation.core.tween(200),
                     label = "chipBg"
                 )
                 val contentColor by animateColorAsState(
-                    targetValue = if (isSelected) 
+                    targetValue = if (isSelected)
                         MaterialTheme.colorScheme.onPrimary
-                    else 
+                    else
                         MaterialTheme.colorScheme.onSurfaceVariant,
                     animationSpec = androidx.compose.animation.core.tween(200),
                     label = "chipContent"
                 )
-                
+
                 Surface(
                     onClick = { onSelect(option) },
                     shape = RoundedCornerShape(10.dp),
@@ -995,7 +1001,7 @@ private fun <T> FilterChipRow(
     displayText: (T) -> String
 ) {
     val listState = rememberLazyListState()
-    
+
     // 当选中项改变时，自动滚动到该项使其可见
     LaunchedEffect(selectedOption) {
         val selectedIndex = options.indexOf(selectedOption)
@@ -1006,7 +1012,7 @@ private fun <T> FilterChipRow(
             )
         }
     }
-    
+
     Column {
         Text(
             text = title,
@@ -1091,7 +1097,7 @@ private fun CourseInfoList(
 ) {
     AdaptiveLayout(modifier) { config ->
         val columns = config.getListColumns()
-        
+
         androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
             columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(columns),
             contentPadding = PaddingValues(config.horizontalPadding),
@@ -1105,7 +1111,7 @@ private fun CourseInfoList(
             ) { index ->
                 CourseInfoCard(course = courses[index])
             }
-            
+
             // 底部留白
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
@@ -1157,18 +1163,18 @@ private fun CourseInfoCard(course: CourseInfoItem) {
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // 课程代码
             Text(
                 text = "课程代码: ${course.courseCode}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // 课程详情标签
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1182,7 +1188,7 @@ private fun CourseInfoCard(course: CourseInfoItem) {
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
-                
+
                 // 建议学期
                 if (course.suggestedYear.isNotEmpty() || course.suggestedSemester.isNotEmpty()) {
                     val semesterText = when (course.suggestedSemester) {
@@ -1196,7 +1202,7 @@ private fun CourseInfoCard(course: CourseInfoItem) {
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-                
+
                 // 学时
                 if (course.hours > 0) {
                     InfoChip(
@@ -1206,7 +1212,7 @@ private fun CourseInfoCard(course: CourseInfoItem) {
                     )
                 }
             }
-            
+
             // 考核方式
             if (course.examMethod.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))

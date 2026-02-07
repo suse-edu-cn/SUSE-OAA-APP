@@ -50,7 +50,7 @@ class OaaApiService(
         }
         return response.body()
     }
-    
+
     suspend fun uploadAvatar(imageData: ByteArray): UploadAvatarResponse {
         val response = client.submitFormWithBinaryData(
             url = "$baseUrl/user/uploadimg",

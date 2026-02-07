@@ -65,10 +65,10 @@ fun AcademicScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    
+
     // 调课信息对话框状态
     var showMessagesDialog by remember { mutableStateOf(false) }
-    
+
     // 调课信息对话框
     if (showMessagesDialog) {
         MessagesDialog(
@@ -124,7 +124,7 @@ fun AcademicScreen(
     ) {
         AdaptiveLayout { config ->
             val isTabletLandscape = config.useSideNavigation
-            
+
             LazyVerticalGrid(
                 columns = GridCells.Fixed(config.gridColumns),
                 contentPadding = PaddingValues(
@@ -134,80 +134,80 @@ fun AcademicScreen(
                     end = config.horizontalPadding
                 ),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            // 平板横屏：调课和考试并排显示，固定高度
-            if (isTabletLandscape) {
-                // 1. 调课信息卡片（占一半宽度）- 显示最新2条
-                item(span = { GridItemSpan(config.gridColumns / 2) }) {
-                    TabletReschedulingCard(
-                        messageList = uiState.messages,
-                        onClick = { showMessagesDialog = true },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                // 2. 近期考试卡片（占一半宽度）- 显示最近4条
-                item(span = { GridItemSpan(config.gridColumns - config.gridColumns / 2) }) {
-                    TabletUpcomingExamsCard(
-                        examList = uiState.exams,
-                        onClick = onNavigateToExams,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            } else {
-                // 手机/平板竖屏：垂直排列
-                // 1. 调课信息卡片
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    ReschedulingCard(
-                        messageList = uiState.messages,
-                        onClick = { showMessagesDialog = true }
-                    )
-                }
-
-                // 2. 近期考试卡片
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    UpcomingExamsCard(
-                        examList = uiState.exams,
-                        onClick = onNavigateToExams
-                    )
-                }
-            }
-
-            // 3. 常用功能标题
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    text = "常用功能",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                )
-            }
-
-            // 4. 功能卡片
-            items(functions) { func ->
-                FunctionCard(
-                    function = func,
-                    onClick = {
-                        when (func.route) {
-                            "grades" -> onNavigateToGrades()
-                            "gpa" -> onNavigateToGpa()
-                            "studyRequirement" -> onNavigateToStudyRequirement()
-                            "courseInfo" -> onNavigateToCourseInfo()
-                            "academicStatus" -> onNavigateToAcademicStatus()
-                        }
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                // 平板横屏：调课和考试并排显示，固定高度
+                if (isTabletLandscape) {
+                    // 1. 调课信息卡片（占一半宽度）- 显示最新2条
+                    item(span = { GridItemSpan(config.gridColumns / 2) }) {
+                        TabletReschedulingCard(
+                            messageList = uiState.messages,
+                            onClick = { showMessagesDialog = true },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                )
-            }
 
-            // 底部空间
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Spacer(modifier = Modifier.height(80.dp))
+                    // 2. 近期考试卡片（占一半宽度）- 显示最近4条
+                    item(span = { GridItemSpan(config.gridColumns - config.gridColumns / 2) }) {
+                        TabletUpcomingExamsCard(
+                            examList = uiState.exams,
+                            onClick = onNavigateToExams,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                } else {
+                    // 手机/平板竖屏：垂直排列
+                    // 1. 调课信息卡片
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        ReschedulingCard(
+                            messageList = uiState.messages,
+                            onClick = { showMessagesDialog = true }
+                        )
+                    }
+
+                    // 2. 近期考试卡片
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        UpcomingExamsCard(
+                            examList = uiState.exams,
+                            onClick = onNavigateToExams
+                        )
+                    }
+                }
+
+                // 3. 常用功能标题
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "常用功能",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+
+                // 4. 功能卡片
+                items(functions) { func ->
+                    FunctionCard(
+                        function = func,
+                        onClick = {
+                            when (func.route) {
+                                "grades" -> onNavigateToGrades()
+                                "gpa" -> onNavigateToGpa()
+                                "studyRequirement" -> onNavigateToStudyRequirement()
+                                "courseInfo" -> onNavigateToCourseInfo()
+                                "academicStatus" -> onNavigateToAcademicStatus()
+                            }
+                        }
+                    )
+                }
+
+                // 底部空间
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
             }
-        }
         }
     }
 }
@@ -229,8 +229,9 @@ fun TabletReschedulingCard(
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
-    
+    val dividerColor =
+        if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
+
     Card(
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         elevation = CardDefaults.cardElevation(2.dp),
@@ -267,12 +268,12 @@ fun TabletReschedulingCard(
                     color = subtextColor
                 )
             }
-            
+
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 12.dp),
                 color = dividerColor
             )
-            
+
             // 内容区域
             Column(
                 modifier = Modifier.weight(1f),
@@ -294,14 +295,14 @@ fun TabletReschedulingCard(
                     messageList.take(2).forEach { message ->
                         TabletMessageItem(message, textColor, subtextColor, dividerColor)
                     }
-                    
+
                     // 如果只有1条，添加占位
                     if (messageList.size == 1) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
-            
+
             // 底部提示
             if (messageList.size > 2) {
                 Text(
@@ -358,8 +359,9 @@ fun TabletUpcomingExamsCard(
     val secondaryColor = if (isDarkTheme) Color(0xFF4CAF50) else MaterialTheme.colorScheme.secondary
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
-    
+    val dividerColor =
+        if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
+
     Card(
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         elevation = CardDefaults.cardElevation(2.dp),
@@ -430,14 +432,14 @@ fun TabletUpcomingExamsCard(
                     examList.take(5).forEach { exam ->
                         TabletExamRowItem(exam, textColor, subtextColor)
                     }
-                    
+
                     // 如果不足5条，填充空间
                     if (examList.size < 5) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
-            
+
             // 底部提示
             if (examList.size > 5) {
                 Text(
@@ -581,7 +583,7 @@ fun ReschedulingCard(
                 modifier = Modifier.padding(vertical = 12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
             )
-            
+
             if (latestMessage != null) {
                 // 显示完整的调课内容，不做截断
                 Text(
@@ -651,9 +653,9 @@ fun MessagesDialog(
                         )
                     }
                 }
-                
+
                 HorizontalDivider()
-                
+
                 // 消息列表
                 if (messages.isEmpty()) {
                     Box(
@@ -724,7 +726,9 @@ private fun formatTimestamp(timestamp: Long): String {
     return try {
         val instant = Instant.fromEpochMilliseconds(timestamp)
         val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-        "${localDateTime.monthNumber}月${localDateTime.dayOfMonth}日 ${localDateTime.hour.toString().padStart(2, '0')}:${localDateTime.minute.toString().padStart(2, '0')}"
+        "${localDateTime.monthNumber}月${localDateTime.dayOfMonth}日 ${
+            localDateTime.hour.toString().padStart(2, '0')
+        }:${localDateTime.minute.toString().padStart(2, '0')}"
     } catch (e: Exception) {
         ""
     }

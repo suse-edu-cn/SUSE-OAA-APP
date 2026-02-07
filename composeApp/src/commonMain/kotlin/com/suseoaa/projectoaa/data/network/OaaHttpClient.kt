@@ -18,17 +18,17 @@ object OaaHttpClient {
             install(ContentNegotiation) {
                 json(json)
             }
-            
+
             install(Logging) {
                 logger = Logger.DEFAULT
                 level = LogLevel.HEADERS
             }
-            
+
             install(HttpTimeout) {
                 requestTimeoutMillis = 30_000
                 connectTimeoutMillis = 15_000
             }
-            
+
             defaultRequest {
                 contentType(ContentType.Application.Json)
                 // 添加 Auth Token

@@ -60,11 +60,11 @@ fun DepartmentDetailScreen(
             containerColor = Color.Transparent,
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = { 
+                    title = {
                         Text(
-                            departmentName, 
+                            departmentName,
                             fontWeight = FontWeight.Bold
-                        ) 
+                        )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -162,12 +162,12 @@ private fun ErrorContent(
             modifier = Modifier.size(48.dp)
         )
         Text(
-            "加载失败", 
+            "加载失败",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium
         )
         Text(
-            error, 
+            error,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -212,7 +212,7 @@ private fun EditAnnouncementDialog(
                             enabled = !isUpdating
                         ) {
                             Text(
-                                "保存", 
+                                "保存",
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -247,11 +247,11 @@ private fun EditAnnouncementDialog(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     ),
-                    placeholder = { 
+                    placeholder = {
                         Text(
                             "在此输入 Markdown 内容...",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        ) 
+                        )
                     },
                     textStyle = MaterialTheme.typography.bodyLarge
                 )

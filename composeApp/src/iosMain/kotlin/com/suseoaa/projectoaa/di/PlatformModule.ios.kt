@@ -11,7 +11,7 @@ import platform.Foundation.*
 @OptIn(ExperimentalForeignApi::class)
 actual fun platformModule() = module {
     single { CourseDatabaseDriverFactory() }
-    
+
     single {
         PreferenceDataStoreFactory.createWithPath(
             produceFile = {
@@ -22,18 +22,19 @@ actual fun platformModule() = module {
                     create = false,
                     error = null
                 )
-                val requirePath = requireNotNull(documentDirectory).path + "/auth_prefs.preferences_pb"
+                val requirePath =
+                    requireNotNull(documentDirectory).path + "/auth_prefs.preferences_pb"
                 requirePath.toPath()
             }
         )
     }
-    
+
     // App 更新仓库（iOS 实现）
     single {
         // iOS 端获取版本号
         val infoDictionary = NSBundle.mainBundle.infoDictionary
         val currentVersion = infoDictionary?.get("CFBundleShortVersionString") as? String ?: "1.0.0"
-        
+
         AppUpdateRepository(
             httpClient = get(qualifier = org.koin.core.qualifier.named("github")),
             json = get(),

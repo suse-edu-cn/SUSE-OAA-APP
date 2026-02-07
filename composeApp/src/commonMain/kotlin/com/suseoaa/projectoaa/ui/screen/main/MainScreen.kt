@@ -62,6 +62,7 @@ fun MainScreen(
     onNavigateToCourseInfo: () -> Unit,
     onNavigateToAcademicStatus: () -> Unit = {},
     onNavigateToCheckin: () -> Unit = {},
+    onNavigateToRecruitment: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // 使用 rememberSaveable 保持 Tab 状态，页面返回时不会丢失
@@ -84,6 +85,7 @@ fun MainScreen(
                 onNavigateToCourseInfo = onNavigateToCourseInfo,
                 onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                 onNavigateToCheckin = onNavigateToCheckin,
+                onNavigateToRecruitment = onNavigateToRecruitment,
                 modifier = modifier
             )
         } else {
@@ -101,6 +103,7 @@ fun MainScreen(
                 onNavigateToCourseInfo = onNavigateToCourseInfo,
                 onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                 onNavigateToCheckin = onNavigateToCheckin,
+                onNavigateToRecruitment = onNavigateToRecruitment,
                 modifier = modifier
             )
         }
@@ -111,7 +114,7 @@ fun MainScreen(
  * 平板横屏布局 - 左侧导航栏 + 右侧内容区
  */
 @Composable
-private fun BoxWithConstraintsScope.TabletLandscapeLayout(
+private fun TabletLandscapeLayout(
     config: AdaptiveLayoutConfig,
     selectedTab: Int,
     onTabChange: (Int) -> Unit,
@@ -125,6 +128,7 @@ private fun BoxWithConstraintsScope.TabletLandscapeLayout(
     onNavigateToCourseInfo: () -> Unit,
     onNavigateToAcademicStatus: () -> Unit,
     onNavigateToCheckin: () -> Unit,
+    onNavigateToRecruitment: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -161,7 +165,8 @@ private fun BoxWithConstraintsScope.TabletLandscapeLayout(
                 0 -> key("home") {
                     HomeScreen(
                         onNavigateToDetail = onNavigateToDepartmentDetail,
-                        bottomBarHeight = 0.dp
+                        bottomBarHeight = 0.dp,
+                    onNavigateToRecruitment = onNavigateToRecruitment,
                     )
                 }
                 1 -> key("course") {
@@ -198,7 +203,7 @@ private fun BoxWithConstraintsScope.TabletLandscapeLayout(
  * 手机/平板竖屏布局 - 底部导航栏
  */
 @Composable
-private fun BoxWithConstraintsScope.PhoneLayout(
+private fun PhoneLayout(
     selectedTab: Int,
     onTabChange: (Int) -> Unit,
     onNavigateToLogin: () -> Unit,
@@ -211,6 +216,7 @@ private fun BoxWithConstraintsScope.PhoneLayout(
     onNavigateToCourseInfo: () -> Unit,
     onNavigateToAcademicStatus: () -> Unit,
     onNavigateToCheckin: () -> Unit,
+    onNavigateToRecruitment: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
@@ -249,7 +255,8 @@ private fun BoxWithConstraintsScope.PhoneLayout(
                 when (page) {
                     0 -> HomeScreen(
                         onNavigateToDetail = onNavigateToDepartmentDetail,
-                        bottomBarHeight = bottomBarHeight
+                        bottomBarHeight = bottomBarHeight,
+                        onNavigateToRecruitment = onNavigateToRecruitment,
                     )
                     1 -> CourseScreen(
                         onNavigateToLogin = onNavigateToLogin,

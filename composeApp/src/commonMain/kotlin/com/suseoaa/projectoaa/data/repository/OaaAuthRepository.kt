@@ -14,7 +14,7 @@ class OaaAuthRepository(
         return try {
             val request = LoginRequest(username = username, password = password)
             val response = api.login(request)
-            
+
             if (response.code == 200 && response.data?.token != null) {
                 Result.success(response)
             } else {
