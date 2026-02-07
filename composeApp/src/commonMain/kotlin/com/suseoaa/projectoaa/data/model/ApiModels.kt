@@ -57,12 +57,15 @@ data class PersonData(
     @SerialName("name") val name: String = "",
     @SerialName("role") val role: String = "",
     @SerialName("student_id") val studentId: String = "",
-    @SerialName("username") val username: String = ""
+    @SerialName("username") val username: String = "",
+    @SerialName("email") val email: String = ""
 )
 
 @Serializable
 data class UpdateUserRequest(
-    @SerialName("username") val username: String, @SerialName("name") val name: String
+    @SerialName("username") val username: String,
+    @SerialName("name") val name: String,
+    @SerialName("email") val email: String
 )
 
 @Serializable

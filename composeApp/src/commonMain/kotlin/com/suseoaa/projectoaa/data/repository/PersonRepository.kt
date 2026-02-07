@@ -63,9 +63,9 @@ class PersonRepository(
         }
     }
 
-    suspend fun updateUserInfo(username: String, name: String): Result<String> {
+    suspend fun updateUserInfo(username: String, name: String, email: String): Result<String> {
         return try {
-            val response = api.updateUserInfo(UpdateUserRequest(username, name))
+            val response = api.updateUserInfo(UpdateUserRequest(username, name, email))
             if (response.code == 200) {
                 Result.success(response.message)
             } else {

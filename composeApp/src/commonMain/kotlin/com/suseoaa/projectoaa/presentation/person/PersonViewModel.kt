@@ -86,16 +86,16 @@ class PersonViewModel(
         }
     }
 
-    fun updateInfo(username: String, name: String) {
-        if (username.isBlank() || name.isBlank()) {
-            _uiState.update { it.copy(message = "用户名或姓名不能为空") }
+    fun updateInfo(username: String, name: String, email: String) {
+        if (username.isBlank() || name.isBlank() || email.isBlank()) {
+            _uiState.update { it.copy(message = "填写的内容不能为空") }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val result = personRepository.updateUserInfo(username, name)
+            val result = personRepository.updateUserInfo(username, name, email)
 
             result.onSuccess {
                 _uiState.update {

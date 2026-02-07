@@ -209,8 +209,8 @@ fun PersonScreen(
                                 userInfo = uiState.userInfo,
                                 onLogout = { viewModel.logout() },
                                 onAvatarClick = { showAvatarDialog = true },
-                                onEditInfo = { username, name ->
-                                    viewModel.updateInfo(username, name)
+                                onEditInfo = { username, name, email ->
+                                    viewModel.updateInfo(username, name, email)
                                 }
                             )
                         }
@@ -273,7 +273,7 @@ fun UserInfoCard(
     userInfo: com.suseoaa.projectoaa.data.model.PersonData?,
     onLogout: () -> Unit,
     onAvatarClick: () -> Unit,
-    onEditInfo: (String, String) -> Unit = { _, _ -> }
+    onEditInfo: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
     var showEditDialog by remember { mutableStateOf(false) }
 
@@ -281,9 +281,10 @@ fun UserInfoCard(
         EditInfoDialog(
             initialUsername = userInfo.username ?: "",
             initialName = userInfo.name ?: "",
+            initialEmail = userInfo.email ?: "",
             onDismiss = { showEditDialog = false },
-            onConfirm = { username, name ->
-                onEditInfo(username, name)
+            onConfirm = { username, name, email ->
+                onEditInfo(username, name, email)
                 showEditDialog = false
             }
         )
@@ -417,11 +418,13 @@ fun UserInfoCard(
 fun EditInfoDialog(
     initialUsername: String,
     initialName: String,
+    initialEmail: String,
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (String, String, String) -> Unit
 ) {
     var username by remember { mutableStateOf(initialUsername) }
     var name by remember { mutableStateOf(initialName) }
+    var email by remember { mutableStateOf(initialEmail) }
 
     AlertDialog(
         containerColor = MaterialTheme.colorScheme.background,
@@ -444,11 +447,19 @@ fun EditInfoDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("邮箱") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(username, name) },
+                onClick = { onConfirm(username, name, email) },
                 enabled = username.isNotBlank() && name.isNotBlank()
             ) {
                 Text("保存")
