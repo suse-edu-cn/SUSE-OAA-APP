@@ -140,8 +140,8 @@ android {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 111716
-        versionName = "1.117.16"
+        versionCode = 111717
+        versionName = "1.117.17"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
