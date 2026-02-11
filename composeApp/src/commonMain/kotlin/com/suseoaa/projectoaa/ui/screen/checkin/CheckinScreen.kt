@@ -1255,7 +1255,14 @@ private fun QrCodeLoginDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(studentId, password, name, selectedLocation) },
+                onClick = {
+                    onConfirm(
+                        studentId,
+                        password,
+                        name,
+                        selectedLocation
+                    )
+                },
                 enabled = studentId.isNotBlank() && password.isNotBlank()
             ) {
                 Text("添加账号")
