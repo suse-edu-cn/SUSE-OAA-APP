@@ -12,7 +12,7 @@ import io.ktor.client.request.*
  * 公告相关 API
  */
 class AnnouncementApi(private val client: HttpClient) {
-    
+
     private val baseUrl = ApiConfig.BASE_URL
 
     suspend fun fetchAnnouncementInfo(department: String): FetchAnnouncementInfoResponse {
