@@ -23,18 +23,26 @@ data class GradeItem(
     val bj: String? = "",          // 班级
     @SerialName("cj")
     val cj: String? = "",          // 成绩
+    @SerialName("cjbdczr")
+    val cjbdczr: String? = "",     // 成绩变动操作人
     @SerialName("jd")
     val jd: String? = "",          // 绩点
+    @SerialName("jg_id")
+    val jgId: String? = "",        // 学院ID
     @SerialName("jgmc")
     val jgmc: String? = "",        // 学院名称
     @SerialName("jsxm")
     val jsxm: String? = "",        // 教师姓名
+    @SerialName("jxb_id")
+    val jxbId: String? = "",       // 教学班ID (用于获取详情)
     @SerialName("jxbmc")
     val jxbmc: String? = "",       // 教学班名称
     @SerialName("kcbj")
     val kcbj: String? = "",        // 课程标记
     @SerialName("kch")
     val kch: String? = "",         // 课程号
+    @SerialName("kch_id")
+    val kchId: String? = "",       // 课程ID
     @SerialName("kclbmc")
     val kclbmc: String? = "",      // 课程类别名称
     @SerialName("kcmc")
@@ -47,6 +55,8 @@ data class GradeItem(
     val kkbmmc: String? = "",      // 开课部门名称
     @SerialName("ksxz")
     val ksxz: String? = "",        // 考试性质 (正常考试/补考)
+    @SerialName("njdm_id")
+    val njdmId: String? = "",      // 年级代码ID
     @SerialName("njmc")
     val njmc: String? = "",        // 年级名称
     @SerialName("sfxwkc")
@@ -67,6 +77,8 @@ data class GradeItem(
     val xqm: String? = "",         // 学期码
     @SerialName("xqmmc")
     val xqmmc: String? = "",       // 学期名称
+    @SerialName("zyh_id")
+    val zyhId: String? = "",       // 专业ID
     @SerialName("zymc")
     val zymc: String? = ""         // 专业名称
 )

@@ -5,28 +5,19 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RegisterRequest(
-    @SerialName("username")
-    val username: String,
-    @SerialName("password")
-    val password: String,
-    @SerialName("confirmPassword")
-    val confirmPassword: String
+    @SerialName("name") val name: String,
+    @SerialName("password") val password: String,
+    @SerialName("student_id") val studentId: String,
+    @SerialName("username") val username: String,
+    @SerialName("email") val email: String
 )
 
 @Serializable
 data class RegisterResponse(
-    @SerialName("code")
-    val code: Int,
-    @SerialName("message")
-    val message: String,
-    @SerialName("data")
-    val data: String? = null
+    @SerialName("code") val code: Int,
+    @SerialName("data") val data: RegisterData? = null,
+    @SerialName("message") val message: String
 )
 
 @Serializable
-data class RegisterErrorResponse(
-    @SerialName("code")
-    val code: Int,
-    @SerialName("message")
-    val message: String
-)
+class RegisterData

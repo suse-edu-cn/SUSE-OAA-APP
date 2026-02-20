@@ -1,9 +1,9 @@
 package com.suseoaa.projectoaa.data.repository
 
-import com.suseoaa.projectoaa.data.api.CheckinApiService
-import com.suseoaa.projectoaa.data.model.*
-import com.suseoaa.projectoaa.data.network.ClearableCookieStorage
-import com.suseoaa.projectoaa.database.CourseDatabase
+import com.suseoaa.projectoaa.shared.data.remote.api.CheckinApiService
+import com.suseoaa.projectoaa.shared.domain.model.checkin.*
+import com.suseoaa.projectoaa.shared.data.remote.network.ClearableCookieStorage
+import com.suseoaa.projectoaa.shared.database.CourseDatabase
 import com.suseoaa.projectoaa.util.CheckinRSAEncryptor
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -1567,7 +1567,7 @@ class CheckinRepository(
 
     // ==================== 扩展函数 ====================
 
-    private fun com.suseoaa.projectoaa.database.CheckinAccount.toData() = CheckinAccountData(
+    private fun com.suseoaa.projectoaa.shared.database.CheckinAccount.toData() = CheckinAccountData(
         id = id,
         studentId = studentId,
         password = password,

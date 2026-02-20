@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.suseoaa.projectoaa.data.repository.MessageCacheEntity
+import com.suseoaa.projectoaa.shared.data.repository.MessageCacheEntity
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.academic.ExamUiState
 import com.suseoaa.projectoaa.ui.theme.*
@@ -949,38 +949,5 @@ fun FunctionCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
-    }
-}
-
-/**
- * 计算考试倒计时
- */
-fun getExamCountDown(examTime: String): Pair<String, Color> {
-    if (examTime.isBlank()) return "" to Color.Gray
-
-    try {
-        // 解析日期部分 "2024-06-15(周六 09:00-11:00)"
-        val datePart = examTime.substringBefore("(")
-        val parts = datePart.split("-")
-        if (parts.size < 3) return "" to Color.Gray
-
-        val year = parts[0].toIntOrNull() ?: return "" to Color.Gray
-        val month = parts[1].toIntOrNull() ?: return "" to Color.Gray
-        val day = parts[2].toIntOrNull() ?: return "" to Color.Gray
-
-        val examDate = LocalDate(year, month, day)
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        val daysUntil: Int = examDate.toEpochDays() - today.toEpochDays()
-
-        return when {
-            daysUntil < 0 -> "已结束" to Color.Gray
-            daysUntil == 0 -> "今天" to Color(0xFFC62828)
-            daysUntil == 1 -> "明天" to Color(0xFFEF6C00)
-            daysUntil <= 3 -> "${daysUntil}天后" to Color(0xFFEF6C00)
-            daysUntil <= 7 -> "${daysUntil}天后" to Color(0xFF1565C0)
-            else -> "${daysUntil}天后" to Color(0xFF2E7D32)
-        }
-    } catch (e: Exception) {
-        return "" to Color.Gray
     }
 }

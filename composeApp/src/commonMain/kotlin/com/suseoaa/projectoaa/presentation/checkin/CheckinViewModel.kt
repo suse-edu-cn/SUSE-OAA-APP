@@ -2,13 +2,13 @@ package com.suseoaa.projectoaa.presentation.checkin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.data.model.CheckinAccountData
-import com.suseoaa.projectoaa.data.model.CheckinLocations
-import com.suseoaa.projectoaa.data.model.CheckinResult
-import com.suseoaa.projectoaa.data.model.CheckinTask
-import com.suseoaa.projectoaa.data.model.EduUserInfo
-import com.suseoaa.projectoaa.data.repository.CheckinRepository
-import com.suseoaa.projectoaa.data.repository.QrCodeCheckinRepository
+import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinAccountData
+import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinLocations
+import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinResult
+import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinTask
+import com.suseoaa.projectoaa.shared.domain.model.checkin.EduUserInfo
+import com.suseoaa.projectoaa.shared.data.repository.CheckinRepository
+import com.suseoaa.projectoaa.shared.data.repository.QrCodeCheckinRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock

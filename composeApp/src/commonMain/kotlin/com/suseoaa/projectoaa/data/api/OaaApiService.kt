@@ -1,6 +1,10 @@
 package com.suseoaa.projectoaa.data.api
 
-import com.suseoaa.projectoaa.data.model.*
+import com.suseoaa.projectoaa.shared.domain.model.login.*
+import com.suseoaa.projectoaa.shared.domain.model.register.*
+import com.suseoaa.projectoaa.shared.domain.model.person.*
+import com.suseoaa.projectoaa.shared.domain.model.changePassword.*
+import com.suseoaa.projectoaa.shared.domain.model.announcement.*
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.ChangeApplicationRequest
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.ChangeApplicationResponse
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.ChangeApplicationSubmitTime

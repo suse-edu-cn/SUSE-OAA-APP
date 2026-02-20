@@ -38,12 +38,20 @@ class AuthRepository(
     /**
      * 注册
      */
-    suspend fun register(username: String, password: String, confirmPassword: String): Result<RegisterResponse> {
+    suspend fun register(
+        name: String,
+        password: String,
+        studentId: String,
+        username: String,
+        email: String
+    ): Result<RegisterResponse> {
         return try {
             val request = RegisterRequest(
-                username = username,
+                name = name,
                 password = password,
-                confirmPassword = confirmPassword
+                studentId = studentId,
+                username = username,
+                email = email
             )
             val response = authApi.register(request)
             

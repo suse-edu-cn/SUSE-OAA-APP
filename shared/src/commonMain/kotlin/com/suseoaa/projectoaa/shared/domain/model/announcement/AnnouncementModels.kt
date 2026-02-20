@@ -5,34 +5,26 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class FetchAnnouncementInfoResponse(
-    @SerialName("code")
-    val code: Int,
-    @SerialName("data")
-    val data: AnnouncementData? = null,
-    @SerialName("message")
-    val message: String
+    @SerialName("code") val code: Int,
+    @SerialName("data") val data: AnnouncementData,
+    @SerialName("message") val message: String
 )
 
 @Serializable
 data class AnnouncementData(
-    @SerialName("data")
-    val data: String = "",
-    @SerialName("department")
-    val department: String = ""
+    @SerialName("data") val data: String,
+    @SerialName("department") val department: String
 )
 
 @Serializable
 data class UpdateAnnouncementInfoRequest(
-    @SerialName("department")
-    val department: String,
-    @SerialName("data")
-    val data: String
+    @SerialName("department") val department: String,
+    @SerialName("updateinfo") val updateinfo: String
 )
 
 @Serializable
 data class UpdateAnnouncementInfoResponse(
-    @SerialName("code")
-    val code: Int,
-    @SerialName("message")
-    val message: String
+    @SerialName("code") val code: Int,
+    @SerialName("data") val data: String,
+    @SerialName("message") val message: String
 )

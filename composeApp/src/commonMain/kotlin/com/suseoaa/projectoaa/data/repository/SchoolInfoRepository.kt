@@ -2,12 +2,12 @@ package com.suseoaa.projectoaa.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import com.suseoaa.projectoaa.data.api.SchoolApiService
-import com.suseoaa.projectoaa.data.model.CourseAccountEntity
-import com.suseoaa.projectoaa.database.CourseDatabase
-import com.suseoaa.projectoaa.database.ExamCache
-import com.suseoaa.projectoaa.database.MessageCache
-import com.suseoaa.projectoaa.presentation.academic.ExamResponse
+import com.suseoaa.projectoaa.shared.data.remote.api.SchoolApiService
+import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
+import com.suseoaa.projectoaa.shared.database.CourseDatabase
+import com.suseoaa.projectoaa.shared.database.ExamCache
+import com.suseoaa.projectoaa.shared.database.MessageCache
+import com.suseoaa.projectoaa.shared.domain.model.exam.ExamResponse
 import com.suseoaa.projectoaa.presentation.exam.ExamApiItem
 import com.suseoaa.projectoaa.presentation.exam.ExamApiResponse
 import com.suseoaa.projectoaa.util.HtmlParser

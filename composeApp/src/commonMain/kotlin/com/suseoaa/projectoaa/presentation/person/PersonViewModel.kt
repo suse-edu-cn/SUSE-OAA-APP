@@ -2,9 +2,9 @@ package com.suseoaa.projectoaa.presentation.person
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.core.dataStore.TokenManager
-import com.suseoaa.projectoaa.data.model.PersonData
-import com.suseoaa.projectoaa.data.repository.PersonRepository
+import com.suseoaa.projectoaa.shared.data.local.TokenManager
+import com.suseoaa.projectoaa.shared.domain.model.person.PersonData
+import com.suseoaa.projectoaa.shared.data.repository.PersonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

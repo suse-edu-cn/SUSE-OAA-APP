@@ -1,9 +1,9 @@
 package com.suseoaa.projectoaa.data.api
 
-import com.suseoaa.projectoaa.data.model.CourseResponseJson
-import com.suseoaa.projectoaa.data.model.RSAKey
-import com.suseoaa.projectoaa.presentation.academic.ExamResponse
-import com.suseoaa.projectoaa.presentation.grades.StudentGradeResponse
+import com.suseoaa.projectoaa.shared.domain.model.school.CourseResponseJson
+import com.suseoaa.projectoaa.shared.domain.model.school.RSAKey
+import com.suseoaa.projectoaa.shared.domain.model.exam.ExamResponse
+import com.suseoaa.projectoaa.shared.domain.model.grade.StudentGradeResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.cookies.*

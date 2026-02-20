@@ -2,7 +2,7 @@ package com.suseoaa.projectoaa.presentation.changepassword
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.data.repository.PersonRepository
+import com.suseoaa.projectoaa.shared.data.repository.PersonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -86,10 +85,6 @@ kotlin {
             // Window Size Class
             implementation(libs.material3.windowSize)
 
-            // SQLDelight
-            implementation(libs.sqldelight.runtime)
-            implementation(libs.sqldelight.coroutines)
-
             // HTML Parsing - KSoup (KMP alternative to Jsoup)
             implementation(libs.ksoup)
         }
@@ -104,9 +99,6 @@ kotlin {
             // Compose Preview
             implementation(compose.preview)
 
-            // SQLDelight Android Driver
-            implementation(libs.sqldelight.android.driver)
-
             // Ktor Android Engine
             implementation(libs.ktor.client.okhttp)
             
@@ -119,9 +111,6 @@ kotlin {
         }
 
         iosMain.dependencies {
-            // SQLDelight iOS Driver
-            implementation(libs.sqldelight.native.driver)
-
             // Ktor iOS Engine
             implementation(libs.ktor.client.darwin)
         }
@@ -175,12 +164,4 @@ dependencies {
 
     // Debug
     debugImplementation(compose.uiTooling)
-}
-
-sqldelight {
-    databases {
-        create("CourseDatabase") {
-            packageName.set("com.suseoaa.projectoaa.database")
-        }
-    }
 }

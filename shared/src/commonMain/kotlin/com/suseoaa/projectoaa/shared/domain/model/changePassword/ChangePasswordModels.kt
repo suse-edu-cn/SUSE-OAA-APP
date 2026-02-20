@@ -5,18 +5,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ChangePasswordRequest(
-    @SerialName("oldPassword")
-    val oldPassword: String,
-    @SerialName("newPassword")
-    val newPassword: String,
-    @SerialName("confirmPassword")
-    val confirmPassword: String
+    @SerialName("oldpassword") val oldPassword: String,
+    @SerialName("password") val newPassword: String,
+    @SerialName("code") val emailCode: String
 )
 
 @Serializable
 data class ChangePasswordResponse(
-    @SerialName("code")
-    val code: Int,
-    @SerialName("message")
-    val message: String
+    @SerialName("code") val code: Int,
+    @SerialName("message") val message: String,
+    @SerialName("data") val data: String? = null
 )

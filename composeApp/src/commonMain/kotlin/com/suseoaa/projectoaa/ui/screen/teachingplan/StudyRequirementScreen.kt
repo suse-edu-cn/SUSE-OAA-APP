@@ -34,10 +34,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.suseoaa.projectoaa.data.model.CollegeOption
-import com.suseoaa.projectoaa.data.model.MajorOption
-import com.suseoaa.projectoaa.data.model.StudyRequirementCategory
-import com.suseoaa.projectoaa.data.model.StudyRequirementCourse
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.CollegeOption
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.MajorOption
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.StudyRequirementCategory
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.StudyRequirementCourse
 import com.suseoaa.projectoaa.presentation.teachingplan.StudyRequirementViewModel
 import com.suseoaa.projectoaa.util.ToastManager
 import org.koin.compose.viewmodel.koinViewModel

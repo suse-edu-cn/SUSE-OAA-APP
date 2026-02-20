@@ -2,13 +2,13 @@ package com.suseoaa.projectoaa.presentation.course
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.core.dataStore.TokenManager
-import com.suseoaa.projectoaa.data.model.ClassTimeEntity
-import com.suseoaa.projectoaa.data.model.CourseAccountEntity
-import com.suseoaa.projectoaa.data.model.CourseWithTimes
-import com.suseoaa.projectoaa.data.repository.LocalCourseRepository
-import com.suseoaa.projectoaa.data.repository.SchoolAuthRepository
-import com.suseoaa.projectoaa.data.repository.SchoolCourseRepository
+import com.suseoaa.projectoaa.shared.data.local.TokenManager
+import com.suseoaa.projectoaa.shared.domain.model.course.ClassTimeEntity
+import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
+import com.suseoaa.projectoaa.shared.domain.model.course.CourseWithTimes
+import com.suseoaa.projectoaa.shared.data.repository.LocalCourseRepository
+import com.suseoaa.projectoaa.shared.data.repository.SchoolAuthRepository
+import com.suseoaa.projectoaa.shared.data.repository.SchoolCourseRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO

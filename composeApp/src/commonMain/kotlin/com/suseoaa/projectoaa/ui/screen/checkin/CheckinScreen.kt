@@ -30,8 +30,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
-import com.suseoaa.projectoaa.data.model.CheckinAccountData
-import com.suseoaa.projectoaa.data.model.CheckinLocations
+import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinAccountData
+import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinLocations
 import com.suseoaa.projectoaa.presentation.checkin.AccountFilterType
 import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
 import com.suseoaa.projectoaa.presentation.checkin.QrCodeScanStatus
@@ -1914,7 +1914,7 @@ private fun TaskListView(
  */
 @Composable
 private fun TaskCard(
-    task: com.suseoaa.projectoaa.data.model.CheckinTask,
+    task: com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinTask,
     status: Int,  // 1=待打卡, 2=已打卡, 3=缺勤
     isChecking: Boolean,
     onCheckin: () -> Unit
@@ -2026,7 +2026,7 @@ private fun TaskCard(
                                 tint = getTaskCompletedColor()
                             )
                             Text(
-                                text = "打卡于 ${task.qdsj.substringAfter(" ").take(5)}",
+                                text = "打卡于 ${task.qdsj?.substringAfter(" ")?.take(5) ?: ""}",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = getTaskCompletedColor()

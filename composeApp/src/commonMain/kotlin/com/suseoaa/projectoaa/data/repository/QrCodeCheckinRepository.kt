@@ -1,9 +1,9 @@
 package com.suseoaa.projectoaa.data.repository
 
-import com.suseoaa.projectoaa.data.api.QrCodeCheckinApiService
-import com.suseoaa.projectoaa.data.model.*
-import com.suseoaa.projectoaa.data.network.ClearableCookieStorage
-import com.suseoaa.projectoaa.database.CourseDatabase
+import com.suseoaa.projectoaa.shared.data.remote.api.QrCodeCheckinApiService
+import com.suseoaa.projectoaa.shared.domain.model.checkin.*
+import com.suseoaa.projectoaa.shared.data.remote.network.ClearableCookieStorage
+import com.suseoaa.projectoaa.shared.database.CourseDatabase
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*

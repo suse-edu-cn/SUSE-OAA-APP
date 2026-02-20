@@ -2,7 +2,7 @@ package com.suseoaa.projectoaa.presentation.update
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.data.repository.AppUpdateRepository
 import com.suseoaa.projectoaa.data.repository.GithubRelease
 import kotlinx.coroutines.flow.MutableSharedFlow

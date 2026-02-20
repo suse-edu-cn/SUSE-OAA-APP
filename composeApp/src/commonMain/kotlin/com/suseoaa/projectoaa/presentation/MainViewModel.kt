@@ -2,7 +2,7 @@ package com.suseoaa.projectoaa.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.core.dataStore.TokenManager
+import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.ui.navigation.Screen
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

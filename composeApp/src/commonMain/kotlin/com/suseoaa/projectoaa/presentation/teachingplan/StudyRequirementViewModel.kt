@@ -2,8 +2,8 @@ package com.suseoaa.projectoaa.presentation.teachingplan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.data.model.*
-import com.suseoaa.projectoaa.data.repository.TeachingPlanRepository
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
+import com.suseoaa.projectoaa.shared.data.repository.TeachingPlanRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 

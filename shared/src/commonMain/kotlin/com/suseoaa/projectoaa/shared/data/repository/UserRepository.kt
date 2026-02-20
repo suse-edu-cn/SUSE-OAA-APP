@@ -52,8 +52,8 @@ class UserRepository(
     /**
      * 更新用户信息（简化接口）
      */
-    suspend fun updateUserInfo(username: String, name: String): Result<UpdatePersonResponse> {
-        return updateUser(UpdateUserRequest(username = username, name = name))
+    suspend fun updateUserInfo(username: String, name: String, email: String): Result<UpdatePersonResponse> {
+        return updateUser(UpdateUserRequest(username = username, name = name, email = email))
     }
 
     /**
@@ -62,13 +62,13 @@ class UserRepository(
     suspend fun changePassword(
         oldPassword: String,
         newPassword: String,
-        confirmPassword: String
+        emailCode: String
     ): Result<ChangePasswordResponse> {
         return try {
             val request = ChangePasswordRequest(
                 oldPassword = oldPassword,
                 newPassword = newPassword,
-                confirmPassword = confirmPassword
+                emailCode = emailCode
             )
             val response = userApi.changePassword(request)
             

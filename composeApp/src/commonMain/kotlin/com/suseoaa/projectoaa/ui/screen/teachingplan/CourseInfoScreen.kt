@@ -30,9 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.suseoaa.projectoaa.data.model.CollegeOption
-import com.suseoaa.projectoaa.data.model.CourseInfoItem
-import com.suseoaa.projectoaa.data.model.MajorOption
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.CollegeOption
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.CourseInfoItem
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.MajorOption
 import com.suseoaa.projectoaa.presentation.teachingplan.CourseInfoViewModel
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.getListColumns
@@ -136,7 +136,7 @@ fun CourseInfoScreen(
  */
 @Composable
 private fun TabletLayout(
-    uiState: com.suseoaa.projectoaa.data.model.CourseInfoUiState,
+    uiState: com.suseoaa.projectoaa.shared.domain.model.teachingplan.CourseInfoUiState,
     selectedCollegeObj: CollegeOption?,
     selectedMajorObj: MajorOption?,
     availableYears: List<String>,
@@ -208,7 +208,7 @@ private fun TabletLayout(
  */
 @Composable
 private fun PhoneLayout(
-    uiState: com.suseoaa.projectoaa.data.model.CourseInfoUiState,
+    uiState: com.suseoaa.projectoaa.shared.domain.model.teachingplan.CourseInfoUiState,
     selectedCollegeObj: CollegeOption?,
     selectedMajorObj: MajorOption?,
     availableYears: List<String>,
@@ -272,7 +272,7 @@ private fun PhoneLayout(
  */
 @Composable
 private fun CourseContentArea(
-    uiState: com.suseoaa.projectoaa.data.model.CourseInfoUiState,
+    uiState: com.suseoaa.projectoaa.shared.domain.model.teachingplan.CourseInfoUiState,
     selectedMajorObj: MajorOption?,
     onClearFilters: () -> Unit,
     modifier: Modifier = Modifier

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import okio.Path.Companion.toPath
 
@@ -26,9 +27,18 @@ object PreferencesKeys {
     
     // 设置
     val THEME_MODE = stringPreferencesKey("theme_mode")
+
+    // 更新弹窗版本追踪
+    val UPDATE_DIALOG_SHOWN_VERSION = stringPreferencesKey("update_dialog_shown_version")
+
+    // 开学日期
+    val SEMESTER_START_DATE = stringPreferencesKey("semester_start_date")
+
+    // 652签到功能解锁
+    val CHECKIN_UNLOCKED = booleanPreferencesKey("checkin_feature_unlocked")
 }
 
-internal const val DATA_STORE_FILE_NAME = "projectoaa_prefs.preferences_pb"
+internal const val DATA_STORE_FILE_NAME = "auth_prefs.preferences_pb"
 
 /**
  * 创建 DataStore
@@ -53,41 +63,24 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
     var cachedStudentId: String? = null
         private set
 
-    /**
-     * Token Flow
-     */
+    // ==================== Token & Auth ====================
+
     val tokenFlow: Flow<String?> = dataStore.data.map { preferences ->
         val token = preferences[PreferencesKeys.USER_TOKEN]
         cachedToken = token
         token
     }
 
-    /**
-     * 当前学生 ID Flow
-     */
     val currentStudentId: Flow<String?> = dataStore.data.map { preferences ->
         val id = preferences[PreferencesKeys.CURRENT_STUDENT_ID]
         cachedStudentId = id
         id
     }
 
-    /**
-     * 是否已登录
-     */
     val isLoggedIn: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.IS_LOGGED_IN] ?: false
     }
 
-    /**
-     * 主题模式
-     */
-    val themeMode: Flow<String> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.THEME_MODE] ?: "system"
-    }
-
-    /**
-     * 保存 Token
-     */
     suspend fun saveToken(token: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USER_TOKEN] = token
@@ -96,9 +89,6 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         cachedToken = token
     }
 
-    /**
-     * 保存当前学生 ID
-     */
     suspend fun saveCurrentStudentId(studentId: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.CURRENT_STUDENT_ID] = studentId
@@ -106,20 +96,20 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         cachedStudentId = studentId
     }
 
-    /**
-     * 保存用户绩点计算相关 ID
-     */
-    suspend fun saveUserGpaIds(jgId: String, zyhId: String, njdmId: String) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.JG_ID] = jgId
-            preferences[PreferencesKeys.ZYH_ID] = zyhId
-            preferences[PreferencesKeys.NJDM_ID] = njdmId
-        }
+    suspend fun getTokenSynchronously(): String? {
+        return tokenFlow.first()
     }
 
-    /**
-     * 获取用户绩点计算 IDs
-     */
+    // ==================== User GPA IDs ====================
+
+    val userInfoFlow: Flow<Map<String, String?>> = dataStore.data.map { prefs ->
+        mapOf(
+            "jg_id" to prefs[PreferencesKeys.JG_ID],
+            "zyh_id" to prefs[PreferencesKeys.ZYH_ID],
+            "njdm_id" to prefs[PreferencesKeys.NJDM_ID]
+        )
+    }
+
     fun getUserGpaIds(): Flow<Triple<String?, String?, String?>> = dataStore.data.map { prefs ->
         Triple(
             prefs[PreferencesKeys.JG_ID],
@@ -128,18 +118,81 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         )
     }
 
-    /**
-     * 保存主题模式
-     */
+    suspend fun saveUserInfo(jgId: String, zyhId: String, njdmId: String) {
+        dataStore.edit { prefs ->
+            if (jgId.isNotEmpty()) prefs[PreferencesKeys.JG_ID] = jgId
+            if (zyhId.isNotEmpty()) prefs[PreferencesKeys.ZYH_ID] = zyhId
+            if (njdmId.isNotEmpty()) prefs[PreferencesKeys.NJDM_ID] = njdmId
+        }
+    }
+
+    /** Alias for [saveUserInfo] */
+    suspend fun saveUserGpaIds(jgId: String, zyhId: String, njdmId: String) =
+        saveUserInfo(jgId, zyhId, njdmId)
+
+    // ==================== Theme ====================
+
+    val themeMode: Flow<String> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.THEME_MODE] ?: "system"
+    }
+
     suspend fun saveThemeMode(mode: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = mode
         }
     }
 
-    /**
-     * 清除 Token
-     */
+    // ==================== 更新弹窗状态管理 ====================
+
+    val updateDialogShownVersionFlow: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.UPDATE_DIALOG_SHOWN_VERSION]
+    }
+
+    suspend fun hasShownUpdateDialogForVersion(version: String): Boolean {
+        val shownVersion = updateDialogShownVersionFlow.first()
+        return shownVersion == version
+    }
+
+    suspend fun markUpdateDialogShown(version: String) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.UPDATE_DIALOG_SHOWN_VERSION] = version
+        }
+    }
+
+    // ==================== 开学日期管理 ====================
+
+    val semesterStartDateFlow: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.SEMESTER_START_DATE]
+    }
+
+    suspend fun saveSemesterStartDate(dateString: String) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.SEMESTER_START_DATE] = dateString
+        }
+    }
+
+    suspend fun getSemesterStartDate(): String? {
+        return semesterStartDateFlow.first()
+    }
+
+    // ==================== 652签到功能解锁状态 ====================
+
+    val checkinUnlockedFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.CHECKIN_UNLOCKED] ?: false
+    }
+
+    suspend fun unlockCheckinFeature() {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.CHECKIN_UNLOCKED] = true
+        }
+    }
+
+    suspend fun isCheckinUnlocked(): Boolean {
+        return checkinUnlockedFlow.first()
+    }
+
+    // ==================== 清除数据 ====================
+
     suspend fun clearToken() {
         dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.USER_TOKEN)
@@ -148,14 +201,15 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         cachedToken = null
     }
 
-    /**
-     * 清除所有数据
-     */
-    suspend fun clearAll() {
+    /** 清除所有数据 */
+    suspend fun clear() {
         dataStore.edit { preferences ->
             preferences.clear()
         }
         cachedToken = null
         cachedStudentId = null
     }
+
+    /** Alias for [clear] */
+    suspend fun clearAll() = clear()
 }

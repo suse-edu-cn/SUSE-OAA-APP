@@ -2,8 +2,8 @@ package com.suseoaa.projectoaa.data.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import com.suseoaa.projectoaa.data.model.*
-import com.suseoaa.projectoaa.database.CourseDatabase
+import com.suseoaa.projectoaa.shared.domain.model.course.*
+import com.suseoaa.projectoaa.shared.database.CourseDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -365,7 +365,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
 
     // ===== 扩展函数: SQLDelight生成类 -> 数据实体 =====
 
-    private fun com.suseoaa.projectoaa.database.CourseAccount.toEntity() = CourseAccountEntity(
+    private fun com.suseoaa.projectoaa.shared.database.CourseAccount.toEntity() = CourseAccountEntity(
         studentId = studentId,
         password = password,
         name = name,
@@ -377,7 +377,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         zyhId = zyhId
     )
 
-    private fun com.suseoaa.projectoaa.database.Course.toEntity() = CourseEntity(
+    private fun com.suseoaa.projectoaa.shared.database.Course.toEntity() = CourseEntity(
         studentId = studentId,
         courseName = courseName,
         xnm = xnm,
@@ -391,7 +391,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         totalHours = totalHours
     )
 
-    private fun com.suseoaa.projectoaa.database.ClassTime.toEntity() = ClassTimeEntity(
+    private fun com.suseoaa.projectoaa.shared.database.ClassTime.toEntity() = ClassTimeEntity(
         uniqueId = uniqueId ?: 0,
         studentId = studentId,
         courseOwnerName = courseOwnerName,

@@ -2,7 +2,7 @@ package com.suseoaa.projectoaa.presentation.register
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.data.repository.OaaRegisterRepository
+import com.suseoaa.projectoaa.shared.data.repository.OaaRegisterRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

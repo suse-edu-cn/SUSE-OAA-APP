@@ -2,9 +2,9 @@ package com.suseoaa.projectoaa.presentation.gpa
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.core.dataStore.TokenManager
-import com.suseoaa.projectoaa.data.repository.GpaCourseWrapper
-import com.suseoaa.projectoaa.data.repository.GpaRepository
+import com.suseoaa.projectoaa.shared.data.local.TokenManager
+import com.suseoaa.projectoaa.shared.data.repository.GpaCourseWrapper
+import com.suseoaa.projectoaa.shared.data.repository.GpaRepository
 import kotlin.math.pow
 import kotlin.math.round
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
-import com.suseoaa.projectoaa.data.model.AnnouncementData
+import com.suseoaa.projectoaa.shared.domain.model.announcement.AnnouncementData
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
 import com.suseoaa.projectoaa.ui.component.WindowSizeClass

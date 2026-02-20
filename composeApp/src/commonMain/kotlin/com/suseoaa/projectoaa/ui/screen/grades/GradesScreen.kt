@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
-import com.suseoaa.projectoaa.data.repository.GradeEntity
+import com.suseoaa.projectoaa.shared.data.repository.GradeEntity
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
 import com.suseoaa.projectoaa.ui.component.BackButton

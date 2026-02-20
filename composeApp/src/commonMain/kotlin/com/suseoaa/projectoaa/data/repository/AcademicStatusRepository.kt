@@ -1,7 +1,7 @@
 package com.suseoaa.projectoaa.data.repository
 
-import com.suseoaa.projectoaa.data.api.SchoolApiService
-import com.suseoaa.projectoaa.data.model.*
+import com.suseoaa.projectoaa.shared.data.remote.api.SchoolApiService
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO

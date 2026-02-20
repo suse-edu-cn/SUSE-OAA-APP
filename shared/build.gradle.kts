@@ -46,8 +46,8 @@ kotlin {
             implementation(libs.ktor.client.auth)
 
             // SQLDelight
-            implementation(libs.sqldelight.runtime)
-            implementation(libs.sqldelight.coroutines)
+            api(libs.sqldelight.runtime)
+            api(libs.sqldelight.coroutines)
 
             // Koin DI
             implementation(libs.koin.core)
@@ -55,8 +55,8 @@ kotlin {
             // DataStore
             implementation(libs.androidx.datastore.preferences.core)
 
-            // HTML Parsing - TODO: 待 ksoup 支持 Kotlin 2.1.0 后启用
-            // implementation(libs.ksoup)
+            // HTML Parsing
+            implementation(libs.ksoup)
 
             // Logging
             implementation(libs.napier)
@@ -115,8 +115,8 @@ android {
 
 sqldelight {
     databases {
-        create("AppDatabase") {
-            packageName.set("com.suseoaa.projectoaa.shared.cache")
+        create("CourseDatabase") {
+            packageName.set("com.suseoaa.projectoaa.shared.database")
         }
     }
 }

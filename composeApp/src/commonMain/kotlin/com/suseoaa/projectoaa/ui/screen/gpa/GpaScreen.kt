@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.suseoaa.projectoaa.data.repository.GpaCourseWrapper
+import com.suseoaa.projectoaa.shared.data.repository.GpaCourseWrapper
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
 import com.suseoaa.projectoaa.presentation.gpa.FilterType
 import com.suseoaa.projectoaa.presentation.gpa.SortOrder

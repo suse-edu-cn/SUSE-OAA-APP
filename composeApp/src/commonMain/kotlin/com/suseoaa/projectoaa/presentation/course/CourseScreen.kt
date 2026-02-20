@@ -62,9 +62,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.suseoaa.projectoaa.data.model.ClassTimeEntity
-import com.suseoaa.projectoaa.data.model.CourseAccountEntity
-import com.suseoaa.projectoaa.data.model.CourseWithTimes
+import com.suseoaa.projectoaa.shared.domain.model.course.ClassTimeEntity
+import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
+import com.suseoaa.projectoaa.shared.domain.model.course.CourseWithTimes
 import com.suseoaa.projectoaa.util.ToastManager
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*

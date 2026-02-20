@@ -3,42 +3,41 @@ package com.suseoaa.projectoaa.shared.domain.model.gpa
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/**
+ * 专业列表项
+ */
 @Serializable
 data class MajorItem(
-    @SerialName("id")
-    val id: String = "",
-    @SerialName("zymc")
-    val zymc: String = "",        // 专业名称
-    @SerialName("zyh")
-    val zyh: String = "",         // 专业号
-    @SerialName("jgId")
-    val jgId: String = ""         // 学院ID
+    @SerialName("id") val majorId: String = "",      // 专业ID (zyh_id)
+    @SerialName("zymc") val majorName: String = ""     // 专业名称
 )
 
+/**
+ * 培养计划信息响应
+ */
 @Serializable
 data class ProfessionInfoResponse(
-    @SerialName("code")
-    val code: Int = 0,
-    @SerialName("data")
-    val data: List<MajorItem>? = null
+    @SerialName("items") val items: List<PlanInfo>? = null
 )
 
 @Serializable
+data class PlanInfo(
+    @SerialName("jxzxjhxx_id") val planId: String = ""        // 培养计划ID
+)
+
+/**
+ * 培养计划课程列表响应
+ */
+@Serializable
 data class TeachingPlanResponse(
-    @SerialName("items")
-    val items: List<TeachingPlanItem>? = null
+    @SerialName("items") val items: List<TeachingPlanItem>? = null
 )
 
 @Serializable
 data class TeachingPlanItem(
-    @SerialName("kcmc")
-    val kcmc: String = "",        // 课程名称
-    @SerialName("kch")
-    val kch: String = "",         // 课程号
-    @SerialName("xf")
-    val xf: String = "",          // 学分
-    @SerialName("kcxz")
-    val kcxz: String = "",        // 课程性质
-    @SerialName("kclb")
-    val kclb: String = ""         // 课程类别
+    @SerialName("kch") val courseNumber: String? = null,      // 课程号
+    @SerialName("kcmc") val courseName: String? = null,        // 课程名
+    @SerialName("xf") val credit: String? = null,            // 学分
+    @SerialName("zyzgkcbj") val degreeCourseFlag: String? = null,  // 学位课程标记 ("是"/"否")
+    @SerialName("kcxzmc") val courseNature: String? = null       // 课程性质
 )

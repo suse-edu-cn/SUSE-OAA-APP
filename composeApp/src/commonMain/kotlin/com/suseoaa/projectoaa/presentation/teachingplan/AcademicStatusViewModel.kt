@@ -2,9 +2,9 @@ package com.suseoaa.projectoaa.presentation.teachingplan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.core.dataStore.TokenManager
-import com.suseoaa.projectoaa.data.model.*
-import com.suseoaa.projectoaa.data.repository.AcademicStatusRepository
+import com.suseoaa.projectoaa.shared.data.local.TokenManager
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
+import com.suseoaa.projectoaa.shared.data.repository.AcademicStatusRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 

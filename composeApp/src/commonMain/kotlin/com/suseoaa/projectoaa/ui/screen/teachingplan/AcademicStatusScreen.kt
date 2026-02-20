@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.suseoaa.projectoaa.data.model.*
+import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
 import com.suseoaa.projectoaa.presentation.teachingplan.AcademicStatusViewModel
 import com.suseoaa.projectoaa.util.ToastManager
 import org.koin.compose.viewmodel.koinViewModel
