@@ -18,6 +18,7 @@ import com.suseoaa.projectoaa.shared.data.repository.OaaAuthRepository
 import com.suseoaa.projectoaa.shared.data.repository.OaaRegisterRepository
 import com.suseoaa.projectoaa.shared.data.repository.PersonRepository
 import com.suseoaa.projectoaa.shared.data.repository.QrCodeCheckinRepository
+import com.suseoaa.projectoaa.shared.data.repository.RecruitmentRepository
 import com.suseoaa.projectoaa.shared.data.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.shared.data.repository.SchoolCourseRepository
 import com.suseoaa.projectoaa.shared.data.repository.SchoolGradeRepository
@@ -85,6 +86,9 @@ val sharedModule = module {
     single { PersonRepository(get<OaaApiService>(), get()) }
     single { AnnouncementRepository(get<OaaApiService>()) }
 
+
+//    招新换届
+    single { RecruitmentRepository(get()) }
     // ==================== 教务系统 API ====================
     // 教务系统专用 HttpClient
     single(qualifier = named("school")) {
