@@ -1,10 +1,11 @@
 package com.suseoaa.projectoaa.shared.data.repository
 
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
-import com.suseoaa.projectoaa.shared.data.remote.api.UserApi
+import com.suseoaa.projectoaa.shared.data.remote.api.OaaApiService
 import com.suseoaa.projectoaa.shared.domain.model.changePassword.ChangePasswordRequest
 import com.suseoaa.projectoaa.shared.domain.model.changePassword.ChangePasswordResponse
 import com.suseoaa.projectoaa.shared.domain.model.person.PersonData
+import com.suseoaa.projectoaa.shared.domain.model.person.PersonResponse
 import com.suseoaa.projectoaa.shared.domain.model.person.UpdatePersonResponse
 import com.suseoaa.projectoaa.shared.domain.model.person.UpdateUserRequest
 
@@ -12,7 +13,7 @@ import com.suseoaa.projectoaa.shared.domain.model.person.UpdateUserRequest
  * 用户仓库
  */
 class UserRepository(
-    private val userApi: UserApi,
+    private val userApi: OaaApiService,
     private val tokenManager: TokenManager
 ) {
     /**
@@ -20,15 +21,15 @@ class UserRepository(
      */
     suspend fun getUserInfo(): Result<PersonData> {
         return try {
-            val response = userApi.getUserInfo()
+            val response = userApi.getPersonInfo()
             
             if (response.code == 200 && response.data != null) {
-                Result.Success(response.data)
+                Result.success(response.data)
             } else {
-                Result.Error(response.message, response.code)
+                Result.failure(Exception(response.message))
             }
         } catch (e: Exception) {
-            Result.Error("获取用户信息失败: ${e.message}", exception = e)
+            Result.failure(e)
         }
     }
 
@@ -37,15 +38,15 @@ class UserRepository(
      */
     suspend fun updateUser(request: UpdateUserRequest): Result<UpdatePersonResponse> {
         return try {
-            val response = userApi.updateUser(request)
+            val response = userApi.updateUserInfo(request)
             
             if (response.code == 200) {
-                Result.Success(response)
+                Result.success(response)
             } else {
-                Result.Error(response.message, response.code)
+                Result.failure(Exception(response.message))
             }
         } catch (e: Exception) {
-            Result.Error("更新用户信息失败: ${e.message}", exception = e)
+            Result.failure(e)
         }
     }
 
@@ -75,12 +76,12 @@ class UserRepository(
             if (response.code == 200) {
                 // 修改密码成功后清除 Token
                 tokenManager.clearToken()
-                Result.Success(response)
+                Result.success(response)
             } else {
-                Result.Error(response.message, response.code)
+                Result.failure(Exception(response.message))
             }
         } catch (e: Exception) {
-            Result.Error("修改密码失败: ${e.message}", exception = e)
+            Result.failure(e)
         }
     }
 

@@ -1,7 +1,7 @@
 package com.suseoaa.projectoaa.shared.data.repository
 
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
-import com.suseoaa.projectoaa.shared.data.remote.api.AuthApi
+import com.suseoaa.projectoaa.shared.data.remote.api.OaaApiService
 import com.suseoaa.projectoaa.shared.domain.model.login.LoginRequest
 import com.suseoaa.projectoaa.shared.domain.model.login.LoginResponse
 import com.suseoaa.projectoaa.shared.domain.model.register.RegisterRequest
@@ -11,7 +11,7 @@ import com.suseoaa.projectoaa.shared.domain.model.register.RegisterResponse
  * 认证仓库
  */
 class AuthRepository(
-    private val authApi: AuthApi,
+    private val authApi: OaaApiService,
     private val tokenManager: TokenManager
 ) {
     /**
@@ -26,12 +26,12 @@ class AuthRepository(
                 // 保存 Token 和学号
                 tokenManager.saveToken(response.data.token)
                 tokenManager.saveCurrentStudentId(username)
-                Result.Success(response)
+                Result.success(response)
             } else {
-                Result.Error(response.message, response.code)
+                Result.failure(Exception(response.message))
             }
         } catch (e: Exception) {
-            Result.Error("网络请求失败: ${e.message}", exception = e)
+            Result.failure(e)
         }
     }
 
@@ -56,12 +56,12 @@ class AuthRepository(
             val response = authApi.register(request)
             
             if (response.code == 200) {
-                Result.Success(response)
+                Result.success(response)
             } else {
-                Result.Error(response.message, response.code)
+                Result.failure(Exception(response.message))
             }
         } catch (e: Exception) {
-            Result.Error("注册失败: ${e.message}", exception = e)
+            Result.failure(e)
         }
     }
 
