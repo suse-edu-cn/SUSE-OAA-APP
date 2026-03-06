@@ -121,9 +121,11 @@ fun PersonScreen(
 
     // 自动弹出更新对话框（只在有更新且未弹过时弹出）
     LaunchedEffect(updateUiState.hasUpdate, updateUiState.hasShownAutoDialog) {
-        if (updateUiState.hasUpdate && !updateUiState.hasShownAutoDialog) {
+        if (updateUiState.hasUpdate && !updateUiState.hasShownAutoDialog && !showUpdateDialog) {
             showUpdateDialog = true
             isManualUpdateCheck = false
+            // 标记该版本已弹过自动弹窗，下次不再自动弹出
+            updateViewModel.markDialogShown()
         }
     }
 
@@ -230,7 +232,15 @@ fun PersonScreen(
                             SettingCard(
                                 icon = Icons.Default.Refresh,
                                 title = "检查更新",
-                                subtitle = if (updateUiState.isChecking) "正在检查..." else "点击检查是否有新版本",
+                                subtitle = when {
+                                    updateUiState.isChecking -> "正在检查..."
+                                    updateUiState.hasUpdate && updateUiState.latestRelease != null ->
+                                        "发现新版本 ${updateUiState.latestRelease!!.tagName}"
+                                    else -> "点击检查是否有新版本"
+                                },
+                                showBadge = updateUiState.hasUpdate && updateUiState.latestRelease != null,
+                                trailingText = if (updateUiState.hasUpdate && updateUiState.latestRelease != null)
+                                    updateUiState.latestRelease!!.tagName else null,
                                 onClick = {
                                     isManualUpdateCheck = true
                                     showUpdateDialog = true
@@ -478,6 +488,8 @@ fun SettingCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
+    showBadge: Boolean = false,
+    trailingText: String? = null,
     onClick: () -> Unit
 ) {
     Card(
@@ -511,17 +523,38 @@ fun SettingCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (showBadge) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFF3B30))
+                        )
+                    }
+                }
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            if (trailingText != null) {
+                Text(
+                    text = trailingText,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
             }
 
             Icon(

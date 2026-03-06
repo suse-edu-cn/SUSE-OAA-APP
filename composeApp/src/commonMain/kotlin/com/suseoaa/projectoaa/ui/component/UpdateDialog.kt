@@ -26,23 +26,11 @@ fun UpdateDialog(
     val uiState by viewModel.uiState.collectAsState()
     val isIos = viewModel.isIos
 
-    // 自动弹窗且已经弹过，则不显示
-    if (!isManualCheck && uiState.hasShownAutoDialog && uiState.hasUpdate) {
-        return
-    }
-
     // 显示对话框的条件：正在检查、有更新、或手动检查无更新时显示“已是最新”
     val shouldShow =
         uiState.isChecking || uiState.hasUpdate || (isManualCheck && !uiState.isChecking && !uiState.hasUpdate)
 
     if (shouldShow) {
-        // 如果是自动弹窗，标记已显示
-        LaunchedEffect(uiState.hasUpdate) {
-            if (uiState.hasUpdate && !isManualCheck) {
-                viewModel.markDialogShown()
-            }
-        }
-
         AlertDialog(
             containerColor = MaterialTheme.colorScheme.background,
             onDismissRequest = {

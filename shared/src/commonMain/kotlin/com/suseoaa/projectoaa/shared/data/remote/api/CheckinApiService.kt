@@ -12,9 +12,9 @@ import io.ktor.http.*
  *
  * 打卡流程：
  * 1. 登录 UIAS 统一认证系统
- * 2. 获取用户组编码 (GET /site/app/base/common/api/user/groups.rst?appCode=qddk)
- * 3. 获取待签任务列表 (GET /site/qddk/qdrw/api/myList.rst?status=1)
- * 4. 执行打卡 (POST /site/app/base/common/api/group/{group_code}/qddk/set.rst)
+ * 2. 获取待签到任务列表 (GET /site/qddk/qdrw/api/myList.rst?status=1)
+ * 3. 获取任务详情 (GET /site/qddk/qdrw/qdxx/api/detailList.rst?qdrwId={taskId})
+ * 4. 提交位置签到 (POST /site/qddk/qdrw/api/checkSignLocationWithPhoto.rst)
  */
 class CheckinApiService(val httpClient: HttpClient) {
 
@@ -370,7 +370,61 @@ class CheckinApiService(val httpClient: HttpClient) {
         }
     }
 
-    // ==================== 基于位置的签到 API（扫码登录使用）====================
+    // ==================== 基于位置的签到 API ====================
+
+    /**
+     * 获取签到任务详情（使用 HttpClient cookie storage，密码登录后使用）
+     * GET /site/qddk/qdrw/qdxx/api/detailList.rst?qdrwId={taskId}
+     */
+    suspend fun getTaskDetail(taskId: Long): HttpResponse {
+        return httpClient.get("$QFHY_BASE/site/qddk/qdrw/qdxx/api/detailList.rst?qdrwId=$taskId") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+            header("appcode", "qddk")
+        }
+    }
+
+    /**
+     * 提交位置签到（使用 HttpClient cookie storage，密码登录后使用）
+     * POST /site/qddk/qdrw/api/checkSignLocationWithPhoto.rst
+     */
+    suspend fun submitLocationCheckin(requestBody: String): HttpResponse {
+        return httpClient.post("$QFHY_BASE/site/qddk/qdrw/api/checkSignLocationWithPhoto.rst") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Content-Type", "application/json")
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+            header("appcode", "qddk")
+            setBody(requestBody)
+        }
+    }
+
+    /**
+     * 获取签到任务详情（使用完整 Cookie 字符串）
+     * GET /site/qddk/qdrw/qdxx/api/detailList.rst?qdrwId={taskId}
+     */
+    suspend fun getTaskDetailWithCookies(cookies: String, taskId: Long): HttpResponse {
+        return httpClient.get("$QFHY_BASE/site/qddk/qdrw/qdxx/api/detailList.rst?qdrwId=$taskId") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Cookie", cookies)
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+            header("appcode", "qddk")
+        }
+    }
+
+    /**
+     * 提交位置签到（使用完整 Cookie 字符串）
+     * POST /site/qddk/qdrw/api/checkSignLocationWithPhoto.rst
+     */
+    suspend fun submitLocationCheckinWithCookies(cookies: String, requestBody: String): HttpResponse {
+        return httpClient.post("$QFHY_BASE/site/qddk/qdrw/api/checkSignLocationWithPhoto.rst") {
+            header("Accept", "application/json, text/plain, */*")
+            header("Content-Type", "application/json")
+            header("Cookie", cookies)
+            header("Referer", "$QFHY_BASE/xg/app/qddk/admin/qddkdk")
+            header("appcode", "qddk")
+            setBody(requestBody)
+        }
+    }
 
     /**
      * 获取打卡任务列表（使用 Cookie）

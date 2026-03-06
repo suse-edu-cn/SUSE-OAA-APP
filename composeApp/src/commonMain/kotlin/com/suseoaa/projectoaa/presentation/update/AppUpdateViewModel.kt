@@ -23,7 +23,8 @@ data class AppUpdateUiState(
     val latestRelease: GithubRelease? = null,
     val errorMessage: String? = null,
     val downloadProgress: Int = 0, // 0-100
-    val hasShownAutoDialog: Boolean = false // 是否已经自动弹过窗
+    val hasShownAutoDialog: Boolean = false, // 是否已经自动弹过窗
+    val showDialog: Boolean = false // 是否显示更新对话框
 )
 
 /**
@@ -73,7 +74,8 @@ class AppUpdateViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isChecking = true,
-                errorMessage = null
+                errorMessage = null,
+                showDialog = true
             )
 
             appUpdateRepository.checkUpdate()
@@ -82,12 +84,14 @@ class AppUpdateViewModel(
                         _uiState.value = _uiState.value.copy(
                             isChecking = false,
                             hasUpdate = true,
-                            latestRelease = release
+                            latestRelease = release,
+                            showDialog = true
                         )
                     } else {
                         _uiState.value = _uiState.value.copy(
                             isChecking = false,
-                            hasUpdate = false
+                            hasUpdate = false,
+                            showDialog = true
                         )
                         _events.emit(UpdateEvent.NoUpdateAvailable)
                     }
@@ -95,7 +99,8 @@ class AppUpdateViewModel(
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         isChecking = false,
-                        errorMessage = error.message ?: "检查更新失败"
+                        errorMessage = error.message ?: "检查更新失败",
+                        showDialog = true
                     )
                     _events.emit(UpdateEvent.ShowToast(error.message ?: "检查更新失败"))
                 }
@@ -219,12 +224,11 @@ class AppUpdateViewModel(
     }
 
     /**
-     * 关闭更新弹窗
+     * 关闭更新弹窗（保留更新信息用于红点和版本号显示）
      */
     fun dismissUpdateDialog() {
         _uiState.value = _uiState.value.copy(
-            hasUpdate = false,
-            latestRelease = null
+            showDialog = false
         )
     }
 }

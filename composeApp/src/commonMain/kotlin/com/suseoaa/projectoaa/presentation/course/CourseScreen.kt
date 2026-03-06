@@ -104,6 +104,12 @@ fun CourseScreen(
     val allCourses by viewModel.allCourses.collectAsStateWithLifecycle()
     val dailySchedule by viewModel.dailySchedule.collectAsStateWithLifecycle()
     val semesterStartDate by viewModel.semesterStartDate.collectAsStateWithLifecycle()
+    val hasWeekZero by viewModel.hasWeekZero.collectAsStateWithLifecycle()
+
+    // 动态周次范围
+    val minWeek = if (hasWeekZero) 0 else 1
+    val maxWeek = 25
+    val totalWeeks = maxWeek - minWeek + 1
 
     val scope = rememberCoroutineScope()
 
@@ -124,8 +130,8 @@ fun CourseScreen(
 
     // Pager 状态
     val pagerState = rememberPagerState(
-        initialPage = (currentDisplayWeek - 1).coerceAtLeast(0),
-        pageCount = { 25 }
+        initialPage = (currentDisplayWeek - minWeek).coerceAtLeast(0),
+        pageCount = { totalWeeks }
     )
 
     // 监听 UI 消息 - 使用 Toast
@@ -142,17 +148,17 @@ fun CourseScreen(
     }
 
     // 监听 Pager 变化
-    LaunchedEffect(pagerState.settledPage) {
-        val newWeek = pagerState.settledPage + 1
+    LaunchedEffect(pagerState.settledPage, minWeek) {
+        val newWeek = pagerState.settledPage + minWeek
         if (currentDisplayWeek != newWeek) {
             viewModel.setDisplayWeek(newWeek)
         }
     }
 
     // 监听 ViewModel 周次变化
-    LaunchedEffect(currentDisplayWeek) {
-        val targetPage = currentDisplayWeek - 1
-        if (pagerState.currentPage != targetPage && targetPage in 0..24 && !pagerState.isScrollInProgress) {
+    LaunchedEffect(currentDisplayWeek, minWeek) {
+        val targetPage = currentDisplayWeek - minWeek
+        if (pagerState.currentPage != targetPage && targetPage in 0 until totalWeeks && !pagerState.isScrollInProgress) {
             pagerState.animateScrollToPage(
                 page = targetPage,
                 animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
@@ -266,7 +272,7 @@ fun CourseScreen(
                         contentColor = MaterialTheme.colorScheme.primary,
                         divider = {},
                         indicator = {
-                            if (pagerState.currentPage < 25) {
+                            if (pagerState.currentPage < totalWeeks) {
                                 SecondaryIndicator(
                                     modifier = Modifier
                                         .tabIndicatorOffset(pagerState.currentPage)
@@ -279,8 +285,8 @@ fun CourseScreen(
                         },
                         modifier = Modifier.height(32.dp)  // 限制 TabRow 高度
                     ) {
-                        for (w in 1..25) {
-                            val isSelected = w == (pagerState.currentPage + 1)
+                        for (w in minWeek..maxWeek) {
+                            val isSelected = w == (pagerState.currentPage + minWeek)
                             val isRealCurrentWeek = w == realCurrentWeek
                             val textColor = when {
                                 isRealCurrentWeek -> MaterialTheme.colorScheme.tertiary
@@ -289,7 +295,7 @@ fun CourseScreen(
                             }
                             Tab(
                                 selected = isSelected,
-                                onClick = { scope.launch { pagerState.animateScrollToPage(w - 1) } },
+                                onClick = { scope.launch { pagerState.animateScrollToPage(w - minWeek) } },
                                 text = {
                                     Text(
                                         "${w}周",
@@ -358,6 +364,7 @@ fun CourseScreen(
                     startDate = semesterStartDate,
                     pagerState = pagerState,
                     dailySchedule = dailySchedule,
+                    minWeek = minWeek,
                     bottomPadding = bottomBarHeight,
                     onCourseClick = { courses, bounds ->
                         clickedCardBounds = bounds
@@ -544,6 +551,7 @@ fun CourseScheduleLayout(
     startDate: LocalDate,
     pagerState: PagerState,
     dailySchedule: List<TimeSlotConfig>,
+    minWeek: Int = 1,
     bottomPadding: Dp = 0.dp,
     onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
 ) {
@@ -605,7 +613,7 @@ fun CourseScheduleLayout(
                         beyondViewportPageCount = 2,
                         pageSpacing = 0.dp
                     ) { page ->
-                        val weekIndex = page + 1
+                        val weekIndex = page + minWeek
                         val weekStart = remember(startDate, page) {
                             startDate.plus(page * 7, DateTimeUnit.DAY)
                         }

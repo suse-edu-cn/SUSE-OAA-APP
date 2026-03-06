@@ -748,18 +748,17 @@ class QrCodeCheckinRepository(
             val dkxx = detailResult.result?.data?.dkxx
                 ?: return@withContext CheckinResult.Failed("任务详情数据为空")
 
-            val signId = dkxx.id
             val currentStatus = dkxx.qdzt
-            println("[QrCheckin] 签到记录ID: $signId, 当前状态: $currentStatus")
+            println("[QrCheckin] 任务ID: $taskId, 当前状态: $currentStatus")
 
-            // 2. 构造签到请求
+            // 2. 构造签到请求（使用任务ID，与Python脚本一致）
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val qdsj = "${now.date} ${now.hour.toString().padStart(2, '0')}:${
                 now.minute.toString().padStart(2, '0')
             }:${now.second.toString().padStart(2, '0')}"
 
             val signData = buildJsonObject {
-                put("id", signId)
+                put("id", taskId)  // 使用任务ID，与Python脚本一致
                 put("qdzt", 1)  // 签到状态：1=已签到
                 put("qdsj", qdsj)
                 put("isOuted", 0)

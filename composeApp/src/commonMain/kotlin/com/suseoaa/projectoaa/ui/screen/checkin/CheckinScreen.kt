@@ -1394,7 +1394,7 @@ private fun TaskListView(
                                                     TaskCard(
                                                         task = uiState.pendingTasks[index],
                                                         status = 1,
-                                                        isChecking = uiState.isLoading,
+                                                        isChecking = uiState.checkingTaskId == uiState.pendingTasks[index].id,
                                                         onCheckin = {
                                                             viewModel.checkinForTask(
                                                                 uiState.pendingTasks[index],
@@ -1442,7 +1442,7 @@ private fun TaskListView(
                                                     TaskCard(
                                                         task = uiState.completedTasks[index],
                                                         status = 2,
-                                                        isChecking = uiState.isLoading,
+                                                        isChecking = uiState.checkingTaskId == uiState.completedTasks[index].id,
                                                         onCheckin = {
                                                             viewModel.checkinForTask(
                                                                 uiState.completedTasks[index],
@@ -1511,7 +1511,7 @@ private fun TaskListView(
                                                     TaskCard(
                                                         task = uiState.absentTasks[index],
                                                         status = 3,
-                                                        isChecking = uiState.isLoading,
+                                                        isChecking = uiState.checkingTaskId == uiState.absentTasks[index].id,
                                                         onCheckin = {
                                                             viewModel.checkinForTask(
                                                                 uiState.absentTasks[index],
@@ -1561,7 +1561,7 @@ private fun TaskListView(
                                                     TaskCard(
                                                         task = uiState.pendingTasks[index],
                                                         status = 1,
-                                                        isChecking = uiState.isLoading,
+                                                        isChecking = uiState.checkingTaskId == uiState.pendingTasks[index].id,
                                                         onCheckin = {
                                                             viewModel.checkinForTask(
                                                                 uiState.pendingTasks[index],
@@ -1617,7 +1617,7 @@ private fun TaskListView(
                                                     TaskCard(
                                                         task = uiState.completedTasks[index],
                                                         status = 2,
-                                                        isChecking = uiState.isLoading,
+                                                        isChecking = uiState.checkingTaskId == uiState.completedTasks[index].id,
                                                         onCheckin = {
                                                             viewModel.checkinForTask(
                                                                 uiState.completedTasks[index],
@@ -1694,7 +1694,7 @@ private fun TaskListView(
                                                     TaskCard(
                                                         task = uiState.absentTasks[index],
                                                         status = 3,
-                                                        isChecking = uiState.isLoading,
+                                                        isChecking = uiState.checkingTaskId == uiState.absentTasks[index].id,
                                                         onCheckin = {
                                                             viewModel.checkinForTask(
                                                                 uiState.absentTasks[index],
@@ -1750,7 +1750,7 @@ private fun TaskListView(
                                             TaskCard(
                                                 task = uiState.pendingTasks[index],
                                                 status = 1,
-                                                isChecking = uiState.isLoading,
+                                                isChecking = uiState.checkingTaskId == uiState.pendingTasks[index].id,
                                                 onCheckin = {
                                                     viewModel.checkinForTask(
                                                         uiState.pendingTasks[index],
@@ -1792,7 +1792,7 @@ private fun TaskListView(
                                             TaskCard(
                                                 task = uiState.absentTasks[index],
                                                 status = 3,
-                                                isChecking = uiState.isLoading,
+                                                isChecking = uiState.checkingTaskId == uiState.absentTasks[index].id,
                                                 onCheckin = {
                                                     viewModel.checkinForTask(
                                                         uiState.absentTasks[index],
@@ -1839,7 +1839,7 @@ private fun TaskListView(
                                             TaskCard(
                                                 task = uiState.completedTasks[index],
                                                 status = 2,
-                                                isChecking = uiState.isLoading,
+                                                isChecking = uiState.checkingTaskId == uiState.completedTasks[index].id,
                                                 onCheckin = {
                                                     viewModel.checkinForTask(
                                                         uiState.completedTasks[index],

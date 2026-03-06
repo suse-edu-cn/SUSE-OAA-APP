@@ -33,11 +33,12 @@ import kotlin.random.Random
  * 652打卡仓库 - 处理打卡账号管理和打卡操作
  *
  * 打卡流程：
- * 1. 获取验证码图片并由用户手动输入
+ * 1. 获取验证码图片并由用户手动输入（或OCR自动识别）
  * 2. 登录 UIAS 统一认证系统
- * 3. 获取用户组编码
- * 4. 检查待签任务列表（确认有任务可签）
- * 5. 执行打卡
+ * 3. 获取待签到任务列表 (GET /site/qddk/qdrw/api/myList.rst?status=1)
+ * 4. 查找今日任务（needTime == 今天 且 rwzt == "进行中"）
+ * 5. 获取任务详情 (GET /site/qddk/qdrw/qdxx/api/detailList.rst?qdrwId={taskId})
+ * 6. 提交位置签到 (POST /site/qddk/qdrw/api/checkSignLocationWithPhoto.rst)
  */
 class CheckinRepository(
     private val api: CheckinApiService,
@@ -834,54 +835,35 @@ class CheckinRepository(
             val openId = extractSopSessionValue(cookies)?.let { extractOpenIdFromSopSession(it) }
             println("[Checkin] 提取到的 openId: $openId")
 
-            // 如果没有 openId，这是一个严重问题，很可能会导致后续请求失败
-            if (openId.isNullOrBlank()) {
-                println("[Checkin] 警告: 无法从 _sop_session_ 提取 openId，这可能导致认证失败")
-            }
-
             // 首先检查是否已有 SESSION cookie
             val hasSession = cookies.contains("SESSION=")
             var effectiveCookies = cookies
 
             if (!hasSession) {
-                // 需要通过 SSO 获取 SESSION cookie
-                // /site/ 系统的 API 需要 SESSION，而不是 _sop_session_
                 println("[Checkin] 没有 SESSION cookie，尝试通过 SSO 获取...")
                 val ssoResult = completeSsoWithSopSession(cookies)
                 if (ssoResult.isSuccess) {
                     effectiveCookies = ssoResult.getOrThrow()
-                    println("[Checkin] SSO 成功，获取到完整 cookies: ${effectiveCookies.take(100)}...")
+                    println("[Checkin] SSO 成功，获取到完整 cookies")
                 } else {
                     val ssoError = ssoResult.exceptionOrNull()?.message
                     println("[Checkin] SSO 失败: $ssoError")
-                    // 仍然尝试继续，但记录更详细的信息
                     println("[Checkin] 继续尝试使用原始 cookies (可能会失败)")
                 }
             } else {
                 println("[Checkin] 已有 SESSION cookie")
             }
 
-            // 打印最终使用的 cookie（脱敏）
-            println("[Checkin] 最终 cookies 包含 SESSION: ${effectiveCookies.contains("SESSION=")}")
-            println("[Checkin] 最终 cookies 包含 _sop_session_: ${effectiveCookies.contains("_sop_session_=")}")
-
-            // 1. 获取用户组编码（传入 openId 用于 Referer）
-            val groupCodeResult = getGroupIdentityWithCookies(effectiveCookies, openId)
-            if (groupCodeResult.isFailure) {
-                return@withContext CheckinResult.Failed("获取用户组失败: ${groupCodeResult.exceptionOrNull()?.message}")
-            }
-            val groupCode = groupCodeResult.getOrThrow()
-
-            // 2. 获取待签到任务（使用 effectiveCookies，传入 openId）
-            val tasksResponse = api.getTaskListWithCookies(1, effectiveCookies, openId)
+            // 1. 获取待签到任务列表
+            val tasksResponse = api.getTaskListWithCookies(effectiveCookies, status = 1)
             if (tasksResponse.status.value != 200) {
-                return@withContext CheckinResult.Failed("获取任务列表失败")
+                return@withContext CheckinResult.Failed("获取任务列表失败 (${tasksResponse.status.value})")
             }
 
             val taskListResponse =
                 json.decodeFromString<CheckinTaskListResponse>(tasksResponse.bodyAsText())
-            if (taskListResponse.resultCode != 0) {
-                return@withContext CheckinResult.Failed("获取任务列表失败: ${taskListResponse.errorMsg}")
+            if (taskListResponse.resultCode != 0 || !taskListResponse.success) {
+                return@withContext CheckinResult.Failed(taskListResponse.errorMsg ?: "获取任务列表失败")
             }
 
             val pendingTasks = taskListResponse.result?.data ?: emptyList()
@@ -890,8 +872,64 @@ class CheckinRepository(
                 return@withContext CheckinResult.NoTask("当前没有待签到的任务")
             }
 
-            // 3. 执行签到（传入 openId 用于 Referer）
-            val submitResponse = api.submitCheckinWithCookies(groupCode, effectiveCookies, openId)
+            // 2. 查找今天的任务
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val todayStr = "${now.date}"
+            val todayTask = pendingTasks.find { it.needTime == todayStr && it.rwzt == "进行中" }
+                ?: pendingTasks.firstOrNull()
+
+            if (todayTask == null) {
+                updateCheckinStatus(account.id, "无任务")
+                return@withContext CheckinResult.NoTask("未找到今日待签到任务")
+            }
+            println("[Checkin] 找到任务: ${todayTask.rwmc} (ID: ${todayTask.id})")
+
+            // 3. 获取任务详情
+            val detailResponse = api.getTaskDetailWithCookies(effectiveCookies, todayTask.id)
+            if (detailResponse.status.value != 200) {
+                return@withContext CheckinResult.Failed("获取任务详情失败 (${detailResponse.status.value})")
+            }
+
+            val detailResult = json.decodeFromString<CheckinDetailResponse>(detailResponse.bodyAsText())
+            if (!detailResult.success || detailResult.resultCode != 0) {
+                return@withContext CheckinResult.Failed("获取任务详情失败: ${detailResult.errorMsg}")
+            }
+
+            val dkxx = detailResult.result?.data?.dkxx
+                ?: return@withContext CheckinResult.Failed("任务详情数据为空")
+
+            val currentStatus = dkxx.qdzt
+            println("[Checkin] 任务ID: ${todayTask.id}, 当前状态: $currentStatus")
+
+            if (currentStatus == 1) {
+                updateCheckinStatus(account.id, "已签到")
+                return@withContext CheckinResult.AlreadyChecked("今日已签到")
+            }
+
+            // 4. 构造签到数据（使用任务ID，与Python脚本一致）
+            val qdsj = "${now.date} ${now.hour.toString().padStart(2, '0')}:${
+                now.minute.toString().padStart(2, '0')
+            }:${now.second.toString().padStart(2, '0')}"
+
+            val selectedLocation = CheckinLocations.ALL.find { it.name == account.selectedLocation }
+                ?: CheckinLocations.DEFAULT
+
+            val signData = buildJsonObject {
+                put("id", todayTask.id)  // 使用任务ID，与Python脚本一致
+                put("qdzt", 1)
+                put("qdsj", qdsj)
+                put("isOuted", 0)
+                put("isLated", 0)
+                put("dkddPhoto", "")
+                put("qdddjtdz", selectedLocation.address)
+                put("location", selectedLocation.locationJson)
+                put("txxx", "{}")
+            }
+
+            println("[Checkin] 签到数据: $signData")
+
+            // 5. 提交位置签到
+            val submitResponse = api.submitLocationCheckinWithCookies(effectiveCookies, signData.toString())
             val submitText = submitResponse.bodyAsText()
             println("[Checkin] 签到响应: $submitText")
 
@@ -1104,70 +1142,108 @@ class CheckinRepository(
 
     /**
      * 登录后执行打卡（已登录状态下调用）
+     * 流程：获取任务列表 → 找到今日任务 → 获取任务详情 → 提交位置签到
      */
     suspend fun performCheckinAfterLogin(account: CheckinAccountData): CheckinResult =
         withContext(Dispatchers.IO) {
             try {
-                // 1. 获取用户组编码
-                val groupCode = getUserGroupCode()
-                if (groupCode == null) {
-                    updateCheckinStatus(account.id, "无用户组")
-                    return@withContext CheckinResult.Failed("未找到用户组信息")
+                // 1. 获取待签到任务列表
+                val response = api.getTaskList(status = 1)
+                if (response.status.value != 200) {
+                    updateCheckinStatus(account.id, "获取任务失败")
+                    return@withContext CheckinResult.Failed("获取任务列表失败 (${response.status.value})")
                 }
 
-                // 2. 检查待签任务列表
-                val pendingTasks = getPendingTasks()
+                val taskListResponse = json.decodeFromString<CheckinTaskListResponse>(response.bodyAsText())
+                if (taskListResponse.resultCode != 0 || !taskListResponse.success) {
+                    updateCheckinStatus(account.id, "获取任务失败")
+                    return@withContext CheckinResult.Failed(taskListResponse.errorMsg ?: "获取任务列表失败")
+                }
+
+                val pendingTasks = taskListResponse.result?.data ?: emptyList()
                 if (pendingTasks.isEmpty()) {
                     updateCheckinStatus(account.id, "无任务")
                     return@withContext CheckinResult.NoTask("当前没有待签到的任务")
                 }
 
-                // 3. 执行打卡
-                val result = executeCheckin(groupCode)
-                when (result) {
-                    is CheckinResult.Success -> updateCheckinStatus(account.id, "成功")
-                    is CheckinResult.AlreadyChecked -> updateCheckinStatus(account.id, "已签到")
-                    is CheckinResult.NoTask -> updateCheckinStatus(account.id, "无任务")
-                    is CheckinResult.Failed -> updateCheckinStatus(account.id, "失败")
+                // 2. 查找今天的任务（needTime == 今天 且 rwzt == "进行中"）
+                val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                val todayStr = "${now.date}"
+                val todayTask = pendingTasks.find { it.needTime == todayStr && it.rwzt == "进行中" }
+                    ?: pendingTasks.firstOrNull()
+
+                if (todayTask == null) {
+                    updateCheckinStatus(account.id, "无任务")
+                    return@withContext CheckinResult.NoTask("未找到今日待签到任务")
                 }
-                result
+                println("[Checkin] 找到任务: ${todayTask.rwmc} (ID: ${todayTask.id})")
+
+                // 3. 获取任务详情，获取签到记录ID
+                val detailResponse = api.getTaskDetail(todayTask.id)
+                if (detailResponse.status.value != 200) {
+                    return@withContext CheckinResult.Failed("获取任务详情失败 (${detailResponse.status.value})")
+                }
+
+                val detailResult = json.decodeFromString<CheckinDetailResponse>(detailResponse.bodyAsText())
+                if (!detailResult.success || detailResult.resultCode != 0) {
+                    return@withContext CheckinResult.Failed("获取任务详情失败: ${detailResult.errorMsg}")
+                }
+
+                val dkxx = detailResult.result?.data?.dkxx
+                    ?: return@withContext CheckinResult.Failed("任务详情数据为空")
+
+                val currentStatus = dkxx.qdzt
+                println("[Checkin] 任务ID: ${todayTask.id}, 当前状态: $currentStatus")
+
+                // 已签到
+                if (currentStatus == 1) {
+                    updateCheckinStatus(account.id, "已签到")
+                    return@withContext CheckinResult.AlreadyChecked("今日已签到，无需重复操作")
+                }
+
+                // 4. 构造签到数据（与Python脚本一致，使用任务ID而非dkxx记录ID）
+                val qdsj = "${now.date} ${now.hour.toString().padStart(2, '0')}:${
+                    now.minute.toString().padStart(2, '0')
+                }:${now.second.toString().padStart(2, '0')}"
+
+                val selectedLocation = CheckinLocations.ALL.find { it.name == account.selectedLocation }
+                    ?: CheckinLocations.DEFAULT
+
+                val signData = buildJsonObject {
+                    put("id", todayTask.id)  // 使用任务ID，与Python脚本一致
+                    put("qdzt", 1)
+                    put("qdsj", qdsj)
+                    put("isOuted", 0)
+                    put("isLated", 0)
+                    put("dkddPhoto", "")
+                    put("qdddjtdz", selectedLocation.address)
+                    put("location", selectedLocation.locationJson)
+                    put("txxx", "{}")
+                }
+
+                println("[Checkin] 签到数据: $signData")
+
+                // 5. 提交位置签到
+                val submitResponse = api.submitLocationCheckin(signData.toString())
+                val submitText = submitResponse.bodyAsText()
+                println("[Checkin] 签到响应: $submitText")
+
+                val submitResult = json.decodeFromString<CheckinSubmitResponse>(submitText)
+
+                return@withContext if (submitResult.success && submitResult.resultCode == 0) {
+                    updateCheckinStatus(account.id, "成功")
+                    CheckinResult.Success("签到成功")
+                } else {
+                    val errorMsg = submitResult.errorMsg ?: "签到失败"
+                    updateCheckinStatus(account.id, "失败: $errorMsg")
+                    CheckinResult.Failed(errorMsg)
+                }
             } catch (e: Exception) {
+                println("[Checkin] performCheckinAfterLogin 异常: ${e.message}")
                 updateCheckinStatus(account.id, "异常: ${e.message}")
                 CheckinResult.Failed(e.message ?: "未知错误")
             }
         }
-
-    /**
-     * 获取用户组编码
-     */
-    private suspend fun getUserGroupCode(): String? {
-        try {
-            val response = api.getUserGroups()
-            println("[Checkin] getUserGroups 响应状态: ${response.status.value}")
-
-            // 302 表示登录状态失效
-            if (response.status.value == 302) {
-                println("[Checkin] 登录状态失效 (302 重定向)")
-                return null
-            }
-            if (response.status.value != 200) {
-                println("[Checkin] getUserGroups 非200响应: ${response.status.value}")
-                return null
-            }
-
-            val responseText = response.bodyAsText()
-            println("[Checkin] getUserGroups 响应: ${responseText.take(200)}")
-
-            val groupsResponse = json.decodeFromString<UserGroupsResponse>(responseText)
-            if (groupsResponse.resultCode != 0 || !groupsResponse.success) return null
-
-            // 返回第一个组的编码
-            return groupsResponse.result?.data?.firstOrNull()?.code
-        } catch (e: Exception) {
-            println("[Checkin] getUserGroupCode 异常: ${e.message}")
-            return null
-        }
-    }
 
     /**
      * 获取待签任务列表（未打卡）
@@ -1231,7 +1307,7 @@ class CheckinRepository(
                 val tasksWithTime = sortedTasks.mapIndexed { index, task ->
                     if (index < initialLoadCount) {
                         try {
-                            val detailResponse = api.getTaskDetailWithSession(cookies, task.id)
+                            val detailResponse = api.getTaskDetailWithCookies(cookies, task.id)
                             if (detailResponse.status.value == 200) {
                                 val detailText = detailResponse.bodyAsText()
                                 val detailResult =
@@ -1292,7 +1368,7 @@ class CheckinRepository(
                 }
 
                 try {
-                    val detailResponse = api.getTaskDetailWithSession(cookies, task.id)
+                    val detailResponse = api.getTaskDetailWithCookies(cookies, task.id)
                     if (detailResponse.status.value == 200) {
                         val detailText = detailResponse.bodyAsText()
                         val detailResult = json.decodeFromString<CheckinDetailResponse>(detailText)
@@ -1360,7 +1436,7 @@ class CheckinRepository(
             println("[Checkin] checkinForSpecificTask 开始, taskId=$taskId")
 
             // 1. 获取任务详情，获取当前的签到ID
-            val detailResponse = api.getTaskDetailWithSession(cookies, taskId)
+            val detailResponse = api.getTaskDetailWithCookies(cookies, taskId)
             if (detailResponse.status.value != 200) {
                 return@withContext CheckinResult.Failed("获取任务详情失败")
             }
@@ -1378,10 +1454,9 @@ class CheckinRepository(
                 return@withContext CheckinResult.Failed("任务详情数据为空")
             }
 
-            val currentSignId = dkxx.id
-            println("[Checkin] 当前签到ID: $currentSignId, 状态: ${dkxx.qdzt}")
+            println("[Checkin] 任务ID: $taskId, 当前状态: ${dkxx.qdzt}")
 
-            // 2. 构造签到数据（参考Python脚本）
+            // 2. 构造签到数据（使用任务ID，与Python脚本一致）
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val qdsj = "${now.date} ${now.hour.toString().padStart(2, '0')}:${
                 now.minute.toString().padStart(2, '0')
@@ -1392,7 +1467,7 @@ class CheckinRepository(
                 ?: CheckinLocations.DEFAULT
 
             val signData = buildJsonObject {
-                put("id", currentSignId)
+                put("id", taskId)  // 使用任务ID，与Python脚本一致
                 put("qdzt", 1)  // 签到状态：1=已签到
                 put("qdsj", qdsj)  // 签到时间
                 put("isOuted", 0)  // 是否超出范围
@@ -1406,7 +1481,7 @@ class CheckinRepository(
             println("[Checkin] 签到数据: $signData")
 
             // 3. 提交签到请求
-            val submitResponse = api.submitLocationCheckin(cookies, signData.toString())
+            val submitResponse = api.submitLocationCheckinWithCookies(cookies, signData.toString())
             val submitText = submitResponse.bodyAsText()
             println("[Checkin] 签到响应: $submitText")
 
@@ -1433,15 +1508,214 @@ class CheckinRepository(
     }
 
     /**
-     * 获取所有任务（使用当前cookieStorage中的cookies）
+     * 对特定任务进行打卡（使用 cookie storage，密码登录后使用）
+     * @param taskId 任务ID
+     * @param account 账号信息
+     * @return 打卡结果
+     */
+    suspend fun checkinForSpecificTaskInternal(
+        taskId: Long,
+        account: CheckinAccountData
+    ): CheckinResult = withContext(Dispatchers.IO) {
+        try {
+            println("[Checkin] checkinForSpecificTaskInternal 开始, taskId=$taskId")
+
+            // 1. 获取任务详情
+            val detailResponse = api.getTaskDetail(taskId)
+            if (detailResponse.status.value != 200) {
+                return@withContext CheckinResult.Failed("获取任务详情失败 (${detailResponse.status.value})")
+            }
+
+            val detailText = detailResponse.bodyAsText()
+            println("[Checkin] 任务详情响应: ${detailText.take(200)}")
+
+            val detailResult = json.decodeFromString<CheckinDetailResponse>(detailText)
+            if (!detailResult.success || detailResult.resultCode != 0) {
+                return@withContext CheckinResult.Failed("获取任务详情失败: ${detailResult.errorMsg}")
+            }
+
+            val dkxx = detailResult.result?.data?.dkxx
+            if (dkxx == null) {
+                return@withContext CheckinResult.Failed("任务详情数据为空")
+            }
+
+            println("[Checkin] 任务ID: $taskId, 当前状态: ${dkxx.qdzt}")
+
+            // 2. 构造签到数据（使用任务ID，与Python脚本一致）
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val qdsj = "${now.date} ${now.hour.toString().padStart(2, '0')}:${
+                now.minute.toString().padStart(2, '0')
+            }:${now.second.toString().padStart(2, '0')}"
+
+            val selectedLocation = CheckinLocations.ALL.find { it.name == account.selectedLocation }
+                ?: CheckinLocations.DEFAULT
+
+            val signData = buildJsonObject {
+                put("id", taskId)
+                put("qdzt", 1)
+                put("qdsj", qdsj)
+                put("isOuted", 0)
+                put("isLated", 0)
+                put("dkddPhoto", "")
+                put("qdddjtdz", selectedLocation.address)
+                put("location", selectedLocation.locationJson)
+                put("txxx", "{}")
+            }
+
+            println("[Checkin] 签到数据: $signData")
+
+            // 3. 提交签到请求
+            val submitResponse = api.submitLocationCheckin(signData.toString())
+            val submitText = submitResponse.bodyAsText()
+            println("[Checkin] 签到响应: $submitText")
+
+            val submitResult = json.decodeFromString<CheckinSubmitResponse>(submitText)
+
+            return@withContext if (submitResult.success && submitResult.resultCode == 0) {
+                updateCheckinStatus(account.id, "成功")
+                if (dkxx.qdzt == 1) {
+                    CheckinResult.Success("再次签到成功")
+                } else {
+                    CheckinResult.Success("签到成功")
+                }
+            } else {
+                val errorMsg = submitResult.errorMsg ?: "签到失败"
+                updateCheckinStatus(account.id, "失败: $errorMsg")
+                CheckinResult.Failed(errorMsg)
+            }
+        } catch (e: Exception) {
+            println("[Checkin] checkinForSpecificTaskInternal 异常: ${e.message}")
+            updateCheckinStatus(account.id, "异常: ${e.message}")
+            CheckinResult.Failed(e.message ?: "未知错误")
+        }
+    }
+
+    /**
+     * 获取所有任务（使用当前cookieStorage中的cookies，密码登录后使用）
      * @return Triple<待打卡任务列表, 已打卡任务列表, 缺勤任务列表>
      */
     suspend fun getAllTasks(initialLoadCount: Int = 5): Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>> {
-        val pendingTasks = getPendingTasksWithCookies("").getOrElse { emptyList() }
-        val completedTasks =
-            getCompletedTasksWithCookies("", initialLoadCount).getOrElse { emptyList() }
-        val absentTasks = getAbsentTasksWithCookies("").getOrElse { emptyList() }
+        val pendingTasks = getTasksByStatus(1).getOrElse { emptyList() }
+        val completedTasks = getCompletedTasksInternal(initialLoadCount).getOrElse { emptyList() }
+        val absentTasks = getTasksByStatus(3).getOrElse { emptyList() }
         return Triple(pendingTasks, completedTasks, absentTasks)
+    }
+
+    /**
+     * 获取指定状态的任务列表（使用 cookie storage）
+     */
+    private suspend fun getTasksByStatus(status: Int): Result<List<CheckinTask>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = api.getTaskList(status = status)
+                if (response.status.value != 200) {
+                    return@withContext Result.failure(Exception("获取任务列表失败 (${response.status.value})"))
+                }
+                val responseText = response.bodyAsText()
+                val taskListResponse = json.decodeFromString<CheckinTaskListResponse>(responseText)
+                if (taskListResponse.success && taskListResponse.resultCode == 0) {
+                    val tasks = taskListResponse.result?.data ?: emptyList()
+                    val sortedTasks = tasks.sortedByDescending { task ->
+                        task.needTime.ifEmpty { task.qdksrq }
+                    }
+                    Result.success(sortedTasks)
+                } else {
+                    Result.failure(Exception(taskListResponse.errorMsg ?: "获取任务列表失败"))
+                }
+            } catch (e: Exception) {
+                println("[Checkin] getTasksByStatus($status) 异常: ${e.message}")
+                Result.failure(e)
+            }
+        }
+
+    /**
+     * 获取已完成任务列表并加载前N个的签到时间（使用 cookie storage）
+     */
+    private suspend fun getCompletedTasksInternal(initialLoadCount: Int): Result<List<CheckinTask>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = api.getTaskList(status = 2)
+                if (response.status.value != 200) {
+                    return@withContext Result.failure(Exception("获取任务列表失败 (${response.status.value})"))
+                }
+                val responseText = response.bodyAsText()
+                val taskListResponse = json.decodeFromString<CheckinTaskListResponse>(responseText)
+                if (taskListResponse.success && taskListResponse.resultCode == 0) {
+                    val tasks = taskListResponse.result?.data ?: emptyList()
+                    val sortedTasks = tasks.sortedByDescending { task ->
+                        task.needTime.ifEmpty { task.qdksrq }
+                    }
+
+                    // 为前 initialLoadCount 个任务获取签到时间
+                    val tasksWithTime = sortedTasks.mapIndexed { index, task ->
+                        if (index < initialLoadCount) {
+                            try {
+                                val detailResponse = api.getTaskDetail(task.id)
+                                if (detailResponse.status.value == 200) {
+                                    val detailText = detailResponse.bodyAsText()
+                                    val detailResult =
+                                        json.decodeFromString<CheckinDetailResponse>(detailText)
+                                    val dkxx = detailResult.result?.data?.dkxx
+                                    if (dkxx != null && !dkxx.qdsj.isNullOrBlank()) {
+                                        task.copy(qdsj = dkxx.qdsj, qdzt = dkxx.qdzt)
+                                    } else {
+                                        task
+                                    }
+                                } else {
+                                    task
+                                }
+                            } catch (e: Exception) {
+                                println("[Checkin] 获取任务 ${task.id} 详情失败: ${e.message}")
+                                task
+                            }
+                        } else {
+                            task
+                        }
+                    }
+
+                    Result.success(tasksWithTime)
+                } else {
+                    Result.failure(Exception(taskListResponse.errorMsg ?: "获取任务列表失败"))
+                }
+            } catch (e: Exception) {
+                println("[Checkin] getCompletedTasksInternal 异常: ${e.message}")
+                Result.failure(e)
+            }
+        }
+
+    /**
+     * 为指定范围的任务加载打卡时间（使用 cookie storage，密码登录后使用）
+     */
+    suspend fun loadCheckinTimeForTasksInternal(
+        tasks: List<CheckinTask>,
+        startIndex: Int,
+        endIndex: Int
+    ): Result<List<CheckinTask>> = withContext(Dispatchers.IO) {
+        try {
+            println("[Checkin] 加载打卡时间: [$startIndex, $endIndex)")
+            val updatedTasks = tasks.toMutableList()
+            for (i in startIndex until minOf(endIndex, tasks.size)) {
+                val task = tasks[i]
+                if (!task.qdsj.isNullOrBlank()) continue
+                try {
+                    val detailResponse = api.getTaskDetail(task.id)
+                    if (detailResponse.status.value == 200) {
+                        val detailText = detailResponse.bodyAsText()
+                        val detailResult = json.decodeFromString<CheckinDetailResponse>(detailText)
+                        val dkxx = detailResult.result?.data?.dkxx
+                        if (dkxx != null && !dkxx.qdsj.isNullOrBlank()) {
+                            updatedTasks[i] = task.copy(qdsj = dkxx.qdsj, qdzt = dkxx.qdzt)
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("[Checkin] 获取任务 ${task.id} 详情失败: ${e.message}")
+                }
+            }
+            Result.success(updatedTasks)
+        } catch (e: Exception) {
+            println("[Checkin] 批量加载打卡时间异常: ${e.message}")
+            Result.failure(e)
+        }
     }
 
     /**
@@ -1459,48 +1733,6 @@ class CheckinRepository(
             getCompletedTasksWithCookies(cookies, initialLoadCount).getOrElse { emptyList() }
         val absentTasks = getAbsentTasksWithCookies(cookies).getOrElse { emptyList() }
         return Triple(pendingTasks, completedTasks, absentTasks)
-    }
-
-    /**
-     * 获取待签任务列表（内部使用，保持兼容）
-     */
-    private suspend fun getPendingTasks(): List<CheckinTask> {
-        try {
-            val response = api.getTaskList(status = 1)  // 1 = 待签到
-            if (response.status.value != 200) return emptyList()
-
-            val taskListResponse =
-                json.decodeFromString<CheckinTaskListResponse>(response.bodyAsText())
-            if (taskListResponse.resultCode != 0) return emptyList()
-
-            return taskListResponse.result?.data ?: emptyList()
-        } catch (e: Exception) {
-            return emptyList()
-        }
-    }
-
-    /**
-     * 执行签到
-     */
-    private suspend fun executeCheckin(groupCode: String): CheckinResult {
-        try {
-            val response = api.submitCheckin(groupCode)
-            val responseText = response.bodyAsText()
-
-            val submitResponse = json.decodeFromString<CheckinSubmitResponse>(responseText)
-
-            return if (submitResponse.success && submitResponse.resultCode == 0) {
-                if (submitResponse.result?.data == true) {
-                    CheckinResult.Success("签到成功")
-                } else {
-                    CheckinResult.AlreadyChecked("已签到或无需签到")
-                }
-            } else {
-                CheckinResult.Failed(submitResponse.errorMsg ?: "签到失败")
-            }
-        } catch (e: Exception) {
-            return CheckinResult.Failed(e.message ?: "签到异常")
-        }
     }
 
     /**

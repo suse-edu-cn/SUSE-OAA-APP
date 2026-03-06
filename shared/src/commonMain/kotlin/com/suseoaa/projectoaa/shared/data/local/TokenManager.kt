@@ -34,6 +34,9 @@ object PreferencesKeys {
     // 开学日期
     val SEMESTER_START_DATE = stringPreferencesKey("semester_start_date")
 
+    // 是否存在第0周
+    val SEMESTER_HAS_WEEK_ZERO = booleanPreferencesKey("semester_has_week_zero")
+
     // 652签到功能解锁
     val CHECKIN_UNLOCKED = booleanPreferencesKey("checkin_feature_unlocked")
 }
@@ -173,6 +176,20 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
 
     suspend fun getSemesterStartDate(): String? {
         return semesterStartDateFlow.first()
+    }
+
+    val semesterHasWeekZeroFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.SEMESTER_HAS_WEEK_ZERO] ?: false
+    }
+
+    suspend fun saveSemesterHasWeekZero(hasWeekZero: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.SEMESTER_HAS_WEEK_ZERO] = hasWeekZero
+        }
+    }
+
+    suspend fun getSemesterHasWeekZero(): Boolean {
+        return semesterHasWeekZeroFlow.first()
     }
 
     // ==================== 652签到功能解锁状态 ====================

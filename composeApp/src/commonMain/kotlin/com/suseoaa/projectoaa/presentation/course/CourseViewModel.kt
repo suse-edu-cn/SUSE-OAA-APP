@@ -137,6 +137,17 @@ class CourseViewModel(
     private val _realCurrentWeek = MutableStateFlow(1)
     val realCurrentWeek: StateFlow<Int> = _realCurrentWeek.asStateFlow()
 
+    // 是否存在第0周（由教务系统校历决定）
+    private val _hasWeekZero = MutableStateFlow(false)
+    val hasWeekZero: StateFlow<Boolean> = _hasWeekZero.asStateFlow()
+
+    /** 最小周次：有第0周时为0，否则为1 */
+    val minWeek: Int get() = if (_hasWeekZero.value) 0 else 1
+    /** 最大周次 */
+    val maxWeek: Int get() = if (_hasWeekZero.value) 25 else 25
+    /** 总周数 */
+    val totalWeeks: Int get() = maxWeek - minWeek + 1
+
     private val _termOptions = MutableStateFlow<List<TermOption>>(emptyList())
     val termOptions: StateFlow<List<TermOption>> = _termOptions.asStateFlow()
 
@@ -173,10 +184,13 @@ class CourseViewModel(
         localRepository.getCourses(studentId, xnm, xqm)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val weekScheduleMap: StateFlow<Map<Int, List<CourseWithTimes>>> = allCourses
-        .map { list ->
-            (1..25).associateWith { week -> calculateCoursesForWeek(week, list) }
-        }
+    val weekScheduleMap: StateFlow<Map<Int, List<CourseWithTimes>>> = combine(
+        allCourses,
+        _hasWeekZero
+    ) { list, hasZero ->
+        val min = if (hasZero) 0 else 1
+        (min..25).associateWith { week -> calculateCoursesForWeek(week, list) }
+    }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
@@ -249,8 +263,9 @@ class CourseViewModel(
 
     private fun loadSemesterStart() {
         viewModelScope.launch {
-            // 仍DataStore加载开学日期
+            // 从DataStore加载开学日期和第0周标志
             val savedDate = tokenManager.getSemesterStartDate()
+            _hasWeekZero.value = tokenManager.getSemesterHasWeekZero()
             if (savedDate != null) {
                 try {
                     _semesterStartDate.value = LocalDate.parse(savedDate)
@@ -267,15 +282,15 @@ class CourseViewModel(
         val start = _semesterStartDate.value
         val todayDate = today()
         val daysBetween = start.daysUntil(todayDate)
-        val weekNum = (daysBetween / 7) + 1
-        _realCurrentWeek.value = weekNum.coerceIn(1, 25)
+        val weekNum = (daysBetween / 7) + minWeek
+        _realCurrentWeek.value = weekNum.coerceIn(minWeek, maxWeek)
         _currentDisplayWeek.value = _realCurrentWeek.value
     }
 
     // ==================== 公开方法 ====================
 
     fun setDisplayWeek(week: Int) {
-        _currentDisplayWeek.value = week.coerceIn(1, 25)
+        _currentDisplayWeek.value = week.coerceIn(minWeek, maxWeek)
     }
 
     fun selectTerm(xnm: String, xqm: String) {
@@ -404,12 +419,14 @@ class CourseViewModel(
                 // 切换到新导入的账号
                 tokenManager.saveCurrentStudentId(username)
 
-                // 3. 获取校历（开学日期）
+                // 3. 获取校历（开学日期和是否有第0周）
                 _uiState.value = _uiState.value.copy(statusMessage = "正在同步校历...")
                 try {
-                    val startDateStr = schoolCourseRepository.fetchSemesterStart()
-                    if (startDateStr != null) {
-                        val parsedDate = LocalDate.parse(startDateStr)
+                    val calendarInfo = schoolCourseRepository.fetchSemesterStart()
+                    if (calendarInfo != null) {
+                        val parsedDate = LocalDate.parse(calendarInfo.startDate)
+                        _hasWeekZero.value = calendarInfo.hasWeekZero
+                        tokenManager.saveSemesterHasWeekZero(calendarInfo.hasWeekZero)
                         setSemesterStartDate(parsedDate)
                     }
                 } catch (e: Exception) {
