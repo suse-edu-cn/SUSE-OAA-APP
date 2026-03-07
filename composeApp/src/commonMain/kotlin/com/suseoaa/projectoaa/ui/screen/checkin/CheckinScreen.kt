@@ -163,7 +163,10 @@ fun CheckinScreen(
                             currentFilter = uiState.accountFilter,
                             onFilterChange = { viewModel.setAccountFilter(it) },
                             passwordCount = uiState.accounts.count { !it.isQrCodeLogin },
-                            qrCodeCount = uiState.accounts.count { it.isQrCodeLogin }
+                            qrCodeCount = uiState.accounts.count { it.isQrCodeLogin },
+                            yibinCount = uiState.accounts.count { it.selectedLocation == "宜宾" },
+                            libaiheCount = uiState.accounts.count { it.selectedLocation == "李白河" },
+                            huidongCount = uiState.accounts.count { it.selectedLocation == "汇东" }
                         )
 
                         // 筛选后的账号列表
@@ -225,6 +228,9 @@ fun CheckinScreen(
                                         text = when (uiState.accountFilter) {
                                             AccountFilterType.PASSWORD -> "暂无密码登录账号"
                                             AccountFilterType.QRCODE -> "暂无扫码登录账号"
+                                            AccountFilterType.CAMPUS_YIBIN -> "暂无宜宾校区账号"
+                                            AccountFilterType.CAMPUS_LIBAIHE -> "暂无李白河校区账号"
+                                            AccountFilterType.CAMPUS_HUIDONG -> "暂无汇东校区账号"
                                             else -> "暂无账号"
                                         },
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -278,8 +284,8 @@ fun CheckinScreen(
         AccountDialog(
             title = "添加账号",
             onDismiss = { viewModel.hideAddDialog() },
-            onConfirm = { studentId, password, name, remark ->
-                viewModel.addAccount(studentId, password, name, remark)
+            onConfirm = { studentId, password, name, remark, campus ->
+                viewModel.addAccount(studentId, password, name, remark, campus)
             }
         )
     }
@@ -290,10 +296,10 @@ fun CheckinScreen(
             title = "编辑账号",
             initialAccount = uiState.editingAccount,
             onDismiss = { viewModel.hideEditDialog() },
-            onConfirm = { studentId, password, name, remark ->
+            onConfirm = { studentId, password, name, remark, campus ->
                 viewModel.updateAccount(
                     uiState.editingAccount!!.id,
-                    studentId, password, name, remark
+                    studentId, password, name, remark, campus
                 )
             }
         )
@@ -519,29 +525,27 @@ private fun AccountCard(
                     )
                 }
 
-                // 签到地点标签（仅扫码登录显示）
-                if (account.isQrCodeLogin) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(4.dp)
+                // 签到校区标签
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.LocationOn,
-                                null,
-                                modifier = Modifier.size(12.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = account.selectedLocation,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Icon(
+                            Icons.Default.LocationOn,
+                            null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = account.selectedLocation,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -730,18 +734,21 @@ private fun StatusChip(
 /**
  * 账号编辑对话框
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AccountDialog(
     title: String,
     initialAccount: CheckinAccountData? = null,
     onDismiss: () -> Unit,
-    onConfirm: (studentId: String, password: String, name: String, remark: String) -> Unit
+    onConfirm: (studentId: String, password: String, name: String, remark: String, campus: String) -> Unit
 ) {
     var studentId by remember { mutableStateOf(initialAccount?.studentId ?: "") }
     var password by remember { mutableStateOf(initialAccount?.password ?: "") }
     var name by remember { mutableStateOf(initialAccount?.name ?: "") }
     var remark by remember { mutableStateOf(initialAccount?.remark ?: "") }
     var showPassword by remember { mutableStateOf(false) }
+    var selectedCampus by remember { mutableStateOf(initialAccount?.selectedLocation ?: CheckinLocations.DEFAULT_CAMPUS.name) }
+    var showCampusDropdown by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -831,11 +838,52 @@ private fun AccountDialog(
                         unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
+
+                // 签到校区选择
+                ExposedDropdownMenuBox(
+                    expanded = showCampusDropdown,
+                    onExpandedChange = { showCampusDropdown = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCampus,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("签到校区") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCampusDropdown)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+
+                    ExposedDropdownMenu(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        expanded = showCampusDropdown,
+                        onDismissRequest = { showCampusDropdown = false }
+                    ) {
+                        CheckinLocations.ALL_CAMPUSES.forEach { campus ->
+                            DropdownMenuItem(
+                                text = { Text("${campus.name}（${campus.locations.size}个位置）") },
+                                onClick = {
+                                    selectedCampus = campus.name
+                                    showCampusDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(studentId, password, name, remark) },
+                onClick = { onConfirm(studentId, password, name, remark, selectedCampus) },
                 enabled = studentId.isNotBlank() && password.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -1082,7 +1130,7 @@ private fun QrCodeLoginDialog(
     var studentId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    var selectedLocation by remember { mutableStateOf(CheckinLocations.DEFAULT.name) }
+    var selectedLocation by remember { mutableStateOf(CheckinLocations.DEFAULT_CAMPUS.name) }
     var showLocationDropdown by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -1218,7 +1266,7 @@ private fun QrCodeLoginDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // 签到地点选择
+                // 签到校区选择
                 ExposedDropdownMenuBox(
                     expanded = showLocationDropdown,
                     onExpandedChange = { showLocationDropdown = it }
@@ -1227,7 +1275,7 @@ private fun QrCodeLoginDialog(
                         value = selectedLocation,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("签到地点") },
+                        label = { Text("签到校区") },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLocationDropdown)
                         },
@@ -1240,11 +1288,11 @@ private fun QrCodeLoginDialog(
                         expanded = showLocationDropdown,
                         onDismissRequest = { showLocationDropdown = false }
                     ) {
-                        CheckinLocations.ALL.forEach { location ->
+                        CheckinLocations.ALL_CAMPUSES.forEach { campus ->
                             DropdownMenuItem(
-                                text = { Text(location.name) },
+                                text = { Text("${campus.name}（${campus.locations.size}个位置）") },
                                 onClick = {
-                                    selectedLocation = location.name
+                                    selectedLocation = campus.name
                                     showLocationDropdown = false
                                 }
                             )
@@ -2089,51 +2137,101 @@ private fun AccountFilterBar(
     currentFilter: AccountFilterType,
     onFilterChange: (AccountFilterType) -> Unit,
     passwordCount: Int,
-    qrCodeCount: Int
+    qrCodeCount: Int,
+    yibinCount: Int,
+    libaiheCount: Int,
+    huidongCount: Int
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = 1.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 全部
-            FilterChip(
-                selected = currentFilter == AccountFilterType.ALL,
-                onClick = { onFilterChange(AccountFilterType.ALL) },
-                label = { Text("全部 (${passwordCount + qrCodeCount})") },
-                leadingIcon = if (currentFilter == AccountFilterType.ALL) {
-                    { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
-                } else null
-            )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // 第一行：按登录类型筛选
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 全部
+                FilterChip(
+                    selected = currentFilter == AccountFilterType.ALL,
+                    onClick = { onFilterChange(AccountFilterType.ALL) },
+                    label = { Text("全部 (${passwordCount + qrCodeCount})") },
+                    leadingIcon = if (currentFilter == AccountFilterType.ALL) {
+                        { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
+                    } else null
+                )
 
-            // 密码登录
-            FilterChip(
-                selected = currentFilter == AccountFilterType.PASSWORD,
-                onClick = { onFilterChange(AccountFilterType.PASSWORD) },
-                label = { Text("密码 ($passwordCount)") },
-                leadingIcon = if (currentFilter == AccountFilterType.PASSWORD) {
-                    { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
-                } else {
-                    { Icon(Icons.Default.Password, null, modifier = Modifier.size(18.dp)) }
-                }
-            )
+                // 密码登录
+                FilterChip(
+                    selected = currentFilter == AccountFilterType.PASSWORD,
+                    onClick = { onFilterChange(AccountFilterType.PASSWORD) },
+                    label = { Text("密码 ($passwordCount)") },
+                    leadingIcon = if (currentFilter == AccountFilterType.PASSWORD) {
+                        { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        { Icon(Icons.Default.Password, null, modifier = Modifier.size(18.dp)) }
+                    }
+                )
 
-            // 扫码登录
-            FilterChip(
-                selected = currentFilter == AccountFilterType.QRCODE,
-                onClick = { onFilterChange(AccountFilterType.QRCODE) },
-                label = { Text("扫码 ($qrCodeCount)") },
-                leadingIcon = if (currentFilter == AccountFilterType.QRCODE) {
-                    { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
-                } else {
-                    { Icon(Icons.Default.QrCode, null, modifier = Modifier.size(18.dp)) }
-                }
-            )
+                // 扫码登录
+                FilterChip(
+                    selected = currentFilter == AccountFilterType.QRCODE,
+                    onClick = { onFilterChange(AccountFilterType.QRCODE) },
+                    label = { Text("扫码 ($qrCodeCount)") },
+                    leadingIcon = if (currentFilter == AccountFilterType.QRCODE) {
+                        { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        { Icon(Icons.Default.QrCode, null, modifier = Modifier.size(18.dp)) }
+                    }
+                )
+            }
+
+            // 第二行：按校区筛选
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 宜宾
+                FilterChip(
+                    selected = currentFilter == AccountFilterType.CAMPUS_YIBIN,
+                    onClick = { onFilterChange(AccountFilterType.CAMPUS_YIBIN) },
+                    label = { Text("宜宾 ($yibinCount)") },
+                    leadingIcon = if (currentFilter == AccountFilterType.CAMPUS_YIBIN) {
+                        { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        { Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(18.dp)) }
+                    }
+                )
+
+                // 李白河
+                FilterChip(
+                    selected = currentFilter == AccountFilterType.CAMPUS_LIBAIHE,
+                    onClick = { onFilterChange(AccountFilterType.CAMPUS_LIBAIHE) },
+                    label = { Text("李白河 ($libaiheCount)") },
+                    leadingIcon = if (currentFilter == AccountFilterType.CAMPUS_LIBAIHE) {
+                        { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        { Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(18.dp)) }
+                    }
+                )
+
+                // 汇东
+                FilterChip(
+                    selected = currentFilter == AccountFilterType.CAMPUS_HUIDONG,
+                    onClick = { onFilterChange(AccountFilterType.CAMPUS_HUIDONG) },
+                    label = { Text("汇东 ($huidongCount)") },
+                    leadingIcon = if (currentFilter == AccountFilterType.CAMPUS_HUIDONG) {
+                        { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
+                    } else {
+                        { Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(18.dp)) }
+                    }
+                )
+            }
         }
     }
 }

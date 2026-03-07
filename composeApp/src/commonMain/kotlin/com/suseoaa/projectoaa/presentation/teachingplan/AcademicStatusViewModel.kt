@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 /**
  * 学业情况查询 ViewModel
  * 显示学生的课程修读状态、学分完成情况等
+ * 使用教务系统同款绩点计算方式（直接使用JD字段）
  */
 class AcademicStatusViewModel(
     private val academicStatusRepository: AcademicStatusRepository,
@@ -19,6 +20,9 @@ class AcademicStatusViewModel(
 
     private val _uiState = MutableStateFlow(AcademicStatusUiState())
     val uiState: StateFlow<AcademicStatusUiState> = _uiState.asStateFlow()
+
+    // 缓存HTML内容，用于"其它课程"请求
+    private var cachedHtmlContent: String = ""
 
     init {
         loadAcademicStatus()
@@ -39,9 +43,10 @@ class AcademicStatusViewModel(
 
             val result = academicStatusRepository.getAcademicStatusCategories(studentId)
             result.fold(
-                onSuccess = { categories ->
+                onSuccess = { (planOverview, categories) ->
                     _uiState.update { state ->
                         state.copy(
+                            planOverview = planOverview,
                             categories = categories,
                             isLoading = false,
                             // 默认展开所有类别
@@ -73,8 +78,35 @@ class AcademicStatusViewModel(
         for (category in categories) {
             loadCategoryCourses(studentId, category.categoryId)
         }
+        // 加载所有类别的非计划课程
+        loadAllNonPlanCourses(studentId, categories)
         // 计算总体统计
         calculateTotalStats()
+    }
+
+    /**
+     * 加载所有类别的非计划课程（计划外课程）
+     */
+    private suspend fun loadAllNonPlanCourses(
+        studentId: String,
+        categories: List<AcademicStatusCategory>
+    ) {
+        val allNonPlanCourses = mutableListOf<AcademicStatusCourseItem>()
+        for (category in categories) {
+            val result = academicStatusRepository.getNonPlanCourses(category.categoryId, studentId)
+            result.onSuccess { courses ->
+                allNonPlanCourses.addAll(courses)
+            }
+        }
+        val passedCount = allNonPlanCourses.count { it.studyStatus == StudyStatusUtils.PASSED }
+        val failedCount = allNonPlanCourses.count { it.studyStatus == StudyStatusUtils.FAILED }
+        _uiState.update {
+            it.copy(
+                nonPlanCourses = allNonPlanCourses,
+                nonPlanPassedCount = passedCount,
+                nonPlanFailedCount = failedCount
+            )
+        }
     }
 
     /**
@@ -132,44 +164,56 @@ class AcademicStatusViewModel(
 
     /**
      * 计算总体统计数据
+     * 使用教务系统同款绩点：直接使用服务器返回的 JD 字段
+     * 加权平均绩点 = Σ(课程绩点 × 课程学分) / Σ(课程学分)
+     * 不及格课程（JD=0）也参与计算，拉低平均绩点
      */
     private fun calculateTotalStats() {
         val state = _uiState.value
         var totalCredits = 0.0
         var earnedCredits = 0.0
         var studyingCredits = 0.0
-        var totalGradePoints = 0.0
-        var totalCreditsForGpa = 0.0
+        var planTotalCourses = 0
+        var planPassedCount = 0
+        var planFailedCount = 0
+        var planStudyingCount = 0
+        var planNotStudiedCount = 0
+
+        // 收集所有课程用于计算绩点
+        val allCourses = mutableListOf<AcademicStatusCourseItem>()
 
         for (category in state.categories) {
             totalCredits += category.totalCredits
             earnedCredits += category.earnedCredits
+            planTotalCourses += category.courses.size
+            planPassedCount += category.passedCount
+            planFailedCount += category.failedCount
+            planStudyingCount += category.studyingCount
+            planNotStudiedCount += category.notStudiedCount
+            allCourses.addAll(category.courses)
 
             for (course in category.courses) {
                 val credits = course.credits.toDoubleOrNull() ?: 0.0
-
                 if (course.studyStatus == StudyStatusUtils.STUDYING) {
                     studyingCredits += credits
-                }
-
-                // 计算绩点（只计算已通过的课程）
-                if (course.studyStatus == StudyStatusUtils.PASSED && course.gradePoint > 0) {
-                    totalGradePoints += course.gradePoint * credits
-                    totalCreditsForGpa += credits
                 }
             }
         }
 
-        val averageGradePoint = if (totalCreditsForGpa > 0) {
-            totalGradePoints / totalCreditsForGpa
-        } else 0.0
+        // 使用教务系统同款绩点计算（包含不及格课程）
+        val averageGradePoint = academicStatusRepository.calculateWeightedGpa(allCourses)
 
         _uiState.update {
             it.copy(
                 totalCredits = totalCredits,
                 earnedCredits = earnedCredits,
                 studyingCredits = studyingCredits,
-                averageGradePoint = averageGradePoint
+                averageGradePoint = averageGradePoint,
+                planTotalCourses = planTotalCourses,
+                planPassedCount = planPassedCount,
+                planFailedCount = planFailedCount,
+                planStudyingCount = planStudyingCount,
+                planNotStudiedCount = planNotStudiedCount
             )
         }
     }
@@ -185,9 +229,10 @@ class AcademicStatusViewModel(
 
             val result = academicStatusRepository.getAcademicStatusCategories(studentId)
             result.fold(
-                onSuccess = { categories ->
+                onSuccess = { (planOverview, categories) ->
                     _uiState.update { state ->
                         state.copy(
+                            planOverview = planOverview,
                             categories = categories,
                             isRefreshing = false
                         )

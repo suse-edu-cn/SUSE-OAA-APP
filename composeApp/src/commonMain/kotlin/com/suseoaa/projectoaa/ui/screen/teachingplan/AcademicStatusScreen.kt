@@ -155,15 +155,23 @@ fun AcademicStatusScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // 统计卡片
-                        item {
-                            AcademicStatusStatsCard(
-                                totalCredits = uiState.totalCredits,
-                                earnedCredits = uiState.earnedCredits,
-                                studyingCredits = uiState.studyingCredits,
-                                averageGradePoint = uiState.averageGradePoint,
-                                isTablet = isTablet
-                            )
+                        // 毕业进度总览卡片
+                        if (uiState.planOverview.totalRequiredCredits > 0) {
+                            item {
+                                PlanOverviewCard(
+                                    planOverview = uiState.planOverview,
+                                    averageGradePoint = uiState.averageGradePoint,
+                                    studyingCredits = uiState.studyingCredits,
+                                    planTotalCourses = uiState.planTotalCourses,
+                                    planPassedCount = uiState.planPassedCount,
+                                    planFailedCount = uiState.planFailedCount,
+                                    planStudyingCount = uiState.planStudyingCount,
+                                    planNotStudiedCount = uiState.planNotStudiedCount,
+                                    nonPlanPassedCount = uiState.nonPlanPassedCount,
+                                    nonPlanFailedCount = uiState.nonPlanFailedCount,
+                                    isTablet = isTablet
+                                )
+                            }
                         }
 
                         // 筛选器
@@ -195,17 +203,33 @@ fun AcademicStatusScreen(
 }
 
 /**
- * 统计卡片
+ * 毕业进度总览卡片
+ * 显示教学计划名称、总学分要求、已获学分、未获学分、平均绩点
  */
 @Composable
-private fun AcademicStatusStatsCard(
-    totalCredits: Double,
-    earnedCredits: Double,
-    studyingCredits: Double,
+private fun PlanOverviewCard(
+    planOverview: AcademicPlanOverview,
     averageGradePoint: Double,
+    studyingCredits: Double,
+    planTotalCourses: Int,
+    planPassedCount: Int,
+    planFailedCount: Int,
+    planStudyingCount: Int,
+    planNotStudiedCount: Int,
+    nonPlanPassedCount: Int,
+    nonPlanFailedCount: Int,
     isTablet: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val progress = if (planOverview.totalRequiredCredits > 0) {
+        (planOverview.totalEarnedCredits / planOverview.totalRequiredCredits).toFloat().coerceIn(0f, 1f)
+    } else 0f
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        label = "plan_progress"
+    )
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -213,72 +237,179 @@ private fun AcademicStatusStatsCard(
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
         )
     ) {
-        if (isTablet) {
-            // 平板横向布局
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // 计划名称和通过状态
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                StatItem(
-                    label = "应修学分",
-                    value = formatDouble(totalCredits, 1),
-                    color = MaterialTheme.colorScheme.primary
+                Text(
+                    text = planOverview.planName.ifEmpty { "教学计划" },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                StatItem(
-                    label = "已获学分",
-                    value = formatDouble(earnedCredits, 1),
-                    color = MaterialTheme.colorScheme.tertiary
+                if (planOverview.isPassed) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF4CAF50).copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "已达标",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF4CAF50),
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                } else {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFFFF9800).copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "进行中",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFFF9800),
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            // 总体进度条
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "毕业学分进度",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${formatDouble(planOverview.totalEarnedCredits)} / ${formatDouble(planOverview.totalRequiredCredits)} 学分",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { animatedProgress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(5.dp)),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    color = if (planOverview.isPassed) Color(0xFF4CAF50)
+                    else MaterialTheme.colorScheme.primary,
                 )
-                StatItem(
-                    label = "在修学分",
-                    value = formatDouble(studyingCredits, 1),
-                    color = MaterialTheme.colorScheme.secondary
-                )
-                StatItem(
-                    label = "平均绩点",
-                    value = formatDouble(averageGradePoint, 2),
-                    color = MaterialTheme.colorScheme.error
+                Text(
+                    text = "${(progress * 100).roundToInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.End
                 )
             }
-        } else {
-            // 手机两行布局
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+
+            // 统计信息行
+            if (isTablet) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     StatItem(
-                        label = "应修学分",
-                        value = formatDouble(totalCredits, 1),
+                        label = "要求学分",
+                        value = formatDouble(planOverview.totalRequiredCredits, 1),
                         color = MaterialTheme.colorScheme.primary
                     )
                     StatItem(
                         label = "已获学分",
-                        value = formatDouble(earnedCredits, 1),
-                        color = MaterialTheme.colorScheme.tertiary
+                        value = formatDouble(planOverview.totalEarnedCredits, 1),
+                        color = Color(0xFF4CAF50)
                     )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
+                    StatItem(
+                        label = "未获学分",
+                        value = formatDouble(planOverview.totalRemainingCredits, 1),
+                        color = Color(0xFFFF9800)
+                    )
                     StatItem(
                         label = "在修学分",
                         value = formatDouble(studyingCredits, 1),
-                        color = MaterialTheme.colorScheme.secondary
+                        color = Color(0xFF2196F3)
                     )
                     StatItem(
                         label = "平均绩点",
                         value = formatDouble(averageGradePoint, 2),
                         color = MaterialTheme.colorScheme.error
                     )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem(
+                        label = "已获学分",
+                        value = formatDouble(planOverview.totalEarnedCredits, 1),
+                        color = Color(0xFF4CAF50)
+                    )
+                    StatItem(
+                        label = "未获学分",
+                        value = formatDouble(planOverview.totalRemainingCredits, 1),
+                        color = Color(0xFFFF9800)
+                    )
+                    StatItem(
+                        label = "在修学分",
+                        value = formatDouble(studyingCredits, 1),
+                        color = Color(0xFF2196F3)
+                    )
+                    StatItem(
+                        label = "平均绩点",
+                        value = formatDouble(averageGradePoint, 2),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            // 课程统计摘要
+            if (planTotalCourses > 0) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = buildString {
+                            append("计划总课程 $planTotalCourses 门")
+                            append("  通过 $planPassedCount 门")
+                            if (planFailedCount > 0) append("，未通过 $planFailedCount 门\n")
+                            append("未修 $planNotStudiedCount 门\n")
+                            append("在读 $planStudyingCount 门")
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (nonPlanPassedCount > 0 || nonPlanFailedCount > 0) {
+                        Text(
+                            text = buildString {
+                                append("计划外：")
+                                append("通过 $nonPlanPassedCount 门")
+                                if (nonPlanFailedCount > 0) append("，未通过 $nonPlanFailedCount 门")
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -343,7 +474,7 @@ private fun FilterChipRow(
 }
 
 /**
- * 课程类别卡片
+ * 课程类别卡片 - 含学分要求进度条
  */
 @Composable
 private fun AcademicCategoryCard(
@@ -358,6 +489,19 @@ private fun AcademicCategoryCard(
         targetValue = if (isExpanded) 180f else 0f,
         label = "arrow_rotation"
     )
+
+    // 计算学分完成进度
+    val creditProgress = if (category.requiredCredits > 0) {
+        (category.systemEarnedCredits / category.requiredCredits).toFloat().coerceIn(0f, 1f)
+    } else 0f
+
+    val animatedCreditProgress by animateFloatAsState(
+        targetValue = creditProgress,
+        label = "credit_progress"
+    )
+
+    val remainingCredits = (category.requiredCredits - category.systemEarnedCredits).coerceAtLeast(0.0)
+    val categoryColor = getCategoryColor(category.categoryName)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -385,13 +529,13 @@ private fun AcademicCategoryCard(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(getCategoryColor(category.categoryName).copy(alpha = 0.15f)),
+                            .background(categoryColor.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = getCategoryIcon(category.categoryName),
                             contentDescription = null,
-                            tint = getCategoryColor(category.categoryName),
+                            tint = categoryColor,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -399,22 +543,81 @@ private fun AcademicCategoryCard(
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = category.categoryName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (category.isLoaded) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = category.categoryName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            // 通过/未通过标签
+                            if (category.requiredCredits > 0) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = if (category.isPassed)
+                                        Color(0xFF4CAF50).copy(alpha = 0.15f)
+                                    else
+                                        Color(0xFFFF9800).copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = if (category.isPassed) "已达标" else "未达标",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (category.isPassed) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // 学分要求进度
+                        if (category.requiredCredits > 0) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "要求 ${formatDouble(category.requiredCredits)} 学分",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (remainingCredits > 0) {
+                                    Text(
+                                        text = "还差 ${formatDouble(remainingCredits)} 学分",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFFFF9800)
+                                    )
+                                } else {
+                                    Text(
+                                        text = "已获 ${formatDouble(category.systemEarnedCredits)} 学分",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF4CAF50)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { animatedCreditProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                color = if (category.isPassed) Color(0xFF4CAF50) else categoryColor
+                            )
+                        } else if (category.isLoaded) {
                             Text(
                                 text = "${category.passedCount}门已过 · ${category.studyingCount}门在修 · " +
-                                        "${formatDouble(category.earnedCredits, 1)}/${
-                                            formatDouble(
-                                                category.totalCredits,
-                                                1
-                                            )
-                                        }学分",
+                                        "${formatDouble(category.earnedCredits, 1)}/${formatDouble(category.totalCredits, 1)}学分",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

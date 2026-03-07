@@ -28,7 +28,10 @@ import kotlinx.coroutines.launch
 enum class AccountFilterType {
     ALL,           // 全部账号
     PASSWORD,      // 账号密码登录
-    QRCODE         // 扫码登录
+    QRCODE,        // 扫码登录
+    CAMPUS_YIBIN,  // 宜宾校区
+    CAMPUS_LIBAIHE,// 李白河校区
+    CAMPUS_HUIDONG // 汇东校区
 }
 
 /**
@@ -150,6 +153,9 @@ class CheckinViewModel(
             AccountFilterType.ALL -> state.accounts
             AccountFilterType.PASSWORD -> state.accounts.filter { !it.isQrCodeLogin }
             AccountFilterType.QRCODE -> state.accounts.filter { it.isQrCodeLogin }
+            AccountFilterType.CAMPUS_YIBIN -> state.accounts.filter { it.selectedLocation == "宜宾" }
+            AccountFilterType.CAMPUS_LIBAIHE -> state.accounts.filter { it.selectedLocation == "李白河" }
+            AccountFilterType.CAMPUS_HUIDONG -> state.accounts.filter { it.selectedLocation == "汇东" }
         }
     }
 
@@ -325,7 +331,7 @@ class CheckinViewModel(
     /**
      * 添加账号（密码登录）
      */
-    fun addAccount(studentId: String, password: String, name: String = "", remark: String = "") {
+    fun addAccount(studentId: String, password: String, name: String = "", remark: String = "", selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name) {
         viewModelScope.launch {
             if (studentId.isBlank() || password.isBlank()) {
                 _uiState.update { it.copy(errorMessage = "学号和密码不能为空") }
@@ -337,7 +343,7 @@ class CheckinViewModel(
                 return@launch
             }
 
-            val result = passwordRepository.addAccount(studentId, password, name, remark)
+            val result = passwordRepository.addAccount(studentId, password, name, remark, selectedLocation)
             if (result.isSuccess) {
                 _uiState.update { it.copy(successMessage = "添加成功", showAddDialog = false) }
                 loadAccounts()
@@ -356,7 +362,7 @@ class CheckinViewModel(
         password: String,
         name: String,
         remark: String,
-        selectedLocation: String = CheckinLocations.DEFAULT.name
+        selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name
     ) {
         viewModelScope.launch {
             if (studentId.isBlank() || password.isBlank()) {
@@ -841,7 +847,7 @@ class CheckinViewModel(
                 name = studentName,
                 sessionToken = fullCookies,
                 sessionExpireTime = expireTime,
-                selectedLocation = CheckinLocations.DEFAULT.name
+                selectedLocation = CheckinLocations.DEFAULT_CAMPUS.name
             )
 
             if (result.isSuccess) {
@@ -1237,7 +1243,7 @@ class CheckinViewModel(
     fun confirmQrCodeLogin(
         studentId: String,
         name: String,
-        selectedLocation: String = CheckinLocations.DEFAULT.name
+        selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name
     ) {
         viewModelScope.launch {
             // 取消轮询

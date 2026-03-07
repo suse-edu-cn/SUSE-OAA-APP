@@ -67,7 +67,8 @@ class CheckinRepository(
         studentId: String,
         password: String,
         name: String = "",
-        remark: String = ""
+        remark: String = "",
+        selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name
     ): Result<Unit> {
         return try {
             val now = getCurrentTimeString()
@@ -81,7 +82,7 @@ class CheckinRepository(
                 loginType = 0,
                 sessionToken = null,
                 sessionExpireTime = null,
-                selectedLocation = CheckinLocations.DEFAULT.name
+                selectedLocation = selectedLocation
             )
             Result.success(Unit)
         } catch (e: Exception) {
@@ -97,7 +98,7 @@ class CheckinRepository(
         name: String,
         sessionToken: String,
         sessionExpireTime: String,
-        selectedLocation: String = CheckinLocations.DEFAULT.name
+        selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name
     ): Result<Unit> {
         return try {
             val now = getCurrentTimeString()
@@ -126,7 +127,7 @@ class CheckinRepository(
         password: String,
         name: String,
         remark: String,
-        selectedLocation: String = CheckinLocations.DEFAULT.name
+        selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name
     ): Result<Unit> {
         return try {
             val now = getCurrentTimeString()
@@ -911,8 +912,7 @@ class CheckinRepository(
                 now.minute.toString().padStart(2, '0')
             }:${now.second.toString().padStart(2, '0')}"
 
-            val selectedLocation = CheckinLocations.ALL.find { it.name == account.selectedLocation }
-                ?: CheckinLocations.DEFAULT
+            val selectedLocation = CheckinLocations.randomLocationForCampus(account.selectedLocation)
 
             val signData = buildJsonObject {
                 put("id", todayTask.id)  // 使用任务ID，与Python脚本一致
@@ -1206,8 +1206,7 @@ class CheckinRepository(
                     now.minute.toString().padStart(2, '0')
                 }:${now.second.toString().padStart(2, '0')}"
 
-                val selectedLocation = CheckinLocations.ALL.find { it.name == account.selectedLocation }
-                    ?: CheckinLocations.DEFAULT
+                val selectedLocation = CheckinLocations.randomLocationForCampus(account.selectedLocation)
 
                 val signData = buildJsonObject {
                     put("id", todayTask.id)  // 使用任务ID，与Python脚本一致
@@ -1462,9 +1461,8 @@ class CheckinRepository(
                 now.minute.toString().padStart(2, '0')
             }:${now.second.toString().padStart(2, '0')}"
 
-            // 使用账号中配置的签到地点
-            val selectedLocation = CheckinLocations.ALL.find { it.name == account.selectedLocation }
-                ?: CheckinLocations.DEFAULT
+            // 使用账号中配置的校区随机选取签到地点
+            val selectedLocation = CheckinLocations.randomLocationForCampus(account.selectedLocation)
 
             val signData = buildJsonObject {
                 put("id", taskId)  // 使用任务ID，与Python脚本一致
@@ -1547,8 +1545,7 @@ class CheckinRepository(
                 now.minute.toString().padStart(2, '0')
             }:${now.second.toString().padStart(2, '0')}"
 
-            val selectedLocation = CheckinLocations.ALL.find { it.name == account.selectedLocation }
-                ?: CheckinLocations.DEFAULT
+            val selectedLocation = CheckinLocations.randomLocationForCampus(account.selectedLocation)
 
             val signData = buildJsonObject {
                 put("id", taskId)

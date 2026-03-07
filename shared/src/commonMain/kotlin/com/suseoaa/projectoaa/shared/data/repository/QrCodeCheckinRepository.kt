@@ -454,8 +454,8 @@ class QrCodeCheckinRepository(
                     return@withContext CheckinResult.NoTask("当前没有需要签到的任务")
                 }
 
-                // 获取签到地点
-                val location = CheckinLocations.fromName(account.selectedLocation)
+                // 根据校区随机选择签到地点
+                val location = CheckinLocations.randomLocationForCampus(account.selectedLocation)
 
                 // 对第一个任务执行签到
                 val task = pendingTasks.first()
@@ -475,7 +475,7 @@ class QrCodeCheckinRepository(
         account: CheckinAccountData
     ): CheckinResult = withContext(Dispatchers.IO) {
         try {
-            val location = CheckinLocations.fromName(account.selectedLocation)
+            val location = CheckinLocations.randomLocationForCampus(account.selectedLocation)
             performCheckin(cookies, taskId, location)
         } catch (e: Exception) {
             println("[QrCheckin] 指定任务签到异常: ${e.message}")
@@ -727,7 +727,7 @@ class QrCodeCheckinRepository(
     ): CheckinResult = withContext(Dispatchers.IO) {
         try {
             val effectiveOpenId = openId ?: extractOpenIdFromCookie(cookies)
-            println("[QrCheckin] 执行签到, taskId=$taskId, location=${location.name}")
+            println("[QrCheckin] 执行签到, taskId=$taskId, location=${location.address}")
 
             // 1. 获取任务详情，获取签到记录ID
             val detailResponse = api.getTaskDetail(cookies, taskId, effectiveOpenId)
@@ -803,7 +803,7 @@ class QrCodeCheckinRepository(
         studentId: String,
         name: String,
         cookies: String,
-        selectedLocation: String = CheckinLocations.DEFAULT.name
+        selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name
     ): Result<Long> {
         return try {
             val now = getCurrentTimeString()

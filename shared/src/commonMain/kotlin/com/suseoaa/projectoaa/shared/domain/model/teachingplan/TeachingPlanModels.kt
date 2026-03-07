@@ -226,7 +226,25 @@ data class AcademicStatusCategory(
     val passedCount: Int = 0,
     val failedCount: Int = 0,
     val studyingCount: Int = 0,
-    val notStudiedCount: Int = 0
+    val notStudiedCount: Int = 0,
+    // 以下为从教务系统HTML解析出的原始要求数据
+    val requiredCredits: Double = 0.0, // 要求最低学分 (yqzdxf)
+    val systemEarnedCredits: Double = 0.0, // 教务系统已获学分 (yxxf)
+    val isPassed: Boolean = false, // 节点是否通过 (sftg)
+    val jdkcsx: String = "", // 节点课程属性: 1=课程, 2=课程类别, 3=课程归属, 4=课程组
+    val parentId: String = "", // 父节点ID
+    val childRelation: String = "" // 子节点关系: 1=并且, 0=或者
+)
+
+/**
+ * 教学计划总体信息（从HTML根节点解析）
+ */
+data class AcademicPlanOverview(
+    val planName: String = "", // 如 "2023网络工程"
+    val totalRequiredCredits: Double = 0.0, // 毕业要求总学分
+    val totalEarnedCredits: Double = 0.0, // 已获总学分
+    val totalRemainingCredits: Double = 0.0, // 未获得学分
+    val isPassed: Boolean = false // 是否全部通过
 )
 
 data class AcademicStatusUiState(
@@ -239,7 +257,23 @@ data class AcademicStatusUiState(
     val totalCredits: Double = 0.0,
     val earnedCredits: Double = 0.0,
     val studyingCredits: Double = 0.0,
-    val averageGradePoint: Double = 0.0
+    val averageGradePoint: Double = 0.0,
+    // 教务系统原始的总体学分要求
+    val planOverview: AcademicPlanOverview = AcademicPlanOverview(),
+    // 其它课程学分要求的课程（qtkcxfyq节点）
+    val otherCourses: List<AcademicStatusCourseItem> = emptyList(),
+    val otherCoursesPassedCount: Int = 0,
+    val otherCoursesTotalCount: Int = 0,
+    // 计划内课程统计
+    val planTotalCourses: Int = 0,
+    val planPassedCount: Int = 0,
+    val planFailedCount: Int = 0,
+    val planStudyingCount: Int = 0,
+    val planNotStudiedCount: Int = 0,
+    // 计划外课程统计
+    val nonPlanCourses: List<AcademicStatusCourseItem> = emptyList(),
+    val nonPlanPassedCount: Int = 0,
+    val nonPlanFailedCount: Int = 0
 )
 
 enum class AcademicStatusFilter(val displayName: String) {
@@ -251,16 +285,17 @@ enum class AcademicStatusFilter(val displayName: String) {
 }
 
 object StudyStatusUtils {
-    const val NOT_STUDIED = "1"
+    // XDZT字段: 1=在修, 2=不及格, 3=未修, 4=已通过
+    const val STUDYING = "1"
     const val FAILED = "2"
-    const val STUDYING = "3"
+    const val NOT_STUDIED = "3"
     const val PASSED = "4"
 
     fun getStatusName(code: String): String {
         return when (code) {
-            NOT_STUDIED -> "未修"
-            FAILED -> "不及格"
             STUDYING -> "在修"
+            FAILED -> "不及格"
+            NOT_STUDIED -> "未修"
             PASSED -> "已通过"
             else -> "未知"
         }

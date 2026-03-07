@@ -377,4 +377,40 @@ class SchoolApiService(
             header("X-Requested-With", "XMLHttpRequest")
         }
     }
+
+    /**
+     * 获取学业情况 - "其它课程学分要求"节点的课程列表
+     * 此节点使用特殊接口和额外参数（从HTML隐藏字段中获取）
+     */
+    suspend fun getAcademicStatusOtherCourses(
+        studentId: String,
+        cjlrxn: String = "",
+        cjlrxq: String = "",
+        bkcjlrxn: String = "",
+        bkcjlrxq: String = "",
+        xscjcxkz: String = "0",
+        cjcxkzzt: String = "",
+        cjztkz: String = "0",
+        cjzt: String = ""
+    ): HttpResponse {
+        return client.submitForm(
+            url = "$baseUrl/xsxy/xsxyqk_cxJxzxjhxfyqKcxx.html",
+            formParameters = parameters {
+                append("fromXh_id", "")
+                append("xfyqjd_id", "qtkcxfyq")
+                append("xh_id", studentId)
+                append("cjlrxn", cjlrxn)
+                append("cjlrxq", cjlrxq)
+                append("bkcjlrxn", bkcjlrxn)
+                append("bkcjlrxq", bkcjlrxq)
+                append("xscjcxkz", xscjcxkz)
+                append("cjcxkzzt", cjcxkzzt)
+                append("cjztkz", cjztkz)
+                append("cjzt", cjzt)
+            }
+        ) {
+            parameter("gnmkdm", "N105515")
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
 }

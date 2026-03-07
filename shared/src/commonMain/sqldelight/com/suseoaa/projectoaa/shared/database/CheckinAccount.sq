@@ -13,7 +13,7 @@ CREATE TABLE CheckinAccount (
     loginType INTEGER NOT NULL DEFAULT 0,  -- 0=密码登录, 1=扫码登录
     sessionToken TEXT,                     -- 扫码登录的Session
     sessionExpireTime TEXT,                -- Session过期时间
-    selectedLocation TEXT NOT NULL DEFAULT 'A4教学楼'  -- 签到地点
+    selectedLocation TEXT NOT NULL DEFAULT '宜宾'  -- 签到校区（宜宾/李白河/汇东）
 );
 
 -- 查询所有账号
