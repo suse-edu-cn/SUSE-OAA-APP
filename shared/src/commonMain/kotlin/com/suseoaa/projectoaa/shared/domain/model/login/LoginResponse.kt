@@ -10,7 +10,7 @@ data class LoginResponse(
     @SerialName("data")
     val data: LoginData? = null,
     @SerialName("message")
-    val message: String
+    val message: String = ""
 )
 
 @Serializable

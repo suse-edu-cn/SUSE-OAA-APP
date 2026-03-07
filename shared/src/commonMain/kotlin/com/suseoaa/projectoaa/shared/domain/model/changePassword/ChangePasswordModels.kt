@@ -13,6 +13,6 @@ data class ChangePasswordRequest(
 @Serializable
 data class ChangePasswordResponse(
     @SerialName("code") val code: Int,
-    @SerialName("message") val message: String,
+    @SerialName("message") val message: String = "",
     @SerialName("data") val data: String? = null
 )

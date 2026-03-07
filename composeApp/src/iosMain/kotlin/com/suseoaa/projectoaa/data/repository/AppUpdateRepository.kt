@@ -81,6 +81,20 @@ actual class AppUpdateRepository(
     }
 
     /**
+     * iOS 不支持下载进度查询
+     */
+    actual fun getDownloadProgress(downloadId: Long): Int {
+        return -1
+    }
+
+    /**
+     * iOS 不支持取消下载
+     */
+    actual fun cancelDownload(downloadId: Long) {
+        // no-op
+    }
+
+    /**
      * iOS 不支持根据 DownloadID 安装
      */
     actual fun installApkById(downloadId: Long) {

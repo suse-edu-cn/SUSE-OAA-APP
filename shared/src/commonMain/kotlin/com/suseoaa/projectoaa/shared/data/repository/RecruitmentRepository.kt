@@ -12,9 +12,9 @@ class RecruitmentRepository(private val api: OaaApiService) {
         return try {
             val response = api.submitApplication(request)
             if (response.code == 200) {
-                Result.success(response.message)
+                Result.success(response.message.ifEmpty { "提交成功" })
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "提交申请失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)

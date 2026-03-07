@@ -9,11 +9,11 @@ data class GetApplicationResponse(
     @SerialName("code")
     val code: Int,
     @SerialName("data")
-    val `data`: List<Data>,
+    val `data`: List<Data> = emptyList(),
     @SerialName("endtime")
-    val endtime: String,
+    val endtime: String = "",
     @SerialName("message")
-    val message: String,
+    val message: String = "",
     @SerialName("starttime")
-    val starttime: String
+    val starttime: String = ""
 )

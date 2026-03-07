@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.data.repository.AppUpdateRepository
 import com.suseoaa.projectoaa.data.repository.GithubRelease
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -61,6 +63,7 @@ class AppUpdateViewModel(
     val events: SharedFlow<UpdateEvent> = _events.asSharedFlow()
 
     private var currentDownloadId: Long = -1L
+    private var progressPollingJob: Job? = null
 
     /**
      * 是否是 iOS 平台
@@ -175,17 +178,64 @@ class AppUpdateViewModel(
             return
         }
 
-        _uiState.value = _uiState.value.copy(isDownloading = true)
+        _uiState.value = _uiState.value.copy(isDownloading = true, downloadProgress = 0)
+
+        // 使用统一命名格式: 青蟹-版本号.apk
+        val fileName = "青蟹-${release.tagName}.apk"
 
         currentDownloadId = appUpdateRepository.downloadApk(
             url = apkAsset.downloadUrl,
-            fileName = apkAsset.name
+            fileName = fileName
         )
 
         if (currentDownloadId == -1L) {
             // iOS 平台不支持直接下载
             _uiState.value = _uiState.value.copy(isDownloading = false)
+        } else {
+            // 启动进度轮询
+            startProgressPolling()
         }
+    }
+
+    /**
+     * 轮询下载进度
+     */
+    private fun startProgressPolling() {
+        progressPollingJob?.cancel()
+        progressPollingJob = viewModelScope.launch {
+            while (true) {
+                delay(500)
+                val progress = appUpdateRepository.getDownloadProgress(currentDownloadId)
+                if (progress < 0) break // 查询失败，停止轮询
+
+                _uiState.value = _uiState.value.copy(downloadProgress = progress)
+
+                if (progress >= 100) {
+                    _uiState.value = _uiState.value.copy(
+                        isDownloading = false,
+                        downloadProgress = 100
+                    )
+                    _events.emit(UpdateEvent.DownloadComplete)
+                    // 下载完成后自动拉起安装
+                    installDownloadedApk()
+                    break
+                }
+            }
+        }
+    }
+
+    /**
+     * 取消下载
+     */
+    fun cancelDownload() {
+        progressPollingJob?.cancel()
+        if (currentDownloadId != -1L) {
+            appUpdateRepository.cancelDownload(currentDownloadId)
+        }
+        _uiState.value = _uiState.value.copy(
+            isDownloading = false,
+            downloadProgress = 0
+        )
     }
 
     /**
@@ -206,6 +256,7 @@ class AppUpdateViewModel(
      */
     fun onDownloadComplete(downloadId: Long) {
         if (downloadId == currentDownloadId) {
+            progressPollingJob?.cancel()
             _uiState.value = _uiState.value.copy(
                 isDownloading = false,
                 downloadProgress = 100

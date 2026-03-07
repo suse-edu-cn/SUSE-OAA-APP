@@ -13,6 +13,7 @@ import com.mikepenz.markdown.m3.markdownTypography
 
 /**
  * Markdown 文本组件
+ * 支持链接点击（通过 LocalUriHandler 打开浏览器）
  */
 @Composable
 fun OaaMarkdownText(
@@ -23,6 +24,7 @@ fun OaaMarkdownText(
 ) {
     // 定义代码块背景色
     val codeBgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val linkColor = MaterialTheme.colorScheme.primary
 
     Markdown(
         content = markdown,
@@ -41,7 +43,8 @@ fun OaaMarkdownText(
         colors = markdownColor(
             text = color,
             codeBackground = codeBgColor,
-            inlineCodeBackground = codeBgColor
+            inlineCodeBackground = codeBgColor,
+            linkText = linkColor
         )
     )
 }

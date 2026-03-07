@@ -11,9 +11,9 @@ data class SubmitApplicationResponse(
     @SerialName("data")
     val `data`: String? = null,
     @SerialName("endtime")
-    val endtime: String,
+    val endtime: String = "",
     @SerialName("message")
-    val message: String,
+    val message: String = "",
     @SerialName("starttime")
-    val starttime: String
+    val starttime: String = ""
 )

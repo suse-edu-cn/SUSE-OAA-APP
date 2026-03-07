@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PersonResponse(
     @SerialName("code") val code: Int,
-    @SerialName("message") val message: String,
+    @SerialName("message") val message: String = "",
     @SerialName("data") val data: PersonData? = null
 )
 
@@ -36,13 +36,13 @@ data class UpdateAvatarRequest(
 @Serializable
 data class UpdatePersonResponse(
     @SerialName("code") val code: Int,
-    @SerialName("message") val message: String,
+    @SerialName("message") val message: String = "",
     @SerialName("data") val data: String? = null
 )
 
 @Serializable
 data class UploadAvatarResponse(
     @SerialName("code") val code: Int,
-    @SerialName("message") val message: String,
+    @SerialName("message") val message: String = "",
     @SerialName("data") val data: String? = null
 )

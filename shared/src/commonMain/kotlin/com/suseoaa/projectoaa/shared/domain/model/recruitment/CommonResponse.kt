@@ -9,7 +9,7 @@ data class CommonResponse(
     @SerialName("code")
     val code: Int,
     @SerialName("data")
-    val `data`: String,
+    val `data`: String = "",
     @SerialName("message")
-    val message: String
+    val message: String = ""
 )

@@ -26,7 +26,7 @@ class UserRepository(
             if (response.code == 200 && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "获取用户信息失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -43,7 +43,7 @@ class UserRepository(
             if (response.code == 200) {
                 Result.success(response)
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "更新信息失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -78,7 +78,7 @@ class UserRepository(
                 tokenManager.clearToken()
                 Result.success(response)
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "修改密码失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)

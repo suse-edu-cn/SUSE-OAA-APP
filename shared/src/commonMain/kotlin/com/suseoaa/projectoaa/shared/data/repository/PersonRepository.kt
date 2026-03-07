@@ -24,7 +24,7 @@ class PersonRepository(
             if (response.code == 200 && response.data != null) {
                 Result.success(response.data)
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "获取个人信息失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -40,9 +40,9 @@ class PersonRepository(
             val request = ChangePasswordRequest(oldPassword, newPassword, emailCode)
             val response = api.changePassword(request)
             if (response.code == 200) {
-                Result.success(response.message)
+                Result.success(response.message.ifEmpty { "修改成功" })
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "修改密码失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -54,9 +54,9 @@ class PersonRepository(
         return try {
             val response = api.getEmailCode()
             if (response.code == 200) {
-                Result.success(response.message)
+                Result.success(response.message.ifEmpty { "验证码已发送" })
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "获取验证码失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -67,9 +67,9 @@ class PersonRepository(
         return try {
             val response = api.updateUserInfo(UpdateUserRequest(username, name, email))
             if (response.code == 200) {
-                Result.success(response.message)
+                Result.success(response.message.ifEmpty { "更新成功" })
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "更新信息失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -80,9 +80,9 @@ class PersonRepository(
         return try {
             val response = api.uploadAvatar(imageData)
             if (response.code == 200) {
-                Result.success(response.message)
+                Result.success(response.message.ifEmpty { "上传成功" })
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "上传头像失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)

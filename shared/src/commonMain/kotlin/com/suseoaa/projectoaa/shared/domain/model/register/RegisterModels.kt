@@ -16,7 +16,7 @@ data class RegisterRequest(
 data class RegisterResponse(
     @SerialName("code") val code: Int,
     @SerialName("data") val data: RegisterData? = null,
-    @SerialName("message") val message: String
+    @SerialName("message") val message: String = ""
 )
 
 @Serializable

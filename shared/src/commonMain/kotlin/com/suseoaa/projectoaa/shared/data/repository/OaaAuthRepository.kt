@@ -18,7 +18,7 @@ class OaaAuthRepository(
             if (response.code == 200 && response.data?.token != null) {
                 Result.success(response)
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "登录失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)

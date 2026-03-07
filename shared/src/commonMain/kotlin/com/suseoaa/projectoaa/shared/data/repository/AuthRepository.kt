@@ -28,7 +28,7 @@ class AuthRepository(
                 tokenManager.saveCurrentStudentId(username)
                 Result.success(response)
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "登录失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -58,7 +58,7 @@ class AuthRepository(
             if (response.code == 200) {
                 Result.success(response)
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "注册失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)

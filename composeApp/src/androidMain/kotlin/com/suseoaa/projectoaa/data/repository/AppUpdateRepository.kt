@@ -3,7 +3,9 @@ package com.suseoaa.projectoaa.data.repository
 import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Environment
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -94,27 +96,97 @@ actual class AppUpdateRepository(
     }
 
     /**
+     * 查询下载进度 (0-100)，-1 表示查询失败
+     */
+    actual fun getDownloadProgress(downloadId: Long): Int {
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val query = DownloadManager.Query().setFilterById(downloadId)
+        val cursor = downloadManager.query(query)
+        if (cursor != null && cursor.moveToFirst()) {
+            val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                cursor.close()
+                return 100
+            }
+            val bytesDownloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+            val bytesTotal = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+            cursor.close()
+            return if (bytesTotal > 0) ((bytesDownloaded * 100) / bytesTotal).toInt() else 0
+        }
+        cursor?.close()
+        return -1
+    }
+
+    /**
+     * 取消下载
+     */
+    actual fun cancelDownload(downloadId: Long) {
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        downloadManager.remove(downloadId)
+        _currentDownloadId = -1L
+    }
+
+    /**
      * 根据 DownloadID 触发安装
      */
     actual fun installApkById(downloadId: Long) {
-        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val uri = downloadManager.getUriForDownloadedFile(downloadId)
-        
-        // Android 8.0+ 检查权限
-        if (!context.packageManager.canRequestPackageInstalls()) {
-            val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-            intent.data = "package:${context.packageName}".toUri()
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+
+            // Android 8.0+ 检查安装未知应用权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
+                val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                intent.data = "package:${context.packageName}".toUri()
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                return
+            }
+
+            // 策略1：通过 DownloadManager 查询下载文件的本地路径
+            var file: File? = null
+            try {
+                val query = DownloadManager.Query().setFilterById(downloadId)
+                val cursor = downloadManager.query(query)
+                if (cursor != null && cursor.moveToFirst()) {
+                    val localUri = cursor.getString(
+                        cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)
+                    )
+                    cursor.close()
+                    if (localUri != null) {
+                        val path = localUri.removePrefix("file://")
+                        val f = File(path)
+                        if (f.exists()) file = f
+                    }
+                } else {
+                    cursor?.close()
+                }
+            } catch (_: Exception) { /* 某些国产 ROM 可能查询失败 */ }
+
+            // 策略2：回退到下载目录中查找最新 APK
+            if (file == null || !file.exists()) {
+                val downloadsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                file = downloadsDir?.listFiles()
+                    ?.filter { it.name.endsWith(".apk") }
+                    ?.maxByOrNull { it.lastModified() }
+            }
+
+            if (file == null || !file.exists()) return
+
+            // 使用 FileProvider 创建安全的 content:// URI
+            val contentUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(contentUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
             context.startActivity(intent)
-            return
-        }
-        
-        if (uri != null) {
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.setDataAndType(uri, "application/vnd.android.package-archive")
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

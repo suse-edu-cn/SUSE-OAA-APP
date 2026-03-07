@@ -29,9 +29,9 @@ class OaaRegisterRepository(
             val response = api.register(request)
 
             if (response.code == 200) {
-                Result.success(response.message)
+                Result.success(response.message.ifEmpty { "注册成功" })
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.message.ifEmpty { "注册失败" }))
             }
         } catch (e: Exception) {
             Result.failure(e)

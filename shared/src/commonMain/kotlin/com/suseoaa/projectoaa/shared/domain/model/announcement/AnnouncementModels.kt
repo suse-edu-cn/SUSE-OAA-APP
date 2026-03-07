@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class FetchAnnouncementInfoResponse(
     @SerialName("code") val code: Int,
-    @SerialName("data") val data: AnnouncementData,
-    @SerialName("message") val message: String
+    @SerialName("data") val data: AnnouncementData? = null,
+    @SerialName("message") val message: String = ""
 )
 
 @Serializable
@@ -25,6 +25,6 @@ data class UpdateAnnouncementInfoRequest(
 @Serializable
 data class UpdateAnnouncementInfoResponse(
     @SerialName("code") val code: Int,
-    @SerialName("data") val data: String,
-    @SerialName("message") val message: String
+    @SerialName("data") val data: String = "",
+    @SerialName("message") val message: String = ""
 )

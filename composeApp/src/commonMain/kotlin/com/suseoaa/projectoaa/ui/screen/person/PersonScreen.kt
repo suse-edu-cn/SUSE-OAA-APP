@@ -96,12 +96,11 @@ fun PersonScreen(
         updateViewModel.events.collectLatest { event ->
             when (event) {
                 is UpdateEvent.DownloadComplete -> {
-                    // 自动提示安装
-                    updateViewModel.installDownloadedApk()
+                    // 下载完成，ViewModel 已自动拉起安装
                 }
 
                 is UpdateEvent.NoUpdateAvailable -> {
-                    // 无更新，可以显示 Snackbar
+                    // 无更新
                 }
 
                 is UpdateEvent.ShowToast -> {
@@ -113,7 +112,9 @@ fun PersonScreen(
 
     // 显示提示
     uiState.message?.let { message ->
-        showToast(message)
+        if (message.isNotBlank()) {
+            showToast(message)
+        }
         LaunchedEffect(message) {
             viewModel.clearMessage()
         }

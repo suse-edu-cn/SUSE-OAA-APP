@@ -9,7 +9,7 @@ data class ChangeApplicationTimeResponse(
     @SerialName("code")
     val code: Int,
     @SerialName("data")
-    val `data`: DataX,
+    val `data`: DataX? = null,
     @SerialName("message")
-    val message: String
+    val message: String = ""
 )

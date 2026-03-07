@@ -50,4 +50,15 @@ expect class AppUpdateRepository {
      * 获取当前下载任务ID
      */
     val currentDownloadId: Long
+
+    /**
+     * 查询下载进度
+     * @return 0-100 的进度值，-1 表示不支持或查询失败
+     */
+    fun getDownloadProgress(downloadId: Long): Int
+
+    /**
+     * 取消下载
+     */
+    fun cancelDownload(downloadId: Long)
 }

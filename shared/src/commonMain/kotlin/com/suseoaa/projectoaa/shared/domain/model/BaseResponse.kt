@@ -12,7 +12,7 @@ data class BaseResponse<T>(
     @SerialName("code")
     val code: Int,
     @SerialName("message")
-    val message: String,
+    val message: String = "",
     @SerialName("data")
     val data: T? = null
 )

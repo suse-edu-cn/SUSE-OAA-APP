@@ -72,8 +72,8 @@ fun UpdateDialog(
                                     .heightIn(max = 240.dp)
                                     .verticalScroll(rememberScrollState())
                             ) {
-                                Text(
-                                    text = release.body,
+                                OaaMarkdownText(
+                                    markdown = release.body,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -147,16 +147,22 @@ fun UpdateDialog(
                             Text("知道了")
                         }
                     }
-                    // Android: 显示下载按钮
-                    !isIos && uiState.latestRelease != null && !uiState.isDownloading -> {
-                        Button(onClick = { viewModel.startDownload() }) {
-                            Text("立即下载并安装")
+                    // Android: 正在下载时显示取消按钮
+                    !isIos && uiState.isDownloading && uiState.downloadProgress < 100 -> {
+                        TextButton(onClick = { viewModel.cancelDownload() }) {
+                            Text("取消下载")
                         }
                     }
                     // Android: 下载完成显示安装按钮
-                    !isIos && uiState.isDownloading && uiState.downloadProgress == 100 -> {
+                    !isIos && uiState.downloadProgress == 100 -> {
                         Button(onClick = { viewModel.installDownloadedApk() }) {
                             Text("安装更新")
+                        }
+                    }
+                    // Android: 有更新未下载时显示下载按钮
+                    !isIos && uiState.latestRelease != null && !uiState.isDownloading -> {
+                        Button(onClick = { viewModel.startDownload() }) {
+                            Text("立即下载并安装")
                         }
                     }
                     // 无更新或检查完成时显示确定按钮
@@ -171,8 +177,8 @@ fun UpdateDialog(
                 }
             },
             dismissButton = {
-                // Android 且有更新时显示稍后按钮
-                if (!isIos && uiState.latestRelease != null && !uiState.isDownloading) {
+                // Android 且有更新未在下载时显示稍后按钮
+                if (!isIos && uiState.latestRelease != null && !uiState.isDownloading && uiState.downloadProgress < 100) {
                     TextButton(onClick = {
                         viewModel.dismissUpdateDialog()
                         onDismiss()
