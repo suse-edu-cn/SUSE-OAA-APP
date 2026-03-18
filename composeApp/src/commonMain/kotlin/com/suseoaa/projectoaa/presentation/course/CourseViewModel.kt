@@ -494,12 +494,15 @@ class CourseViewModel(
     }
 
     private fun isWeekActive(week: Int, weeksStr: String, mask: Long): Boolean {
-        // 如果有掩码，优先使用掩码
+        // 优先按原始周次字符串解析，避免掩码在“单双周 + 普通周次”混合场景下误判
+        if (weeksStr.isNotBlank()) {
+            return parseWeeksString(weeksStr, week)
+        }
+        // 周次字符串为空时再使用掩码
         if (mask != 0L) {
             return (mask and (1L shl (week - 1))) != 0L
         }
-        // 否则解析字符串
-        return parseWeeksString(weeksStr, week)
+        return true
     }
 
     /**
@@ -508,10 +511,6 @@ class CourseViewModel(
     private fun parseWeeksString(weeksStr: String, targetWeek: Int): Boolean {
         if (weeksStr.isBlank()) return true
 
-        // 检测整个字符串是否包含单双周标记
-        val globalOddOnly = weeksStr.contains("单") && !weeksStr.contains("双")
-        val globalEvenOnly = weeksStr.contains("双") && !weeksStr.contains("单")
-
         // 清理字符串
         val cleanStr = weeksStr
             .replace("周", "")
@@ -519,11 +518,18 @@ class CourseViewModel(
             .replace("（单）", "#ODD#")
             .replace("(双)", "#EVEN#")
             .replace("（双）", "#EVEN#")
+            .replace("，", ",")
+            .replace("；", ",")
+            .replace(";", ",")
             .replace("单", "")
             .replace("双", "")
             .replace(" ", "")
 
         val parts = cleanStr.split(",")
+        val hasSegmentParityTag = parts.any { it.contains("#ODD#") || it.contains("#EVEN#") }
+        // 仅当所有分段都没有显式单双周标记时，才使用全局单双周兜底
+        val globalOddOnly = !hasSegmentParityTag && weeksStr.contains("单") && !weeksStr.contains("双")
+        val globalEvenOnly = !hasSegmentParityTag && weeksStr.contains("双") && !weeksStr.contains("单")
 
         for (part in parts) {
             // 检查此部分是否有单双周标记
@@ -549,7 +555,14 @@ class CourseViewModel(
                 }
             } else {
                 val single = cleanPart.toIntOrNull()
-                if (single == targetWeek) return true
+                if (single == targetWeek) {
+                    val weekMatches = when {
+                        isOddOnly -> targetWeek % 2 == 1
+                        isEvenOnly -> targetWeek % 2 == 0
+                        else -> true
+                    }
+                    if (weekMatches) return true
+                }
             }
         }
         return false

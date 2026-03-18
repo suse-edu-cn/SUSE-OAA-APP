@@ -148,7 +148,7 @@ fun CourseScreen(
     }
 
     // 监听 Pager 变化
-    LaunchedEffect(pagerState.settledPage, minWeek) {
+    LaunchedEffect(pagerState.settledPage) {
         val newWeek = pagerState.settledPage + minWeek
         if (currentDisplayWeek != newWeek) {
             viewModel.setDisplayWeek(newWeek)
