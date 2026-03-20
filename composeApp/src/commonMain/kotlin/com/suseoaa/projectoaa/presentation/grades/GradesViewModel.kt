@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.grades
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
@@ -25,6 +26,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+@Immutable
 data class GradesUiState(
     val isRefreshing: Boolean = false,
     val grades: List<GradeEntity> = emptyList(),

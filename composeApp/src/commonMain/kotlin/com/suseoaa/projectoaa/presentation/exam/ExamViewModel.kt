@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.exam
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
@@ -30,6 +31,7 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * 考试 UI 状态
  */
+@Immutable
 data class ExamUiItem(
     val id: Long = 0,              // 数据库 ID，用于编辑和删除
     val courseName: String,
@@ -46,6 +48,7 @@ data class ExamUiItem(
 /**
  * 学期选项
  */
+@Immutable
 data class SemesterOption(
     val year: String,              // 学年码: "2025"
     val semester: String,          // 学期码: "3" / "12"
@@ -55,6 +58,7 @@ data class SemesterOption(
 /**
  * 考试页面 UI 状态
  */
+@Immutable
 data class ExamUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,

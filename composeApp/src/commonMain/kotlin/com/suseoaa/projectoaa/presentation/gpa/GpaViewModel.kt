@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.gpa
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
@@ -43,6 +44,7 @@ enum class FilterType {
     DEGREE_ONLY // 仅学位课
 }
 
+@Immutable
 data class GpaUiState(
     val isLoading: Boolean = false,
     val courseList: List<GpaCourseWrapper> = emptyList(),

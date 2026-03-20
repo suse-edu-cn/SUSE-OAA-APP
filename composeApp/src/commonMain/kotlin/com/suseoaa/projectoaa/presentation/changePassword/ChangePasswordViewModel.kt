@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.changepassword
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.repository.PersonRepository
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 /**
  * 修改密码界面状态
  */
+@Immutable
 data class ChangePasswordUiState(
     val oldPassword: String = "",
     val newPassword: String = "",

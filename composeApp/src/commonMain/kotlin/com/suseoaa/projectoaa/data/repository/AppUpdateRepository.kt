@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.data.repository
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -7,6 +8,7 @@ import kotlinx.serialization.Serializable
  * GitHub Release 数据模型
  */
 @Serializable
+@Immutable
 data class GithubRelease(
     @SerialName("tag_name")
     val tagName: String,           // 版本号，如 "v1.0.1"
@@ -17,6 +19,7 @@ data class GithubRelease(
 )
 
 @Serializable
+@Immutable
 data class GithubAsset(
     @SerialName("browser_download_url")
     val downloadUrl: String,       // APK 下载链接

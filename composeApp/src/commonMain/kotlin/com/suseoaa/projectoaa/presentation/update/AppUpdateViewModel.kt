@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.update
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 /**
  * 应用更新 UI 状态
  */
+@Immutable
 data class AppUpdateUiState(
     val isChecking: Boolean = false,
     val isDownloading: Boolean = false,

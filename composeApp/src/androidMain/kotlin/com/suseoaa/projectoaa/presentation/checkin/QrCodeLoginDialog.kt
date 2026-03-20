@@ -29,6 +29,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 /**
  * 美观的二维码登录对话框
@@ -52,6 +55,45 @@ fun QrCodeLoginDialog(
     
     // 标记是否正在等待 SSO 流程完成以获取 SESSION
     var waitingForXgSession by remember { mutableStateOf(false) }
+    var hasObservedFreshLoginSignal by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    fun isLoginCallbackUrl(url: String): Boolean {
+        val normalized = url.lowercase()
+        if (normalized.contains("ybclientid=")) return true
+        if (normalized.contains("/callback/edu/")) return true
+        if (normalized.contains("/edu/") && !normalized.contains("qrcodelogin")) return true
+        if (normalized.endsWith("/edu") || normalized.endsWith("/edu/")) return true
+        return false
+    }
+
+    fun hasSopSessionCookie(): Boolean {
+        val cookies = CookieManager.getInstance().getCookie("https://qfhy.suse.edu.cn")
+        return cookies?.contains("_sop_session_=") == true
+    }
+
+    fun clearAuthCookies(cookieManager: CookieManager) {
+        val domains = listOf(
+            "https://qfhy.suse.edu.cn",
+            "https://suse.edu.cn"
+        )
+        val authCookieKeys = listOf(
+            "_sop_session_",
+            "SESSION",
+            "JSESSIONID",
+            "CASTGC"
+        )
+
+        domains.forEach { domain ->
+            authCookieKeys.forEach { key ->
+                cookieManager.setCookie(
+                    domain,
+                    "$key=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/"
+                )
+            }
+        }
+        cookieManager.flush()
+    }
     
     // 处理登录成功（从 SSO API 获取 SESSION 后调用）
     fun finalizeLogin() {
@@ -194,11 +236,26 @@ fun QrCodeLoginDialog(
         loadingState = 4
         errorMessage = "未能获取登录凭证"
     }
+
+    fun probeLoginResult(trigger: String) {
+        if (waitingForXgSession || loadingState >= 2) return
+
+        val currentUrl = webView?.url.orEmpty()
+        val callbackMatched = currentUrl.isNotBlank() && isLoginCallbackUrl(currentUrl)
+        val hasSop = hasSopSessionCookie()
+
+        if (callbackMatched || hasSop) {
+            hasObservedFreshLoginSignal = true
+            println("[QrCode] $trigger 探测到登录结果: url=$currentUrl, hasSop=$hasSop")
+            handleLoginSuccess()
+        }
+    }
     
     // 刷新二维码
     fun refreshQrCode() {
         loadingState = 0
         qrCodeBitmap = null
+        hasObservedFreshLoginSignal = false
         webView?.reload()
     }
     
@@ -393,6 +450,9 @@ fun QrCodeLoginDialog(
                                 val cookieManager = CookieManager.getInstance()
                                 cookieManager.setAcceptCookie(true)
                                 cookieManager.setAcceptThirdPartyCookies(this, true)
+                                // 进入扫码流程前清理认证Cookie，避免旧登录态污染导致直接判定成功。
+                                clearAuthCookies(cookieManager)
+                                hasObservedFreshLoginSignal = false
                                 
                                 webViewClient = object : WebViewClient() {
                                     
@@ -484,10 +544,11 @@ fun QrCodeLoginDialog(
                                         
                                         // 检测登录成功 - 扫码后会跳转离开二维码页面
                                         if (url != null && !url.contains("qrcodelogin") && !waitingForXgSession) {
+                                            if (isLoginCallbackUrl(url)) {
+                                                hasObservedFreshLoginSignal = true
+                                            }
                                             // 只要离开二维码页面就检查 cookies
-                                            if (url.contains("/callback/edu/") || 
-                                                url.endsWith("/edu/") ||
-                                                url.endsWith("/edu")) {
+                                            if (isLoginCallbackUrl(url) || (hasObservedFreshLoginSignal && hasSopSessionCookie())) {
                                                 println("[QrCode] 检测到登录成功，URL: $url")
                                                 handleLoginSuccess()
                                             }
@@ -512,6 +573,39 @@ fun QrCodeLoginDialog(
             webView?.removeJavascriptInterface("Android")
             webView?.destroy()
             webView = null
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                webView?.onPause()
+                webView?.pauseTimers()
+            }
+
+            if (event == Lifecycle.Event.ON_RESUME) {
+                webView?.onResume()
+                webView?.resumeTimers()
+
+                // 从后台恢复时主动探测：后台期间回调可能已发生，但未触发 onPageFinished 分支。
+                mainHandler.post { probeLoginResult("ON_RESUME#immediate") }
+                mainHandler.postDelayed({ probeLoginResult("ON_RESUME#600ms") }, 600)
+                mainHandler.postDelayed({ probeLoginResult("ON_RESUME#1500ms") }, 1500)
+
+                // 额外读取页面真实URL，避免 webView.url 滞后。
+                webView?.evaluateJavascript("(function(){return window.location.href;})()") { raw ->
+                    val jsUrl = raw?.trim('"').orEmpty()
+                    if (jsUrl.isNotBlank() && isLoginCallbackUrl(jsUrl)) {
+                        hasObservedFreshLoginSignal = true
+                        println("[QrCode] ON_RESUME JS URL 命中回调: $jsUrl")
+                        mainHandler.post { probeLoginResult("ON_RESUME#jsUrl") }
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.register
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.repository.OaaRegisterRepository
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 /**
  * 注册界面状态
  */
+@Immutable
 data class RegisterUiState(
     val studentId: String = "",      // 学号
     val realName: String = "",       // 姓名

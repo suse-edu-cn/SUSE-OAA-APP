@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.person
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@Immutable
 data class PersonUiState(
     val isLoading: Boolean = false,
     val userInfo: PersonData? = null,

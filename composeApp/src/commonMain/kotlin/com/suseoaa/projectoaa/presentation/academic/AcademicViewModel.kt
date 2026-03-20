@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.academic
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
@@ -31,12 +32,14 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * 考试UI状态
  */
+@Immutable
 data class ExamUiState(
     val courseName: String,
     val time: String,
     val location: String
 )
 
+@Immutable
 data class AcademicUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,

@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.login
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
@@ -13,6 +14,7 @@ import kotlinx.coroutines.launch
 /**
  * 登录界面状态
  */
+@Immutable
 data class LoginUiState(
     val account: String = "",
     val password: String = "",

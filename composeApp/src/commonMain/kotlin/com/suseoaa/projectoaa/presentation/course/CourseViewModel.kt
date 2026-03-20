@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.presentation.course
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
@@ -19,6 +20,7 @@ import kotlinx.datetime.*
 /**
  * 学期选项
  */
+@Immutable
 data class TermOption(
     val xnm: String,      // 学年码
     val xqm: String,      // 学期码: "3" = 第一学期, "12" = 第二学期
@@ -28,6 +30,7 @@ data class TermOption(
 /**
  * 时间段配置
  */
+@Immutable
 data class TimeSlotConfig(
     val sectionName: String,
     val startTime: String,
@@ -41,6 +44,7 @@ enum class SlotType { CLASS, BREAK_SMALL, BREAK_LUNCH, BREAK_DINNER }
 /**
  * 布局计算结果
  */
+@Immutable
 data class ScheduleLayoutItem(
     val course: CourseWithTimes,
     val time: ClassTimeEntity,
@@ -52,6 +56,7 @@ data class ScheduleLayoutItem(
 /**
  * UI状态
  */
+@Immutable
 data class CourseListUiState(
     val isLoading: Boolean = false,
     val successMessage: String? = null,
