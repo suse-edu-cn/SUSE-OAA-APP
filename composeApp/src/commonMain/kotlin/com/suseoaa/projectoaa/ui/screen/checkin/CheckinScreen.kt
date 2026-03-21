@@ -35,6 +35,8 @@ import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinLocations
 import com.suseoaa.projectoaa.presentation.checkin.AccountFilterType
 import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
 import com.suseoaa.projectoaa.presentation.checkin.QrCodeScanStatus
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.getDetailColumns
 import com.suseoaa.projectoaa.util.PlatformBackHandler
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -172,9 +174,8 @@ fun CheckinScreen(
                         // 筛选后的账号列表
                         val filteredAccounts = viewModel.getFilteredAccounts()
 
-                        BoxWithConstraints(modifier = Modifier.weight(1f)) {
-                            val isTablet = maxWidth > 600.dp
-                            val columns = if (isTablet) 2 else 1
+                        AdaptiveLayout(modifier = Modifier.weight(1f)) { adaptiveLayoutConfig ->
+                            val columns = adaptiveLayoutConfig.getDetailColumns()
 
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
@@ -1406,9 +1407,8 @@ private fun TaskListView(
                 CircularProgressIndicator()
             }
         } else {
-            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val isTablet = maxWidth > 600.dp
-                val columns = if (isTablet) 2 else 1
+            AdaptiveLayout(modifier = Modifier.fillMaxSize()) { adaptiveLayoutConfig ->
+                val columns = adaptiveLayoutConfig.getDetailColumns()
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),

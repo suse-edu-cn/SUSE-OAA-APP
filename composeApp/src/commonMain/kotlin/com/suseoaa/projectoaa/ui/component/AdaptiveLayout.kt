@@ -25,6 +25,14 @@ enum class WindowSizeClass {
 }
 
 /**
+ * 自适应断点常量 - 全局统一使用
+ */
+object AdaptiveBreakpoints {
+    val compactMaxWidth: Dp = 600.dp
+    val mediumMaxWidth: Dp = 840.dp
+}
+
+/**
  * 自适应布局配置
  */
 data class AdaptiveLayoutConfig(
@@ -55,13 +63,15 @@ data class AdaptiveLayoutConfig(
          * 根据屏幕宽度计算布局配置
          */
         fun calculate(screenWidth: Dp, screenHeight: Dp): AdaptiveLayoutConfig {
-            val windowSizeClass = when {
-                screenWidth < 600.dp -> WindowSizeClass.COMPACT
-                screenWidth < 840.dp -> WindowSizeClass.MEDIUM
-                else -> WindowSizeClass.EXPANDED
+            val classifiedWindowSizeClass = classifyWindowSizeClass(screenWidth)
+            val isTabletFormFactor = isTabletFormFactorDevice()
+            val windowSizeClass = if (isTabletFormFactor && classifiedWindowSizeClass == WindowSizeClass.COMPACT) {
+                WindowSizeClass.MEDIUM
+            } else {
+                classifiedWindowSizeClass
             }
 
-            val isTablet = screenWidth >= 600.dp || screenHeight >= 600.dp
+            val isTablet = windowSizeClass != WindowSizeClass.COMPACT || isTabletFormFactor
             val isLandscape = screenWidth > screenHeight
 
             // 平板横屏时使用侧边导航
@@ -75,7 +85,7 @@ data class AdaptiveLayoutConfig(
 
             val maxContentWidth = when (windowSizeClass) {
                 WindowSizeClass.COMPACT -> screenWidth
-                WindowSizeClass.MEDIUM -> 840.dp
+                WindowSizeClass.MEDIUM -> AdaptiveBreakpoints.mediumMaxWidth
                 WindowSizeClass.EXPANDED -> 1200.dp
             }
 
@@ -114,6 +124,30 @@ data class AdaptiveLayoutConfig(
 }
 
 /**
+ * 根据宽度计算窗口分类。
+ */
+fun classifyWindowSizeClass(screenWidth: Dp): WindowSizeClass = when {
+    screenWidth < AdaptiveBreakpoints.compactMaxWidth -> WindowSizeClass.COMPACT
+    screenWidth < AdaptiveBreakpoints.mediumMaxWidth -> WindowSizeClass.MEDIUM
+    else -> WindowSizeClass.EXPANDED
+}
+
+/**
+ * 判断是否为紧凑布局（手机优先布局）。
+ */
+fun AdaptiveLayoutConfig.useCompactLayout(): Boolean = windowSizeClass == WindowSizeClass.COMPACT
+
+/**
+ * 平台设备形态判断（例如 iPad / Android 平板）。
+ */
+expect fun isTabletFormFactorDevice(): Boolean
+
+/**
+ * 统一判断是否走平板布局。
+ */
+fun AdaptiveLayoutConfig.useTabletLayout(): Boolean = !useCompactLayout()
+
+/**
  * 自适应布局容器 - 自动检测屏幕尺寸并提供布局配置
  *
  * @param modifier 修饰符
@@ -131,6 +165,16 @@ fun AdaptiveLayout(
             AdaptiveLayoutConfig.calculate(maxWidth, maxHeight)
         }
         content(config)
+    }
+}
+
+/**
+ * 在 BoxWithConstraints 中复用统一自适应配置。
+ */
+@Composable
+fun BoxWithConstraintsScope.rememberAdaptiveLayoutConfig(): AdaptiveLayoutConfig {
+    return remember(maxWidth, maxHeight) {
+        AdaptiveLayoutConfig.calculate(maxWidth, maxHeight)
     }
 }
 

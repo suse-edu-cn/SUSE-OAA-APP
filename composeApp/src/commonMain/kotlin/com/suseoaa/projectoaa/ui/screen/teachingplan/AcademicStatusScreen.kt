@@ -31,6 +31,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
 import com.suseoaa.projectoaa.presentation.teachingplan.AcademicStatusViewModel
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.useTabletLayout
 import com.suseoaa.projectoaa.util.ToastManager
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
@@ -123,13 +125,13 @@ fun AcademicStatusScreen(
             }
         }
 
-        BoxWithConstraints(
+        AdaptiveLayout(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
-        ) {
-            val isTablet = maxWidth > 600.dp
+        ) { adaptiveLayoutConfig ->
+            val isTablet = adaptiveLayoutConfig.useTabletLayout()
 
             if (uiState.isLoading && uiState.categories.isEmpty()) {
                 // 初始加载

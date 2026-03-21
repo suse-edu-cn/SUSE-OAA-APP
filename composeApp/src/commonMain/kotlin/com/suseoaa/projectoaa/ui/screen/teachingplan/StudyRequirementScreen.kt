@@ -39,6 +39,9 @@ import com.suseoaa.projectoaa.shared.domain.model.teachingplan.MajorOption
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.StudyRequirementCategory
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.StudyRequirementCourse
 import com.suseoaa.projectoaa.presentation.teachingplan.StudyRequirementViewModel
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
+import com.suseoaa.projectoaa.ui.theme.AppDimensions
 import com.suseoaa.projectoaa.util.ToastManager
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -58,188 +61,174 @@ fun StudyRequirementScreen(
     val selectedCollegeObj = uiState.colleges.find { it.code == uiState.selectedCollegeId }
     val selectedMajorObj = uiState.majors.find { it.code == uiState.selectedMajorId }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("修读要求查询") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
-                    }
-                },
-                actions = {
-                    // 展开/折叠全部按钮 (仅在有数据时显示)
-                    if (uiState.categories.isNotEmpty()) {
-                        IconButton(
-                            onClick = {
-                                if (uiState.expandedCategories.size == uiState.categories.size) {
-                                    viewModel.collapseAllCategories()
-                                } else {
-                                    viewModel.expandAllCategories()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                if (uiState.expandedCategories.size == uiState.categories.size)
-                                    Icons.Default.KeyboardArrowUp
-                                else
-                                    Icons.Default.KeyboardArrowDown,
-                                contentDescription = if (uiState.expandedCategories.size == uiState.categories.size)
-                                    "全部折叠" else "全部展开"
-                            )
+    uiState.errorMessage?.let { error ->
+        LaunchedEffect(error) {
+            ToastManager.showToast(error)
+            viewModel.clearError()
+        }
+    }
+
+    AdaptivePageScaffold(
+        title = "修读要求查询",
+        onBack = onBack,
+        modifier = Modifier.background(MaterialTheme.colorScheme.background),
+        compactPadding = 0.dp,
+        tabletPadding = 0.dp,
+        actions = {
+            if (uiState.categories.isNotEmpty()) {
+                IconButton(
+                    onClick = {
+                        if (uiState.expandedCategories.size == uiState.categories.size) {
+                            viewModel.collapseAllCategories()
+                        } else {
+                            viewModel.expandAllCategories()
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                ) {
+                    Icon(
+                        if (uiState.expandedCategories.size == uiState.categories.size)
+                            Icons.Default.KeyboardArrowUp
+                        else
+                            Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (uiState.expandedCategories.size == uiState.categories.size)
+                            "全部折叠" else "全部展开"
+                    )
+                }
+            }
+        },
+        compactContent = { modifier ->
+            StudyRequirementCompactLayout(
+                uiState = uiState,
+                selectedCollegeObj = selectedCollegeObj,
+                selectedMajorObj = selectedMajorObj,
+                viewModel = viewModel,
+                modifier = modifier
+            )
+        },
+        tabletContent = { modifier ->
+            StudyRequirementTabletLayout(
+                uiState = uiState,
+                selectedCollegeObj = selectedCollegeObj,
+                selectedMajorObj = selectedMajorObj,
+                viewModel = viewModel,
+                modifier = modifier
             )
         }
-    ) { padding ->
-        // 使用 BoxWithConstraints 检测屏幕宽度以适配平板
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            val isTablet = maxWidth > 600.dp
-            val horizontalPadding = if (isTablet) 24.dp else 0.dp
+    )
+}
 
-            if (isTablet) {
-                // 平板布局：左侧筛选，右侧内容
-                Row(
+@Composable
+private fun StudyRequirementTabletLayout(
+    uiState: com.suseoaa.projectoaa.shared.domain.model.teachingplan.StudyRequirementUiState,
+    selectedCollegeObj: CollegeOption?,
+    selectedMajorObj: MajorOption?,
+    viewModel: StudyRequirementViewModel,
+    modifier: Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = AppDimensions.screenPaddingMedium, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppDimensions.paneSpacing)
+    ) {
+        TabletFilterPanel(
+            grades = uiState.grades,
+            colleges = uiState.colleges,
+            majors = uiState.majors,
+            selectedGrade = uiState.selectedGrade,
+            selectedCollege = selectedCollegeObj,
+            selectedMajor = selectedMajorObj,
+            onGradeSelect = viewModel::selectGrade,
+            onCollegeSelect = { viewModel.selectCollege(it.code) },
+            onMajorSelect = { viewModel.selectMajor(it.code) },
+            onQuery = viewModel::queryStudyRequirements,
+            isLoading = uiState.isLoading,
+            modifier = Modifier.width(AppDimensions.sidePanelWidth)
+        )
+
+        StudyRequirementContent(
+            uiState = uiState,
+            selectedMajorObj = selectedMajorObj,
+            viewModel = viewModel,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StudyRequirementCompactLayout(
+    uiState: com.suseoaa.projectoaa.shared.domain.model.teachingplan.StudyRequirementUiState,
+    selectedCollegeObj: CollegeOption?,
+    selectedMajorObj: MajorOption?,
+    viewModel: StudyRequirementViewModel,
+    modifier: Modifier
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        CollapsibleFilterSection(
+            isExpanded = uiState.isFilterExpanded,
+            onToggleExpand = { viewModel.toggleFilterExpanded() },
+            grades = uiState.grades,
+            colleges = uiState.colleges,
+            majors = uiState.majors,
+            selectedGrade = uiState.selectedGrade,
+            selectedCollege = selectedCollegeObj,
+            selectedMajor = selectedMajorObj,
+            onGradeSelect = viewModel::selectGrade,
+            onCollegeSelect = { viewModel.selectCollege(it.code) },
+            onMajorSelect = { viewModel.selectMajor(it.code) },
+            onQuery = viewModel::queryStudyRequirements,
+            isLoading = uiState.isLoading,
+            hasResult = uiState.categories.isNotEmpty()
+        )
+
+        StudyRequirementContent(
+            uiState = uiState,
+            selectedMajorObj = selectedMajorObj,
+            viewModel = viewModel,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StudyRequirementContent(
+    uiState: com.suseoaa.projectoaa.shared.domain.model.teachingplan.StudyRequirementUiState,
+    selectedMajorObj: MajorOption?,
+    viewModel: StudyRequirementViewModel,
+    modifier: Modifier
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        when {
+            uiState.isLoading -> {
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = horizontalPadding, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // 左侧筛选面板 (固定宽度)
-                    TabletFilterPanel(
-                        grades = uiState.grades,
-                        colleges = uiState.colleges,
-                        majors = uiState.majors,
-                        selectedGrade = uiState.selectedGrade,
-                        selectedCollege = selectedCollegeObj,
-                        selectedMajor = selectedMajorObj,
-                        onGradeSelect = viewModel::selectGrade,
-                        onCollegeSelect = { viewModel.selectCollege(it.code) },
-                        onMajorSelect = { viewModel.selectMajor(it.code) },
-                        onQuery = viewModel::queryStudyRequirements,
-                        isLoading = uiState.isLoading,
-                        modifier = Modifier.width(320.dp)
-                    )
-
-                    // 右侧内容区域
-                    Column(modifier = Modifier.weight(1f)) {
-                        // 错误提示 - 使用 Toast
-                        uiState.errorMessage?.let { error ->
-                            LaunchedEffect(error) {
-                                ToastManager.showToast(error)
-                                viewModel.clearError()
-                            }
-                        }
-
-                        // 课程列表
-                        when {
-                            uiState.isLoading -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-
-                            uiState.categories.isEmpty() && selectedMajorObj != null -> {
-                                EmptyState(message = "暂无课程数据")
-                            }
-
-                            uiState.categories.isEmpty() -> {
-                                EmptyState(message = "请选择年级、学院、专业后查询")
-                            }
-
-                            else -> {
-                                CourseListByCategory(
-                                    categories = uiState.categories,
-                                    expandedCategories = uiState.expandedCategories,
-                                    onToggleCategory = viewModel::toggleCategoryExpanded,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                TotalCreditsBar(
-                                    totalCredits = uiState.categories.sumOf { it.totalCredits }
-                                )
-                            }
-                        }
-                    }
+                    CircularProgressIndicator()
                 }
-            } else {
-                // 手机布局：垂直排列
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // 可折叠筛选区域
-                    CollapsibleFilterSection(
-                        isExpanded = uiState.isFilterExpanded,
-                        onToggleExpand = { viewModel.toggleFilterExpanded() },
-                        grades = uiState.grades,
-                        colleges = uiState.colleges,
-                        majors = uiState.majors,
-                        selectedGrade = uiState.selectedGrade,
-                        selectedCollege = selectedCollegeObj,
-                        selectedMajor = selectedMajorObj,
-                        onGradeSelect = viewModel::selectGrade,
-                        onCollegeSelect = { viewModel.selectCollege(it.code) },
-                        onMajorSelect = { viewModel.selectMajor(it.code) },
-                        onQuery = viewModel::queryStudyRequirements,
-                        isLoading = uiState.isLoading,
-                        hasResult = uiState.categories.isNotEmpty()
-                    )
+            }
 
-                    // 错误提示 - 使用 Toast
-                    uiState.errorMessage?.let { error ->
-                        LaunchedEffect(error) {
-                            ToastManager.showToast(error)
-                            viewModel.clearError()
-                        }
-                    }
+            uiState.categories.isEmpty() && selectedMajorObj != null -> {
+                EmptyState(message = "暂无课程数据")
+            }
 
-                    // 课程列表
-                    when {
-                        uiState.isLoading -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        }
+            uiState.categories.isEmpty() -> {
+                EmptyState(message = "请选择年级、学院、专业后查询")
+            }
 
-                        uiState.categories.isEmpty() && selectedMajorObj != null -> {
-                            EmptyState(message = "暂无课程数据")
-                        }
+            else -> {
+                CourseListByCategory(
+                    categories = uiState.categories,
+                    expandedCategories = uiState.expandedCategories,
+                    onToggleCategory = viewModel::toggleCategoryExpanded,
+                    modifier = Modifier.weight(1f)
+                )
 
-                        uiState.categories.isEmpty() -> {
-                            EmptyState(message = "请选择年级、学院、专业后查询")
-                        }
-
-                        else -> {
-                            CourseListByCategory(
-                                categories = uiState.categories,
-                                expandedCategories = uiState.expandedCategories,
-                                onToggleCategory = viewModel::toggleCategoryExpanded,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            TotalCreditsBar(
-                                totalCredits = uiState.categories.sumOf { it.totalCredits }
-                            )
-                        }
-                    }
-                }
+                TotalCreditsBar(
+                    totalCredits = uiState.categories.sumOf { it.totalCredits }
+                )
             }
         }
     }

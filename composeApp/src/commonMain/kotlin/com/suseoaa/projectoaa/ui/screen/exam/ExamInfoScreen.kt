@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +36,8 @@ import com.suseoaa.projectoaa.presentation.exam.ExamUiItem
 import com.suseoaa.projectoaa.presentation.exam.ExamUiState
 import com.suseoaa.projectoaa.presentation.exam.ExamViewModel
 import com.suseoaa.projectoaa.presentation.exam.SemesterOption
+import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.ToastManager
 import com.suseoaa.projectoaa.util.getExamCountDown
@@ -64,7 +65,6 @@ fun ExamInfoScreen(
     val surfaceColor = if (isDarkTheme) NightSurface else OxygenWhite
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
     val textColor = if (isDarkTheme) Color.White else InkBlack
-    val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
 
     // 错误提示
     uiState.errorMessage?.let { error ->
@@ -87,80 +87,60 @@ fun ExamInfoScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("考试信息查询", color = textColor) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            "返回",
-                            tint = textColor
-                        )
-                    }
-                },
-                actions = {
-                    // 添加考试按钮
-                    IconButton(onClick = { viewModel.showAddExamDialog() }) {
-                        Icon(
-                            Icons.Default.Add,
-                            "添加考试",
-                            tint = primaryColor
-                        )
-                    }
-
-                    // 刷新按钮
-                    IconButton(
-                        onClick = { viewModel.refresh() },
-                        enabled = !uiState.isRefreshing
-                    ) {
-                        if (uiState.isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = primaryColor,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.Refresh,
-                                "刷新",
-                                tint = primaryColor
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = surfaceColor
-                )
-            )
-        },
-        containerColor = backgroundColor
-    ) { padding ->
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            val isTablet = maxWidth > 600.dp
-
-            if (isTablet) {
-                // 平板布局：左侧筛选面板，右侧内容
-                TabletExamLayout(
-                    uiState = uiState,
-                    viewModel = viewModel,
-                    isDarkTheme = isDarkTheme
-                )
-            } else {
-                // 手机布局：可折叠筛选区域
-                PhoneExamLayout(
-                    uiState = uiState,
-                    viewModel = viewModel,
-                    isDarkTheme = isDarkTheme
+    AdaptivePageScaffold(
+        title = "考试信息查询",
+        onBack = onBack,
+        containerColor = backgroundColor,
+        topBarContainerColor = surfaceColor,
+        titleColor = textColor,
+        navigationIconColor = textColor,
+        compactPadding = 0.dp,
+        tabletPadding = 0.dp,
+        actions = {
+            IconButton(onClick = { viewModel.showAddExamDialog() }) {
+                Icon(
+                    Icons.Default.Add,
+                    "添加考试",
+                    tint = primaryColor
                 )
             }
+
+            IconButton(
+                onClick = { viewModel.refresh() },
+                enabled = !uiState.isRefreshing
+            ) {
+                if (uiState.isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = primaryColor,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Refresh,
+                        "刷新",
+                        tint = primaryColor
+                    )
+                }
+            }
+        },
+        compactContent = { modifier ->
+            PhoneExamLayout(
+                uiState = uiState,
+                viewModel = viewModel,
+                isDarkTheme = isDarkTheme,
+                modifier = modifier
+            )
+        },
+        tabletContent = { modifier ->
+            TabletExamLayout(
+                uiState = uiState,
+                viewModel = viewModel,
+                isDarkTheme = isDarkTheme,
+                modifier = modifier
+            )
         }
-    }
+    )
 }
 
 // ============================================================================
@@ -171,19 +151,18 @@ fun ExamInfoScreen(
 private fun TabletExamLayout(
     uiState: ExamUiState,
     viewModel: ExamViewModel,
-    isDarkTheme: Boolean
+    isDarkTheme: Boolean,
+    modifier: Modifier
 ) {
     val surfaceColor = if (isDarkTheme) NightSurface else OxygenWhite
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
-    val textColor = if (isDarkTheme) Color.White else InkBlack
-    val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
     val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else OutlineSoft
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = AppDimensions.screenPaddingMedium, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppDimensions.paneSpacing)
     ) {
         // 左侧筛选面板
         Card(
@@ -261,16 +240,10 @@ private fun TabletExamLayout(
 private fun PhoneExamLayout(
     uiState: ExamUiState,
     viewModel: ExamViewModel,
-    isDarkTheme: Boolean
+    isDarkTheme: Boolean,
+    modifier: Modifier
 ) {
-    val surfaceColor = if (isDarkTheme) NightSurface else OxygenWhite
-    val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
-    val containerColor = if (isDarkTheme) NightContainer else SoftBlueWait
-    val textColor = if (isDarkTheme) Color.White else InkBlack
-    val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
-    val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else OutlineSoft
-
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize()) {
         // 可折叠学期选择器
         CollapsibleSemesterSelector(
             isExpanded = uiState.isFilterExpanded,

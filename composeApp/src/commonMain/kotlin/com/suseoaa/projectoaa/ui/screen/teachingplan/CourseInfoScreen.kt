@@ -35,7 +35,9 @@ import com.suseoaa.projectoaa.shared.domain.model.teachingplan.CourseInfoItem
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.MajorOption
 import com.suseoaa.projectoaa.presentation.teachingplan.CourseInfoViewModel
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.ui.component.getListColumns
+import com.suseoaa.projectoaa.ui.theme.AppDimensions
 import com.suseoaa.projectoaa.util.ToastManager
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -58,73 +60,51 @@ fun CourseInfoScreen(
     val selectedCollegeObj = uiState.colleges.find { it.code == uiState.selectedCollegeId }
     val selectedMajorObj = uiState.majors.find { it.code == uiState.selectedMajorId }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("课程信息查询") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
-                    }
-                },
-                actions = {
-                    // 刷新按钮
-                    if (uiState.courses.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.refresh() }) {
-                            Icon(Icons.Default.Refresh, "刷新")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }
-    ) { padding ->
-        // 使用 BoxWithConstraints 检测屏幕宽度以适配平板
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            val isTablet = maxWidth > 600.dp
-            val horizontalPadding = if (isTablet) 24.dp else 0.dp
-
-            // 错误提示 - 使用 Toast
-            uiState.errorMessage?.let { error ->
-                LaunchedEffect(error) {
-                    ToastManager.showToast(error)
-                    viewModel.clearError()
-                }
-            }
-
-            if (isTablet) {
-                // 平板布局：左侧统一筛选面板，右侧纯内容
-                TabletLayout(
-                    uiState = uiState,
-                    selectedCollegeObj = selectedCollegeObj,
-                    selectedMajorObj = selectedMajorObj,
-                    availableYears = availableYears,
-                    availableCourseTypes = availableCourseTypes,
-                    viewModel = viewModel,
-                    focusManager = focusManager,
-                    horizontalPadding = horizontalPadding
-                )
-            } else {
-                // 手机布局：可折叠统一筛选区域
-                PhoneLayout(
-                    uiState = uiState,
-                    selectedCollegeObj = selectedCollegeObj,
-                    selectedMajorObj = selectedMajorObj,
-                    availableYears = availableYears,
-                    availableCourseTypes = availableCourseTypes,
-                    viewModel = viewModel,
-                    focusManager = focusManager
-                )
-            }
+    uiState.errorMessage?.let { error ->
+        LaunchedEffect(error) {
+            ToastManager.showToast(error)
+            viewModel.clearError()
         }
     }
+
+    AdaptivePageScaffold(
+        title = "课程信息查询",
+        onBack = onBack,
+        modifier = Modifier.background(MaterialTheme.colorScheme.background),
+        compactPadding = 0.dp,
+        tabletPadding = 0.dp,
+        actions = {
+            if (uiState.courses.isNotEmpty()) {
+                IconButton(onClick = { viewModel.refresh() }) {
+                    Icon(Icons.Default.Refresh, "刷新")
+                }
+            }
+        },
+        compactContent = { modifier ->
+            CourseInfoCompactLayout(
+                uiState = uiState,
+                selectedCollegeObj = selectedCollegeObj,
+                selectedMajorObj = selectedMajorObj,
+                availableYears = availableYears,
+                availableCourseTypes = availableCourseTypes,
+                viewModel = viewModel,
+                focusManager = focusManager,
+                modifier = modifier
+            )
+        },
+        tabletContent = { modifier ->
+            CourseInfoTabletLayout(
+                uiState = uiState,
+                selectedCollegeObj = selectedCollegeObj,
+                selectedMajorObj = selectedMajorObj,
+                availableYears = availableYears,
+                availableCourseTypes = availableCourseTypes,
+                viewModel = viewModel,
+                focusManager = focusManager,
+                modifier = modifier
+            )
+        }
+    )
 }
 
 // ============================================================================
@@ -135,7 +115,7 @@ fun CourseInfoScreen(
  * 平板端布局 - 左侧统一筛选面板 + 右侧内容
  */
 @Composable
-private fun TabletLayout(
+private fun CourseInfoTabletLayout(
     uiState: com.suseoaa.projectoaa.shared.domain.model.teachingplan.CourseInfoUiState,
     selectedCollegeObj: CollegeOption?,
     selectedMajorObj: MajorOption?,
@@ -143,15 +123,14 @@ private fun TabletLayout(
     availableCourseTypes: List<String>,
     viewModel: CourseInfoViewModel,
     focusManager: androidx.compose.ui.focus.FocusManager,
-    horizontalPadding: androidx.compose.ui.unit.Dp
+    modifier: Modifier
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = horizontalPadding, vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = AppDimensions.screenPaddingMedium, vertical = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppDimensions.paneSpacing)
     ) {
-        // 左侧统一筛选面板
         TabletFilterPanel(
             // 查询条件
             grades = uiState.grades,
@@ -179,27 +158,15 @@ private fun TabletLayout(
             onSemesterSelect = viewModel::setSemesterFilter,
             onCourseTypeSelect = viewModel::setCourseTypeFilter,
             onClearFilters = viewModel::clearFilters,
-            modifier = Modifier.width(320.dp)
+            modifier = Modifier.width(AppDimensions.sidePanelWidth)
         )
 
-        // 右侧纯内容区域
-        Column(modifier = Modifier.weight(1f)) {
-            // 统计信息
-            if (uiState.filteredCourses.isNotEmpty()) {
-                StatisticsBar(
-                    totalCourses = uiState.filteredCourses.size,
-                    totalCredits = viewModel.getTotalCredits()
-                )
-            }
-
-            // 课程列表
-            CourseContentArea(
-                uiState = uiState,
-                selectedMajorObj = selectedMajorObj,
-                onClearFilters = viewModel::clearFilters,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        CourseInfoMainContent(
+            uiState = uiState,
+            selectedMajorObj = selectedMajorObj,
+            viewModel = viewModel,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -207,17 +174,17 @@ private fun TabletLayout(
  * 手机端布局 - 可折叠统一筛选区域 + 内容
  */
 @Composable
-private fun PhoneLayout(
+private fun CourseInfoCompactLayout(
     uiState: com.suseoaa.projectoaa.shared.domain.model.teachingplan.CourseInfoUiState,
     selectedCollegeObj: CollegeOption?,
     selectedMajorObj: MajorOption?,
     availableYears: List<String>,
     availableCourseTypes: List<String>,
     viewModel: CourseInfoViewModel,
-    focusManager: androidx.compose.ui.focus.FocusManager
+    focusManager: androidx.compose.ui.focus.FocusManager,
+    modifier: Modifier
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        // 可折叠统一筛选区域
+    Column(modifier = modifier.fillMaxSize()) {
         CollapsibleFilterPanel(
             isExpanded = uiState.isFilterExpanded,
             onToggleExpand = { viewModel.toggleFilterExpanded() },
@@ -249,7 +216,23 @@ private fun PhoneLayout(
             onClearFilters = viewModel::clearFilters
         )
 
-        // 统计信息
+        CourseInfoMainContent(
+            uiState = uiState,
+            selectedMajorObj = selectedMajorObj,
+            viewModel = viewModel,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun CourseInfoMainContent(
+    uiState: com.suseoaa.projectoaa.shared.domain.model.teachingplan.CourseInfoUiState,
+    selectedMajorObj: MajorOption?,
+    viewModel: CourseInfoViewModel,
+    modifier: Modifier
+) {
+    Column(modifier = modifier.fillMaxSize()) {
         if (uiState.filteredCourses.isNotEmpty()) {
             StatisticsBar(
                 totalCourses = uiState.filteredCourses.size,
@@ -257,7 +240,6 @@ private fun PhoneLayout(
             )
         }
 
-        // 课程列表
         CourseContentArea(
             uiState = uiState,
             selectedMajorObj = selectedMajorObj,
