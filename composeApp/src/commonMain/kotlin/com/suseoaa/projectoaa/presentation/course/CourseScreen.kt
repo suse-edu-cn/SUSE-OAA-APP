@@ -82,6 +82,26 @@ private val DateHeaderHeight = 32.dp
 // 课程卡片间距配置
 private val CardVerticalPadding = 2.dp  // 上下各留的间距
 private val CardHorizontalPadding = 1.dp  // 左右各留的间距
+private val ConflictCardInnerSpacing = 2.dp
+// 当单列宽度低于此阈值时，启用手机端冲突策略：仅显示一张主卡片 + 冲突角标。
+private val CompactConflictColWidthThreshold = 62.dp
+
+/**
+ * 课表卡片的预处理布局数据。
+ *
+ * 用法：
+ * 1. 由 [buildPreparedCardItems] 生成。
+ * 2. 在 [ScheduleCourseOverlay] 中通过 laneIndex/laneCount 决定平板并排布局。
+ * 3. 在手机端紧凑模式下，仅保留 laneIndex=0 的主卡片渲染。
+ */
+@Immutable
+private data class PreparedCardItem(
+    val layoutItem: ScheduleLayoutItem,
+    val laneIndex: Int,
+    val laneCount: Int,
+    val conflictGroup: List<ScheduleLayoutItem>,
+    val color: Color
+)
 
 // ==================== 主界面 ====================
 
@@ -644,6 +664,9 @@ fun DynamicWeekContent(
     dailySchedule: List<TimeSlotConfig>,
     onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
 ) {
+    // 按“单日列宽”判断设备可用空间，而不是按平台名称硬编码，适配折叠屏/小窗等场景。
+    val isCompactConflictMode = (maxWidth / 7f) < CompactConflictColWidthThreshold
+
     Column(modifier = Modifier.fillMaxSize()) {
         DynamicDateRow(weekStartDate)
         Box(
@@ -652,46 +675,65 @@ fun DynamicWeekContent(
                 .fillMaxWidth()
         ) {
             HighlightTodayColumn(weekStartDate, maxWidth)
-            ScheduleCourseOverlay(layoutItems, unitHeightPx, dailySchedule, onCourseClick)
+            ScheduleCourseOverlay(
+                items = layoutItems,
+                unitHeightPx = unitHeightPx,
+                dailySchedule = dailySchedule,
+                isCompactConflictMode = isCompactConflictMode,
+                onCourseClick = onCourseClick
+            )
         }
     }
 }
 
+/**
+ * 课表课程层：负责把 [ScheduleLayoutItem] 渲染为可点击课程卡片。
+ *
+ * 渲染策略：
+ * - `isCompactConflictMode = true`（手机紧凑模式）
+ *   同一冲突组只显示一张主卡片，右上角展示“冲突N”。
+ * - `isCompactConflictMode = false`（平板/宽屏）
+ *   冲突课程按车道并排显示，避免相互覆盖。
+ *
+ * 用法示例：
+ * `ScheduleCourseOverlay(layoutItems, unitHeightPx, dailySchedule, true, onCourseClick)`
+ */
 @Composable
 fun ScheduleCourseOverlay(
     items: List<ScheduleLayoutItem>,
     unitHeightPx: Float,
     dailySchedule: List<TimeSlotConfig>,
+    isCompactConflictMode: Boolean,
     onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
 ) {
     val density = LocalDensity.current
     val verticalPaddingPx = with(density) { CardVerticalPadding.toPx() }
     val horizontalPaddingPx = with(density) { CardHorizontalPadding.toPx() }
+    val conflictInnerSpacingPx = with(density) { ConflictCardInnerSpacing.toPx() }
 
-    val preparedGroups = remember(items) {
-        items.groupBy { it.dayIndex }.mapValues { (_, dayItems) ->
-            dayItems.groupBy { "${it.startNodeIndex}-${it.endNodeIndex}" }
-        }
+    val preparedItems = remember(items) {
+        buildPreparedCardItems(items)
+    }
+    // 紧凑模式仅展示每组冲突的主卡（laneIndex=0），避免手机端文字被压缩。
+    val visiblePreparedItems = remember(preparedItems, isCompactConflictMode) {
+        if (!isCompactConflictMode) preparedItems
+        else preparedItems.filter { it.laneIndex == 0 }
     }
 
     Layout(content = {
-        for (day in 0..6) {
-            val dayGroups = preparedGroups[day] ?: emptyMap()
-            dayGroups.forEach { (_, groupItems) ->
-                val overlappedData = groupItems.map { it.course to it.time }
-                val item = groupItems.first()
-                val courseName = item.course.course.courseName
-                val index = (courseName.hashCode() and Int.MAX_VALUE) % CourseColors.size
-                val baseColor = CourseColors[index]
+        visiblePreparedItems.forEach { prepared ->
+            val item = prepared.layoutItem
+            val conflictData = prepared.conflictGroup.map { it.course to it.time }
 
-                CourseCard(
-                    title = courseName,
-                    location = item.time.location,
-                    color = baseColor,
-                    onClickWithBounds = { bounds -> onCourseClick(overlappedData, bounds) },
-                    modifier = Modifier.layoutId(item)
-                )
-            }
+            CourseCard(
+                title = item.course.course.courseName,
+                location = item.time.location,
+                color = prepared.color,
+                isConflict = prepared.conflictGroup.size > 1,
+                conflictCount = prepared.conflictGroup.size,
+                onClickWithBounds = { bounds -> onCourseClick(conflictData, bounds) },
+                modifier = Modifier.layoutId(prepared)
+            )
         }
     }) { measurables, constraints ->
         val totalWidthPx = constraints.maxWidth.toFloat()
@@ -706,27 +748,46 @@ fun ScheduleCourseOverlay(
         slotYPositions[dailySchedule.size] = currentY
 
         val placeables = measurables.map { measurable ->
-            val item = measurable.layoutId as ScheduleLayoutItem
+            val prepared = measurable.layoutId as PreparedCardItem
+            val item = prepared.layoutItem
             val yPos = slotYPositions[item.startNodeIndex]
             // 计算实际占用的槽位数量（从startNodeIndex到endNodeIndex的所有槽位）
             val endSlotIndex = (item.endNodeIndex + 1).coerceAtMost(dailySchedule.size)
             val endYPos = slotYPositions[endSlotIndex]
-            // 上下各留相同的间距
-            val height = (endYPos - yPos - verticalPaddingPx * 2).roundToInt()
-            // 左右各留 CardHorizontalPadding 的间距
-            val width = (colWidthPx - horizontalPaddingPx * 2).roundToInt()
+
+            val availableColWidth = (colWidthPx - horizontalPaddingPx * 2).coerceAtLeast(0f)
+            val laneCount = prepared.laneCount.coerceAtLeast(1)
+            val laneWidth = if (isCompactConflictMode || laneCount == 1) {
+                // 手机端冲突只显示一张主卡片，保持完整宽度
+                availableColWidth
+            } else {
+                (availableColWidth - conflictInnerSpacingPx * (laneCount - 1)).coerceAtLeast(0f) / laneCount
+            }
+            val laneHeight = (endYPos - yPos - verticalPaddingPx * 2).coerceAtLeast(0f)
+
             val placeable = measurable.measure(
                 androidx.compose.ui.unit.Constraints.fixed(
-                    width = width.coerceAtLeast(0), height = height.coerceAtLeast(0)
+                    width = laneWidth.roundToInt().coerceAtLeast(0),
+                    height = laneHeight.roundToInt().coerceAtLeast(0)
                 )
             )
-            Triple(placeable, item, yPos)
+            Triple(placeable, prepared, yPos)
         }
         layout(constraints.maxWidth, constraints.maxHeight) {
-            placeables.forEach { (placeable, item, yPos) ->
+            placeables.forEach { (placeable, prepared, yPos) ->
+                val item = prepared.layoutItem
+                val availableColWidth = (colWidthPx - horizontalPaddingPx * 2).coerceAtLeast(0f)
+                val laneCount = prepared.laneCount.coerceAtLeast(1)
+                val laneWidth = if (isCompactConflictMode || laneCount == 1) {
+                    availableColWidth
+                } else {
+                    (availableColWidth - conflictInnerSpacingPx * (laneCount - 1)).coerceAtLeast(0f) / laneCount
+                }
+                val laneXOffset = if (isCompactConflictMode) 0f else prepared.laneIndex * (laneWidth + conflictInnerSpacingPx)
+
                 placeable.place(
                     // 水平方向：列起始位置 + 左边距
-                    (colWidthPx * item.dayIndex + horizontalPaddingPx).roundToInt(),
+                    (colWidthPx * item.dayIndex + horizontalPaddingPx + laneXOffset).roundToInt(),
                     // 垂直方向：行起始位置 + 上边距
                     (yPos + verticalPaddingPx).roundToInt()
                 )
@@ -735,11 +796,96 @@ fun ScheduleCourseOverlay(
     }
 }
 
+/**
+ * 将一周课程转换为可渲染的冲突分组数据。
+ *
+ * 算法说明：
+ * 1. 先按星期分组。
+ * 2. 再按时间区间重叠聚类（cluster）。
+ * 3. 在每个 cluster 中做车道分配（lane），用于并排显示。
+ *
+ * 结果由 [ScheduleCourseOverlay] 消费，用于手机/平板两种冲突显示模式。
+ */
+private fun buildPreparedCardItems(items: List<ScheduleLayoutItem>): List<PreparedCardItem> {
+    val result = mutableListOf<PreparedCardItem>()
+
+    for (day in 0..6) {
+        val dayItems = items
+            .filter { it.dayIndex == day }
+            .sortedWith(compareBy<ScheduleLayoutItem> { it.startNodeIndex }.thenBy { it.endNodeIndex })
+        if (dayItems.isEmpty()) continue
+
+        val clusters = mutableListOf<List<ScheduleLayoutItem>>()
+        var currentCluster = mutableListOf<ScheduleLayoutItem>()
+        var currentClusterMaxEnd = -1
+
+        dayItems.forEach { item ->
+            if (currentCluster.isEmpty()) {
+                currentCluster.add(item)
+                currentClusterMaxEnd = item.endNodeIndex
+            } else if (item.startNodeIndex <= currentClusterMaxEnd) {
+                currentCluster.add(item)
+                currentClusterMaxEnd = maxOf(currentClusterMaxEnd, item.endNodeIndex)
+            } else {
+                clusters.add(currentCluster)
+                currentCluster = mutableListOf(item)
+                currentClusterMaxEnd = item.endNodeIndex
+            }
+        }
+        if (currentCluster.isNotEmpty()) {
+            clusters.add(currentCluster)
+        }
+
+        clusters.forEach { cluster ->
+            val laneEnd = mutableListOf<Int>()
+            val laneAssignment = mutableMapOf<ScheduleLayoutItem, Int>()
+
+            cluster
+                .sortedWith(compareBy<ScheduleLayoutItem> { it.startNodeIndex }.thenBy { it.endNodeIndex })
+                .forEach { item ->
+                    var assignedLane = -1
+                    for (lane in laneEnd.indices) {
+                        if (item.startNodeIndex > laneEnd[lane]) {
+                            assignedLane = lane
+                            laneEnd[lane] = item.endNodeIndex
+                            break
+                        }
+                    }
+                    if (assignedLane == -1) {
+                        laneEnd.add(item.endNodeIndex)
+                        assignedLane = laneEnd.lastIndex
+                    }
+                    laneAssignment[item] = assignedLane
+                }
+
+            val laneCount = laneEnd.size.coerceAtLeast(1)
+            cluster.forEach { item ->
+                val courseName = item.course.course.courseName
+                val index = (courseName.hashCode() and Int.MAX_VALUE) % CourseColors.size
+                val baseColor = CourseColors[index]
+                result.add(
+                    PreparedCardItem(
+                        layoutItem = item,
+                        laneIndex = laneAssignment[item] ?: 0,
+                        laneCount = laneCount,
+                        conflictGroup = cluster,
+                        color = if (cluster.size > 1) baseColor.copy(alpha = 0.9f) else baseColor
+                    )
+                )
+            }
+        }
+    }
+
+    return result
+}
+
 @Composable
 private fun CourseCard(
     title: String,
     location: String,
     color: Color,
+    isConflict: Boolean,
+    conflictCount: Int,
     onClickWithBounds: (Rect?) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -749,41 +895,59 @@ private fun CourseCard(
         colors = CardDefaults.cardColors(containerColor = color),
         shape = RoundedCornerShape(6.dp),
         elevation = CardDefaults.cardElevation(0.dp),
+        border = if (isConflict) BorderStroke(1.dp, Color.White.copy(alpha = 0.75f)) else null,
         modifier = modifier
             .onGloballyPositioned { coordinates ->
                 cardBounds = coordinates.boundsInWindow()
             }
             .clickable { onClickWithBounds(cardBounds) }
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 3.dp, vertical = 2.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 3.dp, vertical = 2.dp)
         ) {
-            Text(
-                text = title,
-                fontSize = 11.sp,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 11.sp,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            if (location.isNotBlank()) {
-                val displayLocation = location.removePrefix("L")
+            if (isConflict) {
                 Text(
-                    text = displayLocation,
-                    fontSize = 9.sp,
-                    color = Color.White.copy(0.9f),
-                    lineHeight = 10.sp,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    text = "冲突$conflictCount",
+                    color = Color.White,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .background(Color.Black.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
                 )
+            }
+
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 11.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 11.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                if (location.isNotBlank()) {
+                    val displayLocation = location.removePrefix("L")
+                    Text(
+                        text = displayLocation,
+                        fontSize = 9.sp,
+                        color = Color.White.copy(0.9f),
+                        lineHeight = 10.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

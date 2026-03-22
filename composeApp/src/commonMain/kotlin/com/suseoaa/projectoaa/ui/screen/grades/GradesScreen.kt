@@ -32,6 +32,56 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
+@Immutable
+private data class GradeCardUiModel(
+    val itemKey: String,
+    val score: String,
+    val scoreColor: Color,
+    val courseName: String,
+    val credit: String,
+    val gpa: String,
+    val courseType: String,
+    val examType: String,
+    val regularScore: String,
+    val regularRatio: String,
+    val experimentScore: String,
+    val experimentRatio: String,
+    val finalScore: String,
+    val finalRatio: String,
+    val teacherShort: String?,
+    val courseIdShort: String?,
+    val examNature: String
+)
+
+private fun GradeEntity.toCardUiModel(): GradeCardUiModel {
+    val teacherShortText = teacher.take(4).let {
+        if (teacher.length > 4) "$it…" else it
+    }
+    val courseIdShortText = courseId.take(9).let {
+        if (courseId.length > 9) "$it…" else it
+    }
+
+    return GradeCardUiModel(
+        itemKey = "${studentId}_${courseId}_${xnm}_${xqm}",
+        score = score,
+        scoreColor = getGradeColor(score),
+        courseName = courseName,
+        credit = credit,
+        gpa = gpa,
+        courseType = courseType,
+        examType = examType,
+        regularScore = regularScore,
+        regularRatio = regularRatio,
+        experimentScore = experimentScore,
+        experimentRatio = experimentRatio,
+        finalScore = finalScore,
+        finalRatio = finalRatio,
+        teacherShort = teacherShortText,
+        courseIdShort = courseIdShortText,
+        examNature = examNature
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GradesScreen(
@@ -225,6 +275,10 @@ private fun GradesContent(
     config: AdaptiveLayoutConfig,
     onRefresh: () -> Unit
 ) {
+    val gradeCardUiList by remember(uiState.grades) {
+        derivedStateOf { uiState.grades.map { it.toCardUiModel() } }
+    }
+
     when {
         uiState.grades.isEmpty() && !uiState.isRefreshing -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -274,8 +328,10 @@ private fun GradesContent(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(
-                    uiState.grades,
-                    key = { "${it.studentId}_${it.courseId}_${it.xnm}_${it.xqm}" }) { item ->
+                    items = gradeCardUiList,
+                    key = { it.itemKey },
+                    contentType = { "grade_card" }
+                ) { item ->
                     GradeItemCard(item)
                 }
             }
@@ -493,7 +549,7 @@ fun FilterButton(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun GradeItemCard(item: GradeEntity) {
+private fun GradeItemCard(item: GradeCardUiModel) {
     val isDarkTheme = isSystemInDarkTheme()
     val cardBackgroundColor = if (isDarkTheme) NightSurface else OxygenWhite
     val textColor = if (isDarkTheme) Color.White else InkBlack
@@ -531,7 +587,7 @@ fun GradeItemCard(item: GradeEntity) {
                 Text(
                     text = item.score,
                     style = MaterialTheme.typography.titleLarge,
-                    color = getGradeColor(item.score),
+                    color = item.scoreColor,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -597,14 +653,10 @@ fun GradeItemCard(item: GradeEntity) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 // 教师 - 最多显示4个字
-                GradeInfoChip("教师", item.teacher?.take(4)?.let {
-                    if ((item.teacher?.length ?: 0) > 4) "$it…" else it
-                }, subtextColor, textColor)
+                GradeInfoChip("教师", item.teacherShort, subtextColor, textColor)
 
                 // 课程ID - 最多显示9位
-                GradeInfoChip("课程号", item.courseId?.take(9)?.let {
-                    if ((item.courseId?.length ?: 0) > 9) "$it…" else it
-                }, subtextColor, textColor)
+                GradeInfoChip("课程号", item.courseIdShort, subtextColor, textColor)
 
                 // 考试性质
                 GradeInfoChip("性质", item.examNature, subtextColor, textColor)

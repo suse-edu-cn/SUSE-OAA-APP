@@ -38,6 +38,7 @@ import com.suseoaa.projectoaa.presentation.exam.ExamViewModel
 import com.suseoaa.projectoaa.presentation.exam.SemesterOption
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
+import com.suseoaa.projectoaa.ui.component.common.ValueLabelStatItem
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.ToastManager
 import com.suseoaa.projectoaa.util.getExamCountDown
@@ -503,43 +504,22 @@ private fun ExamStatisticsBar(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            StatItem(
+            ValueLabelStatItem(
                 label = "共计",
                 value = "$totalCount",
                 color = primaryColor
             )
-            StatItem(
+            ValueLabelStatItem(
                 label = "待考",
                 value = "$upcomingCount",
                 color = warningColor
             )
-            StatItem(
+            ValueLabelStatItem(
                 label = "已结束",
                 value = "$endedCount",
                 color = successColor
             )
         }
-    }
-}
-
-@Composable
-private fun StatItem(
-    label: String,
-    value: String,
-    color: Color
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = color.copy(alpha = 0.7f)
-        )
     }
 }
 

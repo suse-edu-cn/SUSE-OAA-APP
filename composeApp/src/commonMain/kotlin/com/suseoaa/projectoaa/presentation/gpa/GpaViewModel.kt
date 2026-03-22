@@ -154,11 +154,10 @@ class GpaViewModel(
         }
     }
 
-    fun updateSimulatedScore(item: GpaCourseWrapper, newScore: Double) {
+    fun updateSimulatedScoreByCourseId(courseId: String, newScore: Double) {
         _uiState.update { state ->
             val updatedAllCourses = state.allCourses.map { course ->
-                if (course.originalEntity.courseId == item.originalEntity.courseId) {
-                    // 计算新的绩点
+                if (course.originalEntity.courseId == courseId) {
                     val newGpa = calculateSingleGpa(newScore)
                     course.copy(simulatedScore = newScore, simulatedGpa = newGpa)
                 } else {
@@ -186,6 +185,10 @@ class GpaViewModel(
                 degreeCredits = stats.degreeCredits
             )
         }
+    }
+
+    fun updateSimulatedScore(item: GpaCourseWrapper, newScore: Double) {
+        updateSimulatedScoreByCourseId(item.originalEntity.courseId, newScore)
     }
 
     /**

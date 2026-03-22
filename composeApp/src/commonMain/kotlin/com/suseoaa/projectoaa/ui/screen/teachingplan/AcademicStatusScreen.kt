@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
 import com.suseoaa.projectoaa.presentation.teachingplan.AcademicStatusViewModel
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.common.ValueLabelStatItem
 import com.suseoaa.projectoaa.ui.component.useTabletLayout
 import com.suseoaa.projectoaa.util.ToastManager
 import org.koin.compose.viewmodel.koinViewModel
@@ -132,6 +133,15 @@ fun AcademicStatusScreen(
                 .background(MaterialTheme.colorScheme.background)
         ) { adaptiveLayoutConfig ->
             val isTablet = adaptiveLayoutConfig.useTabletLayout()
+            val expandedCategoryIds = uiState.expandedCategories
+            val selectedFilter = uiState.selectedFilter
+            val filteredCoursesByCategory by remember(uiState.categories, selectedFilter) {
+                derivedStateOf {
+                    uiState.categories.associate { category ->
+                        category.categoryId to viewModel.getFilteredCourses(category.courses)
+                    }
+                }
+            }
 
             if (uiState.isLoading && uiState.categories.isEmpty()) {
                 // 初始加载
@@ -187,13 +197,14 @@ fun AcademicStatusScreen(
                         // 课程类别列表
                         items(
                             items = uiState.categories,
-                            key = { it.categoryId }
+                            key = { it.categoryId },
+                            contentType = { "academic_category_card" }
                         ) { category ->
                             AcademicCategoryCard(
                                 category = category,
-                                isExpanded = viewModel.isCategoryExpanded(category.categoryId),
+                                isExpanded = expandedCategoryIds.contains(category.categoryId),
                                 onToggleExpand = { viewModel.toggleCategoryExpanded(category.categoryId) },
-                                filteredCourses = viewModel.getFilteredCourses(category.courses),
+                                filteredCourses = filteredCoursesByCategory[category.categoryId].orEmpty(),
                                 isTablet = isTablet
                             )
                         }
@@ -329,30 +340,35 @@ private fun PlanOverviewCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    StatItem(
+                    ValueLabelStatItem(
                         label = "要求学分",
                         value = formatDouble(planOverview.totalRequiredCredits, 1),
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        valueTextStyle = MaterialTheme.typography.headlineMedium
                     )
-                    StatItem(
+                    ValueLabelStatItem(
                         label = "已获学分",
                         value = formatDouble(planOverview.totalEarnedCredits, 1),
-                        color = Color(0xFF4CAF50)
+                        color = Color(0xFF4CAF50),
+                        valueTextStyle = MaterialTheme.typography.headlineMedium
                     )
-                    StatItem(
+                    ValueLabelStatItem(
                         label = "未获学分",
                         value = formatDouble(planOverview.totalRemainingCredits, 1),
-                        color = Color(0xFFFF9800)
+                        color = Color(0xFFFF9800),
+                        valueTextStyle = MaterialTheme.typography.headlineMedium
                     )
-                    StatItem(
+                    ValueLabelStatItem(
                         label = "在修学分",
                         value = formatDouble(studyingCredits, 1),
-                        color = Color(0xFF2196F3)
+                        color = Color(0xFF2196F3),
+                        valueTextStyle = MaterialTheme.typography.headlineMedium
                     )
-                    StatItem(
+                    ValueLabelStatItem(
                         label = "平均绩点",
                         value = formatDouble(averageGradePoint, 2),
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        valueTextStyle = MaterialTheme.typography.headlineMedium
                     )
                 }
             } else {
@@ -360,25 +376,29 @@ private fun PlanOverviewCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    StatItem(
+                    ValueLabelStatItem(
                         label = "已获学分",
                         value = formatDouble(planOverview.totalEarnedCredits, 1),
-                        color = Color(0xFF4CAF50)
+                        color = Color(0xFF4CAF50),
+                        valueTextStyle = MaterialTheme.typography.headlineMedium
                     )
-                    StatItem(
+                    ValueLabelStatItem(
                         label = "未获学分",
                         value = formatDouble(planOverview.totalRemainingCredits, 1),
-                        color = Color(0xFFFF9800)
+                        color = Color(0xFFFF9800),
+                        valueTextStyle = MaterialTheme.typography.headlineMedium
                     )
-                    StatItem(
+                    ValueLabelStatItem(
                         label = "在修学分",
                         value = formatDouble(studyingCredits, 1),
-                        color = Color(0xFF2196F3)
+                        color = Color(0xFF2196F3),
+                        valueTextStyle = MaterialTheme.typography.headlineMedium
                     )
-                    StatItem(
+                    ValueLabelStatItem(
                         label = "平均绩点",
                         value = formatDouble(averageGradePoint, 2),
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        valueTextStyle = MaterialTheme.typography.headlineMedium
                     )
                 }
             }
@@ -415,31 +435,6 @@ private fun PlanOverviewCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun StatItem(
-    label: String,
-    value: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 

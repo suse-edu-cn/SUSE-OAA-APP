@@ -8,7 +8,6 @@ import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.getListColumns
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -27,6 +26,47 @@ import com.suseoaa.projectoaa.presentation.gpa.FilterType
 import com.suseoaa.projectoaa.presentation.gpa.SortOrder
 import com.suseoaa.projectoaa.ui.component.BackButton
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.math.pow
+import kotlin.math.round
+
+@Immutable
+private data class GpaCourseUiModel(
+    val courseId: String,
+    val termCode: String,
+    val courseName: String,
+    val isDegreeCourse: Boolean,
+    val isGradeLevel: Boolean,
+    val isPassOnly: Boolean,
+    val creditText: String,
+    val displayScore: String,
+    val displayGpa: String
+)
+
+private fun Double.toFixed(decimals: Int): String {
+    val factor = 10.0.pow(decimals)
+    val rounded = round(this * factor) / factor
+    val raw = rounded.toString().split(".")
+    return if (raw.size == 1) {
+        "${raw[0]}.${"0".repeat(decimals)}"
+    } else {
+        val decimalsPart = raw[1].padEnd(decimals, '0').take(decimals)
+        "${raw[0]}.$decimalsPart"
+    }
+}
+
+private fun GpaCourseWrapper.toUiModel(): GpaCourseUiModel {
+    return GpaCourseUiModel(
+        courseId = originalEntity.courseId,
+        termCode = "${originalEntity.xnm}_${originalEntity.xqm}",
+        courseName = originalEntity.courseName,
+        isDegreeCourse = isDegreeCourse,
+        isGradeLevel = isGradeLevel,
+        isPassOnly = isPassOnly,
+        creditText = credit.toFixed(1),
+        displayScore = displayScore,
+        displayGpa = displayGpa
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,11 +132,8 @@ fun GpaScreen(
                         filterType = uiState.filterType,
                         onSortOrderChange = { viewModel.setSortOrder(it) },
                         onFilterTypeChange = { viewModel.setFilterType(it) },
-                        onScoreChange = { item, score ->
-                            viewModel.updateSimulatedScore(
-                                item,
-                                score
-                            )
+                        onScoreChange = { courseId, score ->
+                            viewModel.updateSimulatedScoreByCourseId(courseId, score)
                         }
                     )
                 }
@@ -116,8 +153,12 @@ private fun GpaContent(
     filterType: FilterType,
     onSortOrderChange: (SortOrder) -> Unit,
     onFilterTypeChange: (FilterType) -> Unit,
-    onScoreChange: (GpaCourseWrapper, Double) -> Unit
+    onScoreChange: (String, Double) -> Unit
 ) {
+    val courseUiList by remember(courseList) {
+        derivedStateOf { courseList.map { it.toUiModel() } }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         // 1. 顶部统计卡片
         Card(
@@ -209,12 +250,14 @@ private fun GpaContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(courseList, key = { it.originalEntity.courseName }) { item ->
+                    items(
+                        items = courseUiList,
+                        key = { "${it.courseId}_${it.termCode}" },
+                        contentType = { "gpa_course_item" }
+                    ) { item ->
                         GpaCourseItem(
                             item = item,
-                            onScoreChange = { newScore ->
-                                onScoreChange(item, newScore)
-                            }
+                            onScoreChange = onScoreChange
                         )
                     }
                 }
@@ -242,11 +285,11 @@ fun StatItem(label: String, gpa: String, credit: String) {
 }
 
 @Composable
-fun GpaCourseItem(
-    item: GpaCourseWrapper,
-    onScoreChange: (Double) -> Unit
+private fun GpaCourseItem(
+    item: GpaCourseUiModel,
+    onScoreChange: (String, Double) -> Unit
 ) {
-    var showDialog by remember { mutableStateOf(false) }
+    var showDialog by remember(item.courseId, item.termCode) { mutableStateOf(false) }
 
     val containerColor = if (item.isDegreeCourse) {
         MaterialTheme.colorScheme.tertiaryContainer
@@ -266,7 +309,7 @@ fun GpaCourseItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    item.originalEntity.courseName,
+                    item.courseName,
                     fontWeight = FontWeight.Bold
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -315,7 +358,7 @@ fun GpaCourseItem(
                         Spacer(modifier = Modifier.width(4.dp))
                     }
                     Text(
-                        "学分: ${item.credit}",
+                        "学分: ${item.creditText}",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -341,7 +384,7 @@ fun GpaCourseItem(
             onDismiss = { showDialog = false },
             onConfirm = { scoreStr ->
                 scoreStr.toDoubleOrNull()?.let { score ->
-                    onScoreChange(score)
+                    onScoreChange(item.courseId, score)
                 }
                 showDialog = false
             }
