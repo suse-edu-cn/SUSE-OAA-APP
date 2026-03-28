@@ -298,6 +298,13 @@ class CourseViewModel(
         _currentDisplayWeek.value = week.coerceIn(minWeek, maxWeek)
     }
 
+    /**
+     * 同步系统日期对应的当前周（用于前后台切换后刷新）
+     */
+    fun syncCurrentWeek() {
+        updateRealCurrentWeek()
+    }
+
     fun selectTerm(xnm: String, xqm: String) {
         _selectedXnm.value = xnm
         _selectedXqm.value = xqm
