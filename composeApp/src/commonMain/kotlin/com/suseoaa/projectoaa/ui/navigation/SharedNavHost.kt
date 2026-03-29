@@ -1,12 +1,20 @@
 package com.suseoaa.projectoaa.ui.navigation
 
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.animateDp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
@@ -36,11 +44,24 @@ class SharedTransitionNavGraphBuilder(
         content: @Composable AnimatedVisibilityScope.(NavBackStackEntry) -> Unit
     ) {
         builder.composable(route, arguments, deepLinks) { backStackEntry ->
+            // 从当前作用域中拿到 NavHost 共享过来的退出/进入转场状态
+            val cornerRadius by transition.animateDp(label = "cornerRadius") { state ->
+                // 当处于退出后的后置阶段（手势拖动或完成离开），赋予 28.dp 圆角，否则 0.dp
+                if (state == EnterExitState.PostExit) 28.dp else 0.dp
+            }
+
             CompositionLocalProvider(
                 LocalSharedTransitionScope provides sharedTransitionScope,
                 LocalAnimatedVisibilityScope provides this@composable
             ) {
-                content(backStackEntry)
+                // 将内容用 Box 包裹，配合 Modifier.clip 裁剪，渲染出动态跟手圆角
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(cornerRadius))
+                ) {
+                    content(backStackEntry)
+                }
             }
         }
     }
