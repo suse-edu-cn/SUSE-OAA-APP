@@ -21,6 +21,7 @@ import com.suseoaa.projectoaa.ui.component.BackButton
 import com.suseoaa.projectoaa.util.showToast
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +70,7 @@ fun ChangePasswordScreen(
     }
 
     Scaffold(
+        modifier = Modifier.sharedBoundsTransition("change_password"),
         topBar = {
             TopAppBar(
                 title = { Text("修改密码") },

@@ -38,6 +38,7 @@ fun AdaptivePageScaffold(
     tabletContent: @Composable (Modifier) -> Unit
 ) {
     Scaffold(
+        modifier = modifier,
         containerColor = containerColor,
         topBar = {
             TopAppBar(
@@ -57,7 +58,7 @@ fun AdaptivePageScaffold(
         }
     ) { paddingValues ->
         AdaptiveLayout(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) { config ->

@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
 import com.suseoaa.projectoaa.shared.domain.model.announcement.AnnouncementData
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
 import com.suseoaa.projectoaa.ui.component.WindowSizeClass
@@ -105,7 +106,7 @@ fun DepartmentGrid(
             // 1. 协会大卡片 (独占一行)
             item(span = { GridItemSpan(spanCount) }) {
                 BigAssociationCard(
-                    name = "开放原子开源协会",
+                    name = "开放原子开源协会", departmentId = "协会",
                     data = cardInfos["协会"],
                     onClick = { onItemClick("协会") }
                 )
@@ -139,6 +140,7 @@ fun DepartmentGrid(
 @Composable
 fun BigAssociationCard(
     name: String,
+    departmentId: String = name,
     data: AnnouncementData?,
     onClick: () -> Unit
 ) {
@@ -148,7 +150,8 @@ fun BigAssociationCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp),
+            .height(140.dp)
+            .sharedBoundsTransition("department_$departmentId"),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.primary,
         shadowElevation = 4.dp
@@ -198,7 +201,8 @@ fun DepartmentCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp),
+            .height(180.dp)
+            .sharedBoundsTransition("department_$name"),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),

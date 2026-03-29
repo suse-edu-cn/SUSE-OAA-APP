@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
 import com.suseoaa.projectoaa.presentation.teachingplan.AcademicStatusViewModel
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.common.ValueLabelStatItem
 import com.suseoaa.projectoaa.ui.component.useTabletLayout
@@ -81,6 +82,7 @@ fun AcademicStatusScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
+        modifier = Modifier.sharedBoundsTransition("academicStatus"),
         topBar = {
             TopAppBar(
                 title = { Text("学业情况查询") },

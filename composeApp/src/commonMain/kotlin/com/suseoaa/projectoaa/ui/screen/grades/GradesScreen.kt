@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
 import com.suseoaa.projectoaa.shared.data.repository.GradeEntity
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
@@ -99,6 +100,7 @@ fun GradesScreen(
     }
 
     Scaffold(
+        modifier = Modifier.sharedBoundsTransition("grades"),
         topBar = {
             TopAppBar(
                 title = { Text("成绩查询") },

@@ -39,6 +39,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.suseoaa.projectoaa.shared.data.repository.MessageCacheEntity
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.academic.ExamUiState
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.getExamCountDown
 import kotlinx.datetime.*
@@ -368,6 +369,7 @@ fun TabletUpcomingExamsCard(
         shape = RoundedCornerShape(12.dp),
         modifier = modifier
             .fillMaxWidth()
+            .sharedBoundsTransition("exams")
             .height(TABLET_CARD_HEIGHT)
             .clickable(onClick = onClick)
     ) {
@@ -748,6 +750,7 @@ fun UpcomingExamsCard(
         elevation = CardDefaults.cardElevation(2.dp),
         modifier = modifier
             .fillMaxWidth()
+            .sharedBoundsTransition("exams")
             .clickable(onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -922,6 +925,7 @@ fun FunctionCard(
         modifier = modifier
             .fillMaxWidth()
             .height(80.dp)
+            .sharedBoundsTransition(function.route)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),

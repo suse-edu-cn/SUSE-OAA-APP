@@ -39,6 +39,7 @@ import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.getDetailColumns
 import com.suseoaa.projectoaa.util.PlatformBackHandler
 import org.koin.compose.viewmodel.koinViewModel
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 
 // 自定义颜色 - 适配暗色模式
 @Composable
@@ -114,6 +115,7 @@ fun CheckinScreen(
     }
 
     Scaffold(
+        modifier = Modifier.sharedBoundsTransition("checkin"),
         topBar = {
             // 只有在显示账号列表时才显示顶部栏，任务列表有自己的顶部栏
             if (uiState.selectedAccount == null) {

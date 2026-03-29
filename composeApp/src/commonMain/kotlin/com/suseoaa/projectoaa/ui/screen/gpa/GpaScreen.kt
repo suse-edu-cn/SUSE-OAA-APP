@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.shared.data.repository.GpaCourseWrapper
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.presentation.gpa.FilterType
 import com.suseoaa.projectoaa.presentation.gpa.SortOrder
 import com.suseoaa.projectoaa.ui.component.BackButton
@@ -83,6 +84,7 @@ fun GpaScreen(
     }
 
     Scaffold(
+        modifier = Modifier.sharedBoundsTransition("gpa"),
         topBar = {
             TopAppBar(
                 title = { Text("绩点计算") },

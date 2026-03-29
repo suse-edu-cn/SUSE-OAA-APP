@@ -75,7 +75,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = uiState.account,
                 onValueChange = viewModel::updateAccount,
-                label = { Text("账号") },
+                label = { Text("学号/用户名") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),

@@ -37,6 +37,7 @@ import com.suseoaa.projectoaa.presentation.update.getAppVersionName
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
 import com.suseoaa.projectoaa.presentation.update.UpdateEvent
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.UpdateDialog
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.pickImageForAvatar
@@ -224,6 +225,7 @@ fun PersonScreen(
                                 icon = Icons.Default.Lock,
                                 title = "修改密码",
                                 subtitle = "更新您的账户密码",
+                                modifier = Modifier.sharedBoundsTransition("change_password"),
                                 onClick = onNavigateToChangePassword
                             )
                         }
@@ -257,6 +259,7 @@ fun PersonScreen(
                                     icon = Icons.Default.Edit,
                                     title = "652签到",
                                     subtitle = "快速签到打卡",
+                                    modifier = Modifier.sharedBoundsTransition("checkin"),
                                     onClick = onNavigateToCheckin
                                 )
                             }
@@ -489,6 +492,7 @@ fun SettingCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
+    modifier: Modifier = Modifier,
     showBadge: Boolean = false,
     trailingText: String? = null,
     onClick: () -> Unit
@@ -498,7 +502,7 @@ fun SettingCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier

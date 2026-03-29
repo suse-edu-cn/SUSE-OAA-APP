@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
 import com.suseoaa.projectoaa.ui.component.OaaMarkdownText
 import com.suseoaa.projectoaa.ui.theme.*
@@ -53,7 +54,9 @@ fun DepartmentDetailScreen(
     }
 
     Surface(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .sharedBoundsTransition("department_$departmentName"),
         color = MaterialTheme.colorScheme.background
     ) {
         Scaffold(

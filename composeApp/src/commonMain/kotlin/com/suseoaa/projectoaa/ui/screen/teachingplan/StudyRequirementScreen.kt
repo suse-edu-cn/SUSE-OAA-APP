@@ -39,6 +39,7 @@ import com.suseoaa.projectoaa.shared.domain.model.teachingplan.MajorOption
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.StudyRequirementCategory
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.StudyRequirementCourse
 import com.suseoaa.projectoaa.presentation.teachingplan.StudyRequirementViewModel
+import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.ui.theme.AppDimensions
@@ -71,7 +72,7 @@ fun StudyRequirementScreen(
     AdaptivePageScaffold(
         title = "修读要求查询",
         onBack = onBack,
-        modifier = Modifier.background(MaterialTheme.colorScheme.background),
+        modifier = Modifier.sharedBoundsTransition("studyRequirement").background(MaterialTheme.colorScheme.background),
         compactPadding = 0.dp,
         tabletPadding = 0.dp,
         actions = {
