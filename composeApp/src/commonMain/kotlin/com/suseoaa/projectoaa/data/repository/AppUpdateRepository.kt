@@ -64,4 +64,8 @@ expect class AppUpdateRepository {
      * 取消下载
      */
     fun cancelDownload(downloadId: Long)
+    /**
+     * 获取所有历史 Release
+     */
+    suspend fun getAllReleases(): Result<List<GithubRelease>>
 }

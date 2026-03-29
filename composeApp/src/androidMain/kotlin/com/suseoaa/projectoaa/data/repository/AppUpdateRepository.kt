@@ -57,6 +57,24 @@ actual class AppUpdateRepository(
     }
 
     /**
+     * 获取历史 Release
+     */
+    actual suspend fun getAllReleases(): Result<List<GithubRelease>> = withContext(Dispatchers.IO) {
+        try {
+            val response: HttpResponse = httpClient.get("https://api.github.com/repos/$OWNER/$REPO/releases")
+            
+            if (response.status.value == 200) {
+                val releases: List<GithubRelease> = response.body()
+                Result.success(releases)
+            } else {
+                Result.failure(Exception("获取历史版本失败: ${response.status.value}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * 版本号比较逻辑 (1.0.1 > 1.0.0)
      */
     private fun compareVersions(v1: String, v2: String): Int {

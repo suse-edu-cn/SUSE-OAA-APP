@@ -15,6 +15,7 @@ import com.suseoaa.projectoaa.ui.screen.register.RegisterScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.AcademicStatusScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.CourseInfoScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.StudyRequirementScreen
+import com.suseoaa.projectoaa.ui.screen.update.UpdateScreen
 
 @Composable
 fun AppNavHost(
@@ -89,6 +90,9 @@ fun AppNavHost(
                 },
                 onNavigateToCheckin = {
                     navController.navigate(Screen.Checkin.route)
+                },
+                onNavigateToUpdate = {
+                    navController.navigate(Screen.Update.route)
                 }
             )
         }
@@ -156,6 +160,13 @@ fun AppNavHost(
         composable(Screen.Checkin.route) {
             CheckinScreen(
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 检查更新
+        composable(Screen.Update.route) {
+            UpdateScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

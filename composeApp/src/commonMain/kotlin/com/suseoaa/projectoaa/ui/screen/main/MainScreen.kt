@@ -63,6 +63,7 @@ fun MainScreen(
     onNavigateToAcademicStatus: () -> Unit = {},
     onNavigateToCheckin: () -> Unit = {},
     onNavigateToRecruitment: () -> Unit = {},
+    onNavigateToUpdate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // 使用 rememberSaveable 保持 Tab 状态，页面返回时不会丢失
@@ -86,6 +87,7 @@ fun MainScreen(
                 onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                 onNavigateToCheckin = onNavigateToCheckin,
                 onNavigateToRecruitment = onNavigateToRecruitment,
+                onNavigateToUpdate = onNavigateToUpdate,
                 modifier = modifier
             )
         } else {
@@ -104,6 +106,7 @@ fun MainScreen(
                 onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                 onNavigateToCheckin = onNavigateToCheckin,
                 onNavigateToRecruitment = onNavigateToRecruitment,
+                onNavigateToUpdate = onNavigateToUpdate,
                 modifier = modifier
             )
         }
@@ -129,6 +132,7 @@ private fun TabletLandscapeLayout(
     onNavigateToAcademicStatus: () -> Unit,
     onNavigateToCheckin: () -> Unit,
     onNavigateToRecruitment: () -> Unit,
+    onNavigateToUpdate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -191,6 +195,7 @@ private fun TabletLandscapeLayout(
                         onNavigateToLogin = onNavigateToLogin,
                         onNavigateToChangePassword = onNavigateToChangePassword,
                         onNavigateToCheckin = onNavigateToCheckin,
+                        onNavigateToUpdate = onNavigateToUpdate,
                         bottomBarHeight = 0.dp
                     )
                 }
@@ -217,6 +222,7 @@ private fun PhoneLayout(
     onNavigateToAcademicStatus: () -> Unit,
     onNavigateToCheckin: () -> Unit,
     onNavigateToRecruitment: () -> Unit,
+    onNavigateToUpdate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
@@ -275,6 +281,7 @@ private fun PhoneLayout(
                         onNavigateToLogin = onNavigateToLogin,
                         onNavigateToChangePassword = onNavigateToChangePassword,
                         onNavigateToCheckin = onNavigateToCheckin,
+                        onNavigateToUpdate = onNavigateToUpdate,
                         bottomBarHeight = bottomBarHeight
                     )
                 }

@@ -61,6 +61,9 @@ class AppUpdateViewModel(
     private val _uiState = MutableStateFlow(AppUpdateUiState())
     val uiState: StateFlow<AppUpdateUiState> = _uiState.asStateFlow()
 
+    private val _allReleases = MutableStateFlow<List<GithubRelease>>(emptyList())
+    val allReleases: StateFlow<List<GithubRelease>> = _allReleases.asStateFlow()
+
     private val _events = MutableSharedFlow<UpdateEvent>()
     val events: SharedFlow<UpdateEvent> = _events.asSharedFlow()
 
@@ -148,6 +151,54 @@ class AppUpdateViewModel(
                         errorMessage = error.message ?: "检查更新失败"
                     )
                 }
+        }
+    }
+
+    /**
+     * 获取所有历史更新版本
+     */
+    fun fetchAllReleases() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isChecking = true,
+                errorMessage = null
+            )
+            
+            // 如果列表已经有数据，可以先不立即清空，以免闪烁
+            appUpdateRepository.getAllReleases()
+                .onSuccess { releases ->
+                    _allReleases.value = releases
+                    _uiState.value = _uiState.value.copy(
+                        isChecking = false
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isChecking = false,
+                        errorMessage = error.message ?: "获取历史更新失败"
+                    )
+                    _events.emit(UpdateEvent.ShowToast(error.message ?: "获取历史更新失败"))
+                }
+        }
+    }
+
+    /**
+     * 下载指定的 APK
+     */
+    fun downloadApk(url: String, fileName: String) {
+        _uiState.value = _uiState.value.copy(isDownloading = true, downloadProgress = 0)
+
+        currentDownloadId = appUpdateRepository.downloadApk(
+            url = url,
+            fileName = fileName
+        )
+
+        if (currentDownloadId == -1L) {
+            // iOS 平台不支持直接下载
+            _uiState.value = _uiState.value.copy(isDownloading = false)
+        } else {
+            // 启动进度轮询
+            startProgressPolling()
         }
     }
 

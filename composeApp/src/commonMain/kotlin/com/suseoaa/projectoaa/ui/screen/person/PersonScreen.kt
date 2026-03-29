@@ -65,6 +65,7 @@ fun PersonScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
     onNavigateToCheckin: () -> Unit = {},
+    onNavigateToUpdate: () -> Unit = {},
     bottomBarHeight: Dp = 0.dp,
     viewModel: PersonViewModel = koinViewModel(),
     updateViewModel: AppUpdateViewModel = koinViewModel()
@@ -253,17 +254,13 @@ fun PersonScreen(
                                     updateUiState.isChecking -> "正在检查..."
                                     updateUiState.hasUpdate && updateUiState.latestRelease != null ->
                                         "发现新版本 ${updateUiState.latestRelease!!.tagName}"
-
-                                    else -> "点击检查是否有新版本"
+                                    else -> "当前已经是最新版本了"
                                 },
+                                modifier = Modifier.sharedBoundsTransition("update"),
                                 showBadge = updateUiState.hasUpdate && updateUiState.latestRelease != null,
                                 trailingText = if (updateUiState.hasUpdate && updateUiState.latestRelease != null)
                                     updateUiState.latestRelease!!.tagName else null,
-                                onClick = {
-                                    isManualUpdateCheck = true
-                                    showUpdateDialog = true
-                                    updateViewModel.checkForUpdate()
-                                }
+                                onClick = onNavigateToUpdate
                             )
                         }
 

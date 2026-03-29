@@ -36,7 +36,7 @@ val appModule = module {
     viewModel { PersonViewModel(get(), get()) }
     viewModel { GpaViewModel(get(), get()) }
     viewModel { GradesViewModel(get(), get(), get(), get()) }
-    viewModel { AppUpdateViewModel(get(), get()) }
+    single { AppUpdateViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
     // 教学计划 ViewModels
     viewModel { StudyRequirementViewModel(get()) }
