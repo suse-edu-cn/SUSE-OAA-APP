@@ -1,0 +1,14 @@
+package com.suseoaa.projectoaa.ui.theme
+
+import androidx.compose.material3.ColorScheme
+import androidx.compose.runtime.Composable
+
+@Composable
+actual fun platformColorScheme(
+    darkTheme: Boolean,
+    dynamicColor: Boolean,
+    defaultLightScheme: ColorScheme,
+    defaultDarkScheme: ColorScheme
+): ColorScheme {
+    return if (darkTheme) defaultDarkScheme else defaultLightScheme
+}

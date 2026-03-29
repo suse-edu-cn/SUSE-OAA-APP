@@ -34,4 +34,11 @@ class MainViewModel(
             started = SharingStarted.Eagerly,
             initialValue = null  // 初始值为 null，表示正在加载
         )
+
+    val dynamicColorEnabled: StateFlow<Boolean> = tokenManager.dynamicColorEnabledFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = false
+        )
 }

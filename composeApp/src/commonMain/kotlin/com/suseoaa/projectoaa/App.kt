@@ -38,8 +38,9 @@ fun App(
     mainViewModel: MainViewModel = koinViewModel()
 ) {
     val startDestination by mainViewModel.startDestination.collectAsState()
+    val dynamicColorEnabled by mainViewModel.dynamicColorEnabled.collectAsState()
 
-    ProjectOAATheme {
+    ProjectOAATheme(dynamicColor = dynamicColorEnabled) {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             // 等待加载完成
             if (startDestination == null) {

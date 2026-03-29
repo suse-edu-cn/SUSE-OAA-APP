@@ -267,6 +267,26 @@ fun PersonScreen(
                             )
                         }
 
+                        // 莫奈取色开关 (Dynamic Color)
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SettingCard(
+                                icon = Icons.Default.Edit,
+                                title = "动态取色",
+                                subtitle = "基于壁纸改变主题颜色(Android 12+)",
+                                trailingContent = {
+                                    Switch(
+                                        checked = uiState.isDynamicColorEnabled,
+                                        onCheckedChange = { viewModel.toggleDynamicColor() },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                                        )
+                                    )
+                                },
+                                onClick = null
+                            )
+                        }
+
                         // 应用信息
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             AppInfoCard(
@@ -497,10 +517,11 @@ fun SettingCard(
     modifier: Modifier = Modifier,
     showBadge: Boolean = false,
     trailingText: String? = null,
-    onClick: () -> Unit
+    trailingContent: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null
 ) {
     Card(
-        onClick = onClick,
+        onClick = { onClick?.invoke() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -564,12 +585,16 @@ fun SettingCard(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(20.dp)
-            )
+            if (trailingContent != null) {
+                trailingContent()
+            } else if (onClick != null) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

@@ -27,6 +27,7 @@ object PreferencesKeys {
     
     // 设置
     val THEME_MODE = stringPreferencesKey("theme_mode")
+    val DYNAMIC_COLOR_ENABLED = booleanPreferencesKey("dynamic_color_enabled")
 
     // 更新弹窗版本追踪
     val UPDATE_DIALOG_SHOWN_VERSION = stringPreferencesKey("update_dialog_shown_version")
@@ -139,9 +140,19 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         preferences[PreferencesKeys.THEME_MODE] ?: "system"
     }
 
+    val dynamicColorEnabledFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.DYNAMIC_COLOR_ENABLED] ?: false
+    }
+
     suspend fun saveThemeMode(mode: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = mode
+        }
+    }
+
+    suspend fun saveDynamicColorEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DYNAMIC_COLOR_ENABLED] = enabled
         }
     }
 

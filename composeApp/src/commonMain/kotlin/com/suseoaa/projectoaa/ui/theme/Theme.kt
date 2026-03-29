@@ -119,12 +119,15 @@ val AppTypography = Typography(
 @Composable
 fun ProjectOAATheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = platformColorScheme(
+        darkTheme = darkTheme,
+        dynamicColor = dynamicColor,
+        defaultLightScheme = LightColorScheme,
+        defaultDarkScheme = DarkColorScheme
+    )
 
     MaterialTheme(
         colorScheme = colorScheme,
