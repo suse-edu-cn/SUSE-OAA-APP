@@ -310,7 +310,11 @@ class CheckinViewModel(
             if (loginResult.isFailure) {
                 val errorMsg = loginResult.exceptionOrNull()?.message ?: ""
                 // 验证码错误，最多重试2次
-                if ((errorMsg.contains("验证码") || errorMsg.contains("captcha", ignoreCase = true)) && retryCount < 2) {
+                if ((errorMsg.contains("验证码") || errorMsg.contains(
+                        "captcha",
+                        ignoreCase = true
+                    )) && retryCount < 2
+                ) {
                     println("[AutoLogin] 验证码错误，重试第 ${retryCount + 1} 次")
                     return autoLoginForPasswordAccount(account, retryCount + 1)
                 }
@@ -331,7 +335,13 @@ class CheckinViewModel(
     /**
      * 添加账号（密码登录）
      */
-    fun addAccount(studentId: String, password: String, name: String = "", remark: String = "", selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name) {
+    fun addAccount(
+        studentId: String,
+        password: String,
+        name: String = "",
+        remark: String = "",
+        selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name
+    ) {
         viewModelScope.launch {
             if (studentId.isBlank() || password.isBlank()) {
                 _uiState.update { it.copy(errorMessage = "学号和密码不能为空") }
@@ -343,7 +353,8 @@ class CheckinViewModel(
                 return@launch
             }
 
-            val result = passwordRepository.addAccount(studentId, password, name, remark, selectedLocation)
+            val result =
+                passwordRepository.addAccount(studentId, password, name, remark, selectedLocation)
             if (result.isSuccess) {
                 _uiState.update { it.copy(successMessage = "添加成功", showAddDialog = false) }
                 loadAccounts()

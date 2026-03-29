@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.login.LoginUiState
 import com.suseoaa.projectoaa.presentation.login.LoginViewModel
+import com.suseoaa.projectoaa.util.normalizeFont
 import com.suseoaa.projectoaa.util.showToast
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -74,7 +75,7 @@ fun LoginScreen(
             // 账号输入框
             OutlinedTextField(
                 value = uiState.account,
-                onValueChange = viewModel::updateAccount,
+                onValueChange = { viewModel.updateAccount(it.normalizeFont()) },
                 label = { Text("学号/用户名") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -90,7 +91,7 @@ fun LoginScreen(
             // 密码输入框
             OutlinedTextField(
                 value = uiState.password,
-                onValueChange = viewModel::updatePassword,
+                onValueChange = { viewModel.updatePassword(it.normalizeFont()) },
                 label = { Text("密码") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,

@@ -1,5 +1,9 @@
 package com.suseoaa.projectoaa.ui.screen.gpa
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -164,20 +168,30 @@ private fun GpaContent(
     Column(modifier = Modifier.fillMaxSize()) {
         // 1. 顶部统计卡片
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            ),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ),
+            shape = RoundedCornerShape(24.dp)
         ) {
             Row(
                 modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp, horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 StatItem("总绩点", totalGpa, totalCredits)
+                Box(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .width(1.dp)
+                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                )
                 StatItem("学位绩点", degreeGpa, degreeCredits)
             }
         }
@@ -246,10 +260,11 @@ private fun GpaContent(
                     contentPadding = PaddingValues(
                         start = config.horizontalPadding,
                         end = config.horizontalPadding,
-                        bottom = 16.dp + navBarHeight
+                        bottom = 16.dp + navBarHeight,
+                        top = 8.dp
                     ),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(
@@ -271,17 +286,39 @@ private fun GpaContent(
 @Composable
 fun StatItem(label: String, gpa: String, credit: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelMedium)
         Text(
-            gpa,
-            style = MaterialTheme.typography.displaySmall,
+            text = gpa,
+            style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            "总学分: $credit",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+            text = "共 " + credit + " 学分",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+        )
+    }
+}
+
+@Composable
+private fun CourseTag(text: String, containerColor: Color, contentColor: Color) {
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
+        shape = RoundedCornerShape(6.dp),
+        modifier = Modifier.padding(end = 6.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -293,87 +330,75 @@ private fun GpaCourseItem(
 ) {
     var showDialog by remember(item.courseId, item.termCode) { mutableStateOf(false) }
 
-    val containerColor = if (item.isDegreeCourse) {
-        MaterialTheme.colorScheme.tertiaryContainer
+    val containerColor = MaterialTheme.colorScheme.surface
+    val borderColor = if (item.isDegreeCourse) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, borderColor),
         onClick = { showDialog = true }
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    item.courseName,
-                    fontWeight = FontWeight.Bold
+                    text = item.courseName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (item.isDegreeCourse) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.tertiary,
-                            shape = MaterialTheme.shapes.extraSmall
-                        ) {
-                            Text(
-                                "学位课",
-                                color = MaterialTheme.colorScheme.onTertiary,
-                                fontSize = 10.sp,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
+                        CourseTag(
+                            text = "学位课",
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
-                    // 如果是等级制成绩，显示等级标签
                     if (item.isGradeLevel) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondary,
-                            shape = MaterialTheme.shapes.extraSmall
-                        ) {
-                            Text(
-                                "等级制",
-                                color = MaterialTheme.colorScheme.onSecondary,
-                                fontSize = 10.sp,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
+                        CourseTag(
+                            text = "等级制",
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
                     }
-                    // 如果是仅通过类成绩（合格/通过/免修），显示标签
                     if (item.isPassOnly) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = MaterialTheme.shapes.extraSmall
-                        ) {
-                            Text(
-                                "通过制",
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                fontSize = 10.sp,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
+                        CourseTag(
+                            text = "通过制",
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
                     }
                     Text(
-                        "学分: ${item.creditText}",
-                        style = MaterialTheme.typography.bodySmall
+                        text = "${item.creditText} 学分",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+            Spacer(modifier = Modifier.width(16.dp))
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    item.displayScore,
-                    style = MaterialTheme.typography.titleMedium,
+                    text = item.displayScore,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "GPA: ${item.displayGpa}",
-                    style = MaterialTheme.typography.bodySmall
+                    text = "GPA: ${item.displayGpa}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
         }

@@ -38,6 +38,7 @@ import com.suseoaa.projectoaa.presentation.checkin.QrCodeScanStatus
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.getDetailColumns
 import com.suseoaa.projectoaa.util.PlatformBackHandler
+import com.suseoaa.projectoaa.util.normalizeFont
 import org.koin.compose.viewmodel.koinViewModel
 import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 
@@ -763,7 +764,7 @@ private fun AccountDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = studentId,
-                    onValueChange = { studentId = it },
+                    onValueChange = { studentId = it.normalizeFont() },
                     label = { Text("学号 *") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -783,7 +784,7 @@ private fun AccountDialog(
 
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = { password = it.normalizeFont() },
                     label = { Text("密码 *") },
                     singleLine = true,
                     visualTransformation = if (showPassword)
@@ -1254,7 +1255,7 @@ private fun QrCodeLoginDialog(
 
                 OutlinedTextField(
                     value = studentId,
-                    onValueChange = { studentId = it },
+                    onValueChange = { studentId = it.normalizeFont() },
                     label = { Text("学号 *") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
