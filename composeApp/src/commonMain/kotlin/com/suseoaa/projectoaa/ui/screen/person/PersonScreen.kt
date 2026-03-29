@@ -230,27 +230,6 @@ fun PersonScreen(
                             )
                         }
 
-                        // 检查更新卡片
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            SettingCard(
-                                icon = Icons.Default.Refresh,
-                                title = "检查更新",
-                                subtitle = when {
-                                    updateUiState.isChecking -> "正在检查..."
-                                    updateUiState.hasUpdate && updateUiState.latestRelease != null ->
-                                        "发现新版本 ${updateUiState.latestRelease!!.tagName}"
-                                    else -> "点击检查是否有新版本"
-                                },
-                                showBadge = updateUiState.hasUpdate && updateUiState.latestRelease != null,
-                                trailingText = if (updateUiState.hasUpdate && updateUiState.latestRelease != null)
-                                    updateUiState.latestRelease!!.tagName else null,
-                                onClick = {
-                                    isManualUpdateCheck = true
-                                    showUpdateDialog = true
-                                    updateViewModel.checkForUpdate()
-                                }
-                            )
-                        }
 
                         // 652签到入口（解锁后永久显示）
                         if (uiState.isCheckinUnlocked) {
@@ -263,6 +242,29 @@ fun PersonScreen(
                                     onClick = onNavigateToCheckin
                                 )
                             }
+                        }
+
+                        // 检查更新卡片
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SettingCard(
+                                icon = Icons.Default.Refresh,
+                                title = "检查更新",
+                                subtitle = when {
+                                    updateUiState.isChecking -> "正在检查..."
+                                    updateUiState.hasUpdate && updateUiState.latestRelease != null ->
+                                        "发现新版本 ${updateUiState.latestRelease!!.tagName}"
+
+                                    else -> "点击检查是否有新版本"
+                                },
+                                showBadge = updateUiState.hasUpdate && updateUiState.latestRelease != null,
+                                trailingText = if (updateUiState.hasUpdate && updateUiState.latestRelease != null)
+                                    updateUiState.latestRelease!!.tagName else null,
+                                onClick = {
+                                    isManualUpdateCheck = true
+                                    showUpdateDialog = true
+                                    updateViewModel.checkForUpdate()
+                                }
+                            )
                         }
 
                         // 应用信息

@@ -40,7 +40,7 @@ fun App(
     val startDestination by mainViewModel.startDestination.collectAsState()
 
     ProjectOAATheme {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             // 等待加载完成
             if (startDestination == null) {
                 val isDarkTheme = isSystemInDarkTheme()
