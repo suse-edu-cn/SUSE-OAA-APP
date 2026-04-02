@@ -80,6 +80,7 @@ class SchoolAuthRepository(
             val csrfToken = extractCSRFToken(csrfHtml)
             if (csrfToken == null) {
                 println("[SchoolAuth] Failed to extract CSRF token from HTML")
+                println("[SchoolAuth] CSRF HTML Snippet: ${csrfHtml.take(500)}")
                 return Result.failure(Exception("无法获取 CSRF Token，请检查网络连接"))
             }
             println("[SchoolAuth] CSRF Token: $csrfToken")

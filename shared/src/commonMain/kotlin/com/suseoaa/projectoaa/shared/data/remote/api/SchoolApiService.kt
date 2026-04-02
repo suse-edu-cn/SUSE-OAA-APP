@@ -54,15 +54,22 @@ class SchoolApiService(
     }
 
     suspend fun querySchedule(year: String, semester: String): HttpResponse {
+        println("[SchoolApiService] 正在发起课表查询 xskbcx_cxXsgrkb 学年=$year, 学期=$semester")
         return client.submitForm(
-            url = "$baseUrl/kbcx/xskbcx_cxXsKb.html?gnmkdm=N2151",
+            url = "$baseUrl/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151",
             formParameters = parameters {
                 append("xnm", year)
                 append("xqm", semester)
                 append("kzlx", "ck")
+                append("xsdm", "")
+                append("kclbdm", "")
+                append("kclxdm", "")
             }
         ) {
+            header("Accept", "*/*")
             header("X-Requested-With", "XMLHttpRequest")
+            header("Origin", baseUrl)
+            header("Referer", "$baseUrl/kbcx/xskbcx_cxXskbcxIndex.html?gnmkdm=N2151&layout=default")
         }
     }
 

@@ -22,6 +22,8 @@ class SchoolCourseRepository(
     suspend fun getCourseSchedule(year: String, semester: String): Result<CourseResponseJson> {
         return try {
             val response = api.querySchedule(year = year, semester = semester)
+            println("[SchoolCourseRepository] 课表查询返回状态码: ${response.status.value}")
+            println("[SchoolCourseRepository] 响应头信息: ${response.headers.entries()}")
 
             if (response.status.value == 200) {
                 val jsonString = response.bodyAsText()
