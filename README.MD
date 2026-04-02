@@ -13,7 +13,7 @@
 
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-7F52FF?logo=kotlin&logoColor=white)
 ![Compose Multiplatform](https://img.shields.io/badge/UI-Compose%20Multiplatform%201.7.3-4285F4?logo=jetpackcompose&logoColor=white)
-![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green)
+![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Desktop-green)
 ![Ktor](https://img.shields.io/badge/Ktor-3.0.2-087CFA?logo=ktor&logoColor=white)
 ![SQLDelight](https://img.shields.io/badge/SQLDelight-2.0.2-blue)
 ![Koin](https://img.shields.io/badge/Koin-4.0.0-orange)
@@ -31,6 +31,11 @@
 **青蟹 (Project OAA)** 是由 **四川轻化工大学开放原子开源协会 (SUSE OAA)** 项目部自主研发的跨平台教务辅助应用。基于 **Kotlin Multiplatform (KMP)** 构建，一套代码同时支持 Android 和 iOS，是学习 KMP + Compose Multiplatform 的完整实战案例。
 
 应用通过对接学校教务系统和 OAA 后端服务，聚合了课表、成绩、考试、GPA 计算、教学计划、校园公告、打卡签到等核心教务功能，用现代化的 UI 和流畅的交互体验，替代繁琐的网页操作。
+
+### 🖥️ 桌面端应用
+
+我们的同学基于本项目的架构和接口，开发了出色的桌面版应用。如果您正在使用 Windows，欢迎下载体验桌面端：
+👉 **[SUSE-OAA-Desktop](https://github.com/suse-edu-cn/SUSE-OAA-Desktop)**
 
 ## ✨ 功能特性
 
@@ -423,7 +428,7 @@ open iosApp/iosApp.xcodeproj   # 在 Xcode 中 Run (⌘R)
 |------|----------|------|
 | Android | API 28 (Android 9.0) | ✅ 已支持 |
 | iOS | iOS 14.0 | ✅ 已支持 |
-| Desktop | - | 🔜 计划中 |
+| Desktop | Windows/macOS/Linux | ✅ [体验桌面端](https://github.com/suse-edu-cn/SUSE-OAA-Desktop) |
 
 ## 🔐 安全特性
 
@@ -528,7 +533,7 @@ open iosApp/iosApp.xcodeproj   # 在 Xcode 中 Run (⌘R)
 - [x] 打卡签到（密码/扫码双模式）
 - [x] 验证码自动识别 (ML Kit / ONNX / Vision)
 - [x] shared 模块架构重构（Clean Architecture）
-- [ ] 桌面应用支持
+- [x] 桌面应用支持 (👉 [获取桌面端](https://github.com/suse-edu-cn/SUSE-OAA-Desktop))
 - [ ] 空教室查询
 - [ ] 校园卡功能
 
