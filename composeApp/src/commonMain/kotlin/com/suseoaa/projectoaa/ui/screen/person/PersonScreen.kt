@@ -43,6 +43,7 @@ import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.pickImageForAvatar
 import com.suseoaa.projectoaa.util.showToast
 import kotlinx.coroutines.flow.collectLatest
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 private val HeaderHeight = 320.dp
@@ -276,7 +277,10 @@ fun PersonScreen(
                                         onCheckedChange = { viewModel.toggleDynamicColor() },
                                         colors = SwitchDefaults.colors(
                                             checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                            uncheckedBorderColor = MaterialTheme.colorScheme.outline
                                         )
                                     )
                                 },
