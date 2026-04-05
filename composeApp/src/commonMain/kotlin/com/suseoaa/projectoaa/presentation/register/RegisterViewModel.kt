@@ -37,7 +37,7 @@ class RegisterViewModel(
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
     fun updateStudentId(studentId: String) {
-        if (studentId.length <= 11) {
+        if (studentId.length <= 20) {
             _uiState.update { it.copy(studentId = studentId, errorMessage = null) }
         }
     }

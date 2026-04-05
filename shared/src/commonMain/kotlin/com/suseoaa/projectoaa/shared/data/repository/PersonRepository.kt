@@ -32,12 +32,12 @@ class PersonRepository(
     }
 
     suspend fun changePassword(
-        oldPassword: String,
+//        oldPassword: String,
         newPassword: String,
         emailCode: String
     ): Result<String> {
         return try {
-            val request = ChangePasswordRequest(oldPassword, newPassword, emailCode)
+            val request = ChangePasswordRequest(newPassword, emailCode)
             val response = api.changePassword(request)
             if (response.code == 200) {
                 Result.success(response.message.ifEmpty { "修改成功" })

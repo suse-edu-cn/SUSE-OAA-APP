@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.presentation.changepassword
+package com.suseoaa.projectoaa.presentation.changePassword
 
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
@@ -15,7 +15,6 @@ import kotlinx.coroutines.launch
  */
 @Immutable
 data class ChangePasswordUiState(
-    val oldPassword: String = "",
     val newPassword: String = "",
     val confirmPassword: String = "",
     val emailCode: String = "",
@@ -35,10 +34,6 @@ class ChangePasswordViewModel(
     private val _uiState = MutableStateFlow(ChangePasswordUiState())
     val uiState: StateFlow<ChangePasswordUiState> = _uiState.asStateFlow()
 
-    fun updateOldPassword(password: String) {
-        _uiState.update { it.copy(oldPassword = password, errorMessage = null) }
-    }
-
     fun updateNewPassword(password: String) {
         _uiState.update { it.copy(newPassword = password, errorMessage = null) }
     }
@@ -56,11 +51,6 @@ class ChangePasswordViewModel(
 
         // 验证
         when {
-            currentState.oldPassword.isBlank() -> {
-                _uiState.update { it.copy(errorMessage = "请输入原密码") }
-                return
-            }
-
             currentState.newPassword.isBlank() -> {
                 _uiState.update { it.copy(errorMessage = "请输入新密码") }
                 return
@@ -75,18 +65,12 @@ class ChangePasswordViewModel(
                 _uiState.update { it.copy(errorMessage = "两次密码输入不一致") }
                 return
             }
-
-            currentState.oldPassword == currentState.newPassword -> {
-                _uiState.update { it.copy(errorMessage = "新密码不能与原密码相同") }
-                return
-            }
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             val result = personRepository.changePassword(
-                currentState.oldPassword,
                 currentState.newPassword,
                 currentState.emailCode
             )

@@ -2,7 +2,7 @@ package com.suseoaa.projectoaa.di
 
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
-import com.suseoaa.projectoaa.presentation.changepassword.ChangePasswordViewModel
+import com.suseoaa.projectoaa.presentation.changePassword.ChangePasswordViewModel
 import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
 import com.suseoaa.projectoaa.presentation.course.CourseViewModel
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel

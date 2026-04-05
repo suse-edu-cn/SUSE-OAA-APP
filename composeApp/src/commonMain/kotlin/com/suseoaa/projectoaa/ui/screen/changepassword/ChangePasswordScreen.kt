@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,7 +15,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.suseoaa.projectoaa.presentation.changepassword.ChangePasswordViewModel
+import com.suseoaa.projectoaa.presentation.changePassword.ChangePasswordViewModel
 import com.suseoaa.projectoaa.ui.component.BackButton
 import com.suseoaa.projectoaa.util.showToast
 import kotlinx.coroutines.delay
@@ -92,36 +91,6 @@ fun ChangePasswordScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-            // 旧密码输入框
-            OutlinedTextField(
-                value = uiState.oldPassword,
-                onValueChange = viewModel::updateOldPassword,
-                label = { Text("当前密码") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                visualTransformation = if (isOldPasswordVisible)
-                    VisualTransformation.None
-                else
-                    PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next
-                ),
-                trailingIcon = {
-                    IconButton(onClick = { isOldPasswordVisible = !isOldPasswordVisible }) {
-                        Icon(
-                            imageVector = Icons.Filled.Lock,
-                            contentDescription = if (isOldPasswordVisible) "隐藏密码" else "显示密码",
-                            tint = if (isOldPasswordVisible)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            )
 
             Spacer(modifier = Modifier.height(16.dp))
 

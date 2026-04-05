@@ -61,13 +61,11 @@ class UserRepository(
      * 修改密码
      */
     suspend fun changePassword(
-        oldPassword: String,
         newPassword: String,
         emailCode: String
     ): Result<ChangePasswordResponse> {
         return try {
             val request = ChangePasswordRequest(
-                oldPassword = oldPassword,
                 newPassword = newPassword,
                 emailCode = emailCode
             )

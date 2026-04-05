@@ -47,13 +47,18 @@ fun HomeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        DepartmentGrid(
-            departments = departments,
-            cardInfos = uiState.cardInfos,
-            onItemClick = onNavigateToDetail,
-            onRecruitmentClick = onNavigateToRecruitment,
-            bottomBarHeight = bottomBarHeight
-        )
+        Row {
+//            部门介绍卡片
+            DepartmentGrid(
+                departments = departments,
+                cardInfos = uiState.cardInfos,
+                onItemClick = onNavigateToDetail,
+                onRecruitmentClick = onNavigateToRecruitment,
+                bottomBarHeight = bottomBarHeight
+            )
+//
+        }
+
     }
 }
 
