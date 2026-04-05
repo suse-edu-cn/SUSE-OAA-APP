@@ -163,4 +163,22 @@ class OaaApiService(
         }
         return response.body()
     }
+
+    // ==================== 用户信息查询与修改 ====================
+
+    suspend fun queryUsers(request: com.suseoaa.projectoaa.shared.domain.model.person.UserQueryRequest): com.suseoaa.projectoaa.shared.domain.model.person.UserQueryResponse {
+        val response = client.post("$baseUrl/user/Query") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        return response.body()
+    }
+
+    suspend fun changeUserMessage(users: List<com.suseoaa.projectoaa.shared.domain.model.person.UserQueryData>): com.suseoaa.projectoaa.shared.domain.model.person.UserChangeMessageResponse {
+        val response = client.post("$baseUrl/user/changeMessage") {
+            contentType(ContentType.Application.Json)
+            setBody(users)
+        }
+        return response.body()
+    }
 }

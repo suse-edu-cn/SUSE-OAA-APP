@@ -16,6 +16,7 @@ sealed class Screen(val route: String) {
     data object Gpa : Screen("gpa")
     data object Exams : Screen("exams")
     data object Recruitment : Screen("recruitment")
+    data object UserManagement : Screen("userManagement")
     data object Update : Screen("update")
 
     // 教学计划相关

@@ -63,6 +63,7 @@ fun MainScreen(
     onNavigateToAcademicStatus: () -> Unit = {},
     onNavigateToCheckin: () -> Unit = {},
     onNavigateToRecruitment: () -> Unit = {},
+    onNavigateToUserQuery: () -> Unit = {},
     onNavigateToUpdate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -87,6 +88,7 @@ fun MainScreen(
                 onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                 onNavigateToCheckin = onNavigateToCheckin,
                 onNavigateToRecruitment = onNavigateToRecruitment,
+                onNavigateToUserQuery = onNavigateToUserQuery,
                 onNavigateToUpdate = onNavigateToUpdate,
                 modifier = modifier
             )
@@ -106,6 +108,7 @@ fun MainScreen(
                 onNavigateToAcademicStatus = onNavigateToAcademicStatus,
                 onNavigateToCheckin = onNavigateToCheckin,
                 onNavigateToRecruitment = onNavigateToRecruitment,
+                onNavigateToUserQuery = onNavigateToUserQuery,
                 onNavigateToUpdate = onNavigateToUpdate,
                 modifier = modifier
             )
@@ -132,6 +135,7 @@ private fun TabletLandscapeLayout(
     onNavigateToAcademicStatus: () -> Unit,
     onNavigateToCheckin: () -> Unit,
     onNavigateToRecruitment: () -> Unit,
+    onNavigateToUserQuery: () -> Unit,
     onNavigateToUpdate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -170,7 +174,8 @@ private fun TabletLandscapeLayout(
                     HomeScreen(
                         onNavigateToDetail = onNavigateToDepartmentDetail,
                         bottomBarHeight = 0.dp,
-                    onNavigateToRecruitment = onNavigateToRecruitment,
+                        onNavigateToRecruitment = onNavigateToRecruitment,
+                        onNavigateToUserQuery = onNavigateToUserQuery
                     )
                 }
                 1 -> key("course") {
@@ -222,6 +227,7 @@ private fun PhoneLayout(
     onNavigateToAcademicStatus: () -> Unit,
     onNavigateToCheckin: () -> Unit,
     onNavigateToRecruitment: () -> Unit,
+    onNavigateToUserQuery: () -> Unit,
     onNavigateToUpdate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -263,6 +269,7 @@ private fun PhoneLayout(
                         onNavigateToDetail = onNavigateToDepartmentDetail,
                         bottomBarHeight = bottomBarHeight,
                         onNavigateToRecruitment = onNavigateToRecruitment,
+                        onNavigateToUserQuery = onNavigateToUserQuery
                     )
                     1 -> CourseScreen(
                         onNavigateToLogin = onNavigateToLogin,

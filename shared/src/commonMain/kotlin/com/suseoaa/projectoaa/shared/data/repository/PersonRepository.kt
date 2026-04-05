@@ -88,4 +88,30 @@ class PersonRepository(
             Result.failure(e)
         }
     }
+
+    suspend fun queryUsers(department: String, name: String, role: String): Result<List<com.suseoaa.projectoaa.shared.domain.model.person.UserQueryData>> {
+        return try {
+            val response = api.queryUsers(com.suseoaa.projectoaa.shared.domain.model.person.UserQueryRequest(department, name, role))
+            if (response.code == 200) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message.ifEmpty { "查询用户失败" }))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun changeUserMessage(users: List<com.suseoaa.projectoaa.shared.domain.model.person.UserQueryData>): Result<String> {
+        return try {
+            val response = api.changeUserMessage(users)
+            if (response.code == 200) {
+                Result.success("修改成功")
+            } else {
+                Result.failure(Exception(response.message.ifEmpty { "修改失败" }))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

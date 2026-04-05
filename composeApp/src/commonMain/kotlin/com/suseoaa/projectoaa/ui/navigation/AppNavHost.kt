@@ -68,6 +68,11 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() }
             )
         }
+        composable(Screen.UserManagement.route) {
+            com.suseoaa.projectoaa.ui.screen.usermanagement.UserManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
         composable(Screen.Main.route) {
             MainScreen(
                 onNavigateToLogin = {
@@ -77,6 +82,9 @@ fun AppNavHost(
                 },
                 onNavigateToRecruitment = {
                     navController.navigate(Screen.Recruitment.route)
+                },
+                onNavigateToUserQuery = {
+                    navController.navigate(Screen.UserManagement.route)
                 },
                 onNavigateToChangePassword = {
                     navController.navigate(Screen.ChangePassword.route)

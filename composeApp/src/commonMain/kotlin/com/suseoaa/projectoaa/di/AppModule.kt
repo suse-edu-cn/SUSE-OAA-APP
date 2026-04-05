@@ -17,6 +17,7 @@ import com.suseoaa.projectoaa.presentation.teachingplan.AcademicStatusViewModel
 import com.suseoaa.projectoaa.presentation.teachingplan.CourseInfoViewModel
 import com.suseoaa.projectoaa.presentation.teachingplan.StudyRequirementViewModel
 import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
+import com.suseoaa.projectoaa.presentation.usermanagement.UserManagementViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -40,6 +41,7 @@ val appModule = module {
     viewModel { GradesViewModel(get(), get(), get(), get()) }
     single { AppUpdateViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
+    viewModel { UserManagementViewModel(get()) }
     // 教学计划 ViewModels
     viewModel { StudyRequirementViewModel(get()) }
     viewModel { CourseInfoViewModel(get(), get(), get(), get()) }

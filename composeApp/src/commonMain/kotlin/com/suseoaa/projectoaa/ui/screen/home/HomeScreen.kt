@@ -36,6 +36,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun HomeScreen(
     onNavigateToDetail: (String) -> Unit,
     onNavigateToRecruitment: () -> Unit,
+    onNavigateToUserQuery: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
     viewModel: HomeViewModel = koinViewModel()
 ) {
@@ -52,8 +53,10 @@ fun HomeScreen(
             DepartmentGrid(
                 departments = departments,
                 cardInfos = uiState.cardInfos,
+                userInfo = uiState.userInfo,
                 onItemClick = onNavigateToDetail,
                 onRecruitmentClick = onNavigateToRecruitment,
+                onUserQueryClick = onNavigateToUserQuery,
                 bottomBarHeight = bottomBarHeight
             )
 //
@@ -66,8 +69,10 @@ fun HomeScreen(
 fun DepartmentGrid(
     departments: List<String>,
     cardInfos: Map<String, AnnouncementData?>,
+    userInfo: com.suseoaa.projectoaa.shared.domain.model.person.PersonData?,
     onItemClick: (String) -> Unit,
     onRecruitmentClick: () -> Unit,
+    onUserQueryClick: () -> Unit,
     bottomBarHeight: Dp = 0.dp
 ) {
     AdaptiveLayout { config ->
@@ -128,15 +133,90 @@ fun DepartmentGrid(
                 )
             }
 
+            // 3. 分隔线与独立板块: 管理与换届
+            item(span = { GridItemSpan(spanCount) }) {
+                Column(modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)) {
+                    Divider(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "应用功能",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+            }
+
             item(span = { GridItemSpan(1) }) {
-                DepartmentCard(
+                FeatureCard(
                     name = "招新换届",
-//                    TODO 这里记得改数据源
-                    data = null,
-                    icon = Icons.Default.Person,
-                    onClick = onRecruitmentClick
+                    icon = Icons.Default.GroupAdd,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    onColor = MaterialTheme.colorScheme.primary,
+                    onClick = onRecruitmentClick,
+                    sharedBoundKey = "recruitment_feature"
                 )
             }
+
+            val validRoles = listOf("干事", "副部长", "部长", "会长", "开发者")
+            if (userInfo != null && userInfo.role in validRoles) {
+                item(span = { GridItemSpan(1) }) {
+                    FeatureCard(
+                        name = "用户管理",
+                        icon = Icons.Default.ManageAccounts,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        onColor = MaterialTheme.colorScheme.primary,
+                        onClick = onUserQueryClick,
+                        sharedBoundKey = "user_management_feature"
+                    )
+                }
+            }
+        }
+    }
+}
+
+// 样式 3: 独立功能卡片 (不同于介绍卡片)
+@Composable
+fun FeatureCard(
+    name: String,
+    icon: ImageVector,
+    color: Color,
+    onColor: Color,
+    onClick: () -> Unit,
+    sharedBoundKey: String
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .sharedBoundsTransition(sharedBoundKey),
+        shape = RoundedCornerShape(16.dp),
+        color = color,
+        border = BorderStroke(1.dp, onColor.copy(alpha = 0.1f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = name,
+                tint = onColor,
+                modifier = Modifier.size(32.dp).padding(bottom = 8.dp)
+            )
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = onColor
+            )
         }
     }
 }

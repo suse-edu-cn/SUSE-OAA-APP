@@ -31,7 +31,7 @@ fun RecruitmentScreen(
     onBack: () -> Unit
 ) {
     AdaptivePageScaffold(
-        modifier = Modifier.sharedBoundsTransition("department_招新换届"),
+        modifier = Modifier.sharedBoundsTransition("recruitment_feature"),
         title = "招新换届",
         onBack = onBack,
         compactContent = { modifier ->
