@@ -3,6 +3,7 @@ package com.suseoaa.projectoaa.data.repository
 import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
+import java.security.MessageDigest
 import android.os.Build
 import android.os.Environment
 import androidx.core.content.FileProvider
@@ -144,13 +145,66 @@ actual class AppUpdateRepository(
         _currentDownloadId = -1L
     }
 
+    private fun getDownloadedFile(downloadId: Long): File? {
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        var file: File? = null
+        try {
+            val query = DownloadManager.Query().setFilterById(downloadId)
+            val cursor = downloadManager.query(query)
+            if (cursor != null && cursor.moveToFirst()) {
+                val localUri = cursor.getString(
+                    cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)
+                )
+                cursor.close()
+                if (localUri != null) {
+                    val path = localUri.removePrefix("file://")
+                    val f = File(path)
+                    if (f.exists()) file = f
+                }
+            } else {
+                cursor?.close()
+            }
+        } catch (_: Exception) { /* 某些国产 ROM 可能查询失败 */ }
+
+        if (file == null || !file.exists()) {
+            val downloadsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            file = downloadsDir?.listFiles()
+                ?.filter { it.name.endsWith(".apk") }
+                ?.maxByOrNull { it.lastModified() }
+        }
+        return if (file != null && file.exists()) file else null
+    }
+
+    /**
+     * 校验下载文件的 SHA-256
+     */
+    actual suspend fun verifyApkSha256(downloadId: Long, expectedHash: String): Boolean = withContext(Dispatchers.IO) {
+        val file = getDownloadedFile(downloadId) ?: return@withContext false
+        try {
+            val digest = MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { fis ->
+                val buffer = ByteArray(8192)
+                var read = fis.read(buffer)
+                while (read != -1) {
+                    digest.update(buffer, 0, read)
+                    read = fis.read(buffer)
+                }
+            }
+            val hashBytes = digest.digest()
+            val hashString = hashBytes.joinToString("") { "%02x".format(it) }
+            val expected = expectedHash.removePrefix("sha256:").lowercase()
+            return@withContext hashString.lowercase() == expected
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return@withContext false
+        }
+    }
+
     /**
      * 根据 DownloadID 触发安装
      */
     actual fun installApkById(downloadId: Long) {
         try {
-            val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-
             // Android 8.0+ 检查安装未知应用权限
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
                 val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
@@ -160,35 +214,8 @@ actual class AppUpdateRepository(
                 return
             }
 
-            // 策略1：通过 DownloadManager 查询下载文件的本地路径
-            var file: File? = null
-            try {
-                val query = DownloadManager.Query().setFilterById(downloadId)
-                val cursor = downloadManager.query(query)
-                if (cursor != null && cursor.moveToFirst()) {
-                    val localUri = cursor.getString(
-                        cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)
-                    )
-                    cursor.close()
-                    if (localUri != null) {
-                        val path = localUri.removePrefix("file://")
-                        val f = File(path)
-                        if (f.exists()) file = f
-                    }
-                } else {
-                    cursor?.close()
-                }
-            } catch (_: Exception) { /* 某些国产 ROM 可能查询失败 */ }
-
-            // 策略2：回退到下载目录中查找最新 APK
-            if (file == null || !file.exists()) {
-                val downloadsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-                file = downloadsDir?.listFiles()
-                    ?.filter { it.name.endsWith(".apk") }
-                    ?.maxByOrNull { it.lastModified() }
-            }
-
-            if (file == null || !file.exists()) return
+            val file = getDownloadedFile(downloadId)
+            if (file == null) return
 
             // 使用 FileProvider 创建安全的 content:// URI
             val contentUri = FileProvider.getUriForFile(

@@ -120,4 +120,11 @@ actual class AppUpdateRepository(
         // iOS 无法直接安装应用，什么都不做
         // 如果有 TestFlight 链接，可以在这里打开
     }
+
+    /**
+     * iOS 不支持校验 SHA-256
+     */
+    actual suspend fun verifyApkSha256(downloadId: Long, expectedHash: String): Boolean {
+        return false
+    }
 }

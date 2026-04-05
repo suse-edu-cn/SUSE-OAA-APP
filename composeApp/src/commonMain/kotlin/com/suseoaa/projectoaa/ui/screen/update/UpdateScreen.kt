@@ -223,17 +223,45 @@ fun ReleaseCard(release: GithubRelease, isCurrentVersion: Boolean, viewModel: Ap
                 val apkAsset = release.assets.firstOrNull { it.name.endsWith(".apk") }
                 if (apkAsset != null) {
                     Spacer(modifier = Modifier.height(20.dp))
-                    Button(
-                        onClick = {
-                            viewModel.downloadApk(apkAsset.downloadUrl, apkAsset.name)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("下载该版本", fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = {
+                                viewModel.downloadApk(
+                                    url = apkAsset.downloadUrl,
+                                    fileName = apkAsset.name,
+                                    digest = apkAsset.digest,
+                                    isProxy = false
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("正常下载", fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.downloadApk(
+                                    url = "https://ghfast.top/${apkAsset.downloadUrl}",
+                                    fileName = apkAsset.name,
+                                    digest = apkAsset.digest,
+                                    isProxy = true
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("代理加速", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

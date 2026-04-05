@@ -161,8 +161,13 @@ fun UpdateDialog(
                     }
                     // Android: 有更新未下载时显示下载按钮
                     !isIos && uiState.latestRelease != null && !uiState.isDownloading -> {
-                        Button(onClick = { viewModel.startDownload() }) {
-                            Text("立即下载并安装")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { viewModel.startDownload(isProxy = true) }) {
+                                Text("代理加速下载")
+                            }
+                            Button(onClick = { viewModel.startDownload() }) {
+                                Text("正常下载")
+                            }
                         }
                     }
                     // 无更新或检查完成时显示确定按钮

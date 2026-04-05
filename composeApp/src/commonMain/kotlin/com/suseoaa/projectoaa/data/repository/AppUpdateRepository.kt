@@ -24,7 +24,9 @@ data class GithubAsset(
     @SerialName("browser_download_url")
     val downloadUrl: String,       // APK 下载链接
     @SerialName("name")
-    val name: String               // 文件名
+    val name: String,              // 文件名
+    @SerialName("digest")
+    val digest: String? = null     // SHA256 形如 sha256:xxx
 )
 
 /**
@@ -48,6 +50,14 @@ expect class AppUpdateRepository {
      * 根据下载ID安装 APK (仅 Android)
      */
     fun installApkById(downloadId: Long)
+
+    /**
+     * 校验下载文件的 SHA-256 (仅 Android)
+     * @param downloadId 下载任务ID
+     * @param expectedHash 预期的 SHA256 值 (格式如 "sha256:xxx...")
+     * @return true 校验通过或无需校验，false 校验不通过
+     */
+    suspend fun verifyApkSha256(downloadId: Long, expectedHash: String): Boolean
 
     /**
      * 获取当前下载任务ID

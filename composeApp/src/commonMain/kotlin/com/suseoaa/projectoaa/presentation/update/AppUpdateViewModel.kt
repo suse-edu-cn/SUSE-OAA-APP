@@ -69,6 +69,8 @@ class AppUpdateViewModel(
 
     private var currentDownloadId: Long = -1L
     private var progressPollingJob: Job? = null
+    private var expectedDigest: String? = null
+    private var isProxyDownload: Boolean = false
 
     /**
      * 是否是 iOS 平台
@@ -185,8 +187,10 @@ class AppUpdateViewModel(
     /**
      * 下载指定的 APK
      */
-    fun downloadApk(url: String, fileName: String) {
+    fun downloadApk(url: String, fileName: String, digest: String? = null, isProxy: Boolean = false) {
         _uiState.value = _uiState.value.copy(isDownloading = true, downloadProgress = 0)
+        expectedDigest = digest
+        isProxyDownload = isProxy
 
         currentDownloadId = appUpdateRepository.downloadApk(
             url = url,
@@ -216,7 +220,7 @@ class AppUpdateViewModel(
     /**
      * 开始下载更新
      */
-    fun startDownload() {
+    fun startDownload(isProxy: Boolean = false) {
         val release = _uiState.value.latestRelease ?: return
 
         // 查找 APK 资源
@@ -231,23 +235,10 @@ class AppUpdateViewModel(
             return
         }
 
-        _uiState.value = _uiState.value.copy(isDownloading = true, downloadProgress = 0)
-
-        // 使用统一命名格式: 青蟹-版本号.apk
-        val fileName = "青蟹-${release.tagName}.apk"
-
-        currentDownloadId = appUpdateRepository.downloadApk(
-            url = apkAsset.downloadUrl,
-            fileName = fileName
-        )
-
-        if (currentDownloadId == -1L) {
-            // iOS 平台不支持直接下载
-            _uiState.value = _uiState.value.copy(isDownloading = false)
-        } else {
-            // 启动进度轮询
-            startProgressPolling()
-        }
+        val url = if (isProxy) "https://ghfast.top/${apkAsset.downloadUrl}" else apkAsset.downloadUrl
+        
+        // 调用我们已经定义好的带代理和 digest 参数的方法
+        downloadApk(url, apkAsset.name, apkAsset.digest, isProxy)
     }
 
     /**
@@ -264,6 +255,20 @@ class AppUpdateViewModel(
                 _uiState.value = _uiState.value.copy(downloadProgress = progress)
 
                 if (progress >= 100) {
+                    if (isProxyDownload && expectedDigest != null) {
+                        val isValid = appUpdateRepository.verifyApkSha256(currentDownloadId, expectedDigest!!)
+                        if (!isValid) {
+                            _uiState.value = _uiState.value.copy(
+                                errorMessage = "安装包已损坏",
+                                isDownloading = false,
+                                downloadProgress = 0
+                            )
+                            _events.emit(UpdateEvent.ShowToast("安装包已损坏"))
+                            appUpdateRepository.cancelDownload(currentDownloadId)
+                            break
+                        }
+                    }
+
                     _uiState.value = _uiState.value.copy(
                         isDownloading = false,
                         downloadProgress = 100
