@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object Register : Screen("register")
+    data object ForgetPassword : Screen("forgetPassword")
     data object Main : Screen("main")
     data object ChangePassword : Screen("changePassword")
     data object Grades : Screen("grades")

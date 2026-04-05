@@ -57,7 +57,7 @@ class SharedTransitionNavGraphBuilder(
             ) {
                 // 判断当前页面是否正处于离开中或处于后台隐藏堆栈中
                 val isNotVisible = transition.targetState != EnterExitState.Visible
-                
+
                 // 将内容用 Box 包裹，配合 Modifier.clip 裁剪，渲染出动态跟手圆角
                 // 使用 pointerInput 拦截隐藏或离开状态页面的点击事件
                 Box(

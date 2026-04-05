@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import com.suseoaa.projectoaa.ui.screen.changepassword.ChangePasswordScreen
 import com.suseoaa.projectoaa.ui.screen.checkin.CheckinScreen
 import com.suseoaa.projectoaa.ui.screen.exam.ExamInfoScreen
+import com.suseoaa.projectoaa.ui.screen.forgetpassword.ForgetPasswordScreen
 import com.suseoaa.projectoaa.ui.screen.gpa.GpaScreen
 import com.suseoaa.projectoaa.ui.screen.grades.GradesScreen
 import com.suseoaa.projectoaa.ui.screen.home.DepartmentDetailScreen
@@ -35,6 +36,9 @@ fun AppNavHost(
                 },
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
+                },
+                onNavigateToForgetPassword = {
+                    navController.navigate(Screen.ForgetPassword.route)
                 }
             )
         }
@@ -46,6 +50,16 @@ fun AppNavHost(
                 },
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.ForgetPassword.route) {
+            ForgetPasswordScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onSuccess = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }

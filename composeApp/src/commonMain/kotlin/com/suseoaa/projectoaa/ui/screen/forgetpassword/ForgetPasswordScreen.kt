@@ -1,4 +1,4 @@
-package com.suseoaa.projectoaa.ui.screen.changepassword
+package com.suseoaa.projectoaa.ui.screen.forgetpassword
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,7 +15,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.suseoaa.projectoaa.presentation.changePassword.ChangePasswordViewModel
+import com.suseoaa.projectoaa.presentation.forgetpassword.ForgetPasswordViewModel
 import com.suseoaa.projectoaa.ui.component.BackButton
 import com.suseoaa.projectoaa.util.showToast
 import kotlinx.coroutines.delay
@@ -24,10 +24,10 @@ import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChangePasswordScreen(
+fun ForgetPasswordScreen(
     onSuccess: () -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: ChangePasswordViewModel = koinViewModel()
+    viewModel: ForgetPasswordViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var isNewPasswordVisible by remember { mutableStateOf(false) }
@@ -68,10 +68,10 @@ fun ChangePasswordScreen(
     }
 
     Scaffold(
-        modifier = Modifier.sharedBoundsTransition("change_password"),
+        modifier = Modifier.sharedBoundsTransition("forget_password"),
         topBar = {
             TopAppBar(
-                title = { Text("修改密码") },
+                title = { Text("忘记密码") },
                 navigationIcon = {
                     BackButton(
                         onClick = onNavigateBack,

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.login.LoginUiState
 import com.suseoaa.projectoaa.presentation.login.LoginViewModel
+import com.suseoaa.projectoaa.ui.navigation.Screen
 import com.suseoaa.projectoaa.util.normalizeFont
 import com.suseoaa.projectoaa.util.showToast
 import org.koin.compose.viewmodel.koinViewModel
@@ -28,6 +29,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
+    onNavigateToForgetPassword: () -> Unit,
     viewModel: LoginViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -125,8 +127,8 @@ fun LoginScreen(
                 TextButton(onClick = onNavigateToRegister) {
                     Text("注册账号")
                 }
-                TextButton(onClick = { /* TODO: 忘记密码 */ }) {
-                    Text("忘记密码?", color = Color.Gray)
+                TextButton(onClick = onNavigateToForgetPassword) {
+                    Text("忘记密码", color = Color.Gray)
                 }
             }
 
