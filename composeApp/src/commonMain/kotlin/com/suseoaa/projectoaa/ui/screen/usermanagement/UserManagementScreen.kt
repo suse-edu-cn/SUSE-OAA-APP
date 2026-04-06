@@ -2,7 +2,10 @@ package com.suseoaa.projectoaa.ui.screen.usermanagement
 
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -81,11 +84,12 @@ fun UserManagementScreen(
                 // 左侧筛选栏
                 Card(
                     modifier = Modifier
-                        .weight(0.3f)
+                        .weight(0.3f),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(
                         modifier = Modifier
-                            .background(color = MaterialTheme.colorScheme.background)
                             .padding(16.dp)
                     ) {
                         Text(
@@ -237,16 +241,21 @@ fun UserManagementContent(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
                 .animateContentSize(),
-            onClick = { isFilterExpanded = !isFilterExpanded },
-            elevation = CardDefaults.cardElevation(0.dp)
+            elevation = CardDefaults.cardElevation(0.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Column(
                 modifier = Modifier
-                    .background(color = MaterialTheme.colorScheme.background)
                     .padding(16.dp)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { isFilterExpanded = !isFilterExpanded },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
