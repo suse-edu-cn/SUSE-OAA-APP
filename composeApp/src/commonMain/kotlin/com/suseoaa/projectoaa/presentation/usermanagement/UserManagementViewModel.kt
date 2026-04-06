@@ -75,19 +75,22 @@ class UserManagementViewModel(
 
     // 权限等级字典
     val ranks = mapOf(
+        "会员" to -1,
         "普通成员" to -1,
         "干事" to 0,
         "副部长" to 1,
         "部长" to 2,
         "会长" to 3,
+        "副会长" to 3,
         "开发者" to 4
     )
 
     // 权限校验逻辑
     fun canEditUser(targetUserRole: String): Boolean {
         val currentRole = _uiState.value.currentUser?.role ?: return false
-        val currentRank = ranks[currentRole] ?: -2
-        val targetRank = ranks[targetUserRole] ?: -2
+        // 定制职位（不在预设职位列表中的），默认等同于会长的权限等级(3)
+        val currentRank = ranks[currentRole] ?: 3
+        val targetRank = ranks[targetUserRole] ?: 3
 
         return currentRank > targetRank
     }

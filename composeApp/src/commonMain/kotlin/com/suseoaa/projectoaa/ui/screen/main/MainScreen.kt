@@ -233,19 +233,32 @@ private fun PhoneLayout(
 ) {
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
     val scope = rememberCoroutineScope()
-    val currentDestinationIndex by remember { derivedStateOf { pagerState.currentPage } }
+    val currentDestinationIndex by remember { derivedStateOf { pagerState.targetPage } }
     val density = LocalDensity.current
     
-    // 同步 pagerState 和 selectedTab
+    // 同步 pagerState 的 targetPage 和 selectedTab，以防滑动中途的错误回调
     LaunchedEffect(currentDestinationIndex) {
         if (currentDestinationIndex != selectedTab) {
             onTabChange(currentDestinationIndex)
         }
     }
     
+    // 若外部或点击产生的 selectedTab 变化，控制 pager 滚动
     LaunchedEffect(selectedTab) {
         if (pagerState.currentPage != selectedTab) {
-            pagerState.animateScrollToPage(selectedTab)
+            // 高标准平滑多页滚动：如果跨度超过1页，先跳到临近页再平滑进入，
+            // 完美避免渲染所有中间页的掉帧卡顿，同时始终保留了柔和线性的位移动画
+            if (kotlin.math.abs(pagerState.currentPage - selectedTab) > 1) {
+                val previewPage = if (selectedTab > pagerState.currentPage) selectedTab - 1 else selectedTab + 1
+                pagerState.scrollToPage(previewPage)
+            }
+            pagerState.animateScrollToPage(
+                page = selectedTab,
+                animationSpec = androidx.compose.animation.core.tween(
+                    durationMillis = 350,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing
+                )
+            )
         }
     }
     
@@ -297,9 +310,11 @@ private fun PhoneLayout(
 
         // 底部导航栏 - 测量实际高度
         OaaBottomBar(
-            selectedIndex = currentDestinationIndex,
+            selectedIndex = selectedTab, // 直接拿状态驱动按钮
             onNavigate = { index -> 
-                scope.launch { pagerState.animateScrollToPage(index) }
+                if (selectedTab != index) {
+                    onTabChange(index)
+                }
             },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -395,18 +410,17 @@ fun OaaBottomBar(
 ) {
     Surface(
         modifier = modifier
-            .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = 48.dp, vertical = 12.dp), // 增大外部水平边距，使整体缩小并居中
         tonalElevation = 3.dp,
-        shadowElevation = 4.dp,
-        shape = RoundedCornerShape(24.dp),
+        shadowElevation = 8.dp, // 略微增加阴影增强悬浮感
+        shape = RoundedCornerShape(36.dp), // 更圆润的R角
         color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 8.dp),
+                .padding(vertical = 0.dp, horizontal = 4.dp), // 减小内部间距
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {

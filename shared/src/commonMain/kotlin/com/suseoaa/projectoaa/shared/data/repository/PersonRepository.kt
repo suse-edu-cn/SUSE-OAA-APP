@@ -3,6 +3,7 @@ package com.suseoaa.projectoaa.shared.data.repository
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.shared.data.remote.api.OaaApiService
 import com.suseoaa.projectoaa.shared.domain.model.changePassword.ChangePasswordRequest
+import com.suseoaa.projectoaa.shared.domain.model.changePassword.CaptchaRequest
 import com.suseoaa.projectoaa.shared.domain.model.person.PersonData
 import com.suseoaa.projectoaa.shared.domain.model.person.UpdateAvatarRequest
 import com.suseoaa.projectoaa.shared.domain.model.person.UpdateUserRequest
@@ -32,12 +33,12 @@ class PersonRepository(
     }
 
     suspend fun changePassword(
-//        oldPassword: String,
+        account: String,
         newPassword: String,
         emailCode: String
     ): Result<String> {
         return try {
-            val request = ChangePasswordRequest(newPassword, emailCode)
+            val request = ChangePasswordRequest(account, newPassword, emailCode)
             val response = api.changePassword(request)
             if (response.code == 200) {
                 Result.success(response.message.ifEmpty { "修改成功" })
@@ -50,9 +51,9 @@ class PersonRepository(
     }
 
     //获取邮箱验证码
-    suspend fun getEmailCode(): Result<String> {
+    suspend fun getEmailCode(account: String): Result<String> {
         return try {
-            val response = api.getEmailCode()
+            val response = api.getEmailCode(CaptchaRequest(account))
             if (response.code == 200) {
                 Result.success(response.message.ifEmpty { "验证码已发送" })
             } else {
@@ -89,9 +90,19 @@ class PersonRepository(
         }
     }
 
-    suspend fun queryUsers(department: String, name: String, role: String): Result<List<com.suseoaa.projectoaa.shared.domain.model.person.UserQueryData>> {
+    suspend fun queryUsers(
+        department: String,
+        name: String,
+        role: String
+    ): Result<List<com.suseoaa.projectoaa.shared.domain.model.person.UserQueryData>> {
         return try {
-            val response = api.queryUsers(com.suseoaa.projectoaa.shared.domain.model.person.UserQueryRequest(department, name, role))
+            val response = api.queryUsers(
+                com.suseoaa.projectoaa.shared.domain.model.person.UserQueryRequest(
+                    department,
+                    name,
+                    role
+                )
+            )
             if (response.code == 200) {
                 Result.success(response.data)
             } else {

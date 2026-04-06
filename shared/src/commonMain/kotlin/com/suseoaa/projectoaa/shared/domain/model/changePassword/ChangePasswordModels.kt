@@ -4,8 +4,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class CaptchaRequest(
+    @SerialName("account") val account: String
+)
+
+@Serializable
 data class ChangePasswordRequest(
-//    @SerialName("oldpassword") val oldPassword: String,
+    @SerialName("account") val account: String,
     @SerialName("password") val newPassword: String,
     @SerialName("code") val emailCode: String
 )

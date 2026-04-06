@@ -151,10 +151,11 @@ class HomeViewModel(
         val role = user.role
         val myDepartment = user.department ?: ""
 
-        // 规则：会长/副会长/开发者 -> 可修改所有
+        // 规则：会长/副会长/开发者以及其他定制职位 -> 可修改所有
         val canEdit = when {
             role in listOf("会长", "副会长", "开发者") -> true
-            targetDepartment == myDepartment && role != "会员" -> true
+            targetDepartment == myDepartment && role != "会员" && role != "普通成员" -> true
+            role !in listOf("干事", "副部长", "部长", "会员", "普通成员") -> true // 其他不固定/非常规职位（定制职位）
             else -> false
         }
 

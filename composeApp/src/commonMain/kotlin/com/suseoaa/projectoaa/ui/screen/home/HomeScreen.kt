@@ -43,25 +43,31 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val departments = viewModel.departments
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+    HomeWithDrawer(
+        userInfo = uiState.userInfo,
+        onNavigateToRecruitment = onNavigateToRecruitment,
+        onNavigateToUserQuery = onNavigateToUserQuery,
+        bottomBarHeight = bottomBarHeight
     ) {
-        Row {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Row {
 //            部门介绍卡片
-            DepartmentGrid(
-                departments = departments,
-                cardInfos = uiState.cardInfos,
-                userInfo = uiState.userInfo,
-                onItemClick = onNavigateToDetail,
-                onRecruitmentClick = onNavigateToRecruitment,
-                onUserQueryClick = onNavigateToUserQuery,
-                bottomBarHeight = bottomBarHeight
-            )
+                DepartmentGrid(
+                    departments = departments,
+                    cardInfos = uiState.cardInfos,
+                    userInfo = uiState.userInfo,
+                    onItemClick = onNavigateToDetail,
+                    onRecruitmentClick = onNavigateToRecruitment,
+                    onUserQueryClick = onNavigateToUserQuery,
+                    bottomBarHeight = bottomBarHeight
+                )
 //
+            }
         }
-
     }
 }
 
@@ -131,50 +137,6 @@ fun DepartmentGrid(
                     icon = getIconForDepartment(dept),
                     onClick = { onItemClick(dept) }
                 )
-            }
-
-            // 3. 分隔线与独立板块: 管理与换届
-            item(span = { GridItemSpan(spanCount) }) {
-                Column(modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)) {
-                    Divider(
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "应用功能",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                }
-            }
-
-            item(span = { GridItemSpan(1) }) {
-                FeatureCard(
-                    name = "招新换届",
-                    icon = Icons.Default.GroupAdd,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    onColor = MaterialTheme.colorScheme.primary,
-                    onClick = onRecruitmentClick,
-                    sharedBoundKey = "recruitment_feature"
-                )
-            }
-
-            val validRoles = listOf("干事", "副部长", "部长", "会长", "开发者")
-            if (userInfo != null && userInfo.role in validRoles) {
-                item(span = { GridItemSpan(1) }) {
-                    FeatureCard(
-                        name = "用户管理",
-                        icon = Icons.Default.ManageAccounts,
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        onColor = MaterialTheme.colorScheme.primary,
-                        onClick = onUserQueryClick,
-                        sharedBoundKey = "user_management_feature"
-                    )
-                }
             }
         }
     }

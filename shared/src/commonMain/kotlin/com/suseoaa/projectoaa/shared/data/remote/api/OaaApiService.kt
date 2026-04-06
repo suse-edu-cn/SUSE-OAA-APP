@@ -87,9 +87,10 @@ class OaaApiService(
     }
 
     //获取邮箱验证码
-    suspend fun getEmailCode(): ChangePasswordResponse {
-        val response = client.get("$baseUrl/user/captcha") {
+    suspend fun getEmailCode(request: CaptchaRequest): ChangePasswordResponse {
+        val response = client.post("$baseUrl/user/captcha") {
             contentType(ContentType.Application.Json)
+            setBody(request)
         }
         return response.body()
     }

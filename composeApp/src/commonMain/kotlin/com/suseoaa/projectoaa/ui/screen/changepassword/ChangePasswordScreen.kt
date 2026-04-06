@@ -68,29 +68,33 @@ fun ChangePasswordScreen(
     }
 
     Scaffold(
-        modifier = Modifier.sharedBoundsTransition("change_password"),
-        topBar = {
-            TopAppBar(
-                title = { Text("修改密码") },
-                navigationIcon = {
-                    BackButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
-            )
-        }
-    ) { paddingValues ->
+        modifier = Modifier.sharedBoundsTransition("change_password"), topBar = {
+            TopAppBar(title = { Text("修改密码") }, navigationIcon = {
+                BackButton(
+                    onClick = onNavigateBack, modifier = Modifier.padding(start = 8.dp)
+                )
+            })
+        }) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.background)
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize()
+                .background(color = MaterialTheme.colorScheme.background).padding(paddingValues)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
 
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = uiState.account,
+                onValueChange = viewModel::confirmAccount,
+                label = { Text("学号") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text, imeAction = ImeAction.Next
+                )
+            )
             Spacer(modifier = Modifier.height(16.dp))
 
             // 新密码输入框
@@ -101,27 +105,21 @@ fun ChangePasswordScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                visualTransformation = if (isNewPasswordVisible)
-                    VisualTransformation.None
-                else
-                    PasswordVisualTransformation(),
+                visualTransformation = if (isNewPasswordVisible) VisualTransformation.None
+                else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next
+                    keyboardType = KeyboardType.Password, imeAction = ImeAction.Next
                 ),
                 trailingIcon = {
                     IconButton(onClick = { isNewPasswordVisible = !isNewPasswordVisible }) {
                         Icon(
                             imageVector = Icons.Filled.Lock,
                             contentDescription = if (isNewPasswordVisible) "隐藏密码" else "显示密码",
-                            tint = if (isNewPasswordVisible)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (isNewPasswordVisible) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-            )
+                })
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -133,13 +131,10 @@ fun ChangePasswordScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                visualTransformation = if (isConfirmPasswordVisible)
-                    VisualTransformation.None
-                else
-                    PasswordVisualTransformation(),
+                visualTransformation = if (isConfirmPasswordVisible) VisualTransformation.None
+                else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
+                    keyboardType = KeyboardType.Password, imeAction = ImeAction.Done
                 ),
                 trailingIcon = {
                     IconButton(onClick = {
@@ -148,20 +143,16 @@ fun ChangePasswordScreen(
                         Icon(
                             imageVector = Icons.Filled.Lock,
                             contentDescription = if (isConfirmPasswordVisible) "隐藏密码" else "显示密码",
-                            tint = if (isConfirmPasswordVisible)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (isConfirmPasswordVisible) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-            )
+                })
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -171,9 +162,7 @@ fun ChangePasswordScreen(
                     label = { Text("输入邮箱验证吗") },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth(0.5f)
-                        .padding(end = 8.dp)
+                    modifier = Modifier.fillMaxWidth(0.5f).padding(end = 8.dp)
                 )
 
                 Button(
@@ -182,8 +171,7 @@ fun ChangePasswordScreen(
                             viewModel.getEmailCode()
                             isSend = true
                         }
-                    },
-                    enabled = !isSend
+                    }, enabled = !isSend
                 ) {
                     Text(
                         text = if (isSend) "${timeLeft}s 后重新发送" else "获取验证码"
@@ -195,15 +183,12 @@ fun ChangePasswordScreen(
             Button(
                 onClick = viewModel::changePassword,
                 enabled = !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
                     Text("确认修改")

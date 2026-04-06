@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
  */
 @Immutable
 data class ForgetPasswordUiState(
+    val account: String = "",
     val newPassword: String = "",
     val confirmPassword: String = "",
     val emailCode: String = "",
@@ -33,6 +34,10 @@ class ForgetPasswordViewModel(
 
     private val _uiState = MutableStateFlow(ForgetPasswordUiState())
     val uiState: StateFlow<ForgetPasswordUiState> = _uiState.asStateFlow()
+
+    fun confirmAccount(account: String) {
+        _uiState.update { it.copy(account = account, errorMessage = null) }
+    }
 
     fun updateNewPassword(password: String) {
         _uiState.update { it.copy(newPassword = password, errorMessage = null) }
@@ -71,6 +76,7 @@ class ForgetPasswordViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             val result = personRepository.changePassword(
+                currentState.account,
                 currentState.newPassword,
                 currentState.emailCode
             )
@@ -104,9 +110,17 @@ class ForgetPasswordViewModel(
 
     //获取邮箱验证码
     fun getEmailCode() {
+        val currentState = _uiState.value
+        val account = currentState.account
+        
+        if (account.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "请输入账号") }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(errorMessage = null) }
-            val result = personRepository.getEmailCode()
+            val result = personRepository.getEmailCode(account)
             result.onSuccess { msg ->
                 _uiState.update {
                     it.copy(

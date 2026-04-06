@@ -22,7 +22,7 @@ class UserRepository(
     suspend fun getUserInfo(): Result<PersonData> {
         return try {
             val response = userApi.getPersonInfo()
-            
+
             if (response.code == 200 && response.data != null) {
                 Result.success(response.data)
             } else {
@@ -39,7 +39,7 @@ class UserRepository(
     suspend fun updateUser(request: UpdateUserRequest): Result<UpdatePersonResponse> {
         return try {
             val response = userApi.updateUserInfo(request)
-            
+
             if (response.code == 200) {
                 Result.success(response)
             } else {
@@ -53,7 +53,11 @@ class UserRepository(
     /**
      * 更新用户信息（简化接口）
      */
-    suspend fun updateUserInfo(username: String, name: String, email: String): Result<UpdatePersonResponse> {
+    suspend fun updateUserInfo(
+        username: String,
+        name: String,
+        email: String
+    ): Result<UpdatePersonResponse> {
         return updateUser(UpdateUserRequest(username = username, name = name, email = email))
     }
 
@@ -61,16 +65,18 @@ class UserRepository(
      * 修改密码
      */
     suspend fun changePassword(
+        account: String,
         newPassword: String,
         emailCode: String
     ): Result<ChangePasswordResponse> {
         return try {
             val request = ChangePasswordRequest(
+                account = account,
                 newPassword = newPassword,
                 emailCode = emailCode
             )
             val response = userApi.changePassword(request)
-            
+
             if (response.code == 200) {
                 // 修改密码成功后清除 Token
                 tokenManager.clearToken()
