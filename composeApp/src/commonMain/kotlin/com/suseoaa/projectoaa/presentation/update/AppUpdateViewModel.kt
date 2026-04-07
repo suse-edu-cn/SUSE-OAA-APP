@@ -165,7 +165,7 @@ class AppUpdateViewModel(
                 isChecking = true,
                 errorMessage = null
             )
-            
+
             // 如果列表已经有数据，可以先不立即清空，以免闪烁
             appUpdateRepository.getAllReleases()
                 .onSuccess { releases ->
@@ -187,7 +187,12 @@ class AppUpdateViewModel(
     /**
      * 下载指定的 APK
      */
-    fun downloadApk(url: String, fileName: String, digest: String? = null, isProxy: Boolean = false) {
+    fun downloadApk(
+        url: String,
+        fileName: String,
+        digest: String? = null,
+        isProxy: Boolean = false
+    ) {
         _uiState.value = _uiState.value.copy(isDownloading = true, downloadProgress = 0)
         expectedDigest = digest
         isProxyDownload = isProxy
@@ -235,8 +240,9 @@ class AppUpdateViewModel(
             return
         }
 
-        val url = if (isProxy) "https://ghfast.top/${apkAsset.downloadUrl}" else apkAsset.downloadUrl
-        
+        val url =
+            if (isProxy) "https://ghfast.top/${apkAsset.downloadUrl}" else apkAsset.downloadUrl
+
         // 调用我们已经定义好的带代理和 digest 参数的方法
         downloadApk(url, apkAsset.name, apkAsset.digest, isProxy)
     }
@@ -256,7 +262,8 @@ class AppUpdateViewModel(
 
                 if (progress >= 100) {
                     if (isProxyDownload && expectedDigest != null) {
-                        val isValid = appUpdateRepository.verifyApkSha256(currentDownloadId, expectedDigest!!)
+                        val isValid =
+                            appUpdateRepository.verifyApkSha256(currentDownloadId, expectedDigest!!)
                         if (!isValid) {
                             _uiState.value = _uiState.value.copy(
                                 errorMessage = "安装包已损坏",

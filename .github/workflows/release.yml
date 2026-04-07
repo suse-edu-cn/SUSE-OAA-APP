@@ -73,11 +73,22 @@ jobs:
           java-version: '17' # 如果使用其他 Java 版本，请相应修改
           cache: 'gradle'
 
+      - name: Decode Keystore
+        if: steps.check_version.outputs.changed == 'true'
+        env:
+          ENCODED_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo $ENCODED_KEYSTORE | base64 -d > $RUNNER_TEMP/keystore.jks
+
       - name: Build Release APK
         if: steps.check_version.outputs.changed == 'true'
         run: |
           chmod +x ./gradlew
-          ./gradlew :composeApp:assembleRelease
+          ./gradlew :composeApp:assembleRelease \
+            -Pandroid.injected.signing.storeFile=$RUNNER_TEMP/keystore.jks \
+            -Pandroid.injected.signing.storePassword=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.keyAlias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.keyPassword=${{ secrets.KEY_PASSWORD }}
 
           # 重命名打包好的 APK，准备发布
           APK_DIR="composeApp/build/outputs/apk/release"
