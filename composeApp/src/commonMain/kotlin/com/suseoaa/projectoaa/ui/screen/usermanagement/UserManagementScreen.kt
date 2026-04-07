@@ -50,7 +50,7 @@ fun UserManagementScreen(
 
     AdaptivePageScaffold(
         modifier = Modifier.sharedBoundsTransition("user_management_feature"),
-        title = "用户管理",
+        title = "权利的游戏",
         onBack = onNavigateBack,
         compactContent = { modifier ->
             UserManagementContent(

@@ -67,7 +67,7 @@ fun HomeWithDrawer(
     }
 
     val coroutineScope = rememberCoroutineScope()
-    
+
     val draggableState = rememberDraggableState { delta ->
         coroutineScope.launch {
             val current = offsetYAnim.value
@@ -217,7 +217,7 @@ fun HomeWithDrawer(
                     if (userInfo != null && userInfo.role !in invalidRoles) {
                         item {
                             FeatureCard(
-                                name = "用户管理",
+                                name = "权利的游戏",
                                 icon = Icons.Default.ManageAccounts,
                                 color = MaterialTheme.colorScheme.surfaceVariant,
                                 onColor = MaterialTheme.colorScheme.primary,
