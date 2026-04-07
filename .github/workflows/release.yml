@@ -82,13 +82,14 @@ jobs:
 
       - name: Build Release APK
         if: steps.check_version.outputs.changed == 'true'
+        env:
+          KEYSTORE_FILE_PATH: ${{ runner.temp }}/keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
-          ./gradlew :composeApp:assembleRelease \
-            -Pandroid.injected.signing.storeFile=$RUNNER_TEMP/keystore.jks \
-            -Pandroid.injected.signing.storePassword=${{ secrets.KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.keyAlias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.keyPassword=${{ secrets.KEY_PASSWORD }}
+          ./gradlew :composeApp:assembleRelease
 
           # 重命名打包好的 APK，准备发布
           APK_DIR="composeApp/build/outputs/apk/release"

@@ -130,10 +130,23 @@ android {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 112736
-        versionName = "1.127.36"
+        versionCode = 112737
+        versionName = "1.127.37"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            // 从环境变量中读取
+            val storeFilePathStr = System.getenv("KEYSTORE_FILE_PATH")
+            if (!storeFilePathStr.isNullOrEmpty()) {
+                storeFile = file(storeFilePathStr)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -143,6 +156,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 绑定签名配置
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
