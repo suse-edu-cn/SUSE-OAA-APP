@@ -49,4 +49,7 @@ val appModule = module {
 
     // 打卡 ViewModel (同时注入两个 Repository)
     viewModel { CheckinViewModel(get(), get()) }
+    
+    // 招新换届
+    viewModel { com.suseoaa.projectoaa.presentation.recruitment.RecruitmentViewModel(get(), get()) }
 }

@@ -5,15 +5,6 @@ import com.suseoaa.projectoaa.shared.domain.model.register.*
 import com.suseoaa.projectoaa.shared.domain.model.person.*
 import com.suseoaa.projectoaa.shared.domain.model.changePassword.*
 import com.suseoaa.projectoaa.shared.domain.model.announcement.*
-import com.suseoaa.projectoaa.shared.domain.model.recruitment.ChangeApplicationRequest
-import com.suseoaa.projectoaa.shared.domain.model.recruitment.ChangeApplicationResponse
-import com.suseoaa.projectoaa.shared.domain.model.recruitment.ChangeApplicationSubmitTime
-import com.suseoaa.projectoaa.shared.domain.model.recruitment.ChangeApplicationTimeResponse
-import com.suseoaa.projectoaa.shared.domain.model.recruitment.ChangeStatus
-import com.suseoaa.projectoaa.shared.domain.model.recruitment.CommonResponse
-import com.suseoaa.projectoaa.shared.domain.model.recruitment.GetApplicationResponse
-import com.suseoaa.projectoaa.shared.domain.model.recruitment.SubmitApplicationRequest
-import com.suseoaa.projectoaa.shared.domain.model.recruitment.SubmitApplicationResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -111,59 +102,6 @@ class OaaApiService(
         return response.body()
     }
 
-    // ==================== 招新/换届 ====================
-    suspend fun submitApplication(request: SubmitApplicationRequest): SubmitApplicationResponse {
-        val response = client.post("$baseUrl/application/create") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }
-        return response.body()
-    }
-
-    suspend fun getApplication(): GetApplicationResponse {
-        val response = client.get("$baseUrl/application/get") {
-            contentType(ContentType.Application.Json)
-        }
-        return response.body()
-    }
-
-    suspend fun changeApplication(request: ChangeApplicationRequest): ChangeApplicationResponse {
-        val response = client.post("$baseUrl/application/update") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }
-        return response.body()
-    }
-
-    suspend fun uploadApplicationAvatar(imageData: ByteArray): CommonResponse {
-        val response = client.submitFormWithBinaryData(
-            url = "$baseUrl/application/uploadimg",
-            formData = formData {
-                append("Image", imageData, Headers.build {
-                    append(HttpHeaders.ContentType, "image/jpeg")
-                    append(HttpHeaders.ContentDisposition, "filename=\"avatar.jpg\"")
-                })
-            }
-        )
-        return response.body()
-    }
-
-    suspend fun changeApplicationTime(request: ChangeApplicationSubmitTime): ChangeApplicationTimeResponse {
-        val response = client.post("$baseUrl/application/updatetime") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }
-        return response.body()
-    }
-
-
-    suspend fun changeStatus(request: ChangeStatus): String {
-        val response = client.post("$baseUrl/application/changestatus") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }
-        return response.body()
-    }
 
     // ==================== 用户信息查询与修改 ====================
 

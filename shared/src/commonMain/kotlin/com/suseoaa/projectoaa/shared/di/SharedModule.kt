@@ -88,6 +88,7 @@ val sharedModule = module {
 
 
 //    招新换届
+    single { com.suseoaa.projectoaa.shared.data.remote.api.RecruitmentApiService() }
     single { RecruitmentRepository(get()) }
     // ==================== 教务系统 API ====================
     // 教务系统专用 HttpClient
