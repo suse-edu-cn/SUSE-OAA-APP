@@ -36,7 +36,11 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            // Shared module
+            // Haze库，可以提供毛玻璃效果
+            implementation(libs.haze)
+            // 提供类似 iOS 和 Windows 预设材质效果的扩展库
+            implementation(libs.haze.materials)
+            // Shared模块
             implementation(project(":shared"))
 
             // Compose Multiplatform
@@ -130,8 +134,8 @@ android {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 112837
-        versionName = "1.128.37"
+        versionCode = 112937
+        versionName = "1.129.37"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

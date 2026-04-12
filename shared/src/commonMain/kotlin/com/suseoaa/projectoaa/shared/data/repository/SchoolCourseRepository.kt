@@ -113,7 +113,7 @@ class SchoolCourseRepository(
      * 提取 <tr class="tab-th-2"> 行的 HTML 内容
      */
     private fun extractWeekNumberRow(html: String): String? {
-        val regex = Regex("""<tr\s+class\s*=\s*"tab-th-2"[^>]*>(.*?)</tr>""", RegexOption.DOT_MATCHES_ALL)
+        val regex = Regex("""(?s)<tr\s+class\s*=\s*"tab-th-2"[^>]*>(.*?)</tr>""")
         return regex.find(html)?.groupValues?.get(1)
     }
 
@@ -121,7 +121,7 @@ class SchoolCourseRepository(
      * 从一行 HTML 中提取所有 <th> 的文本内容
      */
     private fun parseThValues(rowHtml: String): List<String> {
-        val regex = Regex("""<th[^>]*>(.*?)</th>""", RegexOption.DOT_MATCHES_ALL)
+        val regex = Regex("""(?s)<th[^>]*>(.*?)</th>""")
         return regex.findAll(rowHtml).map { it.groupValues[1].trim() }.toList()
     }
 
@@ -130,11 +130,11 @@ class SchoolCourseRepository(
      */
     private fun extractMondayDates(html: String): List<String> {
         // 定位 <tbody> 内容
-        val tbodyRegex = Regex("""<tbody>(.*?)</tbody>""", RegexOption.DOT_MATCHES_ALL)
+        val tbodyRegex = Regex("""(?s)<tbody>(.*?)</tbody>""")
         val tbodyContent = tbodyRegex.find(html)?.groupValues?.get(1) ?: return emptyList()
 
         // 取第一个 <tr>...</tr>（星期一）
-        val firstTrRegex = Regex("""<tr[^>]*>(.*?)</tr>""", RegexOption.DOT_MATCHES_ALL)
+        val firstTrRegex = Regex("""(?s)<tr[^>]*>(.*?)</tr>""")
         val firstTrContent = firstTrRegex.find(tbodyContent)?.groupValues?.get(1) ?: return emptyList()
 
         // 提取所有 td 的 id 值

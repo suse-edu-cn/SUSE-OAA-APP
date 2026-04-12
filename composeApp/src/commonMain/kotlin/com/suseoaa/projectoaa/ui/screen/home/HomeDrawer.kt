@@ -24,6 +24,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.shared.domain.model.person.PersonData
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -41,7 +46,10 @@ fun HomeWithDrawer(
     val peekHeight = 60.dp + bottomBarHeight
     val peekPx = with(density) { peekHeight.toPx() }
 
-    // 使用 Boolean 持久化由于 Animatable 取代带来的纯物理状态
+    // 1.声明Haze状态对象，它是连接背景与抽屉的桥梁
+    val hazeState = remember { HazeState() }
+
+    // 使用Boolean持久化由于Animatable取代带来的纯物理状态
     var isExpanded by rememberSaveable { mutableStateOf(false) }
 
     // Animatable：完全不受任何坐标轴范围钳制的物理弹簧机制！
@@ -59,8 +67,8 @@ fun HomeWithDrawer(
                 offsetYAnim.snapTo(target)
                 isInitialized = true
             } else if (!offsetYAnim.isRunning) {
-                // 当页面从后台切回，测量树重建可能产生极小的临时 maxPx 并在之后恢复
-                // 如果此时动画处于静止，我们必须紧紧跟随后续纠正的尺寸，重新正确吸附到预留的 10% 位置上
+                // 当页面从后台切回，测量树重建可能产生极小的临时maxPx并在之后恢复
+                // 如果此时动画处于静止，我们必须紧紧跟随后续纠正的尺寸，重新正确吸附到预留的10%位置上
                 offsetYAnim.snapTo(target)
             }
         }
@@ -137,6 +145,8 @@ fun HomeWithDrawer(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = peekHeight)
+                // 2.将此层标记为“模糊源”，Haze会捕获此层的所有渲染像素
+                .haze(state = hazeState)
                 .graphicsLayer {
                     scaleX = scaleFactor
                     scaleY = scaleFactor
@@ -166,9 +176,18 @@ fun HomeWithDrawer(
                     orientation = Orientation.Vertical,
                     onDragStopped = { velocity -> settleToTarget(velocity) }
                 )
-                .background(
-                    MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
-                    RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)
+                // 3.使用hazeChild应用模糊效果，并显式传入backgroundColor以修复崩溃问题
+                .clip(shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)).hazeChild(
+                    state = hazeState,
+                    style = HazeStyle(
+                        backgroundColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
+                        tint = HazeTint(
+                            MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+                                .copy(alpha = 0.6f)
+                        ),
+                        blurRadius = 16.dp,
+                        noiseFactor = 0.05f
+                    )
                 )
                 .border(
                     1.dp,
@@ -177,7 +196,11 @@ fun HomeWithDrawer(
                 )
                 .fillMaxHeight()
         ) {
-            Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
                 // Drag Handle
                 Box(
                     modifier = Modifier
@@ -191,7 +214,7 @@ fun HomeWithDrawer(
 
                 Text(
                     "应用功能",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(bottom = 16.dp, start = 8.dp)
@@ -206,7 +229,7 @@ fun HomeWithDrawer(
                         FeatureCard(
                             name = "招新换届",
                             icon = Icons.Default.GroupAdd,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            color = MaterialTheme.colorScheme.surface,
                             onColor = MaterialTheme.colorScheme.primary,
                             onClick = onNavigateToRecruitment,
                             sharedBoundKey = "recruitment_feature"
@@ -219,7 +242,7 @@ fun HomeWithDrawer(
                             FeatureCard(
                                 name = "权利的游戏",
                                 icon = Icons.Default.ManageAccounts,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                color = MaterialTheme.colorScheme.surface,
                                 onColor = MaterialTheme.colorScheme.primary,
                                 onClick = onNavigateToUserQuery,
                                 sharedBoundKey = "user_management_feature"

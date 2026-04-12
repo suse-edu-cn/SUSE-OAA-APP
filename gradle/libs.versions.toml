@@ -1,6 +1,7 @@
 [versions]
 # Core
 agp = "8.7.3"
+haze = "1.1.1"
 kotlin = "2.1.0"
 ksp = "2.1.0-1.0.29"
 
@@ -75,6 +76,8 @@ androidx-navigation-compose = { group = "org.jetbrains.androidx.navigation", nam
 androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastorePreferences" }
 
 # Testing
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
