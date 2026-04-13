@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -88,6 +89,31 @@ private val CardHorizontalPadding = 1.dp  // 左右各留的间距
 private val ConflictCardInnerSpacing = 2.dp
 // 当单列宽度低于此阈值时，启用手机端冲突策略：仅显示一张主卡片 + 冲突角标。
 private val CompactConflictColWidthThreshold = 62.dp
+
+@Composable
+private fun timetableAdaptiveSp(
+    baseSp: Float,
+    minSp: Float,
+    compactScale: Float = 1f,
+    maxSystemFontScale: Float = 1.15f
+): TextUnit {
+    val fontScale = LocalDensity.current.fontScale
+    val systemScaleCompensation =
+        if (fontScale > maxSystemFontScale) maxSystemFontScale / fontScale else 1f
+    val scaledSp = (baseSp * compactScale * systemScaleCompensation).coerceIn(minSp, baseSp)
+    return scaledSp.sp
+}
+
+@Composable
+private fun rememberCourseCardTextScale(maxWidth: Dp, maxHeight: Dp): Float =
+    remember(maxWidth, maxHeight) {
+        when {
+            maxWidth < 34.dp || maxHeight < 44.dp -> 0.72f
+            maxWidth < 40.dp || maxHeight < 52.dp -> 0.8f
+            maxWidth < 48.dp || maxHeight < 64.dp -> 0.9f
+            else -> 1f
+        }
+    }
 
 /**
  * 课表卡片的预处理布局数据。
@@ -918,16 +944,44 @@ private fun CourseCard(
             }
             .clickable { onClickWithBounds(cardBounds) }
     ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 3.dp, vertical = 2.dp)
         ) {
+            val cardTextScale = rememberCourseCardTextScale(maxWidth, maxHeight)
+            val conflictFontSize = timetableAdaptiveSp(
+                baseSp = 8f,
+                minSp = 6f,
+                compactScale = cardTextScale * 0.9f,
+                maxSystemFontScale = 1.05f
+            )
+            val titleFontSize = timetableAdaptiveSp(
+                baseSp = 11f,
+                minSp = 7.5f,
+                compactScale = cardTextScale
+            )
+            val titleLineHeight = timetableAdaptiveSp(
+                baseSp = 11f,
+                minSp = 8f,
+                compactScale = cardTextScale * 0.95f
+            )
+            val locationFontSize = timetableAdaptiveSp(
+                baseSp = 9f,
+                minSp = 6.5f,
+                compactScale = cardTextScale * 0.95f
+            )
+            val locationLineHeight = timetableAdaptiveSp(
+                baseSp = 10f,
+                minSp = 7f,
+                compactScale = cardTextScale * 0.9f
+            )
+
             if (isConflict) {
                 Text(
                     text = "冲突$conflictCount",
                     color = Color.White,
-                    fontSize = 8.sp,
+                    fontSize = conflictFontSize,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -943,10 +997,10 @@ private fun CourseCard(
             ) {
                 Text(
                     text = title,
-                    fontSize = 11.sp,
+                    fontSize = titleFontSize,
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    lineHeight = 11.sp,
+                    lineHeight = titleLineHeight,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -956,9 +1010,9 @@ private fun CourseCard(
                     val displayLocation = location.removePrefix("L")
                     Text(
                         text = displayLocation,
-                        fontSize = 9.sp,
+                        fontSize = locationFontSize,
                         color = Color.White.copy(0.9f),
-                        lineHeight = 10.sp,
+                        lineHeight = locationLineHeight,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -974,6 +1028,11 @@ private fun CourseCard(
 @Composable
 fun StaticWeekDayHeader() {
     val weekDays = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+    val weekDayFontSize = timetableAdaptiveSp(
+        baseSp = 12f,
+        minSp = 10f,
+        maxSystemFontScale = 1.1f
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -983,9 +1042,11 @@ fun StaticWeekDayHeader() {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(
                     text = dayName,
-                    fontSize = 12.sp,
+                    fontSize = weekDayFontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip
                 )
             }
         }
@@ -994,6 +1055,22 @@ fun StaticWeekDayHeader() {
 
 @Composable
 fun StaticTimeAxis(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Float, height: Dp) {
+    val sectionFontSize = timetableAdaptiveSp(
+        baseSp = 14f,
+        minSp = 10f,
+        maxSystemFontScale = 1.1f
+    )
+    val timeFontSize = timetableAdaptiveSp(
+        baseSp = 9f,
+        minSp = 7f,
+        maxSystemFontScale = 1.05f
+    )
+    val breakFontSize = timetableAdaptiveSp(
+        baseSp = 10f,
+        minSp = 8f,
+        maxSystemFontScale = 1.05f
+    )
+
     Layout(content = {
         dailySchedule.forEach { slot ->
             Box(contentAlignment = Alignment.Center) {
@@ -1004,21 +1081,21 @@ fun StaticTimeAxis(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Float, hei
                     if (slot.type == SlotType.CLASS) {
                         Text(
                             text = slot.sectionName,
-                            fontSize = 14.sp,
+                            fontSize = sectionFontSize,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "${slot.startTime}\n${slot.endTime}",
-                            fontSize = 9.sp,
-                            lineHeight = 9.sp,
+                            fontSize = timeFontSize,
+                            lineHeight = timeFontSize,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                     } else if (slot.type == SlotType.BREAK_LUNCH) {
                         Text(
                             slot.sectionName,
-                            fontSize = 10.sp,
+                            fontSize = breakFontSize,
                             color = MaterialTheme.colorScheme.outline,
                             textAlign = TextAlign.Center
                         )
@@ -1095,6 +1172,11 @@ fun StaticGridBackground(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Floa
 @Composable
 fun DynamicDateRow(startDate: LocalDate) {
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    val dateFontSize = timetableAdaptiveSp(
+        baseSp = 11f,
+        minSp = 9f,
+        maxSystemFontScale = 1.1f
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1116,9 +1198,11 @@ fun DynamicDateRow(startDate: LocalDate) {
             ) {
                 Text(
                     text = "${date.monthNumber}/${date.dayOfMonth}",
-                    fontSize = 11.sp,
+                    fontSize = dateFontSize,
                     color = if (isToday) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip
                 )
             }
         }
