@@ -146,17 +146,25 @@ fun CheckinScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 根据selectedAccount判断显示账号列表还是任务列表
-            if (uiState.selectedAccount != null) {
-                // 显示任务列表
-                TaskListView(
-                    viewModel = viewModel,
-                    uiState = uiState,
-                    onBack = { viewModel.clearTasks() }
-                )
-            } else {
-                // 显示账号列表
-                if (uiState.isLoading && uiState.accounts.isEmpty()) {
+            AnimatedContent(
+                targetState = uiState.selectedAccount,
+                label = "checkin_account_transition"
+            ) { targetAccount ->
+                CompositionLocalProvider(
+                    com.suseoaa.projectoaa.ui.animation.LocalAnimatedVisibilityScope provides this@AnimatedContent
+                ) {
+                    // 根据 targetAccount 判断显示账号列表还是任务列表
+                    if (targetAccount != null) {
+                        // 显示任务列表
+                        TaskListView(
+                            viewModel = viewModel,
+                            uiState = uiState,
+                            account = targetAccount,
+                            onBack = { viewModel.clearTasks() }
+                        )
+                    } else {
+                        // 显示账号列表
+                        if (uiState.isLoading && uiState.accounts.isEmpty()) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 } else if (uiState.accounts.isEmpty()) {
                     EmptyState(onAddClick = { viewModel.showAddDialog() })
@@ -279,7 +287,9 @@ fun CheckinScreen(
                         }
                     }
                 }
-            }
+                } // End of else
+                } // End of CompositionLocalProvider
+            } // End of AnimatedContent lambda
         }
     }
 
@@ -436,7 +446,7 @@ private fun AccountCard(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().sharedBoundsTransition("checkin_account_${account.id}")
     ) {
         Column(
             modifier = Modifier
@@ -1336,12 +1346,16 @@ private fun QrCodeLoginDialog(
 private fun TaskListView(
     viewModel: CheckinViewModel,
     uiState: com.suseoaa.projectoaa.presentation.checkin.CheckinUiState,
+    account: CheckinAccountData,
     onBack: () -> Unit
 ) {
-    val account = uiState.selectedAccount ?: return
     var selectedTab by remember { mutableStateOf(0) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .sharedBoundsTransition("checkin_account_${account.id}")
+        .background(MaterialTheme.colorScheme.background)
+    ) {
         // 顶部栏
         Surface(
             color = MaterialTheme.colorScheme.background,
