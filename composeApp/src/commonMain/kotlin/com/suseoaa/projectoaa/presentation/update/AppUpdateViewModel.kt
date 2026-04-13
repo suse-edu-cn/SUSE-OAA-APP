@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 data class AppUpdateUiState(
     val isChecking: Boolean = false,
     val isDownloading: Boolean = false,
+    val downloadingReleaseTag: String? = null,
     val hasUpdate: Boolean = false,
     val latestRelease: GithubRelease? = null,
     val errorMessage: String? = null,
@@ -191,9 +192,29 @@ class AppUpdateViewModel(
         url: String,
         fileName: String,
         digest: String? = null,
-        isProxy: Boolean = false
+        isProxy: Boolean = false,
+        releaseTag: String? = null
     ) {
-        _uiState.value = _uiState.value.copy(isDownloading = true, downloadProgress = 0)
+        val state = _uiState.value
+        if (state.isDownloading) {
+            if (state.downloadingReleaseTag == releaseTag) {
+                viewModelScope.launch {
+                    _events.emit(UpdateEvent.ShowToast("该版本已在下载中"))
+                }
+                return
+            }
+
+            progressPollingJob?.cancel()
+            if (currentDownloadId != -1L) {
+                appUpdateRepository.cancelDownload(currentDownloadId)
+            }
+        }
+
+        _uiState.value = _uiState.value.copy(
+            isDownloading = true,
+            downloadProgress = 0,
+            downloadingReleaseTag = releaseTag
+        )
         expectedDigest = digest
         isProxyDownload = isProxy
 
@@ -204,7 +225,7 @@ class AppUpdateViewModel(
 
         if (currentDownloadId == -1L) {
             // iOS 平台不支持直接下载
-            _uiState.value = _uiState.value.copy(isDownloading = false)
+            _uiState.value = _uiState.value.copy(isDownloading = false, downloadingReleaseTag = null)
         } else {
             // 启动进度轮询
             startProgressPolling()
@@ -244,7 +265,7 @@ class AppUpdateViewModel(
             if (isProxy) "https://ghfast.top/${apkAsset.downloadUrl}" else apkAsset.downloadUrl
 
         // 调用我们已经定义好的带代理和 digest 参数的方法
-        downloadApk(url, apkAsset.name, apkAsset.digest, isProxy)
+        downloadApk(url, apkAsset.name, apkAsset.digest, isProxy, release.tagName)
     }
 
     /**
@@ -256,7 +277,13 @@ class AppUpdateViewModel(
             while (true) {
                 delay(500)
                 val progress = appUpdateRepository.getDownloadProgress(currentDownloadId)
-                if (progress < 0) break // 查询失败，停止轮询
+                if (progress < 0) {
+                    _uiState.value = _uiState.value.copy(
+                        isDownloading = false,
+                        downloadingReleaseTag = null
+                    )
+                    break
+                }
 
                 _uiState.value = _uiState.value.copy(downloadProgress = progress)
 
@@ -268,7 +295,8 @@ class AppUpdateViewModel(
                             _uiState.value = _uiState.value.copy(
                                 errorMessage = "安装包已损坏",
                                 isDownloading = false,
-                                downloadProgress = 0
+                                downloadProgress = 0,
+                                downloadingReleaseTag = null
                             )
                             _events.emit(UpdateEvent.ShowToast("安装包已损坏"))
                             appUpdateRepository.cancelDownload(currentDownloadId)
@@ -278,7 +306,8 @@ class AppUpdateViewModel(
 
                     _uiState.value = _uiState.value.copy(
                         isDownloading = false,
-                        downloadProgress = 100
+                        downloadProgress = 100,
+                        downloadingReleaseTag = null
                     )
                     _events.emit(UpdateEvent.DownloadComplete)
                     // 下载完成后自动拉起安装
@@ -299,7 +328,8 @@ class AppUpdateViewModel(
         }
         _uiState.value = _uiState.value.copy(
             isDownloading = false,
-            downloadProgress = 0
+            downloadProgress = 0,
+            downloadingReleaseTag = null
         )
     }
 
@@ -324,7 +354,8 @@ class AppUpdateViewModel(
             progressPollingJob?.cancel()
             _uiState.value = _uiState.value.copy(
                 isDownloading = false,
-                downloadProgress = 100
+                downloadProgress = 100,
+                downloadingReleaseTag = null
             )
             viewModelScope.launch {
                 _events.emit(UpdateEvent.DownloadComplete)

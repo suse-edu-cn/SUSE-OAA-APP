@@ -97,7 +97,12 @@ fun UpdateScreen(
                             .weight(1.2f)
                             .fillMaxHeight()
                     ) {
-                        ReleaseHistorySection(allReleases, uiState.isChecking, viewModel)
+                        ReleaseHistorySection(
+                            allReleases = allReleases,
+                            isChecking = uiState.isChecking,
+                            downloadingReleaseTag = uiState.downloadingReleaseTag,
+                            viewModel = viewModel
+                        )
                     }
                 }
             } else {
@@ -139,6 +144,7 @@ fun UpdateScreen(
                                 ReleaseCard(
                                     release = release,
                                     isCurrentVersion = getAppVersionName() == release.tagName.removePrefix("v"),
+                                    downloadingReleaseTag = uiState.downloadingReleaseTag,
                                     viewModel = viewModel
                                 )
                             }
@@ -268,6 +274,7 @@ fun HeroVersionSection(hasUpdate: Boolean, latestRelease: GithubRelease?, isTabl
 fun ReleaseHistorySection(
     allReleases: List<GithubRelease>,
     isChecking: Boolean,
+    downloadingReleaseTag: String?,
     viewModel: AppUpdateViewModel
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -301,6 +308,7 @@ fun ReleaseHistorySection(
                     ReleaseCard(
                         release = release,
                         isCurrentVersion = getAppVersionName() == release.tagName.removePrefix("v"),
+                        downloadingReleaseTag = downloadingReleaseTag,
                         viewModel = viewModel
                     )
                 }
@@ -310,7 +318,14 @@ fun ReleaseHistorySection(
 }
 
 @Composable
-fun ReleaseCard(release: GithubRelease, isCurrentVersion: Boolean, viewModel: AppUpdateViewModel) {
+fun ReleaseCard(
+    release: GithubRelease,
+    isCurrentVersion: Boolean,
+    downloadingReleaseTag: String?,
+    viewModel: AppUpdateViewModel
+) {
+    val isThisReleaseDownloading = downloadingReleaseTag == release.tagName
+
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
@@ -371,46 +386,65 @@ fun ReleaseCard(release: GithubRelease, isCurrentVersion: Boolean, viewModel: Ap
                 val apkAsset = release.assets.firstOrNull { it.name.endsWith(".apk") }
                 if (apkAsset != null) {
                     Spacer(modifier = Modifier.height(28.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
+                    if (isThisReleaseDownloading) {
                         OutlinedButton(
-                            onClick = {
-                                viewModel.downloadApk(
-                                    url = apkAsset.downloadUrl,
-                                    fileName = apkAsset.name,
-                                    digest = apkAsset.digest,
-                                    isProxy = false
-                                )
-                            },
-                            modifier = Modifier.weight(1f).height(50.dp),
+                            onClick = { viewModel.cancelDownload() },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
                             shape = CircleShape,
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                            ),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
                             )
                         ) {
-                            Text("直接下载", fontWeight = FontWeight.Bold)
+                            Text("取消下载", fontWeight = FontWeight.Bold)
                         }
-
-                        Button(
-                            onClick = {
-                                viewModel.downloadApk(
-                                    url = "https://ghfast.top/${apkAsset.downloadUrl}",
-                                    fileName = apkAsset.name,
-                                    digest = apkAsset.digest,
-                                    isProxy = true
-                                )
-                            },
-                            modifier = Modifier.weight(1f).height(50.dp),
-                            shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Text("加速下载", fontWeight = FontWeight.Bold)
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.downloadApk(
+                                        url = apkAsset.downloadUrl,
+                                        fileName = apkAsset.name,
+                                        digest = apkAsset.digest,
+                                        isProxy = false,
+                                        releaseTag = release.tagName
+                                    )
+                                },
+                                modifier = Modifier.weight(1f).height(50.dp),
+                                shape = CircleShape,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Text("直接下载", fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.downloadApk(
+                                        url = "https://ghfast.top/${apkAsset.downloadUrl}",
+                                        fileName = apkAsset.name,
+                                        digest = apkAsset.digest,
+                                        isProxy = true,
+                                        releaseTag = release.tagName
+                                    )
+                                },
+                                modifier = Modifier.weight(1f).height(50.dp),
+                                shape = CircleShape,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Text("加速下载", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

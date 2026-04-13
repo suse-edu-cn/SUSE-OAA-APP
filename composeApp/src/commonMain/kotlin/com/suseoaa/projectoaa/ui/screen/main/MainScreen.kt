@@ -249,8 +249,8 @@ private fun PhoneLayout(
 ) {
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
     val scope = rememberCoroutineScope()
-    val currentDestinationIndex by remember { derivedStateOf { pagerState.targetPage } }
     var isIndicatorDragging by remember { mutableStateOf(false) }
+    var isProgrammaticTabTransition by remember { mutableStateOf(false) }
     var dragIndicatorProgress by remember { mutableStateOf<Float?>(null) }
     val tabIndicatorProgress by remember {
         derivedStateOf {
@@ -261,30 +261,45 @@ private fun PhoneLayout(
     val density = LocalDensity.current
     val hazeState = remember { HazeState() }
 
-    // 同步 pagerState 的 targetPage 和 selectedTab，以防滑动中途的错误回调
-    LaunchedEffect(currentDestinationIndex) {
-        if (currentDestinationIndex != selectedTab) {
-            onTabChange(currentDestinationIndex)
+    // 手势滑动完成后，同步 settledPage 到 selectedTab。
+    // 程序化跨页动画期间忽略中间页回调，避免目标页被中途页覆盖。
+    LaunchedEffect(pagerState.settledPage, isProgrammaticTabTransition, isIndicatorDragging) {
+        if (!isIndicatorDragging && !isProgrammaticTabTransition && pagerState.settledPage != selectedTab) {
+            onTabChange(pagerState.settledPage)
         }
     }
 
     // 若外部或点击产生的 selectedTab 变化，控制 pager 滚动
     LaunchedEffect(selectedTab) {
         if (!isIndicatorDragging && pagerState.currentPage != selectedTab) {
-            // 高标准平滑多页滚动：如果跨度超过1页，先跳到临近页再平滑进入，
-            // 完美避免渲染所有中间页的掉帧卡顿，同时始终保留了柔和线性的位移动画
-            if (kotlin.math.abs(pagerState.currentPage - selectedTab) > 1) {
-                val previewPage =
-                    if (selectedTab > pagerState.currentPage) selectedTab - 1 else selectedTab + 1
-                pagerState.scrollToPage(previewPage)
+            isProgrammaticTabTransition = true
+            try {
+                val maxIndex = MainTab.entries.size - 1
+                val startProgress =
+                    (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+                        .coerceIn(0f, maxIndex.toFloat())
+                val targetProgress = selectedTab.toFloat().coerceIn(0f, maxIndex.toFloat())
+                val distance = kotlin.math.abs(targetProgress - startProgress)
+                val durationMillis = (220 + (distance * 140).toInt()).coerceAtMost(680)
+
+                val startNanos = withFrameNanos { it }
+                var rawFraction = 0f
+                while (rawFraction < 1f) {
+                    val nowNanos = withFrameNanos { it }
+                    val elapsedMs = ((nowNanos - startNanos) / 1_000_000f)
+                    rawFraction = if (durationMillis <= 0) 1f else (elapsedMs / durationMillis).coerceIn(0f, 1f)
+                    val easedFraction = androidx.compose.animation.core.FastOutSlowInEasing.transform(rawFraction)
+
+                    val progress = startProgress + (targetProgress - startProgress) * easedFraction
+                    val page = progress.roundToInt().coerceIn(0, maxIndex)
+                    val offsetFraction = (progress - page).coerceIn(-0.5f, 0.5f)
+                    pagerState.scrollToPage(page = page, pageOffsetFraction = offsetFraction)
+                }
+
+                pagerState.scrollToPage(page = selectedTab, pageOffsetFraction = 0f)
+            } finally {
+                isProgrammaticTabTransition = false
             }
-            pagerState.animateScrollToPage(
-                page = selectedTab,
-                animationSpec = androidx.compose.animation.core.tween(
-                    durationMillis = 350,
-                    easing = androidx.compose.animation.core.FastOutSlowInEasing
-                )
-            )
         }
     }
 
