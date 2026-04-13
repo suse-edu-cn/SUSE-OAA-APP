@@ -48,6 +48,8 @@
 | **📖 教学计划** | 培养方案查看、课程信息检索、学业完成度跟踪 |
 | **📢 校园公告** | 聚合各院系部门公告通知，支持按部门筛选 |
 | **✅ 打卡签到** | 652 打卡系统集成，支持密码登录和扫码签到两种方式 |
+| **🚀 版本更新** | 支持在应用内获取最新 Release 版本，在线查看更新日志并下载 |
+| **🪪 招新换届** | 在线填写、修改纳新和换届申请表，实时查看审核进度 |
 | **🔐 安全加密** | RSA 加密传输教务密码，DataStore 安全存储 Token，HTTPS 全链路加密 |
 | **🤖 验证码 OCR** | Android 端集成 ML Kit + ONNX Runtime，iOS 端集成 ONNX + Vision Framework，自动识别登录验证码 |
 | **🎨 跨平台** | Compose Multiplatform 一套 UI 代码，Android / iOS 体验高度一致 |
@@ -65,7 +67,7 @@
 │                              │                                   │
 │  ┌──────────────── Presentation Layer ──────────────────┐        │
 │  │  ViewModel (StateFlow / MutableState)                │        │
-│  │  17 个 ViewModel 覆盖全部功能模块                      │        │
+│  │  19 个 ViewModel 覆盖全部功能模块                      │        │
 │  └──────────────────────────────────────────────────────┘        │
 │                              │                                   │
 │  ┌───── DI ─────┐   ┌─── Platform ───┐                          │
@@ -82,7 +84,7 @@
 │  └──────────────────────────────────────────────────────┘        │
 │                              │                                   │
 │  ┌──────────────────── Data Layer ──────────────────────┐        │
-│  │  Repository (17个) ── API Service (4个) ── Database   │        │
+│  │  Repository (17个) ── API Service (5个) ── Database   │        │
 │  │  Ktor HttpClient ×5 · SQLDelight · DataStore          │        │
 │  └──────────────────────────────────────────────────────┘        │
 │                              │                                   │
@@ -121,9 +123,9 @@
 
 | Module | 位置 | 注册内容 |
 |--------|------|----------|
-| **SharedModule** | `shared` | Json、5 个 HttpClient、4 个 API Service、CourseDatabase、2 个 CookieStorage、15+ 个 Repository |
+| **SharedModule** | `shared` | Json、5 个 HttpClient、5 个 API Service、CourseDatabase、2 个 CookieStorage、17 个 Repository |
 | **Shared PlatformModule** | `shared` (expect/actual) | CourseDatabaseDriverFactory、DataStore、TokenManager |
-| **AppModule** | `composeApp` | 17 个 ViewModel |
+| **AppModule** | `composeApp` | 19 个 ViewModel |
 | **App PlatformModule** | `composeApp` (expect/actual) | AppUpdateRepository（平台特定版本号获取） |
 
 ## 📐 项目结构
@@ -137,7 +139,7 @@ SUSEOAA/
 │       │   ├── 📁 di/                     # 依赖注入
 │       │   │   ├── AppModule.kt           # ViewModel DI 注册
 │       │   │   └── PlatformModule.kt      # 平台特定 DI (expect)
-│       │   ├── 📁 presentation/           # ViewModel 层 (17个)
+│       │   ├── 📁 presentation/           # ViewModel 层 (19个)
 │       │   │   ├── MainViewModel.kt
 │       │   │   ├── login/LoginViewModel.kt
 │       │   │   ├── course/CourseViewModel.kt
@@ -148,14 +150,18 @@ SUSEOAA/
 │       │   │   ├── academic/AcademicViewModel.kt
 │       │   │   ├── person/PersonViewModel.kt
 │       │   │   ├── checkin/CheckinViewModel.kt
+│       │   │   ├── update/AppUpdateViewModel.kt
+│       │   │   ├── recruitment/RecruitmentViewModel.kt
+│       │   │   ├── usermanagement/UserManagementViewModel.kt
 │       │   │   └── ...
 │       │   ├── 📁 ui/
 │       │   │   ├── navigation/            # 导航路由 (NavHost)
 │       │   │   ├── theme/                 # Material 3 主题
 │       │   │   ├── components/            # 通用 UI 组件
-│       │   │   └── screen/               # 功能页面 (13个)
+│       │   │   └── screen/               # 功能页面 (18个)
 │       │   │       ├── login/             # 登录
 │       │   │       ├── register/          # 注册
+│       │   │       ├── forgetpassword/    # 找回密码
 │       │   │       ├── main/              # 主页容器 (底部导航)
 │       │   │       ├── home/              # 首页 + 院系公告详情
 │       │   │       ├── academic/          # 学业总览
@@ -167,7 +173,9 @@ SUSEOAA/
 │       │   │       ├── teachingplan/      # 教学计划 (3个子页面)
 │       │   │       ├── checkin/           # 打卡签到
 │       │   │       ├── changepassword/    # 修改密码
-│       │   │       └── recruitment/       # 招聘/转专业
+│       │   │       ├── recruitment/       # 招聘/转专业
+│       │   │       ├── update/            # 版本更新
+│       │   │       └── usermanagement/    # 用户管理
 │       │   └── 📁 util/                  # UI 工具类
 │       │       ├── PlatformCaptchaOcr.kt  # 验证码 OCR (expect)
 │       │       ├── ExamCountDown.kt       # 考试倒计时 (含 Color)
@@ -189,14 +197,17 @@ SUSEOAA/
 │       │   │   ├── grades/               # 成绩模型
 │       │   │   ├── exam/                 # 考试模型
 │       │   │   ├── checkin/              # 签到模型
+│       │   │   ├── recruitment/          # 招新模型
+│       │   │   ├── announcement/         # 公告模型
 │       │   │   ├── person/               # 个人信息模型
 │       │   │   ├── school/               # 教务 API 响应模型
 │       │   │   ├── teachingplan/         # 教学计划模型
 │       │   │   └── ...
 │       │   ├── 📁 data/
-│       │   │   ├── api/                  # API 服务 (4个)
+│       │   │   ├── api/                  # API 服务 (5个)
 │       │   │   │   ├── OaaApiService.kt          # OAA 后端
 │       │   │   │   ├── SchoolApiService.kt       # 教务系统
+│       │   │   │   ├── RecruitmentApiService.kt  # 招新报名系统
 │       │   │   │   ├── CheckinApiService.kt      # 打卡系统
 │       │   │   │   └── QrCodeCheckinApiService.kt # 扫码签到
 │       │   │   ├── network/              # 网络配置
