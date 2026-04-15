@@ -10,6 +10,7 @@ import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.annotation.Keep
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -425,6 +426,7 @@ fun QrCodeLoginDialog(
                                 
                                 // JavaScript 接口 - 接收页面传来的二维码数据
                                 addJavascriptInterface(object {
+                                    @Keep
                                     @JavascriptInterface
                                     fun onQrCodeData(base64Img: String) {
                                         println("[QrCode] JS接口收到二维码: 长度=${base64Img.length}")

@@ -188,7 +188,7 @@ class CheckinViewModel(
 
                     // 每个账号之间稍作延迟，避免请求过快
                     delay(500)
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     failCount++
                     println("[BatchCheckin] 账号 ${account.studentId} 打卡失败: ${e.message}")
                 }
@@ -222,7 +222,12 @@ class CheckinViewModel(
             val captchaBytes = captchaResult.getOrThrow()
 
             // 2. OCR自动识别
-            val ocrResult = com.suseoaa.projectoaa.util.PlatformCaptchaOcr.recognize(captchaBytes)
+            val ocrResult = try {
+                com.suseoaa.projectoaa.util.PlatformCaptchaOcr.recognize(captchaBytes)
+            } catch (t: Throwable) {
+                println("[AutoCheckinSync] OCR 运行时异常: ${t.message}")
+                return false
+            }
 
             if (ocrResult.isFailure || ocrResult.getOrNull()?.length != 4) {
                 return false
@@ -261,7 +266,7 @@ class CheckinViewModel(
                 is CheckinResult.NoTask -> true
                 is CheckinResult.Failed -> false
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             return false
         }
     }
@@ -286,7 +291,15 @@ class CheckinViewModel(
             val captchaBytes = captchaResult.getOrThrow()
 
             // 2. OCR自动识别
-            val ocrResult = com.suseoaa.projectoaa.util.PlatformCaptchaOcr.recognize(captchaBytes)
+            val ocrResult = try {
+                com.suseoaa.projectoaa.util.PlatformCaptchaOcr.recognize(captchaBytes)
+            } catch (t: Throwable) {
+                println("[AutoLogin] OCR 运行时异常: ${t.message}")
+                if (retryCount < 2) {
+                    return autoLoginForPasswordAccount(account, retryCount + 1)
+                }
+                return false
+            }
             if (ocrResult.isFailure || ocrResult.getOrNull()?.length != 4) {
                 println("[AutoLogin] OCR识别失败")
                 if (retryCount < 2) {
@@ -326,7 +339,7 @@ class CheckinViewModel(
             loggedInPasswordStudentId = account.studentId
             println("[AutoLogin] 登录成功")
             return true
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             println("[AutoLogin] 异常: ${e.message}")
             return false
         }
@@ -470,8 +483,13 @@ class CheckinViewModel(
                 val captchaBytes = captchaResult.getOrThrow()
 
                 // 2. OCR自动识别
-                val ocrResult =
+                val ocrResult = try {
                     com.suseoaa.projectoaa.util.PlatformCaptchaOcr.recognize(captchaBytes)
+                } catch (t: Throwable) {
+                    println("[AutoCheckin] OCR 运行时异常: ${t.message}")
+                    showManualCaptchaDialog(account, "OCR组件不可用，已降级为手动验证码", captchaBytes)
+                    return@launch
+                }
 
                 if (ocrResult.isFailure || ocrResult.getOrNull()?.length != 4) {
                     // OCR识别失败，显示手动输入对话框
@@ -538,7 +556,7 @@ class CheckinViewModel(
                 }
                 loadAccounts()
 
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 println("[AutoCheckin] 异常: ${e.message}")
                 showManualCaptchaDialog(account, e.message)
             }

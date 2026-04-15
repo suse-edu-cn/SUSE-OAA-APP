@@ -960,7 +960,7 @@ private fun CaptchaDialog(
                     println("[OCR] 识别失败: ${e.message}")
                     ocrError = "识别失败，请手动输入"
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 println("[OCR] 识别异常: ${e.message}")
                 ocrError = "识别异常，请手动输入"
             }
