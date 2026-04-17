@@ -1001,6 +1001,7 @@ private fun CaptchaDialog(
     }
 
     AlertDialog(
+        containerColor = MaterialTheme.colorScheme.background,
         onDismissRequest = { if (!isLoggingIn) onDismiss() },
         title = {
             Text("输入验证码")

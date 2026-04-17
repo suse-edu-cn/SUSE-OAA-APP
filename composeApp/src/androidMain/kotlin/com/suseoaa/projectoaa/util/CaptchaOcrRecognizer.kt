@@ -3,6 +3,7 @@ package com.suseoaa.projectoaa.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
@@ -26,10 +27,35 @@ import kotlin.math.min
  * 2. 将 common_old.onnx 放到 composeApp/src/androidMain/assets/ 目录
  */
 object CaptchaOcrRecognizer {
+
+    private const val LOG_TAG = "CheckinOCR"
     
     private var context: Context? = null
     private var ddddocrInitialized = false
     private var ddddocrAvailable = false
+
+    private fun logDebug(message: String) {
+        Log.d(LOG_TAG, message)
+        println("[OCR] $message")
+    }
+
+    private fun logWarn(message: String, throwable: Throwable? = null) {
+        Log.w(LOG_TAG, message, throwable)
+        if (throwable != null) {
+            println("[OCR] $message, error=${throwable.message}")
+        } else {
+            println("[OCR] $message")
+        }
+    }
+
+    private fun buildTraceId(imageBytes: ByteArray): String {
+        var seed = 17
+        val sampleSize = min(32, imageBytes.size)
+        for (i in 0 until sampleSize) {
+            seed = seed * 31 + (imageBytes[i].toInt() and 0xFF)
+        }
+        return (seed.toLong() and 0xffffffffL).toString(16)
+    }
     
     // 使用拉丁文识别器（验证码通常是数字和英文）
     private val latinRecognizer by lazy {
@@ -53,11 +79,11 @@ object CaptchaOcrRecognizer {
             ddddocrAvailable = DdddOcrRecognizer.initialize(ctx)
             ddddocrInitialized = true
             if (ddddocrAvailable) {
-                println("[OCR] ddddocr 模型已加载，将优先使用")
+                logDebug("ddddocr 模型已加载，将优先使用")
             }
         } else {
-            println("[OCR] ddddocr 模型不存在，将使用 ML Kit")
-            println("[OCR] 如需使用 ddddocr，请下载模型到 assets/common_old.onnx")
+            logWarn("ddddocr 模型不存在，将使用 ML Kit")
+            logWarn("如需使用 ddddocr，请下载模型到 assets/common_old.onnx")
         }
     }
     
@@ -69,33 +95,61 @@ object CaptchaOcrRecognizer {
      * @return 识别出的文字
      */
     suspend fun recognizeCaptcha(imageBytes: ByteArray): Result<String> {
+        val traceId = buildTraceId(imageBytes)
+        logDebug("[$traceId] 开始识别, bytes=${imageBytes.size}, ddddAvailable=$ddddocrAvailable, ddddInitialized=$ddddocrInitialized")
+
+        var ddddFallbackResult = ""
+        var ddddFallbackConfidence = 0
+
         // 1. 首先尝试 ddddocr（如果可用）
         if (ddddocrAvailable) {
             val ddddResult = DdddOcrRecognizer.recognizeCaptcha(imageBytes)
             if (ddddResult.isSuccess) {
-                val text = ddddResult.getOrNull() ?: ""
-                if (text.isNotBlank()) {
-                    println("[OCR] ddddocr 识别成功: $text")
-                    return Result.success(text)
+                val rawText = ddddResult.getOrNull() ?: ""
+                val cleanedText = cleanCaptchaText(rawText)
+                if (cleanedText.isNotBlank()) {
+                    val confidence = calculateConfidence(cleanedText)
+                    logDebug("[$traceId] ddddocr 原始='$rawText' 清理后='$cleanedText' 置信度=$confidence")
+
+                    if (confidence >= 100) {
+                        logDebug("[$traceId] ddddocr 命中高置信结果，直接返回")
+                        return Result.success(cleanedText)
+                    }
+
+                    ddddFallbackResult = cleanedText
+                    ddddFallbackConfidence = confidence
                 }
             }
-            println("[OCR] ddddocr 识别失败，尝试 ML Kit")
+            logWarn("[$traceId] ddddocr 未产出高置信结果，转 ML Kit")
         }
         
         // 2. 使用 ML Kit + 多种预处理策略
-        return recognizeWithMLKit(imageBytes)
+        val mlKitResult = recognizeWithMLKit(imageBytes, traceId)
+        if (mlKitResult.isSuccess) {
+            logDebug("[$traceId] ML Kit 识别成功")
+            return mlKitResult
+        }
+
+        if (ddddFallbackResult.isNotBlank()) {
+            logWarn("[$traceId] 使用 ddddocr 备选结果='$ddddFallbackResult', conf=$ddddFallbackConfidence")
+            return Result.success(ddddFallbackResult)
+        }
+
+        logWarn("[$traceId] 所有识别链路失败: ${mlKitResult.exceptionOrNull()?.message}")
+
+        return mlKitResult
     }
     
     /**
      * 使用 ML Kit 识别验证码
      */
-    private suspend fun recognizeWithMLKit(imageBytes: ByteArray): Result<String> {
+    private suspend fun recognizeWithMLKit(imageBytes: ByteArray, traceId: String): Result<String> {
         return try {
             // 解码图片
             val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
                 ?: return Result.failure(Exception("无法解码验证码图片"))
             
-            println("[OCR] 原始图片尺寸: ${bitmap.width}x${bitmap.height}")
+            logDebug("[$traceId] 原始图片尺寸: ${bitmap.width}x${bitmap.height}")
             
             // 尝试多种预处理策略
             val strategies = listOf(
@@ -111,39 +165,84 @@ object CaptchaOcrRecognizer {
             for ((name, processor) in strategies) {
                 try {
                     val processedBitmap = processor()
-                    val inputImage = InputImage.fromBitmap(processedBitmap, 0)
-                    val recognizedText = recognizeWithLatinRecognizer(inputImage)
-                    val cleanedText = cleanCaptchaText(recognizedText)
-                    
-                    println("[OCR] 策略[$name] 原始: '$recognizedText' -> 清理后: '$cleanedText'")
-                    
-                    // 选择最佳结果（优先选择4-6位数字的结果）
-                    val confidence = calculateConfidence(cleanedText)
-                    if (confidence > bestConfidence) {
-                        bestConfidence = confidence
-                        bestResult = cleanedText
+                    val mlKitBitmap = ensureMinMlKitSize(processedBitmap)
+                    val inputImage = InputImage.fromBitmap(mlKitBitmap, 0)
+                    val candidateTexts = mutableListOf<Pair<String, String>>()
+
+                    // 先尝试拉丁识别器
+                    val latinText = recognizeWithLatinRecognizer(inputImage)
+                    if (latinText.isNotBlank()) {
+                        candidateTexts.add("latin" to latinText)
                     }
-                    
-                    // 如果找到高置信度结果，直接返回
-                    if (confidence >= 100) {
-                        println("[OCR] 高置信度结果: $cleanedText")
-                        return Result.success(cleanedText)
+
+                    // 拉丁结果较弱时，再尝试中文识别器补偿。
+                    if (candidateTexts.isEmpty() || calculateConfidence(cleanCaptchaText(latinText)) < 100) {
+                        runCatching { recognizeWithChineseRecognizer(inputImage) }
+                            .onSuccess { chineseText ->
+                                if (chineseText.isNotBlank()) {
+                                    candidateTexts.add("chinese" to chineseText)
+                                }
+                            }
+                            .onFailure { e ->
+                                logWarn("[$traceId] 策略[$name] 中文识别器失败", e)
+                            }
+                    }
+
+                    if (candidateTexts.isEmpty()) {
+                        logWarn("[$traceId] 策略[$name] 未识别到候选文本")
+                    }
+
+                    for ((source, recognizedText) in candidateTexts) {
+                        val cleanedText = cleanCaptchaText(recognizedText)
+                        val confidence = calculateConfidence(cleanedText)
+                        logDebug("[$traceId] 策略[$name][$source] 原始='$recognizedText' 清理后='$cleanedText' conf=$confidence")
+
+                        if (confidence > bestConfidence) {
+                            bestConfidence = confidence
+                            bestResult = cleanedText
+                        }
+
+                        if (confidence >= 100) {
+                            logDebug("[$traceId] 策略[$name][$source] 命中高置信结果: $cleanedText")
+                            return Result.success(cleanedText)
+                        }
                     }
                 } catch (e: Exception) {
-                    println("[OCR] 策略[$name] 失败: ${e.message}")
+                    logWarn("[$traceId] 策略[$name] 处理失败", e)
                 }
             }
             
             if (bestResult.isBlank()) {
-                Result.failure(Exception("未能识别出验证码"))
+                logWarn("[$traceId] 全部策略结束仍无可用结果")
+                Result.failure(Exception("未能识别出验证码(traceId=$traceId)"))
             } else {
-                println("[OCR] 最终结果: $bestResult (置信度: $bestConfidence)")
+                logDebug("[$traceId] 最终选择结果='$bestResult', conf=$bestConfidence")
                 Result.success(bestResult)
             }
         } catch (e: Exception) {
-            println("[OCR] 识别异常: ${e.message}")
+            logWarn("[$traceId] 识别异常", e)
             Result.failure(e)
         }
+    }
+
+    /**
+     * ML Kit 要求输入图像宽高均 >= 32。
+     * 当前验证码常见尺寸为 60x20，需按比例放大后再送识别器。
+     */
+    private fun ensureMinMlKitSize(bitmap: Bitmap): Bitmap {
+        val minEdge = 32
+        if (bitmap.width >= minEdge && bitmap.height >= minEdge) {
+            return bitmap
+        }
+
+        val scale = max(
+            minEdge.toFloat() / bitmap.width.coerceAtLeast(1),
+            minEdge.toFloat() / bitmap.height.coerceAtLeast(1)
+        )
+        val targetWidth = (bitmap.width * scale).toInt().coerceAtLeast(minEdge)
+        val targetHeight = (bitmap.height * scale).toInt().coerceAtLeast(minEdge)
+        logDebug("ML Kit 输入尺寸过小: ${bitmap.width}x${bitmap.height}, 放大到 ${targetWidth}x${targetHeight}")
+        return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
     }
     
     /**
@@ -169,6 +268,21 @@ object CaptchaOcrRecognizer {
     private suspend fun recognizeWithLatinRecognizer(image: InputImage): String {
         return suspendCancellableCoroutine { continuation ->
             latinRecognizer.process(image)
+                .addOnSuccessListener { visionText ->
+                    continuation.resume(visionText.text)
+                }
+                .addOnFailureListener { e ->
+                    continuation.resumeWithException(e)
+                }
+        }
+    }
+
+    /**
+     * 使用中文识别器兜底识别
+     */
+    private suspend fun recognizeWithChineseRecognizer(image: InputImage): String {
+        return suspendCancellableCoroutine { continuation ->
+            chineseRecognizer.process(image)
                 .addOnSuccessListener { visionText ->
                     continuation.resume(visionText.text)
                 }
@@ -610,7 +724,11 @@ object CaptchaOcrRecognizer {
     
     /**
      * 清理识别结果
-     * 保留数字和字母（验证码可能是纯数字或字母数字混合）
+     * 回归 v1.130.44 的核心逻辑：
+     * 1. 保留数字和字母
+     * 2. 执行常见字符纠错
+     * 3. 统一转大写
+     * 并额外增加超长结果的4位提取，避免直接进入手动输入。
      */
     private fun cleanCaptchaText(text: String): String {
         // 移除空格和换行
@@ -618,6 +736,10 @@ object CaptchaOcrRecognizer {
         
         // 保留数字和字母
         val alphanumeric = cleaned.filter { it.isLetterOrDigit() }
+
+        if (alphanumeric.isBlank()) {
+            return ""
+        }
         
         // 处理常见的OCR误识别（相似字符）
         val corrected = StringBuilder()
@@ -635,8 +757,24 @@ object CaptchaOcrRecognizer {
             }
             corrected.append(fixed)
         }
-        
-        return corrected.toString().uppercase()
+
+        val normalized = corrected.toString().uppercase()
+        if (normalized.length <= 4) {
+            return normalized
+        }
+
+        // 若结果超过4位，优先选择数字占比更高的连续4位。
+        var bestWindow = normalized.substring(0, 4)
+        var bestDigitCount = bestWindow.count { it.isDigit() }
+        for (i in 1..(normalized.length - 4)) {
+            val window = normalized.substring(i, i + 4)
+            val digitCount = window.count { it.isDigit() }
+            if (digitCount > bestDigitCount) {
+                bestDigitCount = digitCount
+                bestWindow = window
+            }
+        }
+        return bestWindow
     }
     
     /**

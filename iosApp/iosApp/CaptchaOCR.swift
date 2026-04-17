@@ -114,7 +114,19 @@ import UIKit
             $0.isLetter || $0.isNumber
         })
 
-        // 处理常见的OCR误识别
+        if cleaned.isEmpty {
+            return ""
+        }
+
+        let digitCount = cleaned.filter { $0.isNumber }.count
+        let letterCount = cleaned.count - digitCount
+        let shouldNormalizeNumeric = digitCount >= letterCount && digitCount > 0
+
+        if !shouldNormalizeNumeric {
+            return cleaned
+        }
+
+        // 偏数字验证码时，处理常见的OCR误识别
         var corrected = ""
         for char in cleaned {
             let fixed: Character
@@ -132,6 +144,6 @@ import UIKit
             corrected.append(fixed)
         }
 
-        return corrected.uppercased()
+        return corrected
     }
 }

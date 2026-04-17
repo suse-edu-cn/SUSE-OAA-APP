@@ -6,6 +6,7 @@ import platform.UIKit.UIImage
 import platform.Vision.VNImageRequestHandler
 import platform.Vision.VNRecognizeTextRequest
 import platform.Vision.VNRecognizedTextObservation
+import platform.Vision.VNRecognizedText
 import platform.Vision.VNRequestTextRecognitionLevelAccurate
 import platform.posix.memcpy
 import kotlin.coroutines.resume
@@ -79,15 +80,14 @@ actual object PlatformCaptchaOcr {
                         println("[iOS OCR] Vision 识别错误: ${error.localizedDescription}")
                     } else {
                         @Suppress("UNCHECKED_CAST")
-                        val observations = request?.results as? List<VNRecognizedTextObservation>
-                        observations?.forEach { observation ->
-                            val candidates = observation.topCandidates(1u)
-                            candidates.firstOrNull()?.let { candidate ->
-                                @Suppress("UNCHECKED_CAST")
-                                val text = (candidate as? Any)?.toString() ?: ""
-                                if (text.isNotEmpty() && !text.startsWith("<")) {
-                                    recognizedText += text
-                                }
+                        val observations = request?.results as? List<Any?>
+                        observations?.forEach { observationAny ->
+                            val observation = observationAny as? VNRecognizedTextObservation
+                                ?: return@forEach
+                            val candidate = observation.topCandidates(1u).firstOrNull() as? VNRecognizedText
+                            val text = candidate?.string ?: ""
+                            if (text.isNotEmpty()) {
+                                recognizedText += text
                             }
                         }
                     }
@@ -138,6 +138,16 @@ actual object PlatformCaptchaOcr {
         val cleaned = text.replace(Regex("[\\s\\n\\r]"), "")
         val alphanumeric = cleaned.filter { it.isLetterOrDigit() }
 
+        if (alphanumeric.isBlank()) return ""
+
+        val digitCount = alphanumeric.count { it.isDigit() }
+        val letterCount = alphanumeric.length - digitCount
+        val shouldNormalizeNumeric = digitCount >= letterCount && digitCount > 0
+
+        if (!shouldNormalizeNumeric) {
+            return alphanumeric
+        }
+
         val corrected = StringBuilder()
         for (c in alphanumeric) {
             val fixed = when (c) {
@@ -154,6 +164,6 @@ actual object PlatformCaptchaOcr {
             corrected.append(fixed)
         }
 
-        return corrected.toString().uppercase()
+        return corrected.toString()
     }
 }

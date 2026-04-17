@@ -97,6 +97,11 @@ enum class QrCodeScanStatus {
     ERROR       // 错误
 }
 
+private enum class PasswordLoginEntry {
+    CHECKIN,
+    TASKS
+}
+
 /**
  * 652打卡 ViewModel
  *
@@ -117,6 +122,9 @@ class CheckinViewModel(
 
     // 记录当前cookieStorage中已登录的密码账号学号，避免重复登录
     private var loggedInPasswordStudentId: String? = null
+
+    // 标记当前登录入口，用于验证码/短信验证完成后的续流程。
+    private var currentPasswordLoginEntry: PasswordLoginEntry = PasswordLoginEntry.CHECKIN
 
     init {
         loadAccounts()
@@ -217,6 +225,9 @@ class CheckinViewModel(
             // 先尝试复用 rememberMe 登录态，失败再回退验证码登录。
             val loginSuccess = autoLoginForPasswordAccount(account)
             if (!loginSuccess) {
+                if (passwordRepository.hasPendingSmsChallenge()) {
+                    passwordRepository.clearPendingSmsChallenge()
+                }
                 return false
             }
             loggedInPasswordStudentId = account.studentId
@@ -298,7 +309,6 @@ class CheckinViewModel(
                 val errorMsg = loginResult.exceptionOrNull()?.message ?: ""
                 if (passwordRepository.isSmsVerificationRequired(loginResult.exceptionOrNull())) {
                     println("[AutoLogin] 检测到短信二次验证，当前自动流程无法继续")
-                    passwordRepository.clearPendingSmsChallenge()
                     return false
                 }
                 // 验证码错误，最多重试2次
@@ -435,6 +445,7 @@ class CheckinViewModel(
             }
         } else {
             // 密码登录账号 - 自动尝试OCR识别并打卡
+            currentPasswordLoginEntry = PasswordLoginEntry.CHECKIN
             performAutoCheckin(account)
         }
     }
@@ -448,6 +459,7 @@ class CheckinViewModel(
      */
     private fun performAutoCheckin(account: CheckinAccountData, retryCount: Int = 0) {
         viewModelScope.launch {
+            currentPasswordLoginEntry = PasswordLoginEntry.CHECKIN
             _uiState.update { it.copy(isLoading = true, currentCheckingAccount = account) }
 
             try {
@@ -519,7 +531,7 @@ class CheckinViewModel(
                     val errorMsg = loginResult.exceptionOrNull()?.message ?: ""
                     if (passwordRepository.isSmsVerificationRequired(loginResult.exceptionOrNull())) {
                         println("[AutoCheckin] 进入短信二次验证流程")
-                        showSmsVerificationDialog(account)
+                        showSmsVerificationDialog(account, PasswordLoginEntry.CHECKIN)
                         return@launch
                     }
                     // 验证码错误，最多重试2次
@@ -579,16 +591,19 @@ class CheckinViewModel(
     private fun showManualCaptchaDialog(
         account: CheckinAccountData,
         errorMessage: String?,
-        existingCaptchaBytes: ByteArray? = null
+        existingCaptchaBytes: ByteArray? = null,
+        entry: PasswordLoginEntry = currentPasswordLoginEntry
     ) {
+        currentPasswordLoginEntry = entry
         _uiState.update {
             it.copy(
                 isLoading = false,
+                isLoadingTasks = false,
                 currentCheckingAccount = account,
                 showCaptchaDialog = true,
                 captchaImageBytes = existingCaptchaBytes,
                 isLoadingCaptcha = existingCaptchaBytes == null,
-                errorMessage = errorMessage?.let { msg -> "自动打卡失败: $msg，请手动输入" }
+                errorMessage = errorMessage?.let { msg -> "自动登录失败: $msg，请手动输入验证码" }
             )
         }
         // 如果没有现有验证码图片，获取新的
@@ -598,6 +613,14 @@ class CheckinViewModel(
     }
 
     private fun showSmsVerificationDialog(account: CheckinAccountData) {
+        showSmsVerificationDialog(account, currentPasswordLoginEntry)
+    }
+
+    private fun showSmsVerificationDialog(
+        account: CheckinAccountData,
+        entry: PasswordLoginEntry
+    ) {
+        currentPasswordLoginEntry = entry
         _uiState.update {
             it.copy(
                 isLoading = false,
@@ -724,6 +747,22 @@ class CheckinViewModel(
                 return@launch
             }
 
+            loggedInPasswordStudentId = account.studentId
+
+            if (currentPasswordLoginEntry == PasswordLoginEntry.TASKS) {
+                _uiState.update {
+                    it.copy(
+                        isLoggingIn = false,
+                        showCaptchaDialog = false,
+                        currentCheckingAccount = null,
+                        captchaImageBytes = null,
+                        successMessage = "登录成功，正在加载任务列表..."
+                    )
+                }
+                loadTasksForAccount(account)
+                return@launch
+            }
+
             // 2. 执行打卡
             val checkinResult = passwordRepository.performCheckinAfterLogin(account)
             val message = when (checkinResult) {
@@ -791,6 +830,22 @@ class CheckinViewModel(
                 return@launch
             }
 
+            loggedInPasswordStudentId = account.studentId
+
+            if (currentPasswordLoginEntry == PasswordLoginEntry.TASKS) {
+                _uiState.update {
+                    it.copy(
+                        isVerifyingSmsCode = false,
+                        showSmsDialog = false,
+                        smsMaskedPhone = null,
+                        currentCheckingAccount = null,
+                        successMessage = "登录成功，正在加载任务列表..."
+                    )
+                }
+                loadTasksForAccount(account)
+                return@launch
+            }
+
             val checkinResult = passwordRepository.performCheckinAfterLogin(account)
             val message = when (checkinResult) {
                 is CheckinResult.Success -> checkinResult.message
@@ -815,15 +870,23 @@ class CheckinViewModel(
 
     fun cancelSmsVerification() {
         passwordRepository.clearPendingSmsChallenge()
+        val fromTasks = currentPasswordLoginEntry == PasswordLoginEntry.TASKS
         _uiState.update {
             it.copy(
                 showSmsDialog = false,
                 smsMaskedPhone = null,
                 isSendingSmsCode = false,
                 isVerifyingSmsCode = false,
-                currentCheckingAccount = null
+                currentCheckingAccount = null,
+                isLoadingTasks = false,
+                selectedAccount = if (fromTasks) null else it.selectedAccount,
+                pendingTasks = if (fromTasks) emptyList() else it.pendingTasks,
+                completedTasks = if (fromTasks) emptyList() else it.completedTasks,
+                absentTasks = if (fromTasks) emptyList() else it.absentTasks,
+                displayedCompletedCount = if (fromTasks) 6 else it.displayedCompletedCount
             )
         }
+        currentPasswordLoginEntry = PasswordLoginEntry.CHECKIN
     }
 
     /**
@@ -831,6 +894,7 @@ class CheckinViewModel(
      */
     fun cancelCheckin() {
         passwordRepository.clearPendingSmsChallenge()
+        val fromTasks = currentPasswordLoginEntry == PasswordLoginEntry.TASKS
         _uiState.update {
             it.copy(
                 showCaptchaDialog = false,
@@ -841,9 +905,16 @@ class CheckinViewModel(
                 isLoggingIn = false,
                 smsMaskedPhone = null,
                 isSendingSmsCode = false,
-                isVerifyingSmsCode = false
+                isVerifyingSmsCode = false,
+                isLoadingTasks = false,
+                selectedAccount = if (fromTasks) null else it.selectedAccount,
+                pendingTasks = if (fromTasks) emptyList() else it.pendingTasks,
+                completedTasks = if (fromTasks) emptyList() else it.completedTasks,
+                absentTasks = if (fromTasks) emptyList() else it.absentTasks,
+                displayedCompletedCount = if (fromTasks) 6 else it.displayedCompletedCount
             )
         }
+        currentPasswordLoginEntry = PasswordLoginEntry.CHECKIN
     }
 
     // ==================== 对话框控制 ====================
@@ -1063,18 +1134,26 @@ class CheckinViewModel(
                 } else if (!account.isQrCodeLogin) {
                     // 密码登录：检查是否需要重新登录
                     if (loggedInPasswordStudentId != account.studentId) {
+                        currentPasswordLoginEntry = PasswordLoginEntry.TASKS
                         println("[TaskList] 密码登录账号，需要登录 (当前=${loggedInPasswordStudentId}, 需要=${account.studentId})")
                         _uiState.update { it.copy(successMessage = "正在自动登录...") }
                         val loginSuccess = autoLoginForPasswordAccount(account)
                         if (!loginSuccess) {
-                            _uiState.update {
-                                it.copy(
-                                    isLoadingTasks = false,
-                                    errorMessage = "自动登录失败，无法加载任务列表"
-                                )
+                            if (passwordRepository.hasPendingSmsChallenge()) {
+                                _uiState.update { it.copy(isLoadingTasks = false) }
+                                showSmsVerificationDialog(account, PasswordLoginEntry.TASKS)
+                                return@launch
                             }
+
+                            _uiState.update { it.copy(isLoadingTasks = false) }
+                            showManualCaptchaDialog(
+                                account = account,
+                                errorMessage = "自动识别失败或验证码已过期",
+                                entry = PasswordLoginEntry.TASKS
+                            )
                             return@launch
                         }
+
                         loggedInPasswordStudentId = account.studentId
                         println("[TaskList] 自动登录成功")
                     } else {

@@ -13,8 +13,8 @@ extensions.configure<ApplicationExtension>("android") {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 113145
-        versionName = "1.131.45"
+        versionCode = 113146
+        versionName = "1.131.46"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -64,6 +64,17 @@ extensions.configure<ApplicationExtension>("android") {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    // KMP 库模块的 assets 在当前工程结构下未自动并入 APK，
+    // 这里显式加入 composeApp 的 androidMain/assets 目录以确保 ddddocr 模型可用。
+    sourceSets {
+        getByName("main") {
+            assets.srcDirs(
+                "src/main/assets",
+                project(":composeApp").file("src/androidMain/assets")
+            )
+        }
     }
 }
 

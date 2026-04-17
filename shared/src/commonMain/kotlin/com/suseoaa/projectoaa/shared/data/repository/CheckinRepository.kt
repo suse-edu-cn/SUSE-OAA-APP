@@ -318,6 +318,8 @@ class CheckinRepository(
                 message.contains("smsCode", ignoreCase = true)
     }
 
+    fun hasPendingSmsChallenge(): Boolean = pendingSmsChallenge != null
+
     fun getPendingSmsMaskedPhone(): String? = pendingSmsChallenge?.phoneMasked
 
     fun clearPendingSmsChallenge() {
