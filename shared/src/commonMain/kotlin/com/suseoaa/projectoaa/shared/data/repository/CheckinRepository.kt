@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
@@ -48,8 +49,24 @@ class CheckinRepository(
 ) {
     private val queries get() = database.checkinAccountQueries
 
+    companion object {
+        private const val UIAS_HOST = "uias.suse.edu.cn"
+        private const val QFHY_HOST = "qfhy.suse.edu.cn"
+        private const val SMS_REQUIRED_MESSAGE = "检测到短信二次验证"
+    }
+
     // 缓存登录页面的 execution token
     private var cachedExecution: String? = null
+
+    private data class PendingSmsChallenge(
+        val username: String,
+        val execution: String,
+        val phoneMasked: String?,
+        val accountId: Long?
+    )
+
+    // 缓存短信二次验证上下文，供移动端后续发送/提交验证码。
+    private var pendingSmsChallenge: PendingSmsChallenge? = null
 
     // ==================== 账号管理 ====================
 
@@ -211,6 +228,202 @@ class CheckinRepository(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    /**
+     * 尝试使用已保存的 rememberMe(CASTGC) 登录态快速换取 qfhy SESSION。
+     * 成功时无需再次账号密码登录。
+     */
+    suspend fun tryAutoLoginWithRememberMe(account: CheckinAccountData): Result<Boolean> =
+        withContext(Dispatchers.IO) {
+            try {
+                if (account.isQrCodeLogin) {
+                    return@withContext Result.success(false)
+                }
+
+                val rememberCookies = account.sessionToken
+                if (rememberCookies.isNullOrBlank() || !account.isSessionValid()) {
+                    return@withContext Result.success(false)
+                }
+                if (!rememberCookies.contains("CASTGC=")) {
+                    return@withContext Result.success(false)
+                }
+
+                // 切换账号前清空旧 Cookie，避免跨账号污染。
+                cookieStorage.clear()
+
+                val loginPageResponse = api.getLoginPage(rememberCookies)
+                val redirectUrl = loginPageResponse.headers[HttpHeaders.Location]
+
+                if (loginPageResponse.status.value !in 300..399 || redirectUrl.isNullOrBlank()) {
+                    println(
+                        "[Checkin] rememberMe 快速登录未命中重定向，status=${loginPageResponse.status.value}"
+                    )
+                    return@withContext Result.success(false)
+                }
+
+                api.followRedirect(redirectUrl)
+
+                if (!hasQfhySessionCookie()) {
+                    println("[Checkin] rememberMe 快速登录后未拿到 qfhy SESSION")
+                    return@withContext Result.success(false)
+                }
+
+                // 续期保存最新 rememberMe Cookie。
+                persistRememberMeCookiesForPasswordAccount(account.id)
+                println("[Checkin] rememberMe 快速登录成功: ${account.studentId}")
+                Result.success(true)
+            } catch (e: Exception) {
+                println("[Checkin] rememberMe 快速登录异常: ${e.message}")
+                Result.success(false)
+            }
+        }
+
+    private fun hasQfhySessionCookie(): Boolean {
+        return cookieStorage.getCookiesForHost(QFHY_HOST)
+            .any { it.name == "SESSION" && it.value.isNotBlank() }
+    }
+
+    private fun persistRememberMeCookiesForPasswordAccount(accountId: Long) {
+        val uiasCookies = cookieStorage.getCookieString(UIAS_HOST)
+        if (uiasCookies.isBlank() || !uiasCookies.contains("CASTGC=")) {
+            return
+        }
+
+        val now = getCurrentTimeString()
+        val expireTime = getFutureTimeString(30)
+        queries.updateSession(
+            sessionToken = uiasCookies,
+            sessionExpireTime = expireTime,
+            updatedAt = now,
+            id = accountId
+        )
+    }
+
+    private fun getFutureTimeString(daysFromNow: Int): String {
+        val futureMillis = Clock.System.now().toEpochMilliseconds() +
+                daysFromNow * 24L * 60L * 60L * 1000L
+        val future = Instant.fromEpochMilliseconds(futureMillis)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+        val hour = future.hour.toString().padStart(2, '0')
+        val minute = future.minute.toString().padStart(2, '0')
+        val second = future.second.toString().padStart(2, '0')
+        return "${future.date} $hour:$minute:$second"
+    }
+
+    fun isSmsVerificationRequired(error: Throwable?): Boolean {
+        val message = error?.message ?: return false
+        return message.contains(SMS_REQUIRED_MESSAGE) ||
+                message.contains("doubleSubmit", ignoreCase = true) ||
+                message.contains("smsCode", ignoreCase = true)
+    }
+
+    fun getPendingSmsMaskedPhone(): String? = pendingSmsChallenge?.phoneMasked
+
+    fun clearPendingSmsChallenge() {
+        pendingSmsChallenge = null
+    }
+
+    suspend fun sendSmsCodeForPendingLogin(): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val challenge = pendingSmsChallenge
+                ?: return@withContext Result.failure(Exception("短信验证上下文已失效，请重新登录"))
+
+            val response = api.sendSmsCode(challenge.username)
+            val responseBody = response.bodyAsText()
+
+            if (response.status.value !in 200..299) {
+                return@withContext Result.failure(
+                    Exception("短信发送失败 (${response.status.value})")
+                )
+            }
+
+            if (
+                responseBody.contains("false", ignoreCase = true) ||
+                responseBody.contains("失败") ||
+                responseBody.contains("error", ignoreCase = true)
+            ) {
+                return@withContext Result.failure(Exception("短信发送失败，请稍后重试"))
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(Exception("短信发送异常: ${e.message}"))
+        }
+    }
+
+    suspend fun submitSmsCodeForPendingLogin(smsCode: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                val challenge = pendingSmsChallenge
+                    ?: return@withContext Result.failure(Exception("短信验证上下文已失效，请重新登录"))
+
+                if (smsCode.isBlank()) {
+                    return@withContext Result.failure(Exception("请输入短信验证码"))
+                }
+
+                val response = api.submitSmsVerification(
+                    username = challenge.username,
+                    execution = challenge.execution,
+                    smsCode = smsCode,
+                    phoneMasked = challenge.phoneMasked
+                )
+
+                if (response.status.value == 302) {
+                    val redirectUrl = response.headers[HttpHeaders.Location]
+                        ?: return@withContext Result.failure(Exception("短信验证成功但重定向为空"))
+                    return@withContext finalizeLoginAfterRedirect(redirectUrl, challenge.accountId)
+                }
+
+                val responseBody = response.bodyAsText()
+                val newExecution = extractExecution(responseBody)
+                if (!newExecution.isNullOrBlank()) {
+                    pendingSmsChallenge = challenge.copy(
+                        execution = newExecution,
+                        phoneMasked = extractPhoneMasked(responseBody) ?: challenge.phoneMasked
+                    )
+                }
+
+                val message = when {
+                    responseBody.contains("验证码", ignoreCase = true) -> "短信验证码错误或已过期"
+                    responseBody.contains("smsCode", ignoreCase = true) -> "短信验证码校验失败"
+                    else -> "短信验证失败 (${response.status.value})"
+                }
+                Result.failure(Exception(message))
+            } catch (e: Exception) {
+                Result.failure(Exception("短信验证异常: ${e.message}"))
+            }
+        }
+
+    private suspend fun finalizeLoginAfterRedirect(
+        redirectUrl: String,
+        accountId: Long?
+    ): Result<Unit> {
+        val finalResponse = api.followRedirect(redirectUrl)
+        val sessionValue = cookieStorage.getCookiesForHost(QFHY_HOST)
+            .find { it.name == "SESSION" }
+            ?.value
+
+        if (sessionValue.isNullOrBlank()) {
+            return Result.failure(Exception("登录成功但未获取到 SESSION，会话初始化失败"))
+        }
+
+        println(
+            "[Checkin] 重定向完成，最终状态=${finalResponse.status.value}, SESSION=${sessionValue.take(16)}..."
+        )
+
+        if (accountId != null) {
+            persistRememberMeCookiesForPasswordAccount(accountId)
+        }
+
+        cachedExecution = null
+        pendingSmsChallenge = null
+        return Result.success(Unit)
+    }
+
+    private fun extractPhoneMasked(html: String): String? {
+        val regex = Regex("name\\s*=\\s*\"phone\"[^>]*value\\s*=\\s*\"([^\"]+)\"")
+        return regex.find(html)?.groupValues?.getOrNull(1)
     }
 
     // ==================== 扫码登录相关操作 ====================
@@ -1047,6 +1260,7 @@ class CheckinRepository(
 
             // 0. 清除旧的 Cookie，确保每次登录都是新会话
             cookieStorage.clear()
+            pendingSmsChallenge = null
 
             // 1. 获取登录页面提取 execution token
             val loginPageResponse = api.getLoginPage()
@@ -1081,7 +1295,8 @@ class CheckinRepository(
     suspend fun loginWithCaptcha(
         username: String,
         password: String,
-        captchaCode: String
+        captchaCode: String,
+        accountId: Long? = null
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val execution = cachedExecution
@@ -1097,6 +1312,9 @@ class CheckinRepository(
                 CheckinApiService.RSA_EXPONENT
             )
 
+            // 每次新登录尝试前先清理旧短信上下文。
+            pendingSmsChallenge = null
+
             // 2. 提交登录
             val loginResponse = api.submitLogin(encryptedPassword, username, execution, captchaCode)
 
@@ -1108,16 +1326,33 @@ class CheckinRepository(
                     ?: return@withContext Result.failure(Exception("登录重定向失败"))
 
                 println("[Checkin] 登录成功，重定向到: $redirectUrl")
-
-                // 4. 跟随重定向获取 Session
-                api.followRedirect(redirectUrl)
-                cachedExecution = null // 清除缓存
-                return@withContext Result.success(Unit)
+                return@withContext finalizeLoginAfterRedirect(redirectUrl, accountId)
             }
 
             // 登录失败，解析错误原因
             val responseBody = loginResponse.bodyAsText()
             println("[Checkin] 登录失败，响应长度: ${responseBody.length}")
+
+            // 新版统一认证可能在密码验证后进入短信二次验证页面。
+            if (
+                responseBody.contains("smsCode", ignoreCase = true) ||
+                responseBody.contains("doubleSubmit", ignoreCase = true) ||
+                responseBody.contains("sendSms_double", ignoreCase = true) ||
+                responseBody.contains("短信", ignoreCase = true)
+            ) {
+                val smsExecution = extractExecution(responseBody) ?: execution
+                pendingSmsChallenge = PendingSmsChallenge(
+                    username = username,
+                    execution = smsExecution,
+                    phoneMasked = extractPhoneMasked(responseBody),
+                    accountId = accountId
+                )
+                return@withContext Result.failure(
+                    Exception("$SMS_REQUIRED_MESSAGE，请输入短信验证码继续")
+                )
+            }
+
+            pendingSmsChallenge = null
 
             // 尝试提取具体错误信息
             val errorMsgRegex = Regex("""<div[^>]*class="[^"]*error[^"]*"[^>]*>([^<]+)</div>""")

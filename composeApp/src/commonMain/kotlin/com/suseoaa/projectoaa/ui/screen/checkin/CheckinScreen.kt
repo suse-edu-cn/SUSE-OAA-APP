@@ -165,129 +165,142 @@ fun CheckinScreen(
                     } else {
                         // 显示账号列表
                         if (uiState.isLoading && uiState.accounts.isEmpty()) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                } else if (uiState.accounts.isEmpty()) {
-                    EmptyState(onAddClick = { viewModel.showAddDialog() })
-                } else {
-                    // 账号列表 - 支持平板适配和筛选
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        // 筛选栏
-                        AccountFilterBar(
-                            currentFilter = uiState.accountFilter,
-                            onFilterChange = { viewModel.setAccountFilter(it) },
-                            passwordCount = uiState.accounts.count { !it.isQrCodeLogin },
-                            qrCodeCount = uiState.accounts.count { it.isQrCodeLogin },
-                            yibinCount = uiState.accounts.count { it.selectedLocation == "宜宾" },
-                            libaiheCount = uiState.accounts.count { it.selectedLocation == "李白河" },
-                            huidongCount = uiState.accounts.count { it.selectedLocation == "汇东" }
-                        )
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                        } else if (uiState.accounts.isEmpty()) {
+                            EmptyState(onAddClick = { viewModel.showAddDialog() })
+                        } else {
+                            // 账号列表 - 支持平板适配和筛选
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // 筛选栏
+                                AccountFilterBar(
+                                    currentFilter = uiState.accountFilter,
+                                    onFilterChange = { viewModel.setAccountFilter(it) },
+                                    passwordCount = uiState.accounts.count { !it.isQrCodeLogin },
+                                    qrCodeCount = uiState.accounts.count { it.isQrCodeLogin },
+                                    yibinCount = uiState.accounts.count { it.selectedLocation == "宜宾" },
+                                    libaiheCount = uiState.accounts.count { it.selectedLocation == "李白河" },
+                                    huidongCount = uiState.accounts.count { it.selectedLocation == "汇东" }
+                                )
 
-                        // 筛选后的账号列表
-                        val filteredAccounts = viewModel.getFilteredAccounts()
+                                // 筛选后的账号列表
+                                val filteredAccounts = viewModel.getFilteredAccounts()
 
-                        AdaptiveLayout(modifier = Modifier.weight(1f)) { adaptiveLayoutConfig ->
-                            val columns = adaptiveLayoutConfig.getDetailColumns()
+                                AdaptiveLayout(modifier = Modifier.weight(1f)) { adaptiveLayoutConfig ->
+                                    val columns = adaptiveLayoutConfig.getDetailColumns()
 
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(
-                                    count = (filteredAccounts.size + columns - 1) / columns,
-                                    key = { it }
-                                ) { rowIndex ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        for (columnIndex in 0 until columns) {
-                                            val index = rowIndex * columns + columnIndex
-                                            if (index < filteredAccounts.size) {
-                                                val account = filteredAccounts[index]
-                                                Box(modifier = Modifier.weight(1f)) {
-                                                    AccountCard(
-                                                        account = account,
-                                                        isChecking = uiState.currentCheckingAccount?.studentId == account.studentId,
-                                                        onCheckin = { viewModel.startCheckin(account) },
-                                                        onEdit = { viewModel.showEditDialog(account) },
-                                                        onDelete = { viewModel.deleteAccount(account.id) },
-                                                        onViewTasks = {
-                                                            viewModel.loadTasksForAccount(
-                                                                account
+                                        items(
+                                            count = (filteredAccounts.size + columns - 1) / columns,
+                                            key = { it }
+                                        ) { rowIndex ->
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                for (columnIndex in 0 until columns) {
+                                                    val index = rowIndex * columns + columnIndex
+                                                    if (index < filteredAccounts.size) {
+                                                        val account = filteredAccounts[index]
+                                                        Box(modifier = Modifier.weight(1f)) {
+                                                            AccountCard(
+                                                                account = account,
+                                                                isChecking = uiState.currentCheckingAccount?.studentId == account.studentId,
+                                                                onCheckin = {
+                                                                    viewModel.startCheckin(
+                                                                        account
+                                                                    )
+                                                                },
+                                                                onEdit = {
+                                                                    viewModel.showEditDialog(
+                                                                        account
+                                                                    )
+                                                                },
+                                                                onDelete = {
+                                                                    viewModel.deleteAccount(
+                                                                        account.id
+                                                                    )
+                                                                },
+                                                                onViewTasks = {
+                                                                    viewModel.loadTasksForAccount(
+                                                                        account
+                                                                    )
+                                                                }
                                                             )
                                                         }
-                                                    )
+                                                    } else {
+                                                        Spacer(modifier = Modifier.weight(1f))
+                                                    }
                                                 }
-                                            } else {
-                                                Spacer(modifier = Modifier.weight(1f))
                                             }
+                                        }
+
+                                        // 底部留白
+                                        item { Spacer(modifier = Modifier.height(80.dp)) }
+                                    }
+
+                                    // 如果筛选后列表为空
+                                    if (filteredAccounts.isEmpty()) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = when (uiState.accountFilter) {
+                                                    AccountFilterType.PASSWORD -> "暂无密码登录账号"
+                                                    AccountFilterType.QRCODE -> "暂无扫码登录账号"
+                                                    AccountFilterType.CAMPUS_YIBIN -> "暂无宜宾校区账号"
+                                                    AccountFilterType.CAMPUS_LIBAIHE -> "暂无李白河校区账号"
+                                                    AccountFilterType.CAMPUS_HUIDONG -> "暂无汇东校区账号"
+                                                    else -> "暂无账号"
+                                                },
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
                                     }
                                 }
 
-                                // 底部留白
-                                item { Spacer(modifier = Modifier.height(80.dp)) }
-                            }
-
-                            // 如果筛选后列表为空
-                            if (filteredAccounts.isEmpty()) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = when (uiState.accountFilter) {
-                                            AccountFilterType.PASSWORD -> "暂无密码登录账号"
-                                            AccountFilterType.QRCODE -> "暂无扫码登录账号"
-                                            AccountFilterType.CAMPUS_YIBIN -> "暂无宜宾校区账号"
-                                            AccountFilterType.CAMPUS_LIBAIHE -> "暂无李白河校区账号"
-                                            AccountFilterType.CAMPUS_HUIDONG -> "暂无汇东校区账号"
-                                            else -> "暂无账号"
-                                        },
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-
-                        // 批量打卡按钮 - 仅当有密码登录账号时显示
-                        val passwordAccountCount = uiState.accounts.count { !it.isQrCodeLogin }
-                        if (passwordAccountCount > 0 && uiState.accountFilter != AccountFilterType.QRCODE) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                tonalElevation = 3.dp
-                            ) {
-                                Button(
-                                    onClick = { viewModel.batchCheckin() },
-                                    enabled = !uiState.isLoading,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp)
-                                ) {
-                                    if (uiState.isLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            strokeWidth = 2.dp,
-                                            color = MaterialTheme.colorScheme.onPrimary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("正在批量打卡...")
-                                    } else {
-                                        Icon(
-                                            Icons.Default.PlayArrow,
-                                            null,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("批量打卡 ($passwordAccountCount 个密码账号)")
+                                // 批量打卡按钮 - 仅当有密码登录账号时显示
+                                val passwordAccountCount =
+                                    uiState.accounts.count { !it.isQrCodeLogin }
+                                if (passwordAccountCount > 0 && uiState.accountFilter != AccountFilterType.QRCODE) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        tonalElevation = 3.dp
+                                    ) {
+                                        Button(
+                                            onClick = { viewModel.batchCheckin() },
+                                            enabled = !uiState.isLoading,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp)
+                                        ) {
+                                            if (uiState.isLoading) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(20.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = MaterialTheme.colorScheme.onPrimary
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("正在批量打卡...")
+                                            } else {
+                                                Icon(
+                                                    Icons.Default.PlayArrow,
+                                                    null,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("批量打卡 ($passwordAccountCount 个密码账号)")
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                }
-                } // End of else
+                    } // End of else
                 } // End of CompositionLocalProvider
             } // End of AnimatedContent lambda
         }
@@ -331,6 +344,21 @@ fun CheckinScreen(
             onRefresh = { viewModel.refreshCaptcha() },
             onSubmit = { captchaCode -> viewModel.submitCaptchaAndCheckin(captchaCode) },
             onDismiss = { viewModel.cancelCheckin() }
+        )
+    }
+
+    // 短信二次验证对话框
+    if (uiState.showSmsDialog) {
+        SmsVerificationDialog(
+            accountName = uiState.currentCheckingAccount?.name?.ifEmpty {
+                uiState.currentCheckingAccount?.studentId
+            } ?: "",
+            maskedPhone = uiState.smsMaskedPhone,
+            isSendingSms = uiState.isSendingSmsCode,
+            isVerifying = uiState.isVerifyingSmsCode,
+            onSendSms = { viewModel.sendSmsCode() },
+            onSubmit = { smsCode -> viewModel.submitSmsCodeAndCheckin(smsCode) },
+            onDismiss = { viewModel.cancelSmsVerification() }
         )
     }
 
@@ -761,7 +789,11 @@ private fun AccountDialog(
     var name by remember { mutableStateOf(initialAccount?.name ?: "") }
     var remark by remember { mutableStateOf(initialAccount?.remark ?: "") }
     var showPassword by remember { mutableStateOf(false) }
-    var selectedCampus by remember { mutableStateOf(initialAccount?.selectedLocation ?: CheckinLocations.DEFAULT_CAMPUS.name) }
+    var selectedCampus by remember {
+        mutableStateOf(
+            initialAccount?.selectedLocation ?: CheckinLocations.DEFAULT_CAMPUS.name
+        )
+    }
     var showCampusDropdown by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -1125,6 +1157,119 @@ private fun CaptchaDialog(
     )
 }
 
+@Composable
+private fun SmsVerificationDialog(
+    accountName: String,
+    maskedPhone: String?,
+    isSendingSms: Boolean,
+    isVerifying: Boolean,
+    onSendSms: () -> Unit,
+    onSubmit: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var smsCode by remember(accountName, maskedPhone) { mutableStateOf("") }
+
+    AlertDialog(
+        containerColor = MaterialTheme.colorScheme.background,
+        onDismissRequest = { if (!isSendingSms && !isVerifying) onDismiss() },
+        title = { Text("短信二次验证") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "正在为 $accountName 登录并打卡",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = maskedPhone?.let { "验证码将发送到：$it" } ?: "请先发送短信验证码",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Button(
+                    onClick = onSendSms,
+                    enabled = !isSendingSms && !isVerifying,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isSendingSms) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("发送中...")
+                    } else {
+                        Text("发送短信验证码")
+                    }
+                }
+
+                OutlinedTextField(
+                    value = smsCode,
+                    onValueChange = {
+                        if (it.length <= 6 && it.all { c -> c.isDigit() }) {
+                            smsCode = it
+                        }
+                    },
+                    label = { Text("短信验证码") },
+                    placeholder = { Text("请输入6位验证码") },
+                    singleLine = true,
+                    enabled = !isVerifying,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (smsCode.length >= 4 && !isVerifying) {
+                                onSubmit(smsCode)
+                            }
+                        }
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (isVerifying) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            text = "正在验证短信码并打卡...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(smsCode) },
+                enabled = smsCode.length >= 4 && !isVerifying
+            ) {
+                Text("验证并打卡")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isSendingSms && !isVerifying
+            ) {
+                Text("取消")
+            }
+        }
+    )
+}
+
 /**
  * 扫码登录对话框
  */
@@ -1351,10 +1496,11 @@ private fun TaskListView(
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .sharedBoundsTransition("checkin_account_${account.id}")
-        .background(MaterialTheme.colorScheme.background)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .sharedBoundsTransition("checkin_account_${account.id}")
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // 顶部栏
         Surface(

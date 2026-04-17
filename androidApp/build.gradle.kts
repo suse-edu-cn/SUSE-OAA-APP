@@ -13,8 +13,8 @@ extensions.configure<ApplicationExtension>("android") {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 113044
-        versionName = "1.130.44"
+        versionCode = 113145
+        versionName = "1.131.45"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -36,6 +36,12 @@ extensions.configure<ApplicationExtension>("android") {
 
     buildTypes {
         debug {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+                project(":composeApp").file("proguard-rules.pro")
+            )
             signingConfig = signingConfigs.getByName("release")
         }
 

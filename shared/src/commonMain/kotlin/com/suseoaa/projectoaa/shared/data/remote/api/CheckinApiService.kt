@@ -21,14 +21,16 @@ class CheckinApiService(val httpClient: HttpClient) {
     companion object {
         private const val UIAS_BASE = "https://uias.suse.edu.cn"
         private const val QFHY_BASE = "https://qfhy.suse.edu.cn"
+        private const val QDDK_ADMIN_ENTRY = "$QFHY_BASE/xg/app/qddk/admin/qddkdk"
 
         // 登录服务地址
-        private const val LOGIN_SERVICE =
-            "$QFHY_BASE/site/appware/system/sso/login?target=$QFHY_BASE/xg/app/"
-        private const val LOGIN_PAGE = "$UIAS_BASE/sso/login?service=$LOGIN_SERVICE"
+        private val LOGIN_SERVICE =
+            "$QFHY_BASE/site/appware/system/sso/login?target=$QDDK_ADMIN_ENTRY"
+        private val LOGIN_PAGE = "$UIAS_BASE/sso/login?service=${LOGIN_SERVICE.encodeURLParameter()}"
 
         // 验证码地址
         private const val CAPTCHA_URL = "$UIAS_BASE/sso/captcha.jpg"
+        private const val SMS_SEND_URL = "$UIAS_BASE/sso/smsLogin/sendSms_double"
 
         // API 地址
         private const val USER_GROUPS_URL =
@@ -45,7 +47,7 @@ class CheckinApiService(val httpClient: HttpClient) {
     /**
      * 获取登录页面以提取 execution token
      */
-    suspend fun getLoginPage(): HttpResponse {
+    suspend fun getLoginPage(loginCookies: String? = null): HttpResponse {
         return httpClient.get(LOGIN_PAGE) {
             header(
                 "User-Agent",
@@ -56,6 +58,9 @@ class CheckinApiService(val httpClient: HttpClient) {
                 "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
             )
             header("Accept-Language", "zh-CN,zh;q=0.9")
+            if (!loginCookies.isNullOrBlank()) {
+                header("Cookie", loginCookies)
+            }
         }
     }
 
@@ -88,7 +93,6 @@ class CheckinApiService(val httpClient: HttpClient) {
         return httpClient.submitForm(
             url = LOGIN_PAGE,
             formParameters = Parameters.build {
-                append("service", LOGIN_SERVICE)
                 append("username", username)
                 append("password", encryptedPassword)
                 append("authcode", captchaCode)
@@ -96,6 +100,68 @@ class CheckinApiService(val httpClient: HttpClient) {
                 append("encrypted", "true")
                 append("_eventId", "submit")
                 append("loginType", "1")
+                append("rememberMe", "true")
+            }
+        ) {
+            header(
+                "User-Agent",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+            )
+            header(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
+            )
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Origin", UIAS_BASE)
+            header("Referer", LOGIN_PAGE)
+        }
+    }
+
+    /**
+     * 发送短信验证码（新HAR二次验证流程）
+     */
+    suspend fun sendSmsCode(username: String): HttpResponse {
+        return httpClient.submitForm(
+            url = SMS_SEND_URL,
+            formParameters = Parameters.build {
+                append("request_username", username)
+                append("type", "1")
+            }
+        ) {
+            header(
+                "User-Agent",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+            )
+            header("Accept", "*/*")
+            header("Accept-Language", "zh-CN,zh;q=0.9")
+            header("Origin", UIAS_BASE)
+            header("Referer", LOGIN_PAGE)
+            header("X-Requested-With", "XMLHttpRequest")
+        }
+    }
+
+    /**
+     * 提交短信二次验证
+     */
+    suspend fun submitSmsVerification(
+        username: String,
+        execution: String,
+        smsCode: String,
+        phoneMasked: String? = null
+    ): HttpResponse {
+        return httpClient.submitForm(
+            url = LOGIN_PAGE,
+            formParameters = Parameters.build {
+                if (!phoneMasked.isNullOrBlank()) {
+                    append("phone", phoneMasked)
+                }
+                append("username", username)
+                append("smsCode", smsCode)
+                append("execution", execution)
+                append("encrypted", "true")
+                append("_eventId", "doubleSubmit")
+                append("loginType", "2")
+                append("rememberMe", "true")
             }
         ) {
             header(
@@ -115,8 +181,51 @@ class CheckinApiService(val httpClient: HttpClient) {
     /**
      * 跟随重定向获取 Session
      */
-    suspend fun followRedirect(redirectUrl: String): HttpResponse {
-        return httpClient.get(redirectUrl)
+    suspend fun followRedirect(redirectUrl: String, maxRedirects: Int = 5): HttpResponse {
+        var currentUrl = redirectUrl
+        var referer = "$UIAS_BASE/"
+        var response = httpClient.get(currentUrl) {
+            header("Referer", referer)
+            header(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
+            )
+        }
+
+        var redirectCount = 0
+        while (response.status.value in 300..399 && redirectCount < maxRedirects) {
+            val location = response.headers[HttpHeaders.Location] ?: break
+            val resolvedUrl = resolveRedirectUrl(currentUrl, location)
+            referer = currentUrl
+            currentUrl = resolvedUrl
+
+            response = httpClient.get(currentUrl) {
+                header("Referer", referer)
+                header(
+                    "Accept",
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
+                )
+            }
+            redirectCount++
+        }
+
+        return response
+    }
+
+    private fun resolveRedirectUrl(currentUrl: String, location: String): String {
+        return when {
+            location.startsWith("http://") || location.startsWith("https://") -> location
+            location.startsWith("/") -> {
+                val protocol = if (currentUrl.startsWith("https://")) "https" else "http"
+                val host = currentUrl.substringAfter("://").substringBefore("/")
+                "$protocol://$host$location"
+            }
+
+            else -> {
+                val base = currentUrl.substringBeforeLast("/", currentUrl)
+                "$base/$location"
+            }
+        }
     }
 
     /**

@@ -63,6 +63,11 @@ data class CheckinUiState(
     val captchaImageBytes: ByteArray? = null,
     val isLoadingCaptcha: Boolean = false,
     val isLoggingIn: Boolean = false,
+    // 短信二次验证对话框状态
+    val showSmsDialog: Boolean = false,
+    val smsMaskedPhone: String? = null,
+    val isSendingSmsCode: Boolean = false,
+    val isVerifyingSmsCode: Boolean = false,
     // 扫码登录对话框状态
     val showQrCodeDialog: Boolean = false,
     val qrCodeImage: String? = null,         // 二维码图片 (Base64)
@@ -207,58 +212,16 @@ class CheckinViewModel(
     /**
      * 同步执行自动打卡（用于批量打卡）
      */
-    private suspend fun performAutoCheckinSync(
-        account: CheckinAccountData,
-        retryCount: Int = 0
-    ): Boolean {
+    private suspend fun performAutoCheckinSync(account: CheckinAccountData): Boolean {
         try {
-            // 1. 获取验证码图片（会清除cookies）
-            loggedInPasswordStudentId = null
-            val captchaResult = passwordRepository.fetchCaptchaImage()
-            if (captchaResult.isFailure) {
+            // 先尝试复用 rememberMe 登录态，失败再回退验证码登录。
+            val loginSuccess = autoLoginForPasswordAccount(account)
+            if (!loginSuccess) {
                 return false
             }
-
-            val captchaBytes = captchaResult.getOrThrow()
-
-            // 2. OCR自动识别
-            val ocrResult = try {
-                com.suseoaa.projectoaa.util.PlatformCaptchaOcr.recognize(captchaBytes)
-            } catch (t: Throwable) {
-                println("[AutoCheckinSync] OCR 运行时异常: ${t.message}")
-                return false
-            }
-
-            if (ocrResult.isFailure || ocrResult.getOrNull()?.length != 4) {
-                return false
-            }
-
-            val captchaCode = ocrResult.getOrThrow()
-
-            // 3. 自动登录
-            val loginResult = passwordRepository.loginWithCaptcha(
-                username = account.studentId,
-                password = account.password,
-                captchaCode = captchaCode
-            )
-
-            if (loginResult.isFailure) {
-                val errorMsg = loginResult.exceptionOrNull()?.message ?: ""
-                // 验证码错误，最多重试2次
-                if ((errorMsg.contains("验证码") || errorMsg.contains(
-                        "captcha",
-                        ignoreCase = true
-                    )) && retryCount < 2
-                ) {
-                    return performAutoCheckinSync(account, retryCount + 1)
-                }
-                return false
-            }
-
-            // 登录成功，记录状态
             loggedInPasswordStudentId = account.studentId
 
-            // 4. 执行打卡
+            // 执行打卡
             val checkinResult = passwordRepository.performCheckinAfterLogin(account)
             return when (checkinResult) {
                 is CheckinResult.Success -> true
@@ -281,6 +244,16 @@ class CheckinViewModel(
         retryCount: Int = 0
     ): Boolean {
         try {
+            if (retryCount == 0) {
+                val fastLogin = passwordRepository.tryAutoLoginWithRememberMe(account).getOrDefault(false)
+                if (fastLogin) {
+                    loggedInPasswordStudentId = account.studentId
+                    println("[AutoLogin] 使用 rememberMe 快速登录成功")
+                    return true
+                }
+                println("[AutoLogin] rememberMe 快速登录未命中，回退验证码登录")
+            }
+
             // 1. 获取验证码图片
             val captchaResult = passwordRepository.fetchCaptchaImage()
             if (captchaResult.isFailure) {
@@ -317,11 +290,17 @@ class CheckinViewModel(
             val loginResult = passwordRepository.loginWithCaptcha(
                 username = account.studentId,
                 password = account.password,
-                captchaCode = captchaCode
+                captchaCode = captchaCode,
+                accountId = account.id
             )
 
             if (loginResult.isFailure) {
                 val errorMsg = loginResult.exceptionOrNull()?.message ?: ""
+                if (passwordRepository.isSmsVerificationRequired(loginResult.exceptionOrNull())) {
+                    println("[AutoLogin] 检测到短信二次验证，当前自动流程无法继续")
+                    passwordRepository.clearPendingSmsChallenge()
+                    return false
+                }
                 // 验证码错误，最多重试2次
                 if ((errorMsg.contains("验证码") || errorMsg.contains(
                         "captcha",
@@ -472,6 +451,31 @@ class CheckinViewModel(
             _uiState.update { it.copy(isLoading = true, currentCheckingAccount = account) }
 
             try {
+                val fastLogin = passwordRepository.tryAutoLoginWithRememberMe(account).getOrDefault(false)
+                if (fastLogin) {
+                    loggedInPasswordStudentId = account.studentId
+                    println("[AutoCheckin] 使用 rememberMe 快速登录成功")
+
+                    val checkinResult = passwordRepository.performCheckinAfterLogin(account)
+                    val message = when (checkinResult) {
+                        is CheckinResult.Success -> checkinResult.message
+                        is CheckinResult.AlreadyChecked -> checkinResult.message
+                        is CheckinResult.NoTask -> checkinResult.message
+                        is CheckinResult.Failed -> checkinResult.error
+                    }
+
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            currentCheckingAccount = null,
+                            successMessage = if (checkinResult is CheckinResult.Failed) null else message,
+                            errorMessage = if (checkinResult is CheckinResult.Failed) message else null
+                        )
+                    }
+                    loadAccounts()
+                    return@launch
+                }
+
                 // 1. 获取验证码图片
                 val captchaResult = passwordRepository.fetchCaptchaImage()
                 if (captchaResult.isFailure) {
@@ -507,11 +511,17 @@ class CheckinViewModel(
                 val loginResult = passwordRepository.loginWithCaptcha(
                     username = account.studentId,
                     password = account.password,
-                    captchaCode = captchaCode
+                    captchaCode = captchaCode,
+                    accountId = account.id
                 )
 
                 if (loginResult.isFailure) {
                     val errorMsg = loginResult.exceptionOrNull()?.message ?: ""
+                    if (passwordRepository.isSmsVerificationRequired(loginResult.exceptionOrNull())) {
+                        println("[AutoCheckin] 进入短信二次验证流程")
+                        showSmsVerificationDialog(account)
+                        return@launch
+                    }
                     // 验证码错误，最多重试2次
                     if ((errorMsg.contains("验证码") || errorMsg.contains(
                             "captcha",
@@ -584,6 +594,24 @@ class CheckinViewModel(
         // 如果没有现有验证码图片，获取新的
         if (existingCaptchaBytes == null) {
             refreshCaptcha()
+        }
+    }
+
+    private fun showSmsVerificationDialog(account: CheckinAccountData) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                showCaptchaDialog = false,
+                captchaImageBytes = null,
+                isLoadingCaptcha = false,
+                isLoggingIn = false,
+                currentCheckingAccount = account,
+                showSmsDialog = true,
+                smsMaskedPhone = passwordRepository.getPendingSmsMaskedPhone(),
+                isSendingSmsCode = false,
+                isVerifyingSmsCode = false,
+                errorMessage = null
+            )
         }
     }
 
@@ -675,10 +703,16 @@ class CheckinViewModel(
             val loginResult = passwordRepository.loginWithCaptcha(
                 username = account.studentId,
                 password = account.password,
-                captchaCode = captchaCode
+                captchaCode = captchaCode,
+                accountId = account.id
             )
 
             if (loginResult.isFailure) {
+                if (passwordRepository.isSmsVerificationRequired(loginResult.exceptionOrNull())) {
+                    _uiState.update { it.copy(isLoggingIn = false) }
+                    showSmsVerificationDialog(account)
+                    return@launch
+                }
                 _uiState.update {
                     it.copy(
                         isLoggingIn = false,
@@ -713,17 +747,101 @@ class CheckinViewModel(
         }
     }
 
+    fun sendSmsCode() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSendingSmsCode = true) }
+
+            val result = passwordRepository.sendSmsCodeForPendingLogin()
+            if (result.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isSendingSmsCode = false,
+                        successMessage = "短信验证码已发送，请注意查收"
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isSendingSmsCode = false,
+                        errorMessage = result.exceptionOrNull()?.message ?: "短信发送失败"
+                    )
+                }
+            }
+        }
+    }
+
+    fun submitSmsCodeAndCheckin(smsCode: String) {
+        val account = _uiState.value.currentCheckingAccount ?: return
+        if (smsCode.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "请输入短信验证码") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isVerifyingSmsCode = true) }
+
+            val verifyResult = passwordRepository.submitSmsCodeForPendingLogin(smsCode)
+            if (verifyResult.isFailure) {
+                _uiState.update {
+                    it.copy(
+                        isVerifyingSmsCode = false,
+                        errorMessage = verifyResult.exceptionOrNull()?.message ?: "短信验证失败"
+                    )
+                }
+                return@launch
+            }
+
+            val checkinResult = passwordRepository.performCheckinAfterLogin(account)
+            val message = when (checkinResult) {
+                is CheckinResult.Success -> checkinResult.message
+                is CheckinResult.AlreadyChecked -> checkinResult.message
+                is CheckinResult.NoTask -> checkinResult.message
+                is CheckinResult.Failed -> checkinResult.error
+            }
+
+            _uiState.update {
+                it.copy(
+                    isVerifyingSmsCode = false,
+                    showSmsDialog = false,
+                    smsMaskedPhone = null,
+                    currentCheckingAccount = null,
+                    successMessage = if (checkinResult is CheckinResult.Failed) null else message,
+                    errorMessage = if (checkinResult is CheckinResult.Failed) message else null
+                )
+            }
+            loadAccounts()
+        }
+    }
+
+    fun cancelSmsVerification() {
+        passwordRepository.clearPendingSmsChallenge()
+        _uiState.update {
+            it.copy(
+                showSmsDialog = false,
+                smsMaskedPhone = null,
+                isSendingSmsCode = false,
+                isVerifyingSmsCode = false,
+                currentCheckingAccount = null
+            )
+        }
+    }
+
     /**
      * 取消打卡
      */
     fun cancelCheckin() {
+        passwordRepository.clearPendingSmsChallenge()
         _uiState.update {
             it.copy(
                 showCaptchaDialog = false,
+                showSmsDialog = false,
                 currentCheckingAccount = null,
                 captchaImageBytes = null,
                 isLoadingCaptcha = false,
-                isLoggingIn = false
+                isLoggingIn = false,
+                smsMaskedPhone = null,
+                isSendingSmsCode = false,
+                isVerifyingSmsCode = false
             )
         }
     }
