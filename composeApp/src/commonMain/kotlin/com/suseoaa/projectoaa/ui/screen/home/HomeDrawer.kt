@@ -27,8 +27,8 @@ import com.suseoaa.projectoaa.shared.domain.model.person.PersonData
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -146,7 +146,7 @@ fun HomeWithDrawer(
                 .fillMaxSize()
                 .padding(bottom = peekHeight)
                 // 2.将此层标记为“模糊源”，Haze会捕获此层的所有渲染像素
-                .haze(state = hazeState)
+                .hazeSource(state = hazeState)
                 .graphicsLayer {
                     scaleX = scaleFactor
                     scaleY = scaleFactor
@@ -177,7 +177,7 @@ fun HomeWithDrawer(
                     onDragStopped = { velocity -> settleToTarget(velocity) }
                 )
                 // 3.使用hazeChild应用模糊效果，并显式传入backgroundColor以修复崩溃问题
-                .clip(shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)).hazeChild(
+                .clip(shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)).hazeEffect(
                     state = hazeState,
                     style = HazeStyle(
                         backgroundColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),

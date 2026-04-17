@@ -102,6 +102,8 @@ out/
 # ========== Kotlin Multiplatform ==========
 # Kotlin Native
 .konan/
+/.kotlin/
+**/.kotlin/
 kotlin-native-bundle-*/
 
 # Kotlin Compiler

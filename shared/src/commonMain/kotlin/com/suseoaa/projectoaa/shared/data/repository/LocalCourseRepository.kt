@@ -393,7 +393,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
     )
 
     private fun com.suseoaa.projectoaa.shared.database.ClassTime.toEntity() = ClassTimeEntity(
-        uniqueId = uniqueId ?: 0,
+        uniqueId = uniqueId,
         studentId = studentId,
         courseOwnerName = courseOwnerName,
         xnm = xnm,

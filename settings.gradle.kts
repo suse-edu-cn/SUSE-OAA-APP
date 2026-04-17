@@ -24,3 +24,4 @@ rootProject.name = "ProjectOAA"
 
 include(":composeApp")
 include(":shared")
+include(":androidApp")

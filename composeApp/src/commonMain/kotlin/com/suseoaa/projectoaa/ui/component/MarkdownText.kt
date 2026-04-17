@@ -43,8 +43,7 @@ fun OaaMarkdownText(
         colors = markdownColor(
             text = color,
             codeBackground = codeBgColor,
-            inlineCodeBackground = codeBgColor,
-            linkText = linkColor
+            inlineCodeBackground = codeBgColor
         )
     )
 }

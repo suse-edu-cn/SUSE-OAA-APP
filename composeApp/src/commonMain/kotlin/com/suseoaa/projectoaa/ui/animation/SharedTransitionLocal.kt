@@ -59,7 +59,7 @@ fun Modifier.sharedElementTransition(key: String): Modifier = composed {
     if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
             Modifier.sharedElement(
-                state = rememberSharedContentState(key = key),
+                sharedContentState = rememberSharedContentState(key = key),
                 animatedVisibilityScope = animatedVisibilityScope,
                 boundsTransform = { _, _ -> elegantSpringTransform }
             )

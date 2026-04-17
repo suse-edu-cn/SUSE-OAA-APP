@@ -6,7 +6,7 @@ on:
       - main
       - master # 如果你的主分支叫 master，可以保留这行
     paths:
-      - 'composeApp/build.gradle.kts' # 只有当这个文件变动时才会检查并触发
+      - 'androidApp/build.gradle.kts' # 只有当这个文件变动时才会检查并触发
 
 permissions:
   contents: write # 允许 GITHUB_TOKEN 创建 Release 和 Tag
@@ -23,8 +23,8 @@ jobs:
       - name: Check if Version Changed
         id: check_version
         run: |
-          # 提取 composeApp/build.gradle.kts 中的 versionName
-          VERSION_NAME=$(grep 'versionName =' composeApp/build.gradle.kts | head -n 1 | awk -F'"' '{print $2}')
+          # 提取 androidApp/build.gradle.kts 中的 versionName
+          VERSION_NAME=$(grep 'versionName =' androidApp/build.gradle.kts | head -n 1 | awk -F'"' '{print $2}')
           echo "当前代码中的 versionName: $VERSION_NAME"
           
           if [ -z "$VERSION_NAME" ]; then
@@ -69,8 +69,8 @@ jobs:
         if: steps.check_version.outputs.changed == 'true'
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17' # 如果使用其他 Java 版本，请相应修改
+          distribution: 'temurin'
+          java-version: '25'
           cache: 'gradle'
 
       - name: Decode Keystore
@@ -89,10 +89,10 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
-          ./gradlew :composeApp:assembleRelease
+          ./gradlew --no-daemon :androidApp:assembleRelease :androidApp:minifyReleaseWithR8
 
           # 重命名打包好的 APK，准备发布
-          APK_DIR="composeApp/build/outputs/apk/release"
+          APK_DIR="androidApp/build/outputs/apk/release"
           # 寻找构建出来的 apk 并重命名（屏蔽掉可能存在的未签名包等）
           find $APK_DIR -name "*.apk" -print0 | while IFS= read -r -d '' file; do
             mv "$file" "$APK_DIR/青蟹-${{ steps.check_version.outputs.tag }}.apk"
@@ -105,6 +105,6 @@ jobs:
           tag_name: ${{ steps.check_version.outputs.tag }}
           name: 青蟹 ${{ steps.check_version.outputs.tag }}
           body_path: changelog.txt
-          files: composeApp/build/outputs/apk/release/青蟹-*.apk
+          files: androidApp/build/outputs/apk/release/青蟹-*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

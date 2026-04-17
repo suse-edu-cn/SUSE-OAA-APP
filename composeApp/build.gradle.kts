@@ -1,23 +1,30 @@
-import com.android.build.api.artifact.SingleArtifact
+@file:Suppress("DEPRECATION")
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
+    jvmToolchain(25)
+
     // 抑制 expect/actual 类的 Beta 警告
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
-    androidTarget {
+    android {
+        namespace = "com.suseoaa.projectoaa.composeapp"
+        compileSdk = 36
+        minSdk = 28
+
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.fromTarget("25"))
         }
     }
 
@@ -126,75 +133,4 @@ kotlin {
     }
 }
 
-android {
-    namespace = "com.suseoaa.projectoaa"
-    compileSdk = 36
 
-    defaultConfig {
-        applicationId = "com.suseoaa.projectoaa"
-        minSdk = 28
-        targetSdk = 36
-        versionCode = 113044
-        versionName = "1.130.44"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        ndk {
-            abiFilters.add("arm64-v8a")
-        }
-    }
-
-    signingConfigs {
-        create("release") {
-            // 从环境变量中读取
-            val storeFilePathStr = System.getenv("KEYSTORE_FILE_PATH")
-            if (!storeFilePathStr.isNullOrEmpty()) {
-                storeFile = file(storeFilePathStr)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
-            }
-        }
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            // 绑定签名配置
-            signingConfig = signingConfigs.getByName("release")
-        }
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    buildFeatures {
-        compose = true
-        buildConfig = true
-    }
-}
-
-dependencies {
-    // Testing
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-
-    // Debug
-    debugImplementation(compose.uiTooling)
-}
-
-
-//利用androidComponentsAPI在构建配置阶段对变体进行拦截与处理
-androidComponents {
-    //遍历项目中所有的变体(如debug,release等)
-    onVariants { variant ->
-        // 如果你需要未来增加其它变体的自定义处理，可以保留该空块或删除它
-    }
-}

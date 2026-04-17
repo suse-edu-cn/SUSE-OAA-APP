@@ -2,15 +2,25 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.sqldelight)
 }
 
 kotlin {
-    androidTarget {
+    jvmToolchain(25)
+
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
+    android {
+        namespace = "com.suseoaa.projectoaa.shared"
+        compileSdk = 36
+        minSdk = 28
+
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.fromTarget("25"))
         }
     }
 
@@ -99,19 +109,6 @@ kotlin {
     }
 }
 
-android {
-    namespace = "com.suseoaa.projectoaa.shared"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 28
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-}
 
 sqldelight {
     databases {
