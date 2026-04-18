@@ -28,6 +28,14 @@ object PreferencesKeys {
     // 设置
     val THEME_MODE = stringPreferencesKey("theme_mode")
     val DYNAMIC_COLOR_ENABLED = booleanPreferencesKey("dynamic_color_enabled")
+    val DYNAMIC_COLOR_PALETTE = stringPreferencesKey("dynamic_color_palette")
+    val DYNAMIC_COLOR_PALETTE_LIGHT = stringPreferencesKey("dynamic_color_palette_light")
+    val DYNAMIC_COLOR_PALETTE_DARK = stringPreferencesKey("dynamic_color_palette_dark")
+    val BACKGROUND_IMAGE_DEFAULT = stringPreferencesKey("background_image_default")
+    val BACKGROUND_IMAGE_HOME = stringPreferencesKey("background_image_home")
+    val BACKGROUND_IMAGE_COURSE = stringPreferencesKey("background_image_course")
+    val BACKGROUND_IMAGE_ACADEMIC = stringPreferencesKey("background_image_academic")
+    val BACKGROUND_IMAGE_PERSON = stringPreferencesKey("background_image_person")
 
     // 更新弹窗版本追踪
     val UPDATE_DIALOG_SHOWN_VERSION = stringPreferencesKey("update_dialog_shown_version")
@@ -43,6 +51,18 @@ object PreferencesKeys {
 }
 
 internal const val DATA_STORE_FILE_NAME = "auth_prefs.preferences_pb"
+
+object BackgroundPageIds {
+    const val DEFAULT = "default"
+    const val HOME = "home"
+    const val COURSE = "course"
+    const val ACADEMIC = "academic"
+    const val PERSON = "person"
+
+    val mainPages: Set<String> = setOf(HOME, COURSE, ACADEMIC, PERSON)
+
+    val allPages: Set<String> = setOf(DEFAULT, HOME, COURSE, ACADEMIC, PERSON)
+}
 
 /**
  * 创建 DataStore
@@ -144,6 +164,28 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         preferences[PreferencesKeys.DYNAMIC_COLOR_ENABLED] ?: false
     }
 
+    val dynamicColorPaletteFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE]
+    }
+
+    val dynamicColorPaletteLightFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE_LIGHT]
+            ?: preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE]
+    }
+
+    val dynamicColorPaletteDarkFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE_DARK]
+            ?: preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE]
+    }
+
+    val appBackgroundImagesFlow: Flow<Map<String, String?>> = dataStore.data.map { preferences ->
+        mapBackgroundImages(preferences)
+    }
+
+    val defaultBackgroundImageFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.BACKGROUND_IMAGE_DEFAULT]
+    }
+
     suspend fun saveThemeMode(mode: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = mode
@@ -153,6 +195,109 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
     suspend fun saveDynamicColorEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.DYNAMIC_COLOR_ENABLED] = enabled
+        }
+    }
+
+    suspend fun saveDynamicColorPalette(colorHex: String?) {
+        dataStore.edit { preferences ->
+            if (colorHex.isNullOrBlank()) {
+                preferences.remove(PreferencesKeys.DYNAMIC_COLOR_PALETTE)
+            } else {
+                preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE] = colorHex
+            }
+        }
+    }
+
+    suspend fun saveDynamicColorPaletteLight(colorHex: String?) {
+        dataStore.edit { preferences ->
+            if (colorHex.isNullOrBlank()) {
+                preferences.remove(PreferencesKeys.DYNAMIC_COLOR_PALETTE_LIGHT)
+            } else {
+                preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE_LIGHT] = colorHex
+            }
+        }
+    }
+
+    suspend fun saveDynamicColorPaletteDark(colorHex: String?) {
+        dataStore.edit { preferences ->
+            if (colorHex.isNullOrBlank()) {
+                preferences.remove(PreferencesKeys.DYNAMIC_COLOR_PALETTE_DARK)
+            } else {
+                preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE_DARK] = colorHex
+            }
+        }
+    }
+
+    suspend fun saveDynamicColorPalettes(lightColorHex: String?, darkColorHex: String?) {
+        dataStore.edit { preferences ->
+            if (lightColorHex.isNullOrBlank()) {
+                preferences.remove(PreferencesKeys.DYNAMIC_COLOR_PALETTE_LIGHT)
+            } else {
+                preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE_LIGHT] = lightColorHex
+            }
+
+            if (darkColorHex.isNullOrBlank()) {
+                preferences.remove(PreferencesKeys.DYNAMIC_COLOR_PALETTE_DARK)
+            } else {
+                preferences[PreferencesKeys.DYNAMIC_COLOR_PALETTE_DARK] = darkColorHex
+            }
+        }
+    }
+
+    suspend fun saveBackgroundImageForPages(imageBase64: String, pageIds: Set<String>) {
+        if (imageBase64.isBlank()) return
+
+        dataStore.edit { preferences ->
+            if (pageIds.isEmpty()) {
+                preferences[PreferencesKeys.BACKGROUND_IMAGE_DEFAULT] = imageBase64
+                return@edit
+            }
+
+            pageIds.forEach { pageId ->
+                backgroundImagePreferenceKey(pageId)?.let { key ->
+                    preferences[key] = imageBase64
+                }
+            }
+        }
+    }
+
+    suspend fun clearDefaultBackgroundImage() {
+        dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.BACKGROUND_IMAGE_DEFAULT)
+        }
+    }
+
+    suspend fun clearBackgroundImageForPages(pageIds: Set<String>) {
+        dataStore.edit { preferences ->
+            if (pageIds.isEmpty()) {
+                preferences.remove(PreferencesKeys.BACKGROUND_IMAGE_DEFAULT)
+                return@edit
+            }
+
+            pageIds.forEach { pageId ->
+                backgroundImagePreferenceKey(pageId)?.let { key ->
+                    preferences.remove(key)
+                }
+            }
+        }
+    }
+
+    private fun mapBackgroundImages(preferences: Preferences): Map<String, String?> = mapOf(
+        BackgroundPageIds.DEFAULT to preferences[PreferencesKeys.BACKGROUND_IMAGE_DEFAULT],
+        BackgroundPageIds.HOME to preferences[PreferencesKeys.BACKGROUND_IMAGE_HOME],
+        BackgroundPageIds.COURSE to preferences[PreferencesKeys.BACKGROUND_IMAGE_COURSE],
+        BackgroundPageIds.ACADEMIC to preferences[PreferencesKeys.BACKGROUND_IMAGE_ACADEMIC],
+        BackgroundPageIds.PERSON to preferences[PreferencesKeys.BACKGROUND_IMAGE_PERSON],
+    )
+
+    private fun backgroundImagePreferenceKey(pageId: String): Preferences.Key<String>? {
+        return when (pageId) {
+            BackgroundPageIds.DEFAULT -> PreferencesKeys.BACKGROUND_IMAGE_DEFAULT
+            BackgroundPageIds.HOME -> PreferencesKeys.BACKGROUND_IMAGE_HOME
+            BackgroundPageIds.COURSE -> PreferencesKeys.BACKGROUND_IMAGE_COURSE
+            BackgroundPageIds.ACADEMIC -> PreferencesKeys.BACKGROUND_IMAGE_ACADEMIC
+            BackgroundPageIds.PERSON -> PreferencesKeys.BACKGROUND_IMAGE_PERSON
+            else -> null
         }
     }
 

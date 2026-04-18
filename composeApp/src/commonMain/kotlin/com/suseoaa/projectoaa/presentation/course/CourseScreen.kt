@@ -70,6 +70,7 @@ import com.suseoaa.projectoaa.shared.domain.model.course.ClassTimeEntity
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseWithTimes
 import com.suseoaa.projectoaa.util.ToastManager
+import com.suseoaa.projectoaa.util.pickImageForAvatar
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import org.koin.compose.viewmodel.koinViewModel
@@ -154,6 +155,7 @@ fun CourseScreen(
     val dailySchedule by viewModel.dailySchedule.collectAsStateWithLifecycle()
     val semesterStartDate by viewModel.semesterStartDate.collectAsStateWithLifecycle()
     val hasWeekZero by viewModel.hasWeekZero.collectAsStateWithLifecycle()
+    val courseBackgroundImageBase64 by viewModel.courseBackgroundImageBase64.collectAsStateWithLifecycle()
 
     // 动态周次范围
     val minWeek = if (hasWeekZero) 0 else 1
@@ -188,7 +190,9 @@ fun CourseScreen(
     var showCustomCourseDialog by remember { mutableStateOf(false) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
     var showTermSelectionDialog by remember { mutableStateOf(false) }
+    var showCourseBackgroundPicker by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
+    val hasCourseBackgroundImage = !courseBackgroundImageBase64.isNullOrBlank()
 
     // Pager 状态
     val pagerState = rememberPagerState(
@@ -228,7 +232,17 @@ fun CourseScreen(
         }
     }
 
+    if (showCourseBackgroundPicker) {
+        pickImageForAvatar { imageData ->
+            if (imageData != null) {
+                viewModel.saveCourseBackgroundImage(imageData)
+            }
+            showCourseBackgroundPicker = false
+        }
+    }
+
     Scaffold(
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Surface(
@@ -321,6 +335,21 @@ fun CourseScreen(
                                 DropdownMenuItem(
                                     text = { Text("设置开学日期") },
                                     onClick = { menuExpanded = false; showDatePickerDialog = true }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("设置课表背景图") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showCourseBackgroundPicker = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("清除课表背景图") },
+                                    enabled = hasCourseBackgroundImage,
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.clearCourseBackgroundImage()
+                                    }
                                 )
                             }
                         }

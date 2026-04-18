@@ -10,7 +10,7 @@ import kotlinx.datetime.*
 fun getExamCountDown(timeStr: String): Pair<String, Color> {
     try {
         val timeZone = TimeZone.currentSystemDefault()
-        val now = Clock.System.now().toLocalDateTime(timeZone)
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(timeZone)
         val today = now.date
 
         // 1. 尝试解析完整时间

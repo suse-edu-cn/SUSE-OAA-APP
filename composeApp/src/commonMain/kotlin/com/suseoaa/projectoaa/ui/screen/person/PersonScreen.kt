@@ -1,13 +1,23 @@
+@file:Suppress("UnusedAssignment", "SpellCheckingInspection")
+
 package com.suseoaa.projectoaa.ui.screen.person
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.getListColumns
 import androidx.compose.foundation.shape.CircleShape
@@ -17,21 +27,31 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.suseoaa.projectoaa.presentation.update.getAppVersionName
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
@@ -43,7 +63,8 @@ import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.pickImageForAvatar
 import com.suseoaa.projectoaa.util.showToast
 import kotlinx.coroutines.flow.collectLatest
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import org.koin.compose.viewmodel.koinViewModel
 
 private val HeaderHeight = 320.dp
@@ -58,6 +79,29 @@ private val LightGradientColors = listOf(
 private val DarkGradientColors = listOf(
     Color(0xFF1A3A4A),
     Color(0xFF1A2A4A),
+)
+
+private data class DynamicColorPaletteOption(
+    val label: String,
+    val color: Color
+)
+
+private val DynamicColorPaletteOptions = listOf(
+    DynamicColorPaletteOption("电光蓝", ElectricBlue),
+    DynamicColorPaletteOption("薄荷青", Color(0xFF00BFA5)),
+    DynamicColorPaletteOption("天青", Color(0xFF00BCD4)),
+    DynamicColorPaletteOption("湖蓝", Color(0xFF42A5F5)),
+    DynamicColorPaletteOption("深海", Color(0xFF1565C0)),
+    DynamicColorPaletteOption("夜蓝", NightBlue),
+    DynamicColorPaletteOption("珊瑚", Color(0xFFFF8A65)),
+    DynamicColorPaletteOption("胭脂", AlertRed),
+    DynamicColorPaletteOption("玫瑰", Color(0xFFE9698B)),
+    DynamicColorPaletteOption("紫藤", Color(0xFF7C6EF5)),
+    DynamicColorPaletteOption("暖橙", Color(0xFFFFA447)),
+    DynamicColorPaletteOption("柠黄", Color(0xFFFFD84D)),
+    DynamicColorPaletteOption("青柠", Color(0xFF8BC34A)),
+    DynamicColorPaletteOption("石墨", Color(0xFF546E7A)),
+    DynamicColorPaletteOption("银灰", Color(0xFF90A4AE))
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,11 +125,18 @@ fun PersonScreen(
 
     // 头像选择对话框状态
     var showAvatarDialog by remember { mutableStateOf(false) }
+    var showPaletteDialog by remember { mutableStateOf(false) }
 
     // 监听登出
     LaunchedEffect(uiState.isLoggedOut) {
         if (uiState.isLoggedOut) {
             onNavigateToLogin()
+        }
+    }
+
+    LaunchedEffect(uiState.isDynamicColorEnabled) {
+        if (!uiState.isDynamicColorEnabled) {
+            showPaletteDialog = false
         }
     }
 
@@ -152,13 +203,51 @@ fun PersonScreen(
         }
     }
 
+    if (showPaletteDialog) {
+        DynamicColorPaletteDialog(
+            initialLightColorHex = uiState.dynamicPaletteLightColorHex,
+            initialDarkColorHex = uiState.dynamicPaletteDarkColorHex,
+            onDismiss = { showPaletteDialog = false },
+            onApply = { lightHex, darkHex ->
+                viewModel.setDynamicPaletteColors(lightHex, darkHex)
+            },
+            onConfirm = { lightHex, darkHex ->
+                viewModel.setDynamicPaletteColors(lightHex, darkHex)
+                showPaletteDialog = false
+            }
+        )
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { padding ->
+    ) { _ ->
         val isDarkTheme = isSystemInDarkTheme()
+        val backgroundColor = MaterialTheme.colorScheme.background
         val gradientColors = if (isDarkTheme) DarkGradientColors else LightGradientColors
         val headerTextColor = if (isDarkTheme) Color.White else Color.Black
+        val gridState = rememberLazyGridState()
+        val density = LocalDensity.current
+        val backgroundEffectRangePx = with(density) { (HeaderHeight - 80.dp).toPx() }
+
+        val backgroundProgress by remember(gridState, backgroundEffectRangePx) {
+            derivedStateOf {
+                val scrolledPx = when {
+                    gridState.firstVisibleItemIndex > 0 -> backgroundEffectRangePx
+                    else -> gridState.firstVisibleItemScrollOffset.toFloat()
+                }.coerceIn(0f, backgroundEffectRangePx)
+
+                if (backgroundEffectRangePx <= 0f) 0f
+                else (scrolledPx / backgroundEffectRangePx).coerceIn(0f, 1f)
+            }
+        }
+
+        val backgroundBlur = (backgroundProgress * 24f).dp
+        val backgroundOverlayAlpha = backgroundProgress
+        val headerTextScale = 1f - (backgroundProgress * 0.14f)
+        val headerTextAlpha = 1f - (backgroundProgress * 0.25f)
+        val headerTextTranslationY = with(density) { ((-18).dp).toPx() } * backgroundProgress
+        val headerTextBlur = (backgroundProgress * 8f).dp
 
         Box(modifier = Modifier.fillMaxSize()) {
             // 底层：动态背景
@@ -166,14 +255,37 @@ fun PersonScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(HeaderHeight)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = gradientColors + MaterialTheme.colorScheme.background
-                        )
-                    ),
+                    .background(color = Color.Transparent),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = gradientColors + backgroundColor
+                            )
+                        )
+                        .blur(backgroundBlur)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(backgroundColor.copy(alpha = backgroundOverlayAlpha))
+                )
+
+                Column(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            scaleX = headerTextScale
+                            scaleY = headerTextScale
+                            alpha = headerTextAlpha
+                            translationY = headerTextTranslationY
+                        }
+                        .blur(headerTextBlur),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
                         text = "青蟹",
                         style = MaterialTheme.typography.displayMedium,
@@ -194,6 +306,7 @@ fun PersonScreen(
             } else {
                 AdaptiveLayout { config ->
                     LazyVerticalGrid(
+                        state = gridState,
                         columns = GridCells.Fixed(config.getListColumns()),
                         contentPadding = PaddingValues(
                             top = 16.dp + statusBarHeight,
@@ -255,6 +368,7 @@ fun PersonScreen(
                                     updateUiState.isChecking -> "正在检查..."
                                     updateUiState.hasUpdate && updateUiState.latestRelease != null ->
                                         "发现新版本 ${updateUiState.latestRelease!!.tagName}"
+
                                     else -> "当前已经是最新版本了"
                                 },
                                 modifier = Modifier.sharedBoundsTransition("update"),
@@ -270,7 +384,11 @@ fun PersonScreen(
                             SettingCard(
                                 icon = Icons.Default.Edit,
                                 title = "动态取色",
-                                subtitle = "基于壁纸改变主题颜色(Android 12+)",
+                                subtitle = if (uiState.isDynamicColorEnabled) {
+                                    "已开启，可使用下方莫奈调色盘自定义主题强调色"
+                                } else {
+                                    "已关闭，当前使用软件默认配色"
+                                },
                                 trailingContent = {
                                     Switch(
                                         checked = uiState.isDynamicColorEnabled,
@@ -286,6 +404,17 @@ fun PersonScreen(
                                 },
                                 onClick = null
                             )
+                        }
+
+                        if (uiState.isDynamicColorEnabled) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                DynamicColorPaletteEntryCard(
+                                    lightColorHex = uiState.dynamicPaletteLightColorHex,
+                                    darkColorHex = uiState.dynamicPaletteDarkColorHex,
+                                    dynamicColorEnabled = uiState.isDynamicColorEnabled,
+                                    onClick = { showPaletteDialog = true }
+                                )
+                            }
                         }
 
                         // 应用信息
@@ -306,6 +435,653 @@ fun PersonScreen(
 }
 
 @Composable
+private fun DynamicColorPaletteEntryCard(
+    lightColorHex: String?,
+    darkColorHex: String?,
+    dynamicColorEnabled: Boolean,
+    onClick: () -> Unit
+) {
+    val lightColor = lightColorHex.toColorOrNull() ?: defaultPaletteColor(isDarkMode = false)
+    val darkColor = darkColorHex.toColorOrNull() ?: defaultPaletteColor(isDarkMode = true)
+    val hasCustomPalette = !lightColorHex.isNullOrBlank() || !darkColorHex.isNullOrBlank()
+    val modeDescription = when {
+        hasCustomPalette -> "\n当前：自定义色优先"
+        dynamicColorEnabled -> "\n当前：跟随系统莫奈"
+        else -> "\n当前：跟随默认主题"
+    }
+
+    SettingCard(
+        icon = Icons.Default.Palette,
+        title = "莫奈调色盘",
+        subtitle = "亮色 ${if (lightColorHex == null) "自动" else lightColor.toHexString()} / 暗色 ${if (darkColorHex == null) "自动" else darkColor.toHexString()} $modeDescription",
+        trailingContent = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(lightColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(darkColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                )
+            }
+        },
+        onClick = onClick
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DynamicColorPaletteDialog(
+    initialLightColorHex: String?,
+    initialDarkColorHex: String?,
+    onDismiss: () -> Unit,
+    onApply: (String?, String?) -> Unit,
+    onConfirm: (String?, String?) -> Unit
+) {
+    var selectedMode by remember { mutableIntStateOf(0) }
+    var lightUseDefault by remember(initialLightColorHex) { mutableStateOf(initialLightColorHex.isNullOrBlank()) }
+    var darkUseDefault by remember(initialDarkColorHex) { mutableStateOf(initialDarkColorHex.isNullOrBlank()) }
+    var lightColor by remember(initialLightColorHex) {
+        mutableStateOf(
+            initialLightColorHex.toColorOrNull() ?: defaultPaletteColor(isDarkMode = false)
+        )
+    }
+    var darkColor by remember(initialDarkColorHex) {
+        mutableStateOf(
+            initialDarkColorHex.toColorOrNull() ?: defaultPaletteColor(isDarkMode = true)
+        )
+    }
+
+    val currentColor = if (selectedMode == 0) lightColor else darkColor
+    val currentUseDefault = if (selectedMode == 0) lightUseDefault else darkUseDefault
+
+    fun updateCurrentColor(newColor: Color) {
+        if (selectedMode == 0) {
+            lightUseDefault = false
+            lightColor = newColor
+        } else {
+            darkUseDefault = false
+            darkColor = newColor
+        }
+    }
+
+    fun resetCurrentToDefault() {
+        if (selectedMode == 0) {
+            lightUseDefault = true
+            lightColor = defaultPaletteColor(isDarkMode = false)
+        } else {
+            darkUseDefault = true
+            darkColor = defaultPaletteColor(isDarkMode = true)
+        }
+    }
+
+    fun buildCurrentPalette(): Pair<String?, String?> {
+        return Pair(
+            first = if (lightUseDefault) null else lightColor.toHexString(),
+            second = if (darkUseDefault) null else darkColor.toHexString()
+        )
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .fillMaxHeight(0.92f)
+                .heightIn(max = 760.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "莫奈调色盘",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "关闭"
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                PrimaryTabRow(selectedTabIndex = selectedMode) {
+                    Tab(
+                        selected = selectedMode == 0,
+                        onClick = { selectedMode = 0 },
+                        text = { Text("亮色模式") }
+                    )
+                    Tab(
+                        selected = selectedMode == 1,
+                        onClick = { selectedMode = 1 },
+                        text = { Text("暗色模式") }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    DynamicColorPaletteEditor(
+                        color = currentColor,
+                        useDefault = currentUseDefault,
+                        onColorChange = ::updateCurrentColor,
+                        onResetDefault = ::resetCurrentToDefault
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("取消")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            val (lightHex, darkHex) = buildCurrentPalette()
+                            onApply(lightHex, darkHex)
+                        }
+                    ) {
+                        Text("立即应用")
+                    }
+                    Button(
+                        onClick = {
+                            val (lightHex, darkHex) = buildCurrentPalette()
+                            onConfirm(lightHex, darkHex)
+                        }
+                    ) {
+                        Text("保存并关闭")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DynamicColorPaletteEditor(
+    color: Color,
+    useDefault: Boolean,
+    onColorChange: (Color) -> Unit,
+    onResetDefault: () -> Unit
+) {
+    var parseInput by remember(color, useDefault) {
+        mutableStateOf(if (useDefault) "" else color.toHexString())
+    }
+    var parseError by remember { mutableStateOf<String?>(null) }
+
+    val hsv = color.toHsvColor()
+    var hue by remember(color) { mutableFloatStateOf(hsv.h) }
+    var saturation by remember(color) { mutableFloatStateOf(hsv.s) }
+    var value by remember(color) { mutableFloatStateOf(hsv.v) }
+    var alpha by remember(color) { mutableFloatStateOf(hsv.a) }
+
+    fun updateByHsv(
+        newHue: Float = hue,
+        newSaturation: Float = saturation,
+        newValue: Float = value,
+        newAlpha: Float = alpha
+    ) {
+        hue = newHue.coerceIn(0f, 360f)
+        saturation = newSaturation.coerceIn(0f, 1f)
+        value = newValue.coerceIn(0f, 1f)
+        alpha = newAlpha.coerceIn(0f, 1f)
+
+        val updatedColor = Color.hsv(hue, saturation, value, alpha)
+        onColorChange(updatedColor)
+        parseInput = updatedColor.toHexString()
+        parseError = null
+    }
+
+    val argb = color.toArgb()
+    var redText by remember(color) { mutableStateOf(((argb ushr 16) and 0xFF).toString()) }
+    var greenText by remember(color) { mutableStateOf(((argb ushr 8) and 0xFF).toString()) }
+    var blueText by remember(color) { mutableStateOf((argb and 0xFF).toString()) }
+    var alphaText by remember(color) { mutableStateOf(((argb ushr 24) and 0xFF).toString()) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(color)
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant,
+                        RoundedCornerShape(12.dp)
+                    )
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (useDefault) "当前使用默认色" else "当前颜色：${color.toHexString()}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "支持 HEX、RGB/RGBA、HSL/HSLA 输入",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            OutlinedButton(onClick = onResetDefault) {
+                Text("恢复默认")
+            }
+        }
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            DynamicColorPaletteOptions.forEach { option ->
+                val isSelected = abs(option.color.toArgb() - color.toArgb()) <= 2
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(option.color)
+                        .border(
+                            width = if (isSelected) 2.dp else 1.dp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                            shape = CircleShape
+                        )
+                        .clickable {
+                            val optionHsv = option.color.toHsvColor()
+                            updateByHsv(optionHsv.h, optionHsv.s, optionHsv.v, optionHsv.a)
+                        }
+                )
+            }
+        }
+
+        SaturationValuePicker(
+            hue = hue,
+            saturation = saturation,
+            value = value,
+            onSaturationValueChange = { s, v -> updateByHsv(newSaturation = s, newValue = v) }
+        )
+
+        Text(
+            text = "色相 ${hue.roundToInt()}°",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Slider(
+            value = hue,
+            onValueChange = { updateByHsv(newHue = it) },
+            valueRange = 0f..360f
+        )
+
+        Text(
+            text = "透明度 ${(alpha * 100).roundToInt()}%",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Slider(
+            value = alpha,
+            onValueChange = { updateByHsv(newAlpha = it) },
+            valueRange = 0f..1f
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ColorChannelField(
+                value = redText,
+                label = "R",
+                modifier = Modifier.weight(1f)
+            ) { redText = it }
+            ColorChannelField(
+                value = greenText,
+                label = "G",
+                modifier = Modifier.weight(1f)
+            ) { greenText = it }
+            ColorChannelField(
+                value = blueText,
+                label = "B",
+                modifier = Modifier.weight(1f)
+            ) { blueText = it }
+            ColorChannelField(
+                value = alphaText,
+                label = "A",
+                modifier = Modifier.weight(1f)
+            ) { alphaText = it }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(
+                onClick = {
+                    val r = redText.toIntOrNull()?.coerceIn(0, 255)
+                    val g = greenText.toIntOrNull()?.coerceIn(0, 255)
+                    val b = blueText.toIntOrNull()?.coerceIn(0, 255)
+                    val a = alphaText.toIntOrNull()?.coerceIn(0, 255)
+                    if (r == null || g == null || b == null || a == null) {
+                        parseError = "RGBA 数值应在 0-255"
+                    } else {
+                        val updatedColor = Color((a shl 24) or (r shl 16) or (g shl 8) or b)
+                        val updatedHsv = updatedColor.toHsvColor()
+                        updateByHsv(updatedHsv.h, updatedHsv.s, updatedHsv.v, updatedHsv.a)
+                    }
+                }
+            ) {
+                Text("应用 RGBA")
+            }
+        }
+
+        OutlinedTextField(
+            value = parseInput,
+            onValueChange = { parseInput = it },
+            label = { Text("颜色输入") },
+            placeholder = { Text("例如 #4F7CFF / rgb(79,124,255) / hsl(220,100%,65%)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(
+                onClick = {
+                    val parsed = parseColorInput(parseInput)
+                    if (parsed == null) {
+                        parseError = "颜色格式无效，支持 HEX、RGB/RGBA、HSL/HSLA"
+                    } else {
+                        val parsedHsv = parsed.toHsvColor()
+                        updateByHsv(parsedHsv.h, parsedHsv.s, parsedHsv.v, parsedHsv.a)
+                        parseError = null
+                    }
+                }
+            ) {
+                Text("应用输入")
+            }
+        }
+
+        if (parseError != null) {
+            Text(
+                text = parseError ?: "",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@Composable
+private fun ColorChannelField(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { input ->
+            if (input.isEmpty() || input.all { it.isDigit() }) {
+                onValueChange(input)
+            }
+        },
+        label = { Text(label) },
+        singleLine = true,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun SaturationValuePicker(
+    hue: Float,
+    saturation: Float,
+    value: Float,
+    onSaturationValueChange: (Float, Float) -> Unit
+) {
+    var size by remember { mutableStateOf(IntSize.Zero) }
+
+    fun updateByPointer(position: Offset) {
+        if (size.width <= 0 || size.height <= 0) return
+        val sat = (position.x / size.width).coerceIn(0f, 1f)
+        val v = (1f - (position.y / size.height)).coerceIn(0f, 1f)
+        onSaturationValueChange(sat, v)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+            .onSizeChanged { size = it }
+            .pointerInput(hue) {
+                detectTapGestures { offset -> updateByPointer(offset) }
+            }
+            .pointerInput(hue) {
+                detectDragGestures(
+                    onDragStart = { offset -> updateByPointer(offset) },
+                    onDrag = { change, _ ->
+                        updateByPointer(change.position)
+                        change.consume()
+                    }
+                )
+            }
+    ) {
+        Canvas(modifier = Modifier.matchParentSize()) {
+            drawRect(Color.hsv(hue, 1f, 1f))
+            drawRect(brush = Brush.horizontalGradient(listOf(Color.White, Color.Transparent)))
+            drawRect(brush = Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
+        }
+
+        if (size.width > 0 && size.height > 0) {
+            val indicatorX = (saturation * size.width).roundToInt()
+            val indicatorY = ((1f - value) * size.height).roundToInt()
+
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(indicatorX - 9, indicatorY - 9) }
+                    .size(18.dp)
+                    .border(2.dp, Color.White, CircleShape)
+                    .background(Color.Transparent, CircleShape)
+            )
+        }
+    }
+}
+
+private data class HsvColor(
+    val h: Float,
+    val s: Float,
+    val v: Float,
+    val a: Float
+)
+
+private fun defaultPaletteColor(isDarkMode: Boolean): Color {
+    return if (isDarkMode) NightBlue else ElectricBlue
+}
+
+private fun Color.toHexString(): String {
+    val argb = toArgb()
+    val a = (argb ushr 24) and 0xFF
+    val r = (argb ushr 16) and 0xFF
+    val g = (argb ushr 8) and 0xFF
+    val b = argb and 0xFF
+    return if (a == 255) {
+        "#${r.toHex2()}${g.toHex2()}${b.toHex2()}"
+    } else {
+        "#${a.toHex2()}${r.toHex2()}${g.toHex2()}${b.toHex2()}"
+    }
+}
+
+private fun Int.toHex2(): String = toString(16).uppercase().padStart(2, '0')
+
+private fun String?.toColorOrNull(): Color? {
+    if (this.isNullOrBlank()) return null
+    val text = trim().removePrefix("#").removePrefix("0x").removePrefix("0X")
+    val normalized = when (text.length) {
+        3 -> "FF" + text.map { "$it$it" }.joinToString("")
+        4 -> text.map { "$it$it" }.joinToString("")
+        6 -> "FF$text"
+        8 -> text
+        else -> return null
+    }
+    val value = normalized.toLongOrNull(16) ?: return null
+    return Color(value.toInt())
+}
+
+private fun Color.toHsvColor(): HsvColor {
+    val argb = toArgb()
+    val r = ((argb ushr 16) and 0xFF) / 255f
+    val g = ((argb ushr 8) and 0xFF) / 255f
+    val b = (argb and 0xFF) / 255f
+    val a = ((argb ushr 24) and 0xFF) / 255f
+
+    val maxComponent = maxOf(r, g, b)
+    val minComponent = minOf(r, g, b)
+    val delta = maxComponent - minComponent
+
+    val hue = when {
+        delta == 0f -> 0f
+        maxComponent == r -> (60f * ((g - b) / delta) + 360f) % 360f
+        maxComponent == g -> 60f * (((b - r) / delta) + 2f)
+        else -> 60f * (((r - g) / delta) + 4f)
+    }
+    val saturation = if (maxComponent == 0f) 0f else delta / maxComponent
+
+    return HsvColor(hue, saturation, maxComponent, a)
+}
+
+private fun parseColorInput(input: String): Color? {
+    val trimmed = input.trim()
+    if (trimmed.isEmpty()) return null
+    return trimmed.toColorOrNull()
+        ?: parseRgbColor(trimmed)
+        ?: parseHslColor(trimmed)
+}
+
+private fun parseRgbColor(input: String): Color? {
+    val match =
+        Regex("""^rgba?\((.+)\)$""", RegexOption.IGNORE_CASE).matchEntire(input) ?: return null
+    val parts = match.groupValues[1].split(',').map { it.trim() }
+    if (parts.size !in 3..4) return null
+
+    val r = parseRgbChannel(parts[0]) ?: return null
+    val g = parseRgbChannel(parts[1]) ?: return null
+    val b = parseRgbChannel(parts[2]) ?: return null
+    val a = if (parts.size == 4) parseAlpha(parts[3]) ?: return null else 1f
+
+    return Color(
+        red = r / 255f,
+        green = g / 255f,
+        blue = b / 255f,
+        alpha = a
+    )
+}
+
+private fun parseHslColor(input: String): Color? {
+    val match =
+        Regex("""^hsla?\((.+)\)$""", RegexOption.IGNORE_CASE).matchEntire(input) ?: return null
+    val parts = match.groupValues[1].split(',').map { it.trim() }
+    if (parts.size !in 3..4) return null
+
+    val h = parts[0].removeSuffix("deg").toFloatOrNull() ?: return null
+    val s = parsePercent(parts[1]) ?: return null
+    val l = parsePercent(parts[2]) ?: return null
+    val a = if (parts.size == 4) parseAlpha(parts[3]) ?: return null else 1f
+
+    return hslToColor(h, s, l, a)
+}
+
+private fun parseRgbChannel(text: String): Int? {
+    return if (text.endsWith("%")) {
+        val percent = text.removeSuffix("%").toFloatOrNull() ?: return null
+        ((percent.coerceIn(0f, 100f) / 100f) * 255f).roundToInt()
+    } else {
+        text.toIntOrNull()?.coerceIn(0, 255)
+    }
+}
+
+private fun parseAlpha(text: String): Float? {
+    return if (text.endsWith("%")) {
+        val percent = text.removeSuffix("%").toFloatOrNull() ?: return null
+        (percent / 100f).coerceIn(0f, 1f)
+    } else {
+        val value = text.toFloatOrNull() ?: return null
+        if (value > 1f) (value / 255f).coerceIn(0f, 1f) else value.coerceIn(0f, 1f)
+    }
+}
+
+private fun parsePercent(text: String): Float? {
+    val normalized = text.removeSuffix("%").toFloatOrNull() ?: return null
+    return (normalized / 100f).coerceIn(0f, 1f)
+}
+
+private fun hslToColor(hue: Float, saturation: Float, lightness: Float, alpha: Float): Color {
+    val h = ((hue % 360f) + 360f) % 360f
+    val s = saturation.coerceIn(0f, 1f)
+    val l = lightness.coerceIn(0f, 1f)
+
+    val c = (1f - abs(2f * l - 1f)) * s
+    val x = c * (1f - abs((h / 60f) % 2f - 1f))
+    val m = l - c / 2f
+
+    val (r1, g1, b1) = when {
+        h < 60f -> Triple(c, x, 0f)
+        h < 120f -> Triple(x, c, 0f)
+        h < 180f -> Triple(0f, c, x)
+        h < 240f -> Triple(0f, x, c)
+        h < 300f -> Triple(x, 0f, c)
+        else -> Triple(c, 0f, x)
+    }
+
+    return Color(
+        red = (r1 + m).coerceIn(0f, 1f),
+        green = (g1 + m).coerceIn(0f, 1f),
+        blue = (b1 + m).coerceIn(0f, 1f),
+        alpha = alpha.coerceIn(0f, 1f)
+    )
+}
+
+@Composable
 fun UserInfoCard(
     userInfo: com.suseoaa.projectoaa.shared.domain.model.person.PersonData?,
     onLogout: () -> Unit,
@@ -316,9 +1092,9 @@ fun UserInfoCard(
 
     if (showEditDialog && userInfo != null) {
         EditInfoDialog(
-            initialUsername = userInfo.username ?: "",
-            initialName = userInfo.name ?: "",
-            initialEmail = userInfo.email ?: "",
+            initialUsername = userInfo.username,
+            initialName = userInfo.name,
+            initialEmail = userInfo.email,
             onDismiss = { showEditDialog = false },
             onConfirm = { username, name, email ->
                 onEditInfo(username, name, email)
@@ -636,7 +1412,8 @@ fun AppInfoCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = if (!isUnlocked) {
                     Modifier.clickable {
-                        val currentTime = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                        val currentTime =
+                            com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds()
                         // 如果距上次点击超过超时时间，重置计数
                         if (currentTime - lastClickTime > resetTimeoutMs) {
                             clickCount = 1

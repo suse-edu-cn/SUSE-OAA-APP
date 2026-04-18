@@ -39,8 +39,14 @@ fun App(
 ) {
     val startDestination by mainViewModel.startDestination.collectAsState()
     val dynamicColorEnabled by mainViewModel.dynamicColorEnabled.collectAsState()
+    val dynamicPaletteLightColorHex by mainViewModel.dynamicPaletteLightColorHex.collectAsState()
+    val dynamicPaletteDarkColorHex by mainViewModel.dynamicPaletteDarkColorHex.collectAsState()
 
-    ProjectOAATheme(dynamicColor = dynamicColorEnabled) {
+    ProjectOAATheme(
+        dynamicColor = dynamicColorEnabled,
+        dynamicPaletteLightColorHex = dynamicPaletteLightColorHex,
+        dynamicPaletteDarkColorHex = dynamicPaletteDarkColorHex
+    ) {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             // 等待加载完成
             if (startDestination == null) {

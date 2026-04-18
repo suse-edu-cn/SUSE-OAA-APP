@@ -26,7 +26,7 @@ class SchoolApiService(
     suspend fun getRSAKey(): RSAKey {
         // 使用 GET 请求，与原生 Android 一致
         val response = client.get("$baseUrl/xtgl/login_getPublicKey.html") {
-            parameter("time", kotlinx.datetime.Clock.System.now().toEpochMilliseconds())
+            parameter("time", com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds())
         }
         return response.body()
     }
@@ -102,7 +102,7 @@ class SchoolApiService(
                 append("queryModel.sortName", "")
                 append("queryModel.sortOrder", "asc")
                 append("_search", "false")
-                append("nd", kotlinx.datetime.Clock.System.now().toEpochMilliseconds().toString())
+                append("nd", com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds().toString())
                 append("time", "0")
             }
         ) {
@@ -130,7 +130,7 @@ class SchoolApiService(
                 append("jxb_id", jxbId)
             }
         ) {
-            parameter("time", kotlinx.datetime.Clock.System.now().toEpochMilliseconds())
+            parameter("time", com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds())
             parameter("gnmkdm", "N305005")
             header("X-Requested-With", "XMLHttpRequest")
         }
@@ -223,7 +223,7 @@ class SchoolApiService(
                 append("dlbs", "")
                 append("currentPage_cx", "")
                 append("_search", "false")
-                append("nd", kotlinx.datetime.Clock.System.now().toEpochMilliseconds().toString())
+                append("nd", com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds().toString())
                 append("queryModel.showCount", "100")
                 append("queryModel.currentPage", "1")
                 append("queryModel.sortName", " ")
@@ -261,7 +261,7 @@ class SchoolApiService(
                 append("kch", courseCode)
                 append("xdlx", studyType)
                 append("_search", "false")
-                append("nd", kotlinx.datetime.Clock.System.now().toEpochMilliseconds().toString())
+                append("nd", com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds().toString())
                 append("queryModel.showCount", showCount.toString())
                 append("queryModel.currentPage", currentPage.toString())
                 append("queryModel.sortName", "jyxdxnm,jyxdxqm,kch ")

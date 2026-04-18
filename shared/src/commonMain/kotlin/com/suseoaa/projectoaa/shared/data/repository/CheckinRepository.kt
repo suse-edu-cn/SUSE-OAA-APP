@@ -15,7 +15,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -301,7 +300,7 @@ class CheckinRepository(
     }
 
     private fun getFutureTimeString(daysFromNow: Int): String {
-        val futureMillis = Clock.System.now().toEpochMilliseconds() +
+        val futureMillis = com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds() +
                 daysFromNow * 24L * 60L * 60L * 1000L
         val future = Instant.fromEpochMilliseconds(futureMillis)
             .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -1089,7 +1088,7 @@ class CheckinRepository(
             }
 
             // 2. 查找今天的任务
-            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val todayStr = "${now.date}"
             val todayTask = pendingTasks.find { it.needTime == todayStr && it.rwzt == "进行中" }
                 ?: pendingTasks.firstOrNull()
@@ -1404,7 +1403,7 @@ class CheckinRepository(
                 }
 
                 // 2. 查找今天的任务（needTime == 今天 且 rwzt == "进行中"）
-                val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
                 val todayStr = "${now.date}"
                 val todayTask = pendingTasks.find { it.needTime == todayStr && it.rwzt == "进行中" }
                     ?: pendingTasks.firstOrNull()
@@ -1693,7 +1692,7 @@ class CheckinRepository(
             println("[Checkin] 任务ID: $taskId, 当前状态: ${dkxx.qdzt}")
 
             // 2. 构造签到数据（使用任务ID，与Python脚本一致）
-            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val qdsj = "${now.date} ${now.hour.toString().padStart(2, '0')}:${
                 now.minute.toString().padStart(2, '0')
             }:${now.second.toString().padStart(2, '0')}"
@@ -1777,7 +1776,7 @@ class CheckinRepository(
             println("[Checkin] 任务ID: $taskId, 当前状态: ${dkxx.qdzt}")
 
             // 2. 构造签到数据（使用任务ID，与Python脚本一致）
-            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val qdsj = "${now.date} ${now.hour.toString().padStart(2, '0')}:${
                 now.minute.toString().padStart(2, '0')
             }:${now.second.toString().padStart(2, '0')}"
@@ -1994,7 +1993,7 @@ class CheckinRepository(
      * 获取当前时间字符串
      */
     private fun getCurrentTimeString(): String {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
         return "${now.date} ${now.hour.toString().padStart(2, '0')}:${
             now.minute.toString().padStart(2, '0')
         }:${now.second.toString().padStart(2, '0')}"

@@ -3,6 +3,7 @@ package com.suseoaa.projectoaa.presentation.course
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.shared.data.local.BackgroundPageIds
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.shared.domain.model.course.ClassTimeEntity
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
@@ -10,6 +11,7 @@ import com.suseoaa.projectoaa.shared.domain.model.course.CourseWithTimes
 import com.suseoaa.projectoaa.shared.data.repository.LocalCourseRepository
 import com.suseoaa.projectoaa.shared.data.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.shared.data.repository.SchoolCourseRepository
+import com.suseoaa.projectoaa.util.encodeBackgroundImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
@@ -214,6 +216,10 @@ class CourseViewModel(
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
+    val courseBackgroundImageBase64: StateFlow<String?> = tokenManager.appBackgroundImagesFlow
+        .map { images -> images[BackgroundPageIds.COURSE] }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     init {
         initializeData()
         loadSemesterStart()
@@ -296,6 +302,26 @@ class CourseViewModel(
 
     fun setDisplayWeek(week: Int) {
         _currentDisplayWeek.value = week.coerceIn(minWeek, maxWeek)
+    }
+
+    fun saveCourseBackgroundImage(imageData: ByteArray) {
+        val encoded = encodeBackgroundImage(imageData)
+        if (encoded == null) {
+            _uiState.value = _uiState.value.copy(errorMessage = "图片过大，请选择更小图片后重试")
+            return
+        }
+
+        viewModelScope.launch {
+            tokenManager.saveBackgroundImageForPages(encoded, setOf(BackgroundPageIds.COURSE))
+            _uiState.value = _uiState.value.copy(successMessage = "课表背景图已更新")
+        }
+    }
+
+    fun clearCourseBackgroundImage() {
+        viewModelScope.launch {
+            tokenManager.clearBackgroundImageForPages(setOf(BackgroundPageIds.COURSE))
+            _uiState.value = _uiState.value.copy(successMessage = "课表背景图已清除")
+        }
     }
 
     /**
@@ -670,7 +696,7 @@ class CourseViewModel(
     }
 
     private fun generateTermOptions(njdmId: String) {
-        val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+        val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
         val startYear = njdmId.take(4).toIntOrNull() ?: (currentYear - 4)
 
         val options = mutableListOf<TermOption>()
@@ -682,7 +708,7 @@ class CourseViewModel(
     }
 
     private fun calculateCurrentRealTerm(): Pair<String, String> {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val month = now.monthNumber
         val year = now.year
 

@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -120,7 +119,7 @@ class ExamViewModel(
      * @param njdmId 年级代码，如 "2023" 表示2023级
      */
     private fun generateSemesterOptions(njdmId: String) {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val currentYear = now.year
         val currentMonth = now.monthNumber
 
@@ -277,7 +276,7 @@ class ExamViewModel(
      */
     private fun processCustomExams(exams: List<ExamCacheEntity>): List<ExamUiItem> {
         val timeZone = TimeZone.currentSystemDefault()
-        val now = Clock.System.now().toLocalDateTime(timeZone)
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(timeZone)
 
         return exams.map { exam ->
             val timeRange = parseExamTimeRange(exam.time)
@@ -335,7 +334,7 @@ class ExamViewModel(
      */
     private fun processExamItems(items: List<ExamApiItem>): List<ExamUiItem> {
         val timeZone = TimeZone.currentSystemDefault()
-        val now = Clock.System.now().toLocalDateTime(timeZone)
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(timeZone)
 
         return items.map { item ->
             val timeRange = parseExamTimeRange(item.kssj ?: "")

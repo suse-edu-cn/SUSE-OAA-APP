@@ -2,6 +2,7 @@ package com.suseoaa.projectoaa.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.shared.data.local.BackgroundPageIds
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.ui.navigation.Screen
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,5 +41,32 @@ class MainViewModel(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = false
+        )
+
+    val dynamicPaletteLightColorHex: StateFlow<String?> = tokenManager.dynamicColorPaletteLightFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null
+        )
+
+    val dynamicPaletteDarkColorHex: StateFlow<String?> = tokenManager.dynamicColorPaletteDarkFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null
+        )
+
+    val appBackgroundImages: StateFlow<Map<String, String?>> = tokenManager.appBackgroundImagesFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = mapOf(
+                BackgroundPageIds.DEFAULT to null,
+                BackgroundPageIds.HOME to null,
+                BackgroundPageIds.COURSE to null,
+                BackgroundPageIds.ACADEMIC to null,
+                BackgroundPageIds.PERSON to null,
+            )
         )
 }

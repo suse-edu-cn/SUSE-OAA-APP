@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -28,6 +27,7 @@ enum class RecruitmentFilterOption {
     All
 }
 
+@Suppress("ArrayInDataClass")
 data class RecruitmentUiState(
     val isLoading: Boolean = false,
     val isSubmissionTime: Boolean = true,
@@ -82,7 +82,7 @@ class RecruitmentViewModel(
 
             repository.getApplications().onSuccess { response ->
                 val allApplications = response.data.orEmpty()
-                val now = Clock.System.now()
+                val now = com.suseoaa.projectoaa.shared.util.OaaClock.now()
                 _uiState.update { state ->
                     val submissionTime = isTimeActive(response.starttime, response.endtime, now)
                     val ownApplication = findOwnApplication(allApplications, state.userStudentId)
@@ -270,7 +270,7 @@ class RecruitmentViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             repository.updateTime(ChangeTimeRequest(starttime = start, endtime = end)).onSuccess { message ->
-                val submissionTime = isTimeActive(start, end, Clock.System.now())
+                val submissionTime = isTimeActive(start, end, com.suseoaa.projectoaa.shared.util.OaaClock.now())
                 _uiState.update {
                     it.copy(
                         isLoading = false,

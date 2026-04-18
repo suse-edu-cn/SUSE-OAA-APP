@@ -7,7 +7,6 @@ import io.ktor.client.statement.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
@@ -225,7 +224,7 @@ class TeachingPlanRepository(
      * 生成年级列表（从2004年到当前年份+1）
      */
     fun generateGradeList(): List<String> {
-        val currentYear = Clock.System.now()
+        val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
             .year
         return (currentYear + 1 downTo 2004).map { it.toString() }

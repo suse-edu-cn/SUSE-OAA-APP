@@ -36,7 +36,7 @@ data class CheckinAccountData(
             return false
         }
         return try {
-            val currentTime = kotlinx.datetime.Clock.System.now()
+            val currentTime = com.suseoaa.projectoaa.shared.util.OaaClock.now()
                 .toLocalDateTime(kotlinx.datetime.TimeZone.of("Asia/Shanghai"))
             val currentTimeStr = "${currentTime.date} ${
                 currentTime.hour.toString().padStart(2, '0')
@@ -44,7 +44,7 @@ data class CheckinAccountData(
                 currentTime.second.toString().padStart(2, '0')
             }"
             sessionExpireTime > currentTimeStr
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }

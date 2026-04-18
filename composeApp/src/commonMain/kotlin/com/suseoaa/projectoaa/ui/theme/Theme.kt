@@ -1,15 +1,20 @@
 package com.suseoaa.projectoaa.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 // 亮色模式 - iOS 风格
 private val LightColorScheme = lightColorScheme(
@@ -120,18 +125,88 @@ val AppTypography = Typography(
 fun ProjectOAATheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
+    dynamicPaletteLightColorHex: String? = null,
+    dynamicPaletteDarkColorHex: String? = null,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = platformColorScheme(
+    val baseColorScheme = platformColorScheme(
         darkTheme = darkTheme,
         dynamicColor = dynamicColor,
         defaultLightScheme = LightColorScheme,
         defaultDarkScheme = DarkColorScheme
     )
 
+    val paletteHex = if (darkTheme) dynamicPaletteDarkColorHex else dynamicPaletteLightColorHex
+    val customAccent = paletteHex?.takeIf { dynamicColor }?.toColorOrNull()
+
+    val colorScheme = customAccent
+        ?.let { accent -> baseColorScheme.withPaletteAccent(accent, darkTheme) }
+        ?: baseColorScheme
+
     MaterialTheme(
         colorScheme = colorScheme,
         typography = AppTypography,
         content = content
     )
+}
+
+private fun ColorScheme.withPaletteAccent(accent: Color, darkTheme: Boolean): ColorScheme {
+    val container = if (darkTheme) blendArgb(accent, Color.Black, 0.42f) else blendArgb(accent, Color.White, 0.74f)
+    val tertiary = if (darkTheme) blendArgb(accent, Color.White, 0.24f) else blendArgb(accent, Color.Black, 0.14f)
+
+    val onAccent = if (accent.luminance() > 0.5f) Color.Black else Color.White
+    val onContainer = if (container.luminance() > 0.5f) Color.Black else Color.White
+    val onTertiary = if (tertiary.luminance() > 0.5f) Color.Black else Color.White
+
+    return copy(
+        primary = accent,
+        onPrimary = onAccent,
+        primaryContainer = container,
+        onPrimaryContainer = onContainer,
+        secondary = accent,
+        onSecondary = onAccent,
+        secondaryContainer = container,
+        onSecondaryContainer = onContainer,
+        tertiary = tertiary,
+        onTertiary = onTertiary,
+        surfaceTint = accent
+    )
+}
+
+private fun String.toColorOrNull(): Color? {
+    val cleaned = trim().removePrefix("#").removePrefix("0x").removePrefix("0X")
+    val argbInt = try {
+        when (cleaned.length) {
+            6 -> (0xFF000000 or cleaned.toLong(16)).toInt()
+            8 -> cleaned.toLong(16).toInt()
+            else -> return null
+        }
+    } catch (_: Exception) {
+        return null
+    }
+    return Color(argbInt)
+}
+
+private fun blendArgb(from: Color, to: Color, fraction: Float): Color {
+    val t = fraction.coerceIn(0f, 1f)
+    val fromArgb = from.toArgb()
+    val toArgb = to.toArgb()
+
+    val fa = (fromArgb ushr 24) and 0xFF
+    val fr = (fromArgb ushr 16) and 0xFF
+    val fg = (fromArgb ushr 8) and 0xFF
+    val fb = fromArgb and 0xFF
+
+    val ta = (toArgb ushr 24) and 0xFF
+    val tr = (toArgb ushr 16) and 0xFF
+    val tg = (toArgb ushr 8) and 0xFF
+    val tb = toArgb and 0xFF
+
+    val a = (fa + (ta - fa) * t).roundToInt().coerceIn(0, 255)
+    val r = (fr + (tr - fr) * t).roundToInt().coerceIn(0, 255)
+    val g = (fg + (tg - fg) * t).roundToInt().coerceIn(0, 255)
+    val b = (fb + (tb - fb) * t).roundToInt().coerceIn(0, 255)
+
+    val result = (a shl 24) or (r shl 16) or (g shl 8) or b
+    return Color(result)
 }

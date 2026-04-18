@@ -37,7 +37,7 @@ fun Modifier.sharedBoundsTransition(key: String): Modifier = composed {
 
     if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
-            Modifier.sharedBounds(
+            this@composed.sharedBounds(
                 sharedContentState = rememberSharedContentState(key = key),
                 animatedVisibilityScope = animatedVisibilityScope,
                 boundsTransform = { _, _ -> elegantSpringTransform }
@@ -58,7 +58,7 @@ fun Modifier.sharedElementTransition(key: String): Modifier = composed {
 
     if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
-            Modifier.sharedElement(
+            this@composed.sharedElement(
                 sharedContentState = rememberSharedContentState(key = key),
                 animatedVisibilityScope = animatedVisibilityScope,
                 boundsTransform = { _, _ -> elegantSpringTransform }

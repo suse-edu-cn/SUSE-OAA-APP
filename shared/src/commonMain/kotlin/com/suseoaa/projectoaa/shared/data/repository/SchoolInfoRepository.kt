@@ -19,7 +19,6 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 
 /**
@@ -47,7 +46,7 @@ data class MessageCacheEntity(
     val id: Long = 0,
     val studentId: String,
     val content: String,
-    val date: Long = Clock.System.now().toEpochMilliseconds()
+    val date: Long = com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds()
 )
 
 /**

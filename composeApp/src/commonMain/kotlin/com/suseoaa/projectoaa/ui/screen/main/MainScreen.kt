@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -31,7 +32,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.times
+import coil3.compose.AsyncImage
+import com.suseoaa.projectoaa.presentation.MainViewModel
+import com.suseoaa.projectoaa.shared.data.local.BackgroundPageIds
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
 import com.suseoaa.projectoaa.ui.screen.academic.AcademicScreen
@@ -39,12 +42,14 @@ import com.suseoaa.projectoaa.presentation.course.CourseScreen
 import com.suseoaa.projectoaa.ui.screen.home.HomeScreen
 import com.suseoaa.projectoaa.ui.screen.person.PersonScreen
 import com.suseoaa.projectoaa.ui.theme.*
+import com.suseoaa.projectoaa.util.decodeBackgroundImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 
 // 定义 Tab 的顺序和元数据
@@ -78,16 +83,19 @@ fun MainScreen(
     onNavigateToRecruitment: () -> Unit = {},
     onNavigateToUserQuery: () -> Unit = {},
     onNavigateToUpdate: () -> Unit = {},
+    mainViewModel: MainViewModel = koinViewModel(),
     modifier: Modifier = Modifier
 ) {
     // 使用 rememberSaveable 保持 Tab 状态，页面返回时不会丢失
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    val appBackgroundImages by mainViewModel.appBackgroundImages.collectAsState()
 
     AdaptiveLayout { config ->
         if (config.useSideNavigation) {
             // 平板横屏：使用侧边导航栏布局
             TabletLandscapeLayout(
                 config = config,
+                appBackgroundImages = appBackgroundImages,
                 selectedTab = selectedTab,
                 onTabChange = { selectedTab = it },
                 onNavigateToLogin = onNavigateToLogin,
@@ -108,6 +116,7 @@ fun MainScreen(
         } else {
             // 手机或平板竖屏：使用底部导航栏布局
             PhoneLayout(
+                appBackgroundImages = appBackgroundImages,
                 selectedTab = selectedTab,
                 onTabChange = { selectedTab = it },
                 onNavigateToLogin = onNavigateToLogin,
@@ -135,6 +144,7 @@ fun MainScreen(
 @Composable
 private fun TabletLandscapeLayout(
     config: AdaptiveLayoutConfig,
+    appBackgroundImages: Map<String, String?>,
     selectedTab: Int,
     onTabChange: (Int) -> Unit,
     onNavigateToLogin: () -> Unit,
@@ -181,44 +191,49 @@ private fun TabletLandscapeLayout(
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            // 使用 key 保持状态，而非销毁重建
-            when (selectedTab) {
-                0 -> key("home") {
-                    HomeScreen(
-                        onNavigateToDetail = onNavigateToDepartmentDetail,
-                        bottomBarHeight = 0.dp,
-                        onNavigateToRecruitment = onNavigateToRecruitment,
-                        onNavigateToUserQuery = onNavigateToUserQuery
-                    )
-                }
+            MainPageBackground(
+                encodedImage = resolveBackgroundImage(appBackgroundImages, selectedTab),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // 使用 key 保持状态，而非销毁重建
+                when (selectedTab) {
+                    0 -> key("home") {
+                        HomeScreen(
+                            onNavigateToDetail = onNavigateToDepartmentDetail,
+                            bottomBarHeight = 0.dp,
+                            onNavigateToRecruitment = onNavigateToRecruitment,
+                            onNavigateToUserQuery = onNavigateToUserQuery
+                        )
+                    }
 
-                1 -> key("course") {
-                    CourseScreen(
-                        onNavigateToLogin = onNavigateToLogin,
-                        bottomBarHeight = 0.dp
-                    )
-                }
+                    1 -> key("course") {
+                        CourseScreen(
+                            onNavigateToLogin = onNavigateToLogin,
+                            bottomBarHeight = 0.dp
+                        )
+                    }
 
-                2 -> key("academic") {
-                    AcademicScreen(
-                        onNavigateToGrades = onNavigateToGrades,
-                        onNavigateToGpa = onNavigateToGpa,
-                        onNavigateToExams = onNavigateToExams,
-                        onNavigateToStudyRequirement = onNavigateToStudyRequirement,
-                        onNavigateToCourseInfo = onNavigateToCourseInfo,
-                        onNavigateToAcademicStatus = onNavigateToAcademicStatus,
-                        bottomBarHeight = 0.dp
-                    )
-                }
+                    2 -> key("academic") {
+                        AcademicScreen(
+                            onNavigateToGrades = onNavigateToGrades,
+                            onNavigateToGpa = onNavigateToGpa,
+                            onNavigateToExams = onNavigateToExams,
+                            onNavigateToStudyRequirement = onNavigateToStudyRequirement,
+                            onNavigateToCourseInfo = onNavigateToCourseInfo,
+                            onNavigateToAcademicStatus = onNavigateToAcademicStatus,
+                            bottomBarHeight = 0.dp
+                        )
+                    }
 
-                3 -> key("person") {
-                    PersonScreen(
-                        onNavigateToLogin = onNavigateToLogin,
-                        onNavigateToChangePassword = onNavigateToChangePassword,
-                        onNavigateToCheckin = onNavigateToCheckin,
-                        onNavigateToUpdate = onNavigateToUpdate,
-                        bottomBarHeight = 0.dp
-                    )
+                    3 -> key("person") {
+                        PersonScreen(
+                            onNavigateToLogin = onNavigateToLogin,
+                            onNavigateToChangePassword = onNavigateToChangePassword,
+                            onNavigateToCheckin = onNavigateToCheckin,
+                            onNavigateToUpdate = onNavigateToUpdate,
+                            bottomBarHeight = 0.dp
+                        )
+                    }
                 }
             }
         }
@@ -230,6 +245,7 @@ private fun TabletLandscapeLayout(
  */
 @Composable
 private fun PhoneLayout(
+    appBackgroundImages: Map<String, String?>,
     selectedTab: Int,
     onTabChange: (Int) -> Unit,
     onNavigateToLogin: () -> Unit,
@@ -287,8 +303,13 @@ private fun PhoneLayout(
                 while (rawFraction < 1f) {
                     val nowNanos = withFrameNanos { it }
                     val elapsedMs = ((nowNanos - startNanos) / 1_000_000f)
-                    rawFraction = if (durationMillis <= 0) 1f else (elapsedMs / durationMillis).coerceIn(0f, 1f)
-                    val easedFraction = androidx.compose.animation.core.FastOutSlowInEasing.transform(rawFraction)
+                    rawFraction =
+                        if (durationMillis <= 0) 1f else (elapsedMs / durationMillis).coerceIn(
+                            0f,
+                            1f
+                        )
+                    val easedFraction =
+                        androidx.compose.animation.core.FastOutSlowInEasing.transform(rawFraction)
 
                     val progress = startProgress + (targetProgress - startProgress) * easedFraction
                     val page = progress.roundToInt().coerceIn(0, maxIndex)
@@ -311,7 +332,10 @@ private fun PhoneLayout(
         isIndicatorDragging
     ) {
         val pinnedProgress = dragIndicatorProgress ?: return@LaunchedEffect
-        if (!isIndicatorDragging && !pagerState.isScrollInProgress && kotlin.math.abs(tabIndicatorProgress - pinnedProgress) < 0.001f) {
+        if (!isIndicatorDragging && !pagerState.isScrollInProgress && kotlin.math.abs(
+                tabIndicatorProgress - pinnedProgress
+            ) < 0.001f
+        ) {
             dragIndicatorProgress = null
         }
     }
@@ -328,7 +352,7 @@ private fun PhoneLayout(
     }
 
     // 通过测量获取 BottomBar 的实际高度
-    var bottomBarHeightPx by remember { mutableIntStateOf(0) }
+    var bottomBarHeightPx by rememberSaveable { mutableIntStateOf(0) }
     val bottomBarHeight: Dp = with(density) { bottomBarHeightPx.toDp() }
     val displayedIndicatorProgress = dragIndicatorProgress ?: tabIndicatorProgress
 
@@ -337,10 +361,11 @@ private fun PhoneLayout(
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
-                .haze(state = hazeState),
+                .hazeSource(state = hazeState),
             beyondViewportPageCount = 2,
         ) { page ->
-            Box(
+            MainPageBackground(
+                encodedImage = resolveBackgroundImage(appBackgroundImages, page),
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer { clip = true }
@@ -415,7 +440,10 @@ private fun PhoneLayout(
 
                     if (targetIndex != selectedTab) {
                         onTabChange(targetIndex)
-                    } else if (!pagerState.isScrollInProgress && kotlin.math.abs(tabIndicatorProgress - targetProgress) < 0.001f) {
+                    } else if (!pagerState.isScrollInProgress && kotlin.math.abs(
+                            tabIndicatorProgress - targetProgress
+                        ) < 0.001f
+                    ) {
                         // 已在目标页且对齐完成，立即交回给 Pager 进度驱动
                         dragIndicatorProgress = null
                     }
@@ -423,6 +451,8 @@ private fun PhoneLayout(
             },
             onNavigate = { index ->
                 isIndicatorDragging = false
+                // 点击导航时立即释放拖拽残留覆盖态，避免指示器停留在旧位置。
+                dragIndicatorProgress = null
                 if (selectedTab != index) {
                     onTabChange(index)
                 }
@@ -437,6 +467,51 @@ private fun PhoneLayout(
     }
 }
 
+private fun resolveBackgroundImage(
+    appBackgroundImages: Map<String, String?>,
+    tabIndex: Int
+): String? {
+    return if (tabIndex == MainTab.COURSE.index) {
+        appBackgroundImages[BackgroundPageIds.COURSE]
+    } else {
+        null
+    }
+}
+
+@Composable
+private fun MainPageBackground(
+    encodedImage: String?,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val imageBytes = remember(encodedImage) { decodeBackgroundImage(encodedImage) }
+    val isDarkTheme = isSystemInDarkTheme()
+    val scrimAlpha = if (isDarkTheme) 0.38f else 0.24f
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        if (imageBytes != null) {
+            AsyncImage(
+                model = imageBytes,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize()
+            )
+
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = scrimAlpha))
+            )
+        }
+
+        content()
+    }
+}
+
 /**
  * 平板端侧边导航栏 - 圆角Card样式
  */
@@ -446,12 +521,12 @@ fun OaaNavigationRail(
     onNavigate: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
-    val cardBackgroundColor = if (isDarkTheme) NightSurface else OxygenWhite
-    val selectedBgColor = if (isDarkTheme) NightContainer else SoftBlueWait
-    val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
-    val textColor = if (isDarkTheme) Color.White else InkBlack
-    val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
+    val colorScheme = MaterialTheme.colorScheme
+    val cardBackgroundColor = colorScheme.surface
+    val selectedBgColor = colorScheme.secondaryContainer
+    val brandColor = colorScheme.primary
+    val selectedContentColor = colorScheme.onSecondaryContainer
+    val unselectedContentColor = colorScheme.onSurfaceVariant
 
     Card(
         modifier = modifier.width(120.dp),
@@ -470,7 +545,7 @@ fun OaaNavigationRail(
                 text = "青蟹",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = primaryColor,
+                color = brandColor,
                 modifier = Modifier.padding(bottom = 28.dp)
             )
 
@@ -495,14 +570,14 @@ fun OaaNavigationRail(
                             tab.icon,
                             contentDescription = tab.label,
                             modifier = Modifier.size(26.dp),
-                            tint = if (isSelected) primaryColor else subtextColor
+                            tint = if (isSelected) selectedContentColor else unselectedContentColor
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = tab.label,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isSelected) primaryColor else subtextColor
+                            color = if (isSelected) selectedContentColor else unselectedContentColor
                         )
                     }
                 }
@@ -524,26 +599,22 @@ fun OaaBottomBar(
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
-    val selectedTint = if (isDarkTheme) NightBlue else ElectricBlue
-    val unselectedTint = if (isDarkTheme) Color.White.copy(alpha = 0.64f) else InkGrey
-    val barOverlay =
-        if (isDarkTheme) NightSurface.copy(alpha = 0.82f) else Color.White.copy(alpha = 0.8f)
-    val indicatorColor =
-        if (isDarkTheme) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.65f)
-    val hazeBackground =
-        if (isDarkTheme) NightSurface.copy(alpha = 0.58f) else Color.White.copy(alpha = 0.58f)
-    val hazeTintColor =
-        if (isDarkTheme) NightSurface.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.88f)
-    val outlineColor =
-        if (isDarkTheme) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.5f)
+    val colorScheme = MaterialTheme.colorScheme
+    val selectedTint = colorScheme.onSecondaryContainer
+    val unselectedTint = colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
+    val barOverlay = colorScheme.surface.copy(alpha = 0.82f)
+    val indicatorColor = colorScheme.secondaryContainer.copy(alpha = 0.95f)
+    val hazeSurface = colorScheme.surfaceColorAtElevation(3.dp)
+    val hazeBackground = hazeSurface.copy(alpha = 0.58f)
+    val hazeTintColor = hazeSurface.copy(alpha = 0.86f)
+    val outlineColor = colorScheme.outlineVariant.copy(alpha = 0.8f)
 
     Surface(
         modifier = modifier
             .navigationBarsPadding()
             .padding(horizontal = 48.dp, vertical = 12.dp)
             .clip(RoundedCornerShape(36.dp))
-            .hazeChild(
+            .hazeEffect(
                 state = hazeState,
                 style = HazeStyle(
                     backgroundColor = hazeBackground,

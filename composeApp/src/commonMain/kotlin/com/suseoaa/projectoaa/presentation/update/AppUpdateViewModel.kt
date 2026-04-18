@@ -24,6 +24,7 @@ data class AppUpdateUiState(
     val isChecking: Boolean = false,
     val isDownloading: Boolean = false,
     val downloadingReleaseTag: String? = null,
+    val downloadedReleaseTag: String? = null,
     val hasUpdate: Boolean = false,
     val latestRelease: GithubRelease? = null,
     val errorMessage: String? = null,
@@ -213,7 +214,8 @@ class AppUpdateViewModel(
         _uiState.value = _uiState.value.copy(
             isDownloading = true,
             downloadProgress = 0,
-            downloadingReleaseTag = releaseTag
+            downloadingReleaseTag = releaseTag,
+            downloadedReleaseTag = null
         )
         expectedDigest = digest
         isProxyDownload = isProxy
@@ -225,7 +227,11 @@ class AppUpdateViewModel(
 
         if (currentDownloadId == -1L) {
             // iOS 平台不支持直接下载
-            _uiState.value = _uiState.value.copy(isDownloading = false, downloadingReleaseTag = null)
+            _uiState.value = _uiState.value.copy(
+                isDownloading = false,
+                downloadingReleaseTag = null,
+                downloadedReleaseTag = null
+            )
         } else {
             // 启动进度轮询
             startProgressPolling()
@@ -304,10 +310,13 @@ class AppUpdateViewModel(
                         }
                     }
 
+                    val completedReleaseTag = _uiState.value.downloadingReleaseTag
+
                     _uiState.value = _uiState.value.copy(
                         isDownloading = false,
                         downloadProgress = 100,
-                        downloadingReleaseTag = null
+                        downloadingReleaseTag = null,
+                        downloadedReleaseTag = completedReleaseTag
                     )
                     _events.emit(UpdateEvent.DownloadComplete)
                     // 下载完成后自动拉起安装
@@ -352,10 +361,12 @@ class AppUpdateViewModel(
     fun onDownloadComplete(downloadId: Long) {
         if (downloadId == currentDownloadId) {
             progressPollingJob?.cancel()
+            val completedReleaseTag = _uiState.value.downloadingReleaseTag
             _uiState.value = _uiState.value.copy(
                 isDownloading = false,
                 downloadProgress = 100,
-                downloadingReleaseTag = null
+                downloadingReleaseTag = null,
+                downloadedReleaseTag = completedReleaseTag
             )
             viewModelScope.launch {
                 _events.emit(UpdateEvent.DownloadComplete)

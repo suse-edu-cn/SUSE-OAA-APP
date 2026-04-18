@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -78,9 +77,9 @@ class GradesViewModel(
 
     init {
         // 初始化当前学年
-        val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+        val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
         val currentMonth =
-            Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).monthNumber
+            com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault()).monthNumber
         // 如果在上半年(1-7月)，使用上一年作为学年
         val academicYear = if (currentMonth < 8) currentYear - 1 else currentYear
 

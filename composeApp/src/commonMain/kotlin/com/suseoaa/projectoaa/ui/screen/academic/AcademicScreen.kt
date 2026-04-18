@@ -138,7 +138,7 @@ fun AcademicScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(Color.Transparent)
             ) {
                 // 平板横屏：调课和考试并排显示，固定高度
                 if (isTabletLandscape) {

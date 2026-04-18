@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -28,7 +27,6 @@ import com.suseoaa.projectoaa.ui.component.BackButton
 import com.suseoaa.projectoaa.ui.component.getListColumns
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.showToast
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
@@ -357,7 +355,8 @@ private fun VerticalFilterSection(
     val textColor = if (isDarkTheme) Color.White else InkBlack
     val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
 
-    val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+    val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+        .toLocalDateTime(TimeZone.currentSystemDefault()).year
     val yearOptions = remember(startYear) {
         val endYear = currentYear + 1
         val list = mutableListOf<Pair<String, String>>()
@@ -456,7 +455,8 @@ fun SelectOption(
     startYear: Int,
     onFilterChange: (String, String) -> Unit
 ) {
-    val currentYear = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+    val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+        .toLocalDateTime(TimeZone.currentSystemDefault()).year
     val yearOptions = remember(startYear) {
         val endYear = currentYear + 1
         val list = mutableListOf<Pair<String, String>>()

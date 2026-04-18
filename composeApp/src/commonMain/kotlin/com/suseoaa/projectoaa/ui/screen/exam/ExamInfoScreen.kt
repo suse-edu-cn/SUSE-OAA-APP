@@ -43,7 +43,6 @@ import com.suseoaa.projectoaa.ui.component.common.ValueLabelStatItem
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.ToastManager
 import com.suseoaa.projectoaa.util.getExamCountDown
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -820,7 +819,7 @@ private fun ExamEditDialog(
     var examType by remember { mutableStateOf(exam.examType) }
 
     // 日期时间状态
-    val now = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) }
+    val now = remember { com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault()) }
     var selectedDate by remember {
         mutableStateOf(parseExamDate(exam.time) ?: now.date)
     }

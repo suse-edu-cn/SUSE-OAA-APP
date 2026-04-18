@@ -7,7 +7,6 @@ import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Clock
 
 class SchoolAuthRepository(
     private val api: SchoolApiService
@@ -28,7 +27,7 @@ class SchoolAuthRepository(
      * 检查当前 session 是否仍然有效
      */
     private fun isSessionValid(username: String): Boolean {
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds()
         val isValid = lastLoginUsername == username &&
                 (now - lastLoginTime) < SESSION_VALIDITY_MS
         println(
@@ -43,7 +42,7 @@ class SchoolAuthRepository(
      */
     private fun markLoginSuccess(username: String) {
         lastLoginUsername = username
-        lastLoginTime = Clock.System.now().toEpochMilliseconds()
+        lastLoginTime = com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds()
         println("[SchoolAuth] 已标记登录成功: username=$username, time=$lastLoginTime")
     }
 
@@ -103,7 +102,7 @@ class SchoolAuthRepository(
             println("[SchoolAuth] Encrypted password length: ${encryptedPwd.length}")
 
             // 3. 执行登录
-            val timestamp = kotlinx.datetime.Clock.System.now().toEpochMilliseconds().toString()
+            val timestamp = com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds().toString()
             val response = api.login(timestamp, username, encryptedPwd, csrfToken)
             println("[SchoolAuth] Login response status: ${response.status}")
             println("[SchoolAuth] Login response headers: ${response.headers.entries()}")

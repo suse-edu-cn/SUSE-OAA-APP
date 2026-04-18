@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
@@ -90,7 +89,7 @@ class SchoolGradeRepository(
     suspend fun fetchAllHistoryGrades(account: CourseAccountEntity): Result<String> =
         withContext(Dispatchers.IO) {
             try {
-                val currentYear = Clock.System.now()
+                val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now()
                     .toLocalDateTime(TimeZone.currentSystemDefault()).year
                 val startYear = account.njdmId.toIntOrNull() ?: (currentYear - 4)
                 val endYear = currentYear + 1

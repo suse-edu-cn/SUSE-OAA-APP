@@ -35,11 +35,12 @@ actual class AppUpdateRepository(
                 httpClient.get("https://api.github.com/repos/$OWNER/$REPO/releases/latest")
 
             if (response.status.value == 200) {
-                val release: GithubRelease = response.body()
-                val remoteVersion = release.tagName.removePrefix("v")
+                val latestRelease: GithubRelease = response.body()
+                val remoteVersion = latestRelease.tagName.removePrefix("v")
 
                 if (compareVersions(remoteVersion, currentVersionName) > 0) {
-                    Result.success(release)
+                    val mergedRelease = mergeMissedReleaseLogs(latestRelease)
+                    Result.success(mergedRelease)
                 } else {
                     Result.success(null) // 无更新
                 }
@@ -48,6 +49,57 @@ actual class AppUpdateRepository(
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * 如果落后多个版本，将中间版本日志追加到最新版日志后
+     */
+    private suspend fun mergeMissedReleaseLogs(latestRelease: GithubRelease): GithubRelease {
+        return try {
+            val releasesResponse: HttpResponse =
+                httpClient.get("https://api.github.com/repos/$OWNER/$REPO/releases")
+            if (releasesResponse.status.value != 200) {
+                return latestRelease
+            }
+
+            val releases: List<GithubRelease> = releasesResponse.body()
+            val latestVersion = latestRelease.tagName.removePrefix("v")
+            val missedReleases = releases.filter { release ->
+                val version = release.tagName.removePrefix("v")
+                compareVersions(version, currentVersionName) > 0 &&
+                    compareVersions(version, latestVersion) <= 0
+            }
+
+            if (missedReleases.size <= 1) {
+                return latestRelease
+            }
+
+            val missedBodies = missedReleases
+                .filter { it.tagName != latestRelease.tagName }
+                .mapNotNull { release ->
+                    val body = release.body.trim()
+                    if (body.isBlank()) null else body
+                }
+
+            if (missedBodies.isEmpty()) {
+                return latestRelease
+            }
+
+            val latestBody = latestRelease.body.trim()
+            val mergedBody = buildString {
+                if (latestBody.isNotBlank()) {
+                    append(latestBody)
+                    if (missedBodies.isNotEmpty()) {
+                        append("\n\n")
+                    }
+                }
+                append(missedBodies.joinToString("\n\n"))
+            }
+
+            latestRelease.copy(body = mergedBody)
+        } catch (_: Exception) {
+            latestRelease
         }
     }
 

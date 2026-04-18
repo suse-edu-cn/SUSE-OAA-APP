@@ -19,7 +19,9 @@ data class PersonUiState(
     val isLoggedOut: Boolean = false,
     val message: String? = null,
     val isCheckinUnlocked: Boolean = false,  // 652签到功能是否已解锁
-    val isDynamicColorEnabled: Boolean = false
+    val isDynamicColorEnabled: Boolean = false,
+    val dynamicPaletteLightColorHex: String? = null,
+    val dynamicPaletteDarkColorHex: String? = null
 )
 
 class PersonViewModel(
@@ -34,6 +36,7 @@ class PersonViewModel(
         loadUserInfo()
         loadCheckinUnlockStatus()
         loadDynamicColorStatus()
+        loadDynamicPaletteColors()
     }
 
     private fun loadDynamicColorStatus() {
@@ -48,6 +51,26 @@ class PersonViewModel(
         viewModelScope.launch {
             val currentState = _uiState.value.isDynamicColorEnabled
             tokenManager.saveDynamicColorEnabled(!currentState)
+        }
+    }
+
+    private fun loadDynamicPaletteColors() {
+        viewModelScope.launch {
+            tokenManager.dynamicColorPaletteLightFlow.collect { colorHex ->
+                _uiState.update { it.copy(dynamicPaletteLightColorHex = colorHex) }
+            }
+        }
+
+        viewModelScope.launch {
+            tokenManager.dynamicColorPaletteDarkFlow.collect { colorHex ->
+                _uiState.update { it.copy(dynamicPaletteDarkColorHex = colorHex) }
+            }
+        }
+    }
+
+    fun setDynamicPaletteColors(lightColorHex: String?, darkColorHex: String?) {
+        viewModelScope.launch {
+            tokenManager.saveDynamicColorPalettes(lightColorHex, darkColorHex)
         }
     }
 

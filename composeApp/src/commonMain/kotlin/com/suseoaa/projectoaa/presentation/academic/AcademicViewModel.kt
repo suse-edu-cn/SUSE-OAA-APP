@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -78,7 +77,7 @@ class AcademicViewModel(
                 viewModelScope.launch {
                     flow.collect { entities ->
                         val timeZone = TimeZone.currentSystemDefault()
-                        val now = Clock.System.now().toLocalDateTime(timeZone)
+                        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(timeZone)
 
                         val sorted = entities.map { entity ->
                             ExamUiState(

@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
@@ -752,7 +751,7 @@ class QrCodeCheckinRepository(
             println("[QrCheckin] 任务ID: $taskId, 当前状态: $currentStatus")
 
             // 2. 构造签到请求（使用任务ID，与Python脚本一致）
-            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
             val qdsj = "${now.date} ${now.hour.toString().padStart(2, '0')}:${
                 now.minute.toString().padStart(2, '0')
             }:${now.second.toString().padStart(2, '0')}"
@@ -930,7 +929,7 @@ class QrCodeCheckinRepository(
      * 获取当前时间字符串
      */
     private fun getCurrentTimeString(): String {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
         return "${now.date} ${now.hour.toString().padStart(2, '0')}:${
             now.minute.toString().padStart(2, '0')
         }:${now.second.toString().padStart(2, '0')}"
@@ -940,7 +939,7 @@ class QrCodeCheckinRepository(
      * 计算过期时间
      */
     private fun calculateExpireTime(hours: Int): String {
-        val now = Clock.System.now()
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now()
         val expireInstant = now.plus(kotlin.time.Duration.parse("${hours}h"))
         val expireTime = expireInstant.toLocalDateTime(TimeZone.currentSystemDefault())
         return "${expireTime.date} ${

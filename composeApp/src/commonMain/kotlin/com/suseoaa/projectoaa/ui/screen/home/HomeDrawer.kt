@@ -42,7 +42,7 @@ fun HomeWithDrawer(
     baseContent: @Composable () -> Unit
 ) {
     val density = LocalDensity.current
-    var maxPx by remember { mutableFloatStateOf(0f) }
+    var maxPx by rememberSaveable { mutableFloatStateOf(0f) }
     val peekHeight = 60.dp + bottomBarHeight
     val peekPx = with(density) { peekHeight.toPx() }
 
@@ -53,7 +53,7 @@ fun HomeWithDrawer(
     var isExpanded by rememberSaveable { mutableStateOf(false) }
 
     // Animatable：完全不受任何坐标轴范围钳制的物理弹簧机制！
-    val offsetYAnim = remember { Animatable(10000f) }
+    val offsetYAnim = remember { Animatable(0f) }
     var isInitialized by remember { mutableStateOf(false) }
 
     val expandedOffset = maxPx * 0.1f
@@ -116,15 +116,18 @@ fun HomeWithDrawer(
         }
     }
 
-    // 健壮保护尚未获得尺寸闪烁
-    val safeOffset = if (!isInitialized || maxPx == 0f) {
-        10000f
-    } else {
-        offsetYAnim.value
+    // 尺寸尚未就绪时给出稳定偏移，避免共享元素退场首帧离屏。
+    val inferredOffset = when {
+        maxPx > 0f -> if (isExpanded) expandedOffset else collapsedOffset
+        else -> 0f
+    }
+    val safeOffset = when {
+        !isInitialized -> inferredOffset
+        else -> offsetYAnim.value
     }
 
-    val progress = if (dragRange <= 0f) 0f else {
-        (1f - ((safeOffset - expandedOffset) / dragRange)).coerceAtLeast(0f)
+    val progress = if (maxPx <= 0f || dragRange <= 0f) 0f else {
+        (1f - ((safeOffset - expandedOffset) / dragRange)).coerceIn(0f, 1f)
     }
 
     val scaleFactor = 1f - (0.08f * progress)
@@ -225,7 +228,7 @@ fun HomeWithDrawer(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    item {
+                    item(key = "feature_recruitment") {
                         FeatureCard(
                             name = "招新换届",
                             icon = Icons.Default.GroupAdd,
@@ -238,7 +241,7 @@ fun HomeWithDrawer(
 
                     val invalidRoles = listOf("会员", "普通成员", "")
                     if (userInfo != null && userInfo.role !in invalidRoles) {
-                        item {
+                        item(key = "feature_user_management") {
                             FeatureCard(
                                 name = "权利的游戏",
                                 icon = Icons.Default.ManageAccounts,
