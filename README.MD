@@ -11,12 +11,12 @@
 
 <div align="center">
 
-![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-7F52FF?logo=kotlin&logoColor=white)
-![Compose Multiplatform](https://img.shields.io/badge/UI-Compose%20Multiplatform%201.7.3-4285F4?logo=jetpackcompose&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.3.20-7F52FF?logo=kotlin&logoColor=white)
+![Compose Multiplatform](https://img.shields.io/badge/UI-Compose%20Multiplatform%201.10.3-4285F4?logo=jetpackcompose&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Desktop-green)
-![Ktor](https://img.shields.io/badge/Ktor-3.0.2-087CFA?logo=ktor&logoColor=white)
-![SQLDelight](https://img.shields.io/badge/SQLDelight-2.0.2-blue)
-![Koin](https://img.shields.io/badge/Koin-4.0.0-orange)
+![Ktor](https://img.shields.io/badge/Ktor-3.4.2-087CFA?logo=ktor&logoColor=white)
+![SQLDelight](https://img.shields.io/badge/SQLDelight-2.3.2-blue)
+![Koin](https://img.shields.io/badge/Koin-4.2.1-orange)
 ![Development](https://img.shields.io/badge/Dev-Project%20Dept.-ff69b4)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
@@ -84,7 +84,7 @@
 │  └──────────────────────────────────────────────────────┘        │
 │                              │                                   │
 │  ┌──────────────────── Data Layer ──────────────────────┐        │
-│  │  Repository (17个) ── API Service (5个) ── Database   │        │
+│  │  Repository (19个) ── API Service (5个) ── Database   │        │
 │  │  Ktor HttpClient ×5 · SQLDelight · DataStore          │        │
 │  └──────────────────────────────────────────────────────┘        │
 │                              │                                   │
@@ -123,10 +123,10 @@
 
 | Module | 位置 | 注册内容 |
 |--------|------|----------|
-| **SharedModule** | `shared` | Json、5 个 HttpClient、5 个 API Service、CourseDatabase、2 个 CookieStorage、17 个 Repository |
+| **SharedModule** | `shared` | Json、5 个 HttpClient、5 个 API Service、CourseDatabase、2 个 CookieStorage、18 个 Repository |
 | **Shared PlatformModule** | `shared` (expect/actual) | CourseDatabaseDriverFactory、DataStore、TokenManager |
 | **AppModule** | `composeApp` | 19 个 ViewModel |
-| **App PlatformModule** | `composeApp` (expect/actual) | AppUpdateRepository（平台特定版本号获取） |
+| **App PlatformModule** | `composeApp` (expect/actual) | AppUpdateRepository（跨平台特定版本号获取） |
 
 ## 📐 项目结构
 
@@ -136,6 +136,9 @@ SUSEOAA/
 │   └── src/
 │       ├── commonMain/kotlin/.../projectoaa/
 │       │   ├── 📄 App.kt                  # Compose 应用根组件
+│       │   ├── 📁 data/
+│       │   │   └── repository/            # 应用层特定的数据仓库
+│       │   │       └── AppUpdateRepository.kt        
 │       │   ├── 📁 di/                     # 依赖注入
 │       │   │   ├── AppModule.kt           # ViewModel DI 注册
 │       │   │   └── PlatformModule.kt      # 平台特定 DI (expect)
@@ -204,16 +207,17 @@ SUSEOAA/
 │       │   │   ├── teachingplan/         # 教学计划模型
 │       │   │   └── ...
 │       │   ├── 📁 data/
-│       │   │   ├── api/                  # API 服务 (5个)
-│       │   │   │   ├── OaaApiService.kt          # OAA 后端
-│       │   │   │   ├── SchoolApiService.kt       # 教务系统
-│       │   │   │   ├── RecruitmentApiService.kt  # 招新报名系统
-│       │   │   │   ├── CheckinApiService.kt      # 打卡系统
-│       │   │   │   └── QrCodeCheckinApiService.kt # 扫码签到
-│       │   │   ├── network/              # 网络配置
-│       │   │   │   ├── HttpClientFactory.kt      # 5个 HttpClient 实例
-│       │   │   │   └── ClearableCookieStorage.kt # Cookie 管理
-│       │   │   ├── repository/           # 数据仓库 (17个)
+│       │   │   ├── 📁 remote/
+│       │   │   │   ├── api/                  # API 服务 (5个)
+│       │   │   │   │   ├── OaaApiService.kt          # OAA 后端
+│       │   │   │   │   ├── SchoolApiService.kt       # 教务系统
+│       │   │   │   │   ├── RecruitmentApiService.kt  # 招新报名系统
+│       │   │   │   │   ├── CheckinApiService.kt      # 打卡系统
+│       │   │   │   │   └── QrCodeCheckinApiService.kt # 扫码签到
+│       │   │   │   └── network/              # 网络配置
+│       │   │   │       ├── HttpClientFactory.kt      # 5个 HttpClient 实例
+│       │   │   │       └── ClearableCookieStorage.kt # Cookie 管理
+│       │   │   ├── repository/               # 数据仓库 (18个)
 │       │   │   │   ├── OaaAuthRepository.kt
 │       │   │   │   ├── SchoolAuthRepository.kt
 │       │   │   │   ├── SchoolCourseRepository.kt
@@ -264,17 +268,17 @@ SUSEOAA/
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| **Kotlin** | 2.1.0 | 开发语言，100% Kotlin |
-| **Compose Multiplatform** | 1.7.3 | 声明式 UI 框架，一套代码渲染 Android & iOS |
-| **Kotlin Coroutines** | 1.9.0 | 异步并发，配合 Flow 实现响应式数据流 |
-| **Gradle** | 8.10.2 | 构建系统，使用 Version Catalog 管理依赖 |
+| **Kotlin** | 2.3.20 | 开发语言，100% Kotlin |
+| **Compose Multiplatform** | 1.10.3 | 声明式 UI 框架，一套代码渲染 Android & iOS |
+| **Kotlin Coroutines** | 1.10.2 | 异步并发，配合 Flow 实现响应式数据流 |
+| **Gradle** | 9.4.1 | 构建系统，使用 Version Catalog 管理依赖 |
 
 ### 网络层
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| **Ktor Client** | 3.0.2 | 跨平台 HTTP 客户端 |
-| **kotlinx-serialization** | 1.7.3 | JSON 序列化/反序列化 |
+| **Ktor Client** | 3.4.2 | 跨平台 HTTP 客户端 |
+| **kotlinx-serialization** | 1.11.0 | JSON 序列化/反序列化 |
 
 项目配置了 **5 个独立 HttpClient 实例**，通过 Koin `named()` 限定符隔离不同服务的会话和 Cookie：
 
@@ -290,8 +294,8 @@ SUSEOAA/
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| **SQLDelight** | 2.0.2 | 类型安全的跨平台 SQL 数据库，8 张数据表 |
-| **DataStore** | 1.1.2 | 键值对存储 (Token、用户偏好) |
+| **SQLDelight** | 2.3.2 | 类型安全的跨平台 SQL 数据库，8 张数据表 |
+| **DataStore** | 1.2.1 | 键值对存储 (Token、用户偏好) |
 
 **数据库表结构**：
 
@@ -310,32 +314,33 @@ SUSEOAA/
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| **Koin** | 4.0.0 | 轻量级 DI，支持 KMP + Compose ViewModel 注入 |
-| **Lifecycle ViewModel** | 2.8.3 | 跨平台 ViewModel 生命周期管理 |
-| **Navigation Compose** | 2.8.0-alpha10 | 跨平台页面导航 |
+| **Koin** | 4.2.1 | 轻量级 DI，支持 KMP + Compose ViewModel 注入 |
+| **Lifecycle ViewModel** | 2.10.0 | 跨平台 ViewModel 生命周期管理 |
+| **Navigation Compose** | 2.9.2 | 跨平台页面导航 |
 
 ### UI & 多媒体
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
 | **Material 3** | (Compose 内置) | 设计系统 + 动态主题 |
-| **Coil** | 3.0.4 | 跨平台图片异步加载 (Ktor 网络后端) |
-| **Markdown Renderer** | 0.28.0 | Markdown 富文本渲染 |
+| **Coil** | 3.4.0 | 跨平台图片异步加载 (Ktor 网络后端) |
+| **Haze** | 1.7.2 | Apple 风格的玻璃拟态 (Glassmorphism) 模糊效果 |
+| **Markdown Renderer** | 0.40.2 | Markdown 富文本渲染 |
 | **Window Size Class** | 0.5.0 | 自适应布局（手机/平板适配） |
 
 ### 安全 & 加密
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| **cryptography-core** | 0.4.0 | 跨平台 RSA 加密 (JDK / Apple provider) |
-| **KSoup** | 0.1.9 | 跨平台 HTML 解析（替代 Jsoup） |
+| **cryptography-core** | 0.6.0 | 跨平台 RSA 加密 (JDK / Apple provider) |
+| **KSoup** | 0.2.6 | 跨平台 HTML 解析（替代 Jsoup） |
 
 ### AI & OCR
 
 | 技术 | 平台 | 用途 |
 |------|------|------|
 | **ML Kit Text Recognition** | Android | 验证码识别 (含中文模型) |
-| **ONNX Runtime** | Android 1.22.0 / iOS | ddddocr 验证码模型推理 |
+| **ONNX Runtime** | Android 1.24.3 / iOS | ddddocr 验证码模型推理 |
 | **Vision Framework** | iOS (原生) | 备选 OCR 方案 |
 
 ### 日志
