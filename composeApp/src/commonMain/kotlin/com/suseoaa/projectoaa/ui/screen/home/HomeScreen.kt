@@ -53,7 +53,7 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Transparent)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Row {
 //            部门介绍卡片
