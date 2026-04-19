@@ -2,12 +2,16 @@ package com.suseoaa.projectoaa.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.ui.screen.changepassword.ChangePasswordScreen
 import com.suseoaa.projectoaa.ui.screen.checkin.CheckinScreen
+import com.suseoaa.projectoaa.ui.screen.checkin.CheckinTaskScreen
 import com.suseoaa.projectoaa.ui.screen.exam.ExamInfoScreen
 import com.suseoaa.projectoaa.ui.screen.forgetpassword.ForgetPasswordScreen
 import com.suseoaa.projectoaa.ui.screen.gpa.GpaScreen
 import com.suseoaa.projectoaa.ui.screen.grades.GradesScreen
+import com.suseoaa.projectoaa.ui.screen.academic.AcademicMessagesScreen
+import com.suseoaa.projectoaa.ui.screen.home.DepartmentEditScreen
 import com.suseoaa.projectoaa.ui.screen.home.DepartmentDetailScreen
 import com.suseoaa.projectoaa.ui.screen.login.LoginScreen
 import com.suseoaa.projectoaa.ui.screen.main.MainScreen
@@ -21,7 +25,8 @@ import com.suseoaa.projectoaa.ui.screen.update.UpdateScreen
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-    startDestination: String = Screen.Login.route
+    startDestination: String = Screen.Login.route,
+    mainViewModel: MainViewModel
 ) {
     SharedNavHost(
         navController = navController,
@@ -98,6 +103,9 @@ fun AppNavHost(
                 onNavigateToExams = {
                     navController.navigate(Screen.Exams.route)
                 },
+                onNavigateToAcademicMessages = {
+                    navController.navigate(Screen.AcademicMessages.route)
+                },
                 onNavigateToDepartmentDetail = { department ->
                     navController.navigate(Screen.DepartmentDetail.createRoute(department))
                 },
@@ -115,7 +123,8 @@ fun AppNavHost(
                 },
                 onNavigateToUpdate = {
                     navController.navigate(Screen.Update.route)
-                }
+                },
+                mainViewModel = mainViewModel
             )
         }
 
@@ -148,12 +157,32 @@ fun AppNavHost(
             )
         }
 
+        composable(Screen.AcademicMessages.route) {
+            AcademicMessagesScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(
             route = Screen.DepartmentDetail.route,
             arguments = Screen.DepartmentDetail.arguments
         ) { backStackEntry ->
             val department = backStackEntry.arguments?.getString("department") ?: ""
             DepartmentDetailScreen(
+                departmentName = department,
+                onBack = { navController.popBackStack() },
+                onNavigateToEdit = {
+                    navController.navigate(Screen.DepartmentEdit.createRoute(department))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.DepartmentEdit.route,
+            arguments = Screen.DepartmentEdit.arguments
+        ) { backStackEntry ->
+            val department = backStackEntry.arguments?.getString("department") ?: ""
+            DepartmentEditScreen(
                 departmentName = department,
                 onBack = { navController.popBackStack() }
             )
@@ -181,6 +210,21 @@ fun AppNavHost(
         // 隐藏功能 - 652打卡
         composable(Screen.Checkin.route) {
             CheckinScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToTasks = { account ->
+                    navController.navigate(Screen.CheckinTasks.createRoute(account.id))
+                },
+                showInlineTasks = false
+            )
+        }
+
+        composable(
+            route = Screen.CheckinTasks.route,
+            arguments = Screen.CheckinTasks.arguments
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getLong("accountId") ?: -1L
+            CheckinTaskScreen(
+                accountId = accountId,
                 onBack = { navController.popBackStack() }
             )
         }

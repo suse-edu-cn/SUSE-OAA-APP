@@ -83,7 +83,8 @@ fun App(
                 val navController = rememberNavController()
                 AppNavHost(
                     navController = navController,
-                    startDestination = startDestination!!
+                    startDestination = startDestination!!,
+                    mainViewModel = mainViewModel
                 )
             }
 

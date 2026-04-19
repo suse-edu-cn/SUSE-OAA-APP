@@ -28,6 +28,7 @@
 
         <activity
             android:name="com.suseoaa.projectoaa.MainActivity"
+            android:enableOnBackInvokedCallback="true"
             android:exported="true"
             android:theme="@style/Theme.ProjectOAA">
             <intent-filter>

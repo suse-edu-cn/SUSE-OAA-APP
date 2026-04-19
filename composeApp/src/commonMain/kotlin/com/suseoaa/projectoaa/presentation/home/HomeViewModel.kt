@@ -57,8 +57,7 @@ class HomeViewModel(
     private var currentUserInfo: PersonData? = null
 
     init {
-        preloadAllDepartments()
-        fetchUserProfile()
+        refreshHomeSummary(showLoading = false)
     }
 
     // ================== 平板与导航逻辑 ==================
@@ -90,10 +89,19 @@ class HomeViewModel(
         fetchUserProfile()
     }
 
+    fun refreshHomeSummary(showLoading: Boolean = true) {
+        fetchUserProfile()
+        refreshDepartmentCards(showLoading = showLoading)
+    }
+
     // ================== 公告数据加载 ==================
 
-    private fun preloadAllDepartments() {
+    fun refreshDepartmentCards(showLoading: Boolean = false) {
         viewModelScope.launch {
+            if (showLoading) {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            }
+
             val deferreds = departments.map { dept ->
                 async { dept to announcementRepository.fetchAnnouncementInfo(dept) }
             }
@@ -104,7 +112,10 @@ class HomeViewModel(
                 results.forEach { (dept, result) ->
                     result.onSuccess { newMap[dept] = it }
                 }
-                currentState.copy(cardInfos = newMap)
+                currentState.copy(
+                    cardInfos = newMap,
+                    isLoading = false
+                )
             }
         }
     }

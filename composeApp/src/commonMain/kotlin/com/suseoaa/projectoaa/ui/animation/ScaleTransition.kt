@@ -3,7 +3,9 @@ package com.suseoaa.projectoaa.ui.animation
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -18,6 +20,12 @@ object ScaleTransition {
     private fun <T> defaultSpring() = spring<T>(
         dampingRatio = 0.85f,
         stiffness = 300f 
+    )
+
+    // 手势导航场景使用固定时长与线性速度，避免受到初速度影响。
+    private fun <T> fixedSpeedTween() = tween<T>(
+        durationMillis = 220,
+        easing = LinearEasing
     )
 
     fun AnimatedContentTransitionScope<NavBackStackEntry>.enterScale(): EnterTransition {
@@ -57,6 +65,26 @@ object ScaleTransition {
         ) + fadeOut(
             // 让淡出动画略微放缓，使用弹簧驱动确保不会一拉就消失
             animationSpec = defaultSpring()
+        )
+    }
+
+    // 手势导航专用的底层页面进场：固定速度、轻微放大到原位。
+    fun AnimatedContentTransitionScope<NavBackStackEntry>.popEnterGesture(): EnterTransition {
+        return scaleIn(
+            initialScale = 0.94f,
+            animationSpec = fixedSpeedTween()
+        ) + fadeIn(
+            animationSpec = fixedSpeedTween()
+        )
+    }
+
+    // 手势导航专用的顶层页面退场：缩放到 70%。
+    fun AnimatedContentTransitionScope<NavBackStackEntry>.popExitGesture(): ExitTransition {
+        return scaleOut(
+            targetScale = 0.70f,
+            animationSpec = fixedSpeedTween()
+        ) + fadeOut(
+            animationSpec = fixedSpeedTween()
         )
     }
 }

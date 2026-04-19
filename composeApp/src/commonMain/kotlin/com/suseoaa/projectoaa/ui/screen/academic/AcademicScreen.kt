@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
@@ -40,10 +41,14 @@ import com.suseoaa.projectoaa.shared.data.repository.MessageCacheEntity
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.academic.ExamUiState
 import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
+import com.suseoaa.projectoaa.ui.component.common.PullUpFeatureDrawer
+import com.suseoaa.projectoaa.ui.component.LocalMainTabVisible
+import com.suseoaa.projectoaa.ui.screen.home.FeatureCard
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.getExamCountDown
 import kotlinx.datetime.*
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.collections.listOf
 
 data class PortalFunction(
     val title: String,
@@ -58,34 +63,31 @@ fun AcademicScreen(
     onNavigateToGrades: () -> Unit,
     onNavigateToGpa: () -> Unit,
     onNavigateToExams: () -> Unit,
+    onNavigateToRescheduling: () -> Unit,
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
     onNavigateToAcademicStatus: () -> Unit = {},
+    featureDrawerExpanded: Boolean = false,
+    onFeatureDrawerExpandedChange: (Boolean) -> Unit = {},
     bottomBarHeight: Dp = 0.dp,
     viewModel: AcademicViewModel = koinViewModel()
 ) {
+    val isMainTabVisible = LocalMainTabVisible.current
     val uiState by viewModel.uiState.collectAsState()
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
-    // 调课信息对话框状态
-    var showMessagesDialog by remember { mutableStateOf(false) }
-
-    // 调课信息对话框
-    if (showMessagesDialog) {
-        MessagesDialog(
-            messages = uiState.messages,
-            onDismiss = { showMessagesDialog = false }
-        )
-    }
-
     // 错峰加载策略 - 数据为空时自动刷新
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(800)
-        if (uiState.exams.isEmpty() || uiState.messages.isEmpty()) {
-            viewModel.refresh()
+    LaunchedEffect(isMainTabVisible) {
+        if (isMainTabVisible) {
+            kotlinx.coroutines.delay(800)
+            if (uiState.exams.isEmpty() || uiState.messages.isEmpty()) {
+                viewModel.refresh()
+            }
         }
     }
 
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    val unifiedFunctionColor = MaterialTheme.colorScheme.primary
     val functions = listOf(
         PortalFunction(
             "成绩查询",
@@ -116,98 +118,101 @@ fun AcademicScreen(
             Icons.Default.DateRange,
             "academicStatus",
             Color(0xFF9C27B0)
+        ),
+        PortalFunction(
+            "教务系统",
+            Icons.AutoMirrored.Filled.ExitToApp,
+            "jwgl",
+            Color(0xFF1976D2)
         )
     )
-
-    PullToRefreshBox(
-        isRefreshing = uiState.isRefreshing,
-        onRefresh = { viewModel.refresh() }
-    ) {
-        AdaptiveLayout { config ->
-            val isTabletLandscape = config.useSideNavigation
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(config.gridColumns),
-                contentPadding = PaddingValues(
-                    top = 16.dp + statusBarHeight,
-                    bottom = 16.dp + bottomBarHeight,
-                    start = config.horizontalPadding,
-                    end = config.horizontalPadding
-                ),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Transparent)
+    PullUpFeatureDrawer(
+        isExpanded = featureDrawerExpanded,
+        onExpandedChange = onFeatureDrawerExpandedChange,
+        title = "常用功能",
+        bottomBarHeight = bottomBarHeight,
+        baseContent = {
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = { viewModel.refresh() }
             ) {
-                // 平板横屏：调课和考试并排显示，固定高度
-                if (isTabletLandscape) {
-                    // 1. 调课信息卡片（占一半宽度）- 显示最新2条
-                    item(span = { GridItemSpan(config.gridColumns / 2) }) {
-                        TabletReschedulingCard(
-                            messageList = uiState.messages,
-                            onClick = { showMessagesDialog = true },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                AdaptiveLayout { config ->
+                    val isTabletLandscape = config.useSideNavigation
 
-                    // 2. 近期考试卡片（占一半宽度）- 显示最近4条
-                    item(span = { GridItemSpan(config.gridColumns - config.gridColumns / 2) }) {
-                        TabletUpcomingExamsCard(
-                            examList = uiState.exams,
-                            onClick = onNavigateToExams,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                } else {
-                    // 手机/平板竖屏：垂直排列
-                    // 1. 调课信息卡片
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        ReschedulingCard(
-                            messageList = uiState.messages,
-                            onClick = { showMessagesDialog = true }
-                        )
-                    }
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(config.gridColumns),
+                        contentPadding = PaddingValues(
+                            top = 16.dp + statusBarHeight,
+                            bottom = 96.dp + bottomBarHeight,
+                            start = config.horizontalPadding,
+                            end = config.horizontalPadding
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Transparent)
+                    ) {
+                        if (isTabletLandscape) {
+                            item(span = { GridItemSpan(config.gridColumns / 2) }) {
+                                TabletReschedulingCard(
+                                    messageList = uiState.messages,
+                                    onClick = onNavigateToRescheduling,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
 
-                    // 2. 近期考试卡片
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        UpcomingExamsCard(
-                            examList = uiState.exams,
-                            onClick = onNavigateToExams
-                        )
-                    }
-                }
+                            item(span = { GridItemSpan(config.gridColumns - config.gridColumns / 2) }) {
+                                TabletUpcomingExamsCard(
+                                    examList = uiState.exams,
+                                    onClick = onNavigateToExams,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        } else {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                ReschedulingCard(
+                                    messageList = uiState.messages,
+                                    onClick = onNavigateToRescheduling
+                                )
+                            }
 
-                // 3. 常用功能标题
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        text = "常用功能",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                    )
-                }
-
-                // 4. 功能卡片
-                items(functions) { func ->
-                    FunctionCard(
-                        function = func,
-                        onClick = {
-                            when (func.route) {
-                                "grades" -> onNavigateToGrades()
-                                "gpa" -> onNavigateToGpa()
-                                "studyRequirement" -> onNavigateToStudyRequirement()
-                                "courseInfo" -> onNavigateToCourseInfo()
-                                "academicStatus" -> onNavigateToAcademicStatus()
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                UpcomingExamsCard(
+                                    examList = uiState.exams,
+                                    onClick = onNavigateToExams
+                                )
                             }
                         }
-                    )
+                    }
                 }
-
-                // 底部空间
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    Spacer(modifier = Modifier.height(80.dp))
-                }
+            }
+        }
+    ) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(functions) { func ->
+                FeatureCard(
+                    name = func.title,
+                    icon = func.icon,
+                    color = MaterialTheme.colorScheme.surface,
+                    onColor = unifiedFunctionColor,
+                    onClick = {
+                        when (func.route) {
+                            "grades" -> onNavigateToGrades()
+                            "gpa" -> onNavigateToGpa()
+                            "studyRequirement" -> onNavigateToStudyRequirement()
+                            "courseInfo" -> onNavigateToCourseInfo()
+                            "academicStatus" -> onNavigateToAcademicStatus()
+                            "jwgl" -> uriHandler.openUri("https://jwgl.suse.edu.cn/xtgl/login_slogin.html")
+                        }
+                    },
+                    sharedBoundKey = func.route
+                )
             }
         }
     }
@@ -235,10 +240,11 @@ fun TabletReschedulingCard(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
-        elevation = CardDefaults.cardElevation(2.dp),
-        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(1.dp),
+        shape = RoundedCornerShape(20.dp),
         modifier = modifier
             .fillMaxWidth()
+            .sharedBoundsTransition("academic_messages")
             .height(TABLET_CARD_HEIGHT)
             .clickable(onClick = onClick)
     ) {
@@ -263,11 +269,18 @@ fun TabletReschedulingCard(
                     color = textColor
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = "查看全部 >",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = subtextColor
-                )
+
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                ) {
+                    Text(
+                        text = "最新2条",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
 
             HorizontalDivider(
@@ -294,7 +307,12 @@ fun TabletReschedulingCard(
                 } else {
                     // 显示最新2条
                     messageList.take(2).forEach { message ->
-                        TabletMessageItem(message, textColor, subtextColor, dividerColor)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
+                        ) {
+                            TabletMessageItem(message, textColor, subtextColor)
+                        }
                     }
 
                     // 如果只有1条，添加占位
@@ -324,15 +342,16 @@ fun TabletReschedulingCard(
 private fun TabletMessageItem(
     message: MessageCacheEntity,
     textColor: Color,
-    subtextColor: Color,
-    dividerColor: Color
+    subtextColor: Color
 ) {
-    Column {
+    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
         Text(
             text = message.content,
             style = MaterialTheme.typography.bodyMedium,
             color = textColor,
-            lineHeight = 20.sp
+            lineHeight = 20.sp,
+            maxLines = 4,
+            overflow = TextOverflow.Ellipsis
         )
         if (message.date > 0) {
             Spacer(modifier = Modifier.height(4.dp))
@@ -365,8 +384,8 @@ fun TabletUpcomingExamsCard(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
-        elevation = CardDefaults.cardElevation(2.dp),
-        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(1.dp),
+        shape = RoundedCornerShape(20.dp),
         modifier = modifier
             .fillMaxWidth()
             .sharedBoundsTransition("exams")
@@ -430,22 +449,22 @@ fun TabletUpcomingExamsCard(
                         )
                     }
                 } else {
-                    // 显示最近5条
-                    examList.take(5).forEach { exam ->
+                    // 显示最近4条
+                    examList.take(4).forEach { exam ->
                         TabletExamRowItem(exam, textColor, subtextColor)
                     }
 
-                    // 如果不足5条，填充空间
-                    if (examList.size < 5) {
+                    // 如果不足4条，填充空间
+                    if (examList.size < 4) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
 
             // 底部提示
-            if (examList.size > 5) {
+            if (examList.size > 4) {
                 Text(
-                    text = "还有 ${examList.size - 5} 场考试",
+                    text = "还有 ${examList.size - 4} 场考试",
                     style = MaterialTheme.typography.labelSmall,
                     color = primaryColor,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -469,7 +488,9 @@ private fun TabletExamRowItem(
     }
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 左侧：时间块（月/日）
@@ -543,17 +564,20 @@ fun ReschedulingCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val latestMessage = messageList.firstOrNull()
-
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(2.dp),
+        elevation = CardDefaults.cardElevation(1.dp),
+        shape = RoundedCornerShape(20.dp),
         modifier = modifier
             .fillMaxWidth()
+            .sharedBoundsTransition("academic_messages")
             .clickable(onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = null,
@@ -567,15 +591,9 @@ fun ReschedulingCard(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                if (messageList.size > 1) {
+                if (messageList.isNotEmpty()) {
                     Text(
-                        text = "共${messageList.size}条 >",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else if (messageList.isNotEmpty()) {
-                    Text(
-                        text = "查看详情 >",
+                        text = "查看全部 >",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -586,14 +604,48 @@ fun ReschedulingCard(
                 color = MaterialTheme.colorScheme.surfaceVariant
             )
 
-            if (latestMessage != null) {
-                // 显示完整的调课内容，不做截断
-                Text(
-                    text = latestMessage.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
-                )
+            if (messageList.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    messageList.take(2).forEach { message ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                            ) {
+                                Text(
+                                    text = message.content,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    lineHeight = 22.sp,
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (message.date > 0) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = formatTimestamp(message.date),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (messageList.size > 2) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "还有 ${messageList.size - 2} 条通知",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
             } else {
                 Text(
                     text = "暂无最新调课通知",
@@ -747,7 +799,8 @@ fun UpcomingExamsCard(
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(2.dp),
+        elevation = CardDefaults.cardElevation(1.dp),
+        shape = RoundedCornerShape(20.dp),
         modifier = modifier
             .fillMaxWidth()
             .sharedBoundsTransition("exams")
@@ -798,10 +851,15 @@ fun UpcomingExamsCard(
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    examList.take(5).forEach { exam ->
-                        ExamRowItem(exam)
+                    examList.take(4).forEach { exam ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        ) {
+                            ExamRowItem(exam)
+                        }
                     }
-                    if (examList.size > 5) {
+                    if (examList.size > 4) {
                         Text(
                             text = "查看更多...",
                             style = MaterialTheme.typography.labelSmall,
@@ -912,23 +970,30 @@ fun ExamRowItem(exam: ExamUiState) {
 /**
  * 功能按钮卡片
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FunctionCard(
     function: PortalFunction,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    Card(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = function.color.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp,
+            hoveredElevation = 8.dp
+        ),
         modifier = modifier
             .fillMaxWidth()
             .height(80.dp)
             .sharedBoundsTransition(function.route)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(

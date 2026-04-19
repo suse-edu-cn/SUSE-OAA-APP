@@ -23,12 +23,26 @@ sealed class Screen(val route: String) {
     data object StudyRequirement : Screen("studyRequirement")
     data object CourseInfo : Screen("courseInfo")
     data object AcademicStatus : Screen("academicStatus")
+    data object AcademicMessages : Screen("academicMessages")
 
     // 隐藏功能
     data object Checkin : Screen("checkin")
+    data object CheckinTasks : Screen("checkin/tasks/{accountId}") {
+        fun createRoute(accountId: Long) = "checkin/tasks/$accountId"
+        val arguments = listOf(
+            navArgument("accountId") { type = NavType.LongType }
+        )
+    }
 
     data object DepartmentDetail : Screen("department/{department}") {
         fun createRoute(department: String) = "department/$department"
+        val arguments = listOf(
+            navArgument("department") { type = NavType.StringType }
+        )
+    }
+
+    data object DepartmentEdit : Screen("department/{department}/edit") {
+        fun createRoute(department: String) = "department/$department/edit"
         val arguments = listOf(
             navArgument("department") { type = NavType.StringType }
         )

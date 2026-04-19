@@ -3,6 +3,7 @@ package com.suseoaa.projectoaa.ui.animation
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
@@ -17,11 +18,22 @@ val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { nu
 @OptIn(ExperimentalSharedTransitionApi::class)
 val LocalAnimatedVisibilityScope = compositionLocalOf<AnimatedVisibilityScope?> { null }
 
+// 手势返回过程中可临时关闭共享元素，以避免与自定义退场冲突。
+val LocalDisableSharedTransition = compositionLocalOf { false }
+
+// 预测返回 commit 阶段可切换为更慢的共享元素弹簧，提升“回收”可读性。
+val LocalPredictiveBackCommitting = compositionLocalOf { false }
+
 // 使用物理弹簧模型（Spring）替换基于时间的缓动曲线，以此来获取极具质感的"跟手性"
 // 当手指划动返回或者打断动画时，Spring 会自动结合手指的初始速度计算轨迹，杜绝“慢半拍”和动画拖沓生硬的问题。
 val elegantSpringTransform = spring<androidx.compose.ui.geometry.Rect>(
-    dampingRatio = 0.85f, // 弱阻尼，带来轻微的、柔和的弹性反馈，使得释放后不那么生硬
-    stiffness = 300f     // 整体动画速度相对轻快，顺滑回到原位
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessLow
+)
+
+private val predictiveBackCommitSpringTransform = spring<androidx.compose.ui.geometry.Rect>(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = 280f
 )
 
 /**
@@ -34,13 +46,20 @@ val elegantSpringTransform = spring<androidx.compose.ui.geometry.Rect>(
 fun Modifier.sharedBoundsTransition(key: String): Modifier = composed {
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
+    val disableSharedTransition = LocalDisableSharedTransition.current
+    val predictiveBackCommitting = LocalPredictiveBackCommitting.current
+    val boundsTransformSpec = if (predictiveBackCommitting) {
+        predictiveBackCommitSpringTransform
+    } else {
+        elegantSpringTransform
+    }
 
-    if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+    if (!disableSharedTransition && sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
             this@composed.sharedBounds(
                 sharedContentState = rememberSharedContentState(key = key),
                 animatedVisibilityScope = animatedVisibilityScope,
-                boundsTransform = { _, _ -> elegantSpringTransform }
+                boundsTransform = { _, _ -> boundsTransformSpec }
             )
         }
     } else {
@@ -55,13 +74,20 @@ fun Modifier.sharedBoundsTransition(key: String): Modifier = composed {
 fun Modifier.sharedElementTransition(key: String): Modifier = composed {
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
+    val disableSharedTransition = LocalDisableSharedTransition.current
+    val predictiveBackCommitting = LocalPredictiveBackCommitting.current
+    val boundsTransformSpec = if (predictiveBackCommitting) {
+        predictiveBackCommitSpringTransform
+    } else {
+        elegantSpringTransform
+    }
 
-    if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+    if (!disableSharedTransition && sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
             this@composed.sharedElement(
                 sharedContentState = rememberSharedContentState(key = key),
                 animatedVisibilityScope = animatedVisibilityScope,
-                boundsTransform = { _, _ -> elegantSpringTransform }
+                boundsTransform = { _, _ -> boundsTransformSpec }
             )
         }
     } else {

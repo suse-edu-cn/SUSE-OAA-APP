@@ -22,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -37,6 +38,7 @@ import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.shared.data.local.BackgroundPageIds
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
+import com.suseoaa.projectoaa.ui.component.LocalMainTabVisible
 import com.suseoaa.projectoaa.ui.screen.academic.AcademicScreen
 import com.suseoaa.projectoaa.presentation.course.CourseScreen
 import com.suseoaa.projectoaa.ui.screen.home.HomeScreen
@@ -75,6 +77,7 @@ fun MainScreen(
     onNavigateToGrades: () -> Unit,
     onNavigateToGpa: () -> Unit,
     onNavigateToExams: () -> Unit,
+    onNavigateToAcademicMessages: () -> Unit,
     onNavigateToDepartmentDetail: (String) -> Unit,
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
@@ -86,8 +89,10 @@ fun MainScreen(
     mainViewModel: MainViewModel = koinViewModel(),
     modifier: Modifier = Modifier
 ) {
-    // 使用 rememberSaveable 保持 Tab 状态，页面返回时不会丢失
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    // 由 MainViewModel 托管 Tab 状态，确保前景与背景预览层保持同一上下文。
+    val selectedTab by mainViewModel.selectedMainTab.collectAsState()
+    val homeFeatureDrawerExpanded by mainViewModel.homeFeatureDrawerExpanded.collectAsState()
+    val academicFeatureDrawerExpanded by mainViewModel.academicFeatureDrawerExpanded.collectAsState()
     val appBackgroundImages by mainViewModel.appBackgroundImages.collectAsState()
 
     AdaptiveLayout { config ->
@@ -97,12 +102,19 @@ fun MainScreen(
                 config = config,
                 appBackgroundImages = appBackgroundImages,
                 selectedTab = selectedTab,
-                onTabChange = { selectedTab = it },
+                onTabChange = { mainViewModel.updateSelectedMainTab(it) },
+                homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
+                onHomeFeatureDrawerExpandedChange = { mainViewModel.updateHomeFeatureDrawerExpanded(it) },
+                academicFeatureDrawerExpanded = academicFeatureDrawerExpanded,
+                onAcademicFeatureDrawerExpandedChange = {
+                    mainViewModel.updateAcademicFeatureDrawerExpanded(it)
+                },
                 onNavigateToLogin = onNavigateToLogin,
                 onNavigateToChangePassword = onNavigateToChangePassword,
                 onNavigateToGrades = onNavigateToGrades,
                 onNavigateToGpa = onNavigateToGpa,
                 onNavigateToExams = onNavigateToExams,
+                onNavigateToAcademicMessages = onNavigateToAcademicMessages,
                 onNavigateToDepartmentDetail = onNavigateToDepartmentDetail,
                 onNavigateToStudyRequirement = onNavigateToStudyRequirement,
                 onNavigateToCourseInfo = onNavigateToCourseInfo,
@@ -118,12 +130,19 @@ fun MainScreen(
             PhoneLayout(
                 appBackgroundImages = appBackgroundImages,
                 selectedTab = selectedTab,
-                onTabChange = { selectedTab = it },
+                onTabChange = { mainViewModel.updateSelectedMainTab(it) },
+                homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
+                onHomeFeatureDrawerExpandedChange = { mainViewModel.updateHomeFeatureDrawerExpanded(it) },
+                academicFeatureDrawerExpanded = academicFeatureDrawerExpanded,
+                onAcademicFeatureDrawerExpandedChange = {
+                    mainViewModel.updateAcademicFeatureDrawerExpanded(it)
+                },
                 onNavigateToLogin = onNavigateToLogin,
                 onNavigateToChangePassword = onNavigateToChangePassword,
                 onNavigateToGrades = onNavigateToGrades,
                 onNavigateToGpa = onNavigateToGpa,
                 onNavigateToExams = onNavigateToExams,
+                onNavigateToAcademicMessages = onNavigateToAcademicMessages,
                 onNavigateToDepartmentDetail = onNavigateToDepartmentDetail,
                 onNavigateToStudyRequirement = onNavigateToStudyRequirement,
                 onNavigateToCourseInfo = onNavigateToCourseInfo,
@@ -147,11 +166,16 @@ private fun TabletLandscapeLayout(
     appBackgroundImages: Map<String, String?>,
     selectedTab: Int,
     onTabChange: (Int) -> Unit,
+    homeFeatureDrawerExpanded: Boolean,
+    onHomeFeatureDrawerExpandedChange: (Boolean) -> Unit,
+    academicFeatureDrawerExpanded: Boolean,
+    onAcademicFeatureDrawerExpandedChange: (Boolean) -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
     onNavigateToGrades: () -> Unit,
     onNavigateToGpa: () -> Unit,
     onNavigateToExams: () -> Unit,
+    onNavigateToAcademicMessages: () -> Unit,
     onNavigateToDepartmentDetail: (String) -> Unit,
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
@@ -195,46 +219,28 @@ private fun TabletLandscapeLayout(
                 encodedImage = resolveBackgroundImage(appBackgroundImages, selectedTab),
                 modifier = Modifier.fillMaxSize()
             ) {
-                // 使用 key 保持状态，而非销毁重建
-                when (selectedTab) {
-                    0 -> key("home") {
-                        HomeScreen(
-                            onNavigateToDetail = onNavigateToDepartmentDetail,
-                            bottomBarHeight = 0.dp,
-                            onNavigateToRecruitment = onNavigateToRecruitment,
-                            onNavigateToUserQuery = onNavigateToUserQuery
-                        )
-                    }
-
-                    1 -> key("course") {
-                        CourseScreen(
-                            onNavigateToLogin = onNavigateToLogin,
-                            bottomBarHeight = 0.dp
-                        )
-                    }
-
-                    2 -> key("academic") {
-                        AcademicScreen(
-                            onNavigateToGrades = onNavigateToGrades,
-                            onNavigateToGpa = onNavigateToGpa,
-                            onNavigateToExams = onNavigateToExams,
-                            onNavigateToStudyRequirement = onNavigateToStudyRequirement,
-                            onNavigateToCourseInfo = onNavigateToCourseInfo,
-                            onNavigateToAcademicStatus = onNavigateToAcademicStatus,
-                            bottomBarHeight = 0.dp
-                        )
-                    }
-
-                    3 -> key("person") {
-                        PersonScreen(
-                            onNavigateToLogin = onNavigateToLogin,
-                            onNavigateToChangePassword = onNavigateToChangePassword,
-                            onNavigateToCheckin = onNavigateToCheckin,
-                            onNavigateToUpdate = onNavigateToUpdate,
-                            bottomBarHeight = 0.dp
-                        )
-                    }
-                }
+                KeepAliveMainPages(
+                    selectedTab = selectedTab,
+                    bottomBarHeight = 0.dp,
+                    homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
+                    onHomeFeatureDrawerExpandedChange = onHomeFeatureDrawerExpandedChange,
+                    academicFeatureDrawerExpanded = academicFeatureDrawerExpanded,
+                    onAcademicFeatureDrawerExpandedChange = onAcademicFeatureDrawerExpandedChange,
+                    onNavigateToLogin = onNavigateToLogin,
+                    onNavigateToChangePassword = onNavigateToChangePassword,
+                    onNavigateToGrades = onNavigateToGrades,
+                    onNavigateToGpa = onNavigateToGpa,
+                    onNavigateToExams = onNavigateToExams,
+                    onNavigateToAcademicMessages = onNavigateToAcademicMessages,
+                    onNavigateToDepartmentDetail = onNavigateToDepartmentDetail,
+                    onNavigateToStudyRequirement = onNavigateToStudyRequirement,
+                    onNavigateToCourseInfo = onNavigateToCourseInfo,
+                    onNavigateToAcademicStatus = onNavigateToAcademicStatus,
+                    onNavigateToCheckin = onNavigateToCheckin,
+                    onNavigateToRecruitment = onNavigateToRecruitment,
+                    onNavigateToUserQuery = onNavigateToUserQuery,
+                    onNavigateToUpdate = onNavigateToUpdate
+                )
             }
         }
     }
@@ -248,11 +254,16 @@ private fun PhoneLayout(
     appBackgroundImages: Map<String, String?>,
     selectedTab: Int,
     onTabChange: (Int) -> Unit,
+    homeFeatureDrawerExpanded: Boolean,
+    onHomeFeatureDrawerExpandedChange: (Boolean) -> Unit,
+    academicFeatureDrawerExpanded: Boolean,
+    onAcademicFeatureDrawerExpandedChange: (Boolean) -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToChangePassword: () -> Unit,
     onNavigateToGrades: () -> Unit,
     onNavigateToGpa: () -> Unit,
     onNavigateToExams: () -> Unit,
+    onNavigateToAcademicMessages: () -> Unit,
     onNavigateToDepartmentDetail: (String) -> Unit,
     onNavigateToStudyRequirement: () -> Unit,
     onNavigateToCourseInfo: () -> Unit,
@@ -362,7 +373,7 @@ private fun PhoneLayout(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(state = hazeState),
-            beyondViewportPageCount = 2,
+            beyondViewportPageCount = MainTab.entries.size - 1,
         ) { page ->
             MainPageBackground(
                 encodedImage = resolveBackgroundImage(appBackgroundImages, page),
@@ -370,37 +381,29 @@ private fun PhoneLayout(
                     .fillMaxSize()
                     .graphicsLayer { clip = true }
             ) {
-                when (page) {
-                    0 -> HomeScreen(
-                        onNavigateToDetail = onNavigateToDepartmentDetail,
-                        bottomBarHeight = bottomBarHeight,
-                        onNavigateToRecruitment = onNavigateToRecruitment,
-                        onNavigateToUserQuery = onNavigateToUserQuery
-                    )
-
-                    1 -> CourseScreen(
-                        onNavigateToLogin = onNavigateToLogin,
-                        bottomBarHeight = bottomBarHeight
-                    )
-
-                    2 -> AcademicScreen(
-                        onNavigateToGrades = onNavigateToGrades,
-                        onNavigateToGpa = onNavigateToGpa,
-                        onNavigateToExams = onNavigateToExams,
-                        onNavigateToStudyRequirement = onNavigateToStudyRequirement,
-                        onNavigateToCourseInfo = onNavigateToCourseInfo,
-                        onNavigateToAcademicStatus = onNavigateToAcademicStatus,
-                        bottomBarHeight = bottomBarHeight
-                    )
-
-                    3 -> PersonScreen(
-                        onNavigateToLogin = onNavigateToLogin,
-                        onNavigateToChangePassword = onNavigateToChangePassword,
-                        onNavigateToCheckin = onNavigateToCheckin,
-                        onNavigateToUpdate = onNavigateToUpdate,
-                        bottomBarHeight = bottomBarHeight
-                    )
-                }
+                MainTabPage(
+                    tabIndex = page,
+                    isVisible = page == selectedTab,
+                    bottomBarHeight = bottomBarHeight,
+                    homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
+                    onHomeFeatureDrawerExpandedChange = onHomeFeatureDrawerExpandedChange,
+                    academicFeatureDrawerExpanded = academicFeatureDrawerExpanded,
+                    onAcademicFeatureDrawerExpandedChange = onAcademicFeatureDrawerExpandedChange,
+                    onNavigateToLogin = onNavigateToLogin,
+                    onNavigateToChangePassword = onNavigateToChangePassword,
+                    onNavigateToGrades = onNavigateToGrades,
+                    onNavigateToGpa = onNavigateToGpa,
+                    onNavigateToExams = onNavigateToExams,
+                    onNavigateToAcademicMessages = onNavigateToAcademicMessages,
+                    onNavigateToDepartmentDetail = onNavigateToDepartmentDetail,
+                    onNavigateToStudyRequirement = onNavigateToStudyRequirement,
+                    onNavigateToCourseInfo = onNavigateToCourseInfo,
+                    onNavigateToAcademicStatus = onNavigateToAcademicStatus,
+                    onNavigateToCheckin = onNavigateToCheckin,
+                    onNavigateToRecruitment = onNavigateToRecruitment,
+                    onNavigateToUserQuery = onNavigateToUserQuery,
+                    onNavigateToUpdate = onNavigateToUpdate
+                )
             }
         }
 
@@ -464,6 +467,139 @@ private fun PhoneLayout(
                     bottomBarHeightPx = coordinates.size.height
                 }
         )
+    }
+}
+
+@Composable
+private fun KeepAliveMainPages(
+    selectedTab: Int,
+    bottomBarHeight: Dp,
+    homeFeatureDrawerExpanded: Boolean,
+    onHomeFeatureDrawerExpandedChange: (Boolean) -> Unit,
+    academicFeatureDrawerExpanded: Boolean,
+    onAcademicFeatureDrawerExpandedChange: (Boolean) -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onNavigateToChangePassword: () -> Unit,
+    onNavigateToGrades: () -> Unit,
+    onNavigateToGpa: () -> Unit,
+    onNavigateToExams: () -> Unit,
+    onNavigateToAcademicMessages: () -> Unit,
+    onNavigateToDepartmentDetail: (String) -> Unit,
+    onNavigateToStudyRequirement: () -> Unit,
+    onNavigateToCourseInfo: () -> Unit,
+    onNavigateToAcademicStatus: () -> Unit,
+    onNavigateToCheckin: () -> Unit,
+    onNavigateToRecruitment: () -> Unit,
+    onNavigateToUserQuery: () -> Unit,
+    onNavigateToUpdate: () -> Unit
+) {
+    val orderedTabs = remember(selectedTab) {
+        MainTab.entries.sortedBy { if (it.index == selectedTab) 1 else 0 }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        orderedTabs.forEach { tab ->
+            val isVisible = tab.index == selectedTab
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawWithContent {
+                        if (isVisible) drawContent()
+                    }
+                    .graphicsLayer {
+                        alpha = if (isVisible) 1f else 0f
+                    }
+            ) {
+                MainTabPage(
+                    tabIndex = tab.index,
+                    isVisible = isVisible,
+                    bottomBarHeight = bottomBarHeight,
+                    homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
+                    onHomeFeatureDrawerExpandedChange = onHomeFeatureDrawerExpandedChange,
+                    academicFeatureDrawerExpanded = academicFeatureDrawerExpanded,
+                    onAcademicFeatureDrawerExpandedChange = onAcademicFeatureDrawerExpandedChange,
+                    onNavigateToLogin = onNavigateToLogin,
+                    onNavigateToChangePassword = onNavigateToChangePassword,
+                    onNavigateToGrades = onNavigateToGrades,
+                    onNavigateToGpa = onNavigateToGpa,
+                    onNavigateToExams = onNavigateToExams,
+                    onNavigateToAcademicMessages = onNavigateToAcademicMessages,
+                    onNavigateToDepartmentDetail = onNavigateToDepartmentDetail,
+                    onNavigateToStudyRequirement = onNavigateToStudyRequirement,
+                    onNavigateToCourseInfo = onNavigateToCourseInfo,
+                    onNavigateToAcademicStatus = onNavigateToAcademicStatus,
+                    onNavigateToCheckin = onNavigateToCheckin,
+                    onNavigateToRecruitment = onNavigateToRecruitment,
+                    onNavigateToUserQuery = onNavigateToUserQuery,
+                    onNavigateToUpdate = onNavigateToUpdate
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MainTabPage(
+    tabIndex: Int,
+    isVisible: Boolean,
+    bottomBarHeight: Dp,
+    homeFeatureDrawerExpanded: Boolean,
+    onHomeFeatureDrawerExpandedChange: (Boolean) -> Unit,
+    academicFeatureDrawerExpanded: Boolean,
+    onAcademicFeatureDrawerExpandedChange: (Boolean) -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onNavigateToChangePassword: () -> Unit,
+    onNavigateToGrades: () -> Unit,
+    onNavigateToGpa: () -> Unit,
+    onNavigateToExams: () -> Unit,
+    onNavigateToAcademicMessages: () -> Unit,
+    onNavigateToDepartmentDetail: (String) -> Unit,
+    onNavigateToStudyRequirement: () -> Unit,
+    onNavigateToCourseInfo: () -> Unit,
+    onNavigateToAcademicStatus: () -> Unit,
+    onNavigateToCheckin: () -> Unit,
+    onNavigateToRecruitment: () -> Unit,
+    onNavigateToUserQuery: () -> Unit,
+    onNavigateToUpdate: () -> Unit
+) {
+    CompositionLocalProvider(LocalMainTabVisible provides isVisible) {
+        when (tabIndex) {
+            MainTab.HOME.index -> HomeScreen(
+                onNavigateToDetail = onNavigateToDepartmentDetail,
+                bottomBarHeight = bottomBarHeight,
+                onNavigateToRecruitment = onNavigateToRecruitment,
+                onNavigateToUserQuery = onNavigateToUserQuery,
+                featureDrawerExpanded = homeFeatureDrawerExpanded,
+                onFeatureDrawerExpandedChange = onHomeFeatureDrawerExpandedChange
+            )
+
+            MainTab.COURSE.index -> CourseScreen(
+                onNavigateToLogin = onNavigateToLogin,
+                bottomBarHeight = bottomBarHeight
+            )
+
+            MainTab.ACADEMIC.index -> AcademicScreen(
+                onNavigateToGrades = onNavigateToGrades,
+                onNavigateToGpa = onNavigateToGpa,
+                onNavigateToExams = onNavigateToExams,
+                onNavigateToRescheduling = onNavigateToAcademicMessages,
+                onNavigateToStudyRequirement = onNavigateToStudyRequirement,
+                onNavigateToCourseInfo = onNavigateToCourseInfo,
+                onNavigateToAcademicStatus = onNavigateToAcademicStatus,
+                featureDrawerExpanded = academicFeatureDrawerExpanded,
+                onFeatureDrawerExpandedChange = onAcademicFeatureDrawerExpandedChange,
+                bottomBarHeight = bottomBarHeight
+            )
+
+            MainTab.PERSON.index -> PersonScreen(
+                onNavigateToLogin = onNavigateToLogin,
+                onNavigateToChangePassword = onNavigateToChangePassword,
+                onNavigateToCheckin = onNavigateToCheckin,
+                onNavigateToUpdate = onNavigateToUpdate,
+                bottomBarHeight = bottomBarHeight
+            )
+        }
     }
 }
 

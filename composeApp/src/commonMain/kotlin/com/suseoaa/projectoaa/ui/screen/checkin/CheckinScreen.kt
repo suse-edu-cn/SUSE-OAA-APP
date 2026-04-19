@@ -94,12 +94,14 @@ private fun getTaskAbsentBgColor() = if (androidx.compose.foundation.isSystemInD
 @Composable
 fun CheckinScreen(
     onBack: () -> Unit,
+    onNavigateToTasks: (CheckinAccountData) -> Unit = {},
+    showInlineTasks: Boolean = true,
     viewModel: CheckinViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     // 处理系统返回键：如果在任务列表页面，返回到账号列表；否则退出打卡页面
-    PlatformBackHandler(enabled = uiState.selectedAccount != null) {
+    PlatformBackHandler(enabled = showInlineTasks && uiState.selectedAccount != null) {
         viewModel.clearTasks()
     }
 
@@ -119,7 +121,7 @@ fun CheckinScreen(
         modifier = Modifier.sharedBoundsTransition("checkin"),
         topBar = {
             // 只有在显示账号列表时才显示顶部栏，任务列表有自己的顶部栏
-            if (uiState.selectedAccount == null) {
+            if (!showInlineTasks || uiState.selectedAccount == null) {
                 TopAppBar(
                     title = { Text("652打卡") },
                     navigationIcon = {
@@ -147,12 +149,10 @@ fun CheckinScreen(
                 .padding(padding)
         ) {
             AnimatedContent(
-                targetState = uiState.selectedAccount,
+                targetState = if (showInlineTasks) uiState.selectedAccount else null,
                 label = "checkin_account_transition"
             ) { targetAccount ->
-                CompositionLocalProvider(
-                    com.suseoaa.projectoaa.ui.animation.LocalAnimatedVisibilityScope provides this@AnimatedContent
-                ) {
+                val content: @Composable () -> Unit = {
                     // 根据 targetAccount 判断显示账号列表还是任务列表
                     if (targetAccount != null) {
                         // 显示任务列表
@@ -225,9 +225,11 @@ fun CheckinScreen(
                                                                     )
                                                                 },
                                                                 onViewTasks = {
-                                                                    viewModel.loadTasksForAccount(
-                                                                        account
-                                                                    )
+                                                                    if (showInlineTasks) {
+                                                                        viewModel.loadTasksForAccount(account)
+                                                                    } else {
+                                                                        onNavigateToTasks(account)
+                                                                    }
                                                                 }
                                                             )
                                                         }
@@ -301,7 +303,17 @@ fun CheckinScreen(
                             }
                         }
                     } // End of else
-                } // End of CompositionLocalProvider
+                }
+
+                if (showInlineTasks) {
+                    CompositionLocalProvider(
+                        com.suseoaa.projectoaa.ui.animation.LocalAnimatedVisibilityScope provides this@AnimatedContent
+                    ) {
+                        content()
+                    }
+                } else {
+                    content()
+                }
             } // End of AnimatedContent lambda
         }
     }
@@ -409,6 +421,64 @@ fun CheckinScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun CheckinTaskScreen(
+    accountId: Long,
+    onBack: () -> Unit,
+    viewModel: CheckinViewModel = koinViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val account = uiState.accounts.firstOrNull { it.id == accountId }
+
+    LaunchedEffect(accountId, account?.id, uiState.selectedAccount?.id) {
+        if (accountId > 0 && account != null && uiState.selectedAccount?.id != accountId) {
+            viewModel.loadTasksForAccount(account)
+        }
+    }
+
+    DisposableEffect(accountId) {
+        onDispose {
+            viewModel.clearTasks()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            uiState.accounts.isEmpty() && uiState.isLoading -> {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+
+            account == null -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "账号不存在或已被删除",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(onClick = onBack) {
+                        Text("返回")
+                    }
+                }
+            }
+
+            else -> {
+                TaskListView(
+                    viewModel = viewModel,
+                    uiState = uiState,
+                    account = account,
+                    onBack = onBack
+                )
+            }
+        }
     }
 }
 
@@ -1507,6 +1577,7 @@ private fun TaskListView(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {

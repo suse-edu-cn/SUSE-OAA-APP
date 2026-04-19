@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,44 +30,72 @@ import com.suseoaa.projectoaa.shared.domain.model.announcement.AnnouncementData
 import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
+import com.suseoaa.projectoaa.ui.component.LocalMainTabVisible
 import com.suseoaa.projectoaa.ui.component.WindowSizeClass
 import com.suseoaa.projectoaa.ui.theme.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToDetail: (String) -> Unit,
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
+    featureDrawerExpanded: Boolean = false,
+    onFeatureDrawerExpandedChange: (Boolean) -> Unit = {},
     viewModel: HomeViewModel = koinViewModel()
 ) {
+    val isMainTabVisible = LocalMainTabVisible.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsState()
     val departments = viewModel.departments
 
+    DisposableEffect(lifecycleOwner, isMainTabVisible) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && isMainTabVisible) {
+                viewModel.refreshHomeSummary(showLoading = false)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     HomeWithDrawer(
         userInfo = uiState.userInfo,
+        isExpanded = featureDrawerExpanded,
+        onExpandedChange = onFeatureDrawerExpandedChange,
         onNavigateToRecruitment = onNavigateToRecruitment,
         onNavigateToUserQuery = onNavigateToUserQuery,
         bottomBarHeight = bottomBarHeight
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.refreshHomeSummary(showLoading = true) }
         ) {
-            Row {
-//            部门介绍卡片
-                DepartmentGrid(
-                    departments = departments,
-                    cardInfos = uiState.cardInfos,
-                    userInfo = uiState.userInfo,
-                    onItemClick = onNavigateToDetail,
-                    onRecruitmentClick = onNavigateToRecruitment,
-                    onUserQueryClick = onNavigateToUserQuery,
-                    bottomBarHeight = bottomBarHeight
-                )
-//
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                Row {
+    //            部门介绍卡片
+                    DepartmentGrid(
+                        departments = departments,
+                        cardInfos = uiState.cardInfos,
+                        userInfo = uiState.userInfo,
+                        onItemClick = onNavigateToDetail,
+                        onRecruitmentClick = onNavigateToRecruitment,
+                        onUserQueryClick = onNavigateToUserQuery,
+                        bottomBarHeight = bottomBarHeight
+                    )
+    //
+                }
             }
         }
     }

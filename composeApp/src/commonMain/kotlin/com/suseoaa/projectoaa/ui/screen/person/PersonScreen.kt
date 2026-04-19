@@ -58,6 +58,7 @@ import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
 import com.suseoaa.projectoaa.presentation.update.UpdateEvent
 import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
+import com.suseoaa.projectoaa.ui.component.LocalMainTabVisible
 import com.suseoaa.projectoaa.ui.component.UpdateDialog
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.pickImageForAvatar
@@ -115,6 +116,7 @@ fun PersonScreen(
     viewModel: PersonViewModel = koinViewModel(),
     updateViewModel: AppUpdateViewModel = koinViewModel()
 ) {
+    val isMainTabVisible = LocalMainTabVisible.current
     val uiState by viewModel.uiState.collectAsState()
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
@@ -140,9 +142,11 @@ fun PersonScreen(
         }
     }
 
-    // 启动时自动检查更新（使用自动检查方法，会检查是否已弹过窗）
-    LaunchedEffect(Unit) {
-        updateViewModel.checkForUpdateAuto()
+    // 保活模式下，切回“个人”页时主动执行自动检查更新。
+    LaunchedEffect(isMainTabVisible) {
+        if (isMainTabVisible) {
+            updateViewModel.checkForUpdateAuto()
+        }
     }
 
     // 监听更新事件
@@ -175,8 +179,8 @@ fun PersonScreen(
     }
 
     // 自动弹出更新对话框（只在有更新且未弹过时弹出）
-    LaunchedEffect(updateUiState.hasUpdate, updateUiState.hasShownAutoDialog) {
-        if (updateUiState.hasUpdate && !updateUiState.hasShownAutoDialog && !showUpdateDialog) {
+    LaunchedEffect(isMainTabVisible, updateUiState.hasUpdate, updateUiState.hasShownAutoDialog) {
+        if (isMainTabVisible && updateUiState.hasUpdate && !updateUiState.hasShownAutoDialog && !showUpdateDialog) {
             showUpdateDialog = true
             isManualUpdateCheck = false
             // 标记该版本已弹过自动弹窗，下次不再自动弹出
@@ -185,7 +189,7 @@ fun PersonScreen(
     }
 
     // 更新对话框
-    if (showUpdateDialog) {
+    if (showUpdateDialog && isMainTabVisible) {
         UpdateDialog(
             viewModel = updateViewModel,
             onDismiss = { showUpdateDialog = false },

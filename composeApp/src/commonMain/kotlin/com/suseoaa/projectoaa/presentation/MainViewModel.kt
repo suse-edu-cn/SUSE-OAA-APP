@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.BackgroundPageIds
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.ui.navigation.Screen
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
@@ -16,6 +18,27 @@ import kotlinx.coroutines.flow.stateIn
 class MainViewModel(
     private val tokenManager: TokenManager
 ) : ViewModel() {
+
+    private val _selectedMainTab = MutableStateFlow(0)
+    val selectedMainTab: StateFlow<Int> = _selectedMainTab.asStateFlow()
+
+    private val _homeFeatureDrawerExpanded = MutableStateFlow(false)
+    val homeFeatureDrawerExpanded: StateFlow<Boolean> = _homeFeatureDrawerExpanded.asStateFlow()
+
+    private val _academicFeatureDrawerExpanded = MutableStateFlow(false)
+    val academicFeatureDrawerExpanded: StateFlow<Boolean> = _academicFeatureDrawerExpanded.asStateFlow()
+
+    fun updateSelectedMainTab(index: Int) {
+        _selectedMainTab.value = index
+    }
+
+    fun updateHomeFeatureDrawerExpanded(expanded: Boolean) {
+        _homeFeatureDrawerExpanded.value = expanded
+    }
+
+    fun updateAcademicFeatureDrawerExpanded(expanded: Boolean) {
+        _academicFeatureDrawerExpanded.value = expanded
+    }
 
     /**
      * 启动目标页面 - 根据软件账号 Token 是否存在决定
