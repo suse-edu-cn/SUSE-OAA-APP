@@ -225,42 +225,6 @@ class CourseViewModel(
     // ==================== 课程数据 ====================
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val allCourses: StateFlow<List<CourseWithTimes>> = combine(
-        currentAccount.filterNotNull(),
-        selectedXnm,
-        selectedXqm
-    ) { account, xnm, xqm ->
-        Triple(account.studentId, xnm, xqm)
-    }.flatMapLatest { (studentId, xnm, xqm) ->
-        localRepository.getCourses(studentId, xnm, xqm)
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val weekScheduleMap: StateFlow<Map<Int, List<CourseWithTimes>>> = combine(
-        allCourses,
-        _hasWeekZero
-    ) { list, hasZero ->
-        val min = if (hasZero) 0 else 1
-        (min..25).associateWith { week -> calculateCoursesForWeek(week, list) }
-    }
-        .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
-
-    val dailySchedule: StateFlow<List<TimeSlotConfig>> = selectedXnm
-        .map { getDailySchedule(it) }
-        .stateIn(viewModelScope, SharingStarted.Lazily, DailySchedulePost2025)
-
-    // 预计算每周的布局数据，供 Pager 使用
-    val weekLayoutMap: StateFlow<Map<Int, List<ScheduleLayoutItem>>> = combine(
-        weekScheduleMap,
-        dailySchedule
-    ) { weekMap, schedule ->
-        weekMap.mapValues { (week, courses) ->
-            calculateLayoutItems(week, courses, schedule)
-        }
-    }.flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
-
-    @OptIn(ExperimentalCoroutinesApi::class)
     private val overlapCoursesByAccount: StateFlow<Map<String, List<CourseWithTimes>>> = combine(
         savedAccounts,
         currentAccount,
@@ -288,6 +252,47 @@ class CourseViewModel(
             }
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val activeQueryCount: StateFlow<Int> = overlapCoursesByAccount
+        .map { it.keys.size }
+        .stateIn(viewModelScope, SharingStarted.Lazily, 1)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val allCourses: StateFlow<List<CourseWithTimes>> = overlapCoursesByAccount
+        .map { map -> 
+            map.values.flatten().distinctBy { 
+                "${it.course.studentId}_${it.course.courseName}_${it.times.joinToString { t -> t.uniqueId.toString() }}"
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val weekScheduleMap: StateFlow<Map<Int, List<CourseWithTimes>>> = combine(
+        allCourses,
+        _hasWeekZero
+    ) { list, hasZero ->
+        val min = if (hasZero) 0 else 1
+        (min..25).associateWith { week -> calculateCoursesForWeek(week, list) }
+    }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
+    val dailySchedule: StateFlow<List<TimeSlotConfig>> = selectedXnm
+        .map { getDailySchedule(it) }
+        .stateIn(viewModelScope, SharingStarted.Lazily, DailySchedulePost2025)
+
+    // 预计算每周的布局数据，供 Pager 使用
+    val weekLayoutMap: StateFlow<Map<Int, List<ScheduleLayoutItem>>> = combine(
+        weekScheduleMap,
+        dailySchedule
+    ) { weekMap, schedule ->
+        weekMap.mapValues { (week, courses) ->
+            calculateLayoutItems(week, courses, schedule)
+        }
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
 
     val overlapDetailByWeek: StateFlow<Map<Int, Map<String, CourseOverlapDetail>>> = combine(
         weekLayoutMap,
@@ -811,10 +816,7 @@ class CourseViewModel(
         val normalized = selectedIds
             .filterTo(linkedSetOf()) { it in availableAccountIds }
 
-        if (currentStudentId != null && currentStudentId in availableAccountIds) {
-            normalized.add(currentStudentId)
-        }
-
+        // Remove the automatic addition of currentStudentId so it can be un-checked
         if (normalized.isNotEmpty()) return normalized
 
         return currentStudentId

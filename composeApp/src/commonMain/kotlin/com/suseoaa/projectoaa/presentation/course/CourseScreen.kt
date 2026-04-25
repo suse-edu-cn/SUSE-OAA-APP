@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -38,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
@@ -133,7 +136,9 @@ private data class PreparedCardItem(
     val laneIndex: Int,
     val laneCount: Int,
     val conflictGroup: List<ScheduleLayoutItem>,
-    val color: Color
+    val color: Color,
+    val overlapStatus: CourseOverlapStatus = CourseOverlapStatus.NO_OVERLAP,
+    val customTitle: String? = null
 )
 
 private enum class OverlapDisplayFilter {
@@ -178,7 +183,7 @@ private fun overlapFilterLabel(filter: OverlapDisplayFilter): String {
         OverlapDisplayFilter.ALL -> "全部"
         OverlapDisplayFilter.NO_OVERLAP -> "未重合"
         OverlapDisplayFilter.OVERLAP -> "重合"
-        OverlapDisplayFilter.PARTIAL_OVERLAP -> "重合部分"
+        OverlapDisplayFilter.PARTIAL_OVERLAP -> "不完全重合"
     }
 }
 
@@ -204,6 +209,7 @@ fun CourseScreen(
     val overlapDetailByWeek by viewModel.overlapDetailByWeek.collectAsStateWithLifecycle()
     val overlapSelectedAccountIds by viewModel.overlapSelectedAccountIds.collectAsStateWithLifecycle()
     val allCourses by viewModel.allCourses.collectAsStateWithLifecycle()
+    val activeQueryCount by viewModel.activeQueryCount.collectAsStateWithLifecycle()
     val dailySchedule by viewModel.dailySchedule.collectAsStateWithLifecycle()
     val semesterStartDate by viewModel.semesterStartDate.collectAsStateWithLifecycle()
     val hasWeekZero by viewModel.hasWeekZero.collectAsStateWithLifecycle()
@@ -256,23 +262,34 @@ fun CourseScreen(
     val currentWeekItems = weekLayoutMap[currentDisplayWeek].orEmpty()
     val currentWeekOverlapMap = overlapStatusByWeek[currentDisplayWeek].orEmpty()
     val currentWeekOverlapDetailMap = overlapDetailByWeek[currentDisplayWeek].orEmpty()
-    val overlapLegendCount = remember(currentWeekItems, currentWeekOverlapMap) {
+    val overlapLegendCount = remember(currentWeekItems, currentWeekOverlapMap, activeQueryCount) {
         var noOverlap = 0
         var overlap = 0
         var partialOverlap = 0
 
-        currentWeekItems.forEach { item ->
-            val status = currentWeekOverlapMap[buildScheduleLayoutOverlapKey(item)]
-                ?: CourseOverlapStatus.NO_OVERLAP
-            when (status) {
-                CourseOverlapStatus.NO_OVERLAP -> noOverlap++
-                CourseOverlapStatus.OVERLAP -> overlap++
-                CourseOverlapStatus.PARTIAL_OVERLAP -> partialOverlap++
+        if (activeQueryCount > 1) {
+            val prepared = buildPreparedCardItems(currentWeekItems, activeQueryCount)
+            prepared.forEach { card ->
+                when (card.overlapStatus) {
+                    CourseOverlapStatus.NO_OVERLAP -> noOverlap++
+                    CourseOverlapStatus.OVERLAP -> overlap++
+                    CourseOverlapStatus.PARTIAL_OVERLAP -> partialOverlap++
+                }
+            }
+        } else {
+            currentWeekItems.forEach { item ->
+                val status = currentWeekOverlapMap[buildScheduleLayoutOverlapKey(item)]
+                    ?: CourseOverlapStatus.NO_OVERLAP
+                when (status) {
+                    CourseOverlapStatus.NO_OVERLAP -> noOverlap++
+                    CourseOverlapStatus.OVERLAP -> overlap++
+                    CourseOverlapStatus.PARTIAL_OVERLAP -> partialOverlap++
+                }
             }
         }
 
         OverlapLegendCount(
-            total = currentWeekItems.size,
+            total = if (activeQueryCount > 1) (noOverlap + overlap + partialOverlap) else currentWeekItems.size,
             noOverlap = noOverlap,
             overlap = overlap,
             partialOverlap = partialOverlap
@@ -542,11 +559,16 @@ fun CourseScreen(
                 }
             } else {
                 // 课表主体
+                val accountNameById = remember(savedAccounts) {
+                    savedAccounts.associate { it.studentId to (it.name.ifBlank { it.studentId }) }
+                }
                 CourseScheduleLayout(
                     weekLayoutMap = weekLayoutMap,
                     overlapStatusByWeek = overlapStatusByWeek,
                     overlapFilter = overlapFilter,
                     onlyShowOverlap = onlyShowOverlap,
+                    activeQueryCount = activeQueryCount,
+                    accountNameById = accountNameById,
                     startDate = semesterStartDate,
                     pagerState = pagerState,
                     dailySchedule = dailySchedule,
@@ -596,9 +618,14 @@ fun CourseScreen(
                         containerColor = MaterialTheme.colorScheme.background
                     )
                 ) {
+                    val accountNameById = remember(savedAccounts) {
+                        savedAccounts.associate { it.studentId to (it.name.ifBlank { it.studentId }) }
+                    }
                     CourseDetailContent(
                         infoList = courses.items,
                         overlapDetailByKey = courses.overlapDetailByKey,
+                        activeQueryCount = activeQueryCount,
+                        accountNameById = accountNameById,
                         onClose = {
                             selectedCourses = null
                             clickedCardBounds = null
@@ -777,6 +804,8 @@ private fun CourseScheduleLayout(
     overlapStatusByWeek: Map<Int, Map<String, CourseOverlapStatus>>,
     overlapFilter: OverlapDisplayFilter,
     onlyShowOverlap: Boolean,
+    activeQueryCount: Int,
+    accountNameById: Map<String, String>,
     startDate: LocalDate,
     pagerState: PagerState,
     dailySchedule: List<TimeSlotConfig>,
@@ -855,6 +884,8 @@ private fun CourseScheduleLayout(
                             overlapStatusMap = overlapStatusByWeek[weekIndex].orEmpty(),
                             overlapFilter = overlapFilter,
                             onlyShowOverlap = onlyShowOverlap,
+                            activeQueryCount = activeQueryCount,
+                            accountNameById = accountNameById,
                             unitHeightPx = unitHeightPx,
                             maxWidth = parentMaxWidth - timeAxisWidth,
                             dailySchedule = dailySchedule,
@@ -874,6 +905,8 @@ private fun DynamicWeekContent(
     overlapStatusMap: Map<String, CourseOverlapStatus>,
     overlapFilter: OverlapDisplayFilter,
     onlyShowOverlap: Boolean,
+    activeQueryCount: Int,
+    accountNameById: Map<String, String>,
     unitHeightPx: Float,
     maxWidth: Dp,
     dailySchedule: List<TimeSlotConfig>,
@@ -895,6 +928,8 @@ private fun DynamicWeekContent(
                 overlapStatusMap = overlapStatusMap,
                 overlapFilter = overlapFilter,
                 onlyShowOverlap = onlyShowOverlap,
+                activeQueryCount = activeQueryCount,
+                accountNameById = accountNameById,
                 unitHeightPx = unitHeightPx,
                 dailySchedule = dailySchedule,
                 isCompactConflictMode = isCompactConflictMode,
@@ -922,6 +957,8 @@ private fun ScheduleCourseOverlay(
     overlapStatusMap: Map<String, CourseOverlapStatus>,
     overlapFilter: OverlapDisplayFilter,
     onlyShowOverlap: Boolean,
+    activeQueryCount: Int,
+    accountNameById: Map<String, String>,
     unitHeightPx: Float,
     dailySchedule: List<TimeSlotConfig>,
     isCompactConflictMode: Boolean,
@@ -932,8 +969,8 @@ private fun ScheduleCourseOverlay(
     val horizontalPaddingPx = with(density) { CardHorizontalPadding.toPx() }
     val conflictInnerSpacingPx = with(density) { ConflictCardInnerSpacing.toPx() }
 
-    val preparedItems = remember(items) {
-        buildPreparedCardItems(items)
+    val preparedItems = remember(items, activeQueryCount, accountNameById) {
+        buildPreparedCardItems(items, activeQueryCount, accountNameById)
     }
     // 紧凑模式仅展示每组冲突的主卡（laneIndex=0），避免手机端文字被压缩。
     val visiblePreparedItems = remember(preparedItems, isCompactConflictMode) {
@@ -941,10 +978,14 @@ private fun ScheduleCourseOverlay(
         else preparedItems.filter { it.laneIndex == 0 }
     }
 
-    val preparedWithOverlapStatus = remember(visiblePreparedItems, overlapStatusMap) {
+    val preparedWithOverlapStatus = remember(visiblePreparedItems, overlapStatusMap, activeQueryCount) {
         visiblePreparedItems.map { prepared ->
-            val key = buildScheduleLayoutOverlapKey(prepared.layoutItem)
-            val status = overlapStatusMap[key] ?: CourseOverlapStatus.NO_OVERLAP
+            val status = if (activeQueryCount > 1) {
+                prepared.overlapStatus
+            } else {
+                val key = buildScheduleLayoutOverlapKey(prepared.layoutItem)
+                overlapStatusMap[key] ?: CourseOverlapStatus.NO_OVERLAP
+            }
             prepared to status
         }
     }
@@ -963,7 +1004,7 @@ private fun ScheduleCourseOverlay(
             val conflictData = prepared.conflictGroup
 
             CourseCard(
-                title = item.course.course.courseName,
+                title = prepared.customTitle ?: item.course.course.courseName,
                 location = item.time.location,
                 color = prepared.color,
                 overlapStatus = overlapStatus,
@@ -1044,7 +1085,11 @@ private fun ScheduleCourseOverlay(
  *
  * 结果由 [ScheduleCourseOverlay] 消费，用于手机/平板两种冲突显示模式。
  */
-private fun buildPreparedCardItems(items: List<ScheduleLayoutItem>): List<PreparedCardItem> {
+private fun buildPreparedCardItems(
+    items: List<ScheduleLayoutItem>, 
+    activeQueryCount: Int = 1,
+    accountNameById: Map<String, String> = emptyMap()
+): List<PreparedCardItem> {
     val result = mutableListOf<PreparedCardItem>()
 
     for (day in 0..6) {
@@ -1075,41 +1120,131 @@ private fun buildPreparedCardItems(items: List<ScheduleLayoutItem>): List<Prepar
         }
 
         clusters.forEach { cluster ->
-            val laneEnd = mutableListOf<Int>()
-            val laneAssignment = mutableMapOf<ScheduleLayoutItem, Int>()
+            if (activeQueryCount > 1) {
+                // Shared Query mode: split cluster into atomic temporal segments for precise overlap representation
+                val boundaries = cluster.flatMap { listOf(it.startNodeIndex, it.endNodeIndex + 1) }.distinct().sorted()
 
-            cluster
-                .sortedWith(compareBy<ScheduleLayoutItem> { it.startNodeIndex }.thenBy { it.endNodeIndex })
-                .forEach { item ->
-                    var assignedLane = -1
-                    for (lane in laneEnd.indices) {
-                        if (item.startNodeIndex > laneEnd[lane]) {
-                            assignedLane = lane
-                            laneEnd[lane] = item.endNodeIndex
-                            break
+                var currentSegmentStart = -1
+                var currentSegmentEnd = -1
+                var currentSegmentItems = emptyList<ScheduleLayoutItem>()
+
+                fun emitSegment() {
+                    if (currentSegmentItems.isEmpty()) return
+                    
+                    val clusterUniqueAccountsCount = cluster.map { it.course.course.studentId }.distinct().size
+                    val uniqueAccountsCount = currentSegmentItems.map { it.course.course.studentId }.distinct().size
+                    
+                    val status = when {
+                        clusterUniqueAccountsCount <= 1 -> CourseOverlapStatus.NO_OVERLAP
+                        uniqueAccountsCount >= activeQueryCount -> CourseOverlapStatus.OVERLAP
+                        else -> CourseOverlapStatus.PARTIAL_OVERLAP
+                    }
+
+                    val accountNames = currentSegmentItems.map { it.course.course.studentId }.distinct().map { id -> accountNameById[id] ?: id }
+                    val accountText = if (accountNames.size <= 3) {
+                        accountNames.joinToString("、") + "有课"
+                    } else {
+                        "${accountNames.size}人有课"
+                    }
+
+                    val statusText = overlapFilterLabel(
+                        when (status) {
+                            CourseOverlapStatus.NO_OVERLAP -> OverlapDisplayFilter.NO_OVERLAP
+                            CourseOverlapStatus.OVERLAP -> OverlapDisplayFilter.OVERLAP
+                            CourseOverlapStatus.PARTIAL_OVERLAP -> OverlapDisplayFilter.PARTIAL_OVERLAP
                         }
-                    }
-                    if (assignedLane == -1) {
-                        laneEnd.add(item.endNodeIndex)
-                        assignedLane = laneEnd.lastIndex
-                    }
-                    laneAssignment[item] = assignedLane
+                    )
+
+                    val representativeItem = currentSegmentItems.minByOrNull { it.startNodeIndex } ?: currentSegmentItems.first()
+                    val unifiedItem = representativeItem.copy(
+                        startNodeIndex = currentSegmentStart,
+                        endNodeIndex = currentSegmentEnd
+                    )
+                    
+                    val baseColor = overlapFilterColor(
+                        when (status) {
+                            CourseOverlapStatus.NO_OVERLAP -> OverlapDisplayFilter.NO_OVERLAP
+                            CourseOverlapStatus.OVERLAP -> OverlapDisplayFilter.OVERLAP
+                            CourseOverlapStatus.PARTIAL_OVERLAP -> OverlapDisplayFilter.PARTIAL_OVERLAP
+                        }
+                    )
+                    
+                    result.add(
+                        PreparedCardItem(
+                            layoutItem = unifiedItem,
+                            laneIndex = 0,
+                            laneCount = 1,
+                            conflictGroup = currentSegmentItems,
+                            color = baseColor,
+                            overlapStatus = status,
+                            customTitle = "$statusText\n$accountText"
+                        )
+                    )
                 }
 
-            val laneCount = laneEnd.size.coerceAtLeast(1)
-            cluster.forEach { item ->
-                val courseName = item.course.course.courseName
-                val index = (courseName.hashCode() and Int.MAX_VALUE) % CourseColors.size
-                val baseColor = CourseColors[index]
-                result.add(
-                    PreparedCardItem(
-                        layoutItem = item,
-                        laneIndex = laneAssignment[item] ?: 0,
-                        laneCount = laneCount,
-                        conflictGroup = cluster,
-                        color = if (cluster.size > 1) baseColor.copy(alpha = 0.9f) else baseColor
+                for (i in 0 until boundaries.size - 1) {
+                    val segStart = boundaries[i]
+                    val segEnd = boundaries[i + 1] - 1
+                    if (segStart > segEnd) continue
+
+                    val segItems = cluster.filter { it.startNodeIndex <= segStart && it.endNodeIndex >= segEnd }
+                    if (segItems.isEmpty()) continue
+
+                    // Match item sets by examining if they contain exactly the same courses
+                    val hasSameCourses = currentSegmentItems.size == segItems.size && 
+                        currentSegmentItems.map { it.course.course.studentId + it.course.course.courseName }.toSet() == 
+                        segItems.map { it.course.course.studentId + it.course.course.courseName }.toSet()
+
+                    if (hasSameCourses && currentSegmentEnd + 1 == segStart) {
+                        currentSegmentEnd = segEnd
+                    } else {
+                        emitSegment()
+                        currentSegmentStart = segStart
+                        currentSegmentEnd = segEnd
+                        currentSegmentItems = segItems
+                    }
+                }
+                emitSegment()
+            } else {
+                // Normal mode: put them in parallel lanes if physically conflicting
+                val laneEnd = mutableListOf<Int>()
+                val laneAssignment = mutableMapOf<ScheduleLayoutItem, Int>()
+
+                cluster
+                    .sortedWith(compareBy<ScheduleLayoutItem> { it.startNodeIndex }.thenBy { it.endNodeIndex })
+                    .forEach { item ->
+                        var assignedLane = -1
+                        for (lane in laneEnd.indices) {
+                            if (item.startNodeIndex > laneEnd[lane]) {
+                                assignedLane = lane
+                                laneEnd[lane] = item.endNodeIndex
+                                break
+                            }
+                        }
+                        if (assignedLane == -1) {
+                            laneEnd.add(item.endNodeIndex)
+                            assignedLane = laneEnd.lastIndex
+                        }
+                        laneAssignment[item] = assignedLane
+                    }
+
+                val laneCount = laneEnd.size.coerceAtLeast(1)
+                cluster.forEach { item ->
+                    val courseName = item.course.course.courseName
+                    val index = (courseName.hashCode() and Int.MAX_VALUE) % CourseColors.size
+                    val baseColor = CourseColors[index]
+                    result.add(
+                        PreparedCardItem(
+                            layoutItem = item,
+                            laneIndex = laneAssignment[item] ?: 0,
+                            laneCount = laneCount,
+                            conflictGroup = cluster,
+                            color = if (cluster.size > 1) baseColor.copy(alpha = 0.9f) else baseColor,
+                            overlapStatus = CourseOverlapStatus.NO_OVERLAP,
+                            customTitle = null
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -1441,10 +1576,14 @@ fun HighlightTodayColumn(weekStartDate: LocalDate, maxWidth: Dp) {
 fun CourseDetailContent(
     infoList: List<ScheduleLayoutItem>,
     overlapDetailByKey: Map<String, CourseOverlapDetail>,
+    activeQueryCount: Int = 1,
+    accountNameById: Map<String, String> = emptyMap(),
     onClose: () -> Unit,
     onDelete: ((String, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    var expandedItemIndex by remember { mutableStateOf<Int?>(null) }
+    
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -1488,45 +1627,124 @@ fun CourseDetailContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         if (infoList.isNotEmpty()) {
-            val pagerState = rememberPagerState(pageCount = { infoList.size })
-            HorizontalPager(
-                state = pagerState,
-                contentPadding = PaddingValues(horizontal = 4.dp),
-                pageSpacing = 16.dp,
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-            ) { page ->
-                val item = infoList[page]
-                val overlapDetail = overlapDetailByKey[buildScheduleLayoutOverlapKey(item)]
-                    ?: CourseOverlapDetail(status = CourseOverlapStatus.NO_OVERLAP)
-                CourseDetailCard(
-                    courseData = item.course,
-                    timeData = item.time,
-                    overlapDetail = overlapDetail
-                )
-            }
-            if (infoList.size > 1) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    Modifier
-                        .wrapContentHeight()
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    repeat(pagerState.pageCount) { iteration ->
-                        val color = if (pagerState.currentPage == iteration)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                        Box(
+            if (activeQueryCount > 1) {
+                if (expandedItemIndex != null) {
+                    // Show specific item detail
+                    Column {
+                        Text(
+                            text = "返回列表",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier
-                                .padding(2.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .size(6.dp)
+                                .clickable { expandedItemIndex = null }
+                                .padding(vertical = 8.dp)
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val item = infoList[expandedItemIndex!!]
+                        val overlapDetail = overlapDetailByKey[buildScheduleLayoutOverlapKey(item)]
+                            ?: CourseOverlapDetail(status = CourseOverlapStatus.NO_OVERLAP)
+                        CourseDetailCard(
+                            courseData = item.course,
+                            timeData = item.time,
+                            overlapDetail = overlapDetail
+                        )
+                    }
+                } else {
+                    // List view for shared query
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.heightIn(max = 400.dp)
+                    ) {
+                        items(infoList.size) { index ->
+                            val item = infoList[index]
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { expandedItemIndex = index },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = accountNameById[item.course.course.studentId] ?: item.course.course.studentId, // Use resolved account name
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = item.course.course.courseName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "${item.time.location} | ${item.time.classGroup}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = "查看详情",
+                                        tint = MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                val pagerState = rememberPagerState(pageCount = { infoList.size })
+                HorizontalPager(
+                    state = pagerState,
+                    contentPadding = PaddingValues(horizontal = 4.dp),
+                    pageSpacing = 16.dp,
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                ) { page ->
+                    val item = infoList[page]
+                    val overlapDetail = overlapDetailByKey[buildScheduleLayoutOverlapKey(item)]
+                        ?: CourseOverlapDetail(status = CourseOverlapStatus.NO_OVERLAP)
+                    CourseDetailCard(
+                        courseData = item.course,
+                        timeData = item.time,
+                        overlapDetail = overlapDetail
+                    )
+                }
+                if (infoList.size > 1) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        Modifier
+                            .wrapContentHeight()
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        repeat(pagerState.pageCount) { iteration ->
+                            val color = if (pagerState.currentPage == iteration)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                            Box(
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .size(6.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -1591,7 +1809,7 @@ fun CourseDetailCard(
                     when (overlapDetail.status) {
                         CourseOverlapStatus.NO_OVERLAP -> "未重合"
                         CourseOverlapStatus.OVERLAP -> "重合"
-                        CourseOverlapStatus.PARTIAL_OVERLAP -> "重合部分"
+                        CourseOverlapStatus.PARTIAL_OVERLAP -> "不完全重合"
                     }
                 )
             )
@@ -1942,7 +2160,7 @@ private fun OverlapAccountSelectionDialog(
                 ) {
                     items(accounts) { account ->
                         val isCurrent = account.studentId == currentId
-                        val checked = account.studentId in selectedIds || isCurrent
+                        val checked = account.studentId in selectedIds
 
                         Row(
                             modifier = Modifier
@@ -1952,36 +2170,26 @@ private fun OverlapAccountSelectionDialog(
                                     if (checked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
                                 )
-                                .clickable(enabled = !isCurrent) {
+                                .clickable {
                                     val updated = if (checked) {
                                         selectedIds - account.studentId
                                     } else {
                                         selectedIds + account.studentId
                                     }
-                                    val withCurrent = if (currentId.isNotBlank()) {
-                                        updated + currentId
-                                    } else {
-                                        updated
-                                    }
-                                    onSelectedIdsChange(withCurrent)
+                                    onSelectedIdsChange(updated)
                                 }
                                 .padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(
                                 checked = checked,
-                                onCheckedChange = if (isCurrent) null else { checkedState ->
+                                onCheckedChange = { checkedState ->
                                     val updated = if (checkedState) {
                                         selectedIds + account.studentId
                                     } else {
                                         selectedIds - account.studentId
                                     }
-                                    val withCurrent = if (currentId.isNotBlank()) {
-                                        updated + currentId
-                                    } else {
-                                        updated
-                                    }
-                                    onSelectedIdsChange(withCurrent)
+                                    onSelectedIdsChange(updated)
                                 }
                             )
                             Spacer(Modifier.width(8.dp))
