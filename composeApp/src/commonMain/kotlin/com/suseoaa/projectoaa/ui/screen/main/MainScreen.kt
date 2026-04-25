@@ -502,6 +502,9 @@ private fun KeepAliveMainPages(
 
     Box(modifier = Modifier.fillMaxSize()) {
         orderedTabs.forEach { tab ->
+            // key(tab.index) 确保 Tab 顺序重排时 Compose 移动而非销毁重建 composable，
+            // 避免抽屉状态（isInitialized、offsetYAnim 等）在每次切换时被重置
+            key(tab.index) {
             val isVisible = tab.index == selectedTab
 
             Box(
@@ -538,6 +541,7 @@ private fun KeepAliveMainPages(
                     onNavigateToUpdate = onNavigateToUpdate
                 )
             }
+            } // end key(tab.index)
         }
     }
 }

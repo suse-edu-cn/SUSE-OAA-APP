@@ -82,22 +82,30 @@ fun PullUpFeatureDrawer(
     val collapsedOffset = maxPx - peekPx
     val dragRange = (collapsedOffset - expandedOffset).coerceAtLeast(1f)
 
-    LaunchedEffect(maxPx, peekPx, isExpanded) {
+    // 布局尺寸变化（旋转屏幕、bottomBar 高度测量）→ 始终 snapTo，不播放动画
+    LaunchedEffect(maxPx, peekPx) {
         if (maxPx > 0f) {
             val target = if (isExpanded) expandedOffset else collapsedOffset
             if (!isInitialized) {
                 offsetYAnim.snapTo(target)
                 isInitialized = true
             } else if (!offsetYAnim.isRunning) {
-                if (!isExpanded) {
-                    // 外部触发折叠（按返回键）：平滑动画而非瞬间跳变
-                    offsetYAnim.animateTo(
-                        target,
-                        animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow)
-                    )
-                } else {
-                    offsetYAnim.snapTo(target)
-                }
+                offsetYAnim.snapTo(target)
+            }
+        }
+    }
+
+    // isExpanded 状态变化（返回键折叠）→ 平滑动画
+    LaunchedEffect(isExpanded) {
+        if (maxPx > 0f && isInitialized && !offsetYAnim.isRunning) {
+            val target = if (isExpanded) expandedOffset else collapsedOffset
+            if (!isExpanded) {
+                offsetYAnim.animateTo(
+                    target,
+                    animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow)
+                )
+            } else {
+                offsetYAnim.snapTo(target)
             }
         }
     }
@@ -165,7 +173,8 @@ fun PullUpFeatureDrawer(
 
     val inferredOffset = when {
         maxPx > 0f -> if (isExpanded) expandedOffset else collapsedOffset
-        else -> 0f
+        isExpanded -> 0f
+        else -> 10000f  // 布局测量前置于屏幕外，避免初始闪现展开状态
     }
     val safeOffset = when {
         !isInitialized -> inferredOffset
