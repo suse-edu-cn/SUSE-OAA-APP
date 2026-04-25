@@ -26,6 +26,8 @@ fun HomeWithDrawer(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
+    backGestureProgress: Float? = null,
+    backGestureCancelCount: Int = 0,
     baseContent: @Composable () -> Unit
 ) {
     PullUpFeatureDrawer(
@@ -33,6 +35,8 @@ fun HomeWithDrawer(
         onExpandedChange = onExpandedChange,
         title = "应用功能",
         bottomBarHeight = bottomBarHeight,
+        backGestureProgress = backGestureProgress,
+        backGestureCancelCount = backGestureCancelCount,
         baseContent = baseContent
     ) {
         LazyVerticalGrid(

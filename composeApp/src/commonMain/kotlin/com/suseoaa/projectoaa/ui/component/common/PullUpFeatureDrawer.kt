@@ -61,6 +61,10 @@ fun PullUpFeatureDrawer(
     drawerBlurRadius: Dp = 10.dp,
     drawerTintAlpha: Float = 0.5f,
     drawerNoiseFactor: Float = 0.02f,
+    // 返回手势进度 (null=无手势, 0~1=手势进行中)
+    backGestureProgress: Float? = null,
+    // 手势取消计数，每次取消自增，触发弹回动画
+    backGestureCancelCount: Int = 0,
     baseContent: @Composable () -> Unit,
     drawerContent: @Composable () -> Unit
 ) {
@@ -85,8 +89,35 @@ fun PullUpFeatureDrawer(
                 offsetYAnim.snapTo(target)
                 isInitialized = true
             } else if (!offsetYAnim.isRunning) {
-                offsetYAnim.snapTo(target)
+                if (!isExpanded) {
+                    // 外部触发折叠（按返回键）：平滑动画而非瞬间跳变
+                    offsetYAnim.animateTo(
+                        target,
+                        animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow)
+                    )
+                } else {
+                    offsetYAnim.snapTo(target)
+                }
             }
+        }
+    }
+
+    // 预测性返回手势进度 → 实时驱动抽屉位置
+    LaunchedEffect(backGestureProgress) {
+        if (backGestureProgress != null && maxPx > 0f && isInitialized) {
+            val target = (expandedOffset + backGestureProgress * dragRange)
+                .coerceIn(expandedOffset, collapsedOffset)
+            offsetYAnim.snapTo(target)
+        }
+    }
+
+    // 手势取消 → 从当前位置弹回展开状态
+    LaunchedEffect(backGestureCancelCount) {
+        if (backGestureCancelCount > 0 && maxPx > 0f && isInitialized) {
+            offsetYAnim.animateTo(
+                expandedOffset,
+                animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow)
+            )
         }
     }
 

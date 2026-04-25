@@ -55,6 +55,33 @@ data class ScheduleLayoutItem(
     val dayIndex: Int
 )
 
+fun buildScheduleLayoutOverlapKey(item: ScheduleLayoutItem): String {
+    val time = item.time
+    val course = item.course.course
+    return listOf(
+        course.studentId,
+        course.courseName,
+        time.uniqueId.toString(),
+        time.weekday,
+        time.period,
+        item.startNodeIndex.toString(),
+        item.endNodeIndex.toString()
+    ).joinToString("|")
+}
+
+enum class CourseOverlapStatus {
+    NO_OVERLAP,
+    OVERLAP,
+    PARTIAL_OVERLAP
+}
+
+@Immutable
+data class CourseOverlapDetail(
+    val status: CourseOverlapStatus,
+    val overlappedAccounts: List<String> = emptyList(),
+    val overlappedCourses: List<String> = emptyList()
+)
+
 /**
  * UI状态
  */
@@ -113,6 +140,20 @@ class CourseViewModel(
     private val schoolCourseRepository: SchoolCourseRepository,
     private val tokenManager: TokenManager
 ) : ViewModel() {
+
+    private data class OverlapQueryConfig(
+        val participantIds: List<String>,
+        val xnm: String,
+        val xqm: String
+    )
+
+    private data class SectionSpan(
+        val dayIndex: Int,
+        val startSection: Int,
+        val endSection: Int,
+        val accountName: String,
+        val courseName: String
+    )
 
     // ==================== 日期计算 ====================
 
@@ -178,6 +219,9 @@ class CourseViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    private val _overlapSelectedAccountIds = MutableStateFlow<Set<String>>(emptySet())
+    val overlapSelectedAccountIds: StateFlow<Set<String>> = _overlapSelectedAccountIds.asStateFlow()
+
     // ==================== 课程数据 ====================
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -216,6 +260,74 @@ class CourseViewModel(
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val overlapCoursesByAccount: StateFlow<Map<String, List<CourseWithTimes>>> = combine(
+        savedAccounts,
+        currentAccount,
+        _overlapSelectedAccountIds,
+        selectedXnm,
+        selectedXqm
+    ) { accounts, current, selectedIds, xnm, xqm ->
+        val normalizedIds = normalizeOverlapAccountIds(
+            selectedIds = selectedIds,
+            availableAccountIds = accounts.map { it.studentId }.toSet(),
+            currentStudentId = current?.studentId
+        ).toList()
+        OverlapQueryConfig(participantIds = normalizedIds, xnm = xnm, xqm = xqm)
+    }.flatMapLatest { query ->
+        if (query.participantIds.isEmpty()) {
+            flowOf(emptyMap())
+        } else {
+            val courseFlows = query.participantIds.map { studentId ->
+                localRepository.getCourses(studentId, query.xnm, query.xqm)
+            }
+            combine(courseFlows) { coursesByAccount ->
+                query.participantIds.zip(coursesByAccount).associate { (studentId, courses) ->
+                    studentId to courses
+                }
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
+    val overlapDetailByWeek: StateFlow<Map<Int, Map<String, CourseOverlapDetail>>> = combine(
+        weekLayoutMap,
+        overlapCoursesByAccount,
+        currentAccount,
+        savedAccounts,
+        _hasWeekZero
+    ) { currentWeekLayouts, coursesByAccount, current, accounts, hasZero ->
+        val currentStudentId = current?.studentId ?: return@combine emptyMap()
+        val min = if (hasZero) 0 else 1
+        val weekRange = min..maxWeek
+        val accountNameById = accounts.associate { account ->
+            account.studentId to account.name.ifBlank { account.studentId }
+        }
+
+        val otherSpansByWeek = buildOtherAccountSpansByWeek(
+            weekRange = weekRange,
+            currentStudentId = currentStudentId,
+            coursesByAccount = coursesByAccount,
+            accountNameById = accountNameById
+        )
+
+        weekRange.associateWith { week ->
+            val weekItems = currentWeekLayouts[week].orEmpty()
+            val otherSpans = otherSpansByWeek[week].orEmpty()
+            weekItems.associate { item ->
+                buildScheduleLayoutOverlapKey(item) to calculateOverlapDetail(item, otherSpans)
+            }
+        }
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
+    val overlapStatusByWeek: StateFlow<Map<Int, Map<String, CourseOverlapStatus>>> = overlapDetailByWeek
+        .map { detailByWeek ->
+            detailByWeek.mapValues { (_, detailByKey) ->
+                detailByKey.mapValues { (_, detail) -> detail.status }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
     val courseBackgroundImageBase64: StateFlow<String?> = tokenManager.appBackgroundImagesFlow
         .map { images -> images[BackgroundPageIds.COURSE] }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -224,6 +336,7 @@ class CourseViewModel(
         initializeData()
         loadSemesterStart()
         setupAutoRefresh()
+        observeOverlapSelectionState()
     }
 
     private fun initializeData() {
@@ -302,6 +415,15 @@ class CourseViewModel(
 
     fun setDisplayWeek(week: Int) {
         _currentDisplayWeek.value = week.coerceIn(minWeek, maxWeek)
+    }
+
+    fun setOverlapSelectedAccountIds(selectedIds: Set<String>) {
+        val normalized = normalizeOverlapAccountIds(
+            selectedIds = selectedIds,
+            availableAccountIds = savedAccounts.value.map { it.studentId }.toSet(),
+            currentStudentId = currentAccount.value?.studentId
+        )
+        _overlapSelectedAccountIds.value = normalized
     }
 
     fun saveCourseBackgroundImage(imageData: ByteArray) {
@@ -660,6 +782,147 @@ class CourseViewModel(
         }
 
         return result
+    }
+
+    private fun observeOverlapSelectionState() {
+        viewModelScope.launch {
+            combine(savedAccounts, currentAccount, _overlapSelectedAccountIds) { accounts, current, selected ->
+                Triple(accounts, current?.studentId, selected)
+            }.collect { (accounts, currentStudentId, selected) ->
+                val normalized = normalizeOverlapAccountIds(
+                    selectedIds = selected,
+                    availableAccountIds = accounts.map { it.studentId }.toSet(),
+                    currentStudentId = currentStudentId
+                )
+                if (normalized != selected) {
+                    _overlapSelectedAccountIds.value = normalized
+                }
+            }
+        }
+    }
+
+    private fun normalizeOverlapAccountIds(
+        selectedIds: Set<String>,
+        availableAccountIds: Set<String>,
+        currentStudentId: String?
+    ): Set<String> {
+        if (availableAccountIds.isEmpty()) return emptySet()
+
+        val normalized = selectedIds
+            .filterTo(linkedSetOf()) { it in availableAccountIds }
+
+        if (currentStudentId != null && currentStudentId in availableAccountIds) {
+            normalized.add(currentStudentId)
+        }
+
+        if (normalized.isNotEmpty()) return normalized
+
+        return currentStudentId
+            ?.takeIf { it in availableAccountIds }
+            ?.let { setOf(it) }
+            ?: setOf(availableAccountIds.first())
+    }
+
+    private fun buildOtherAccountSpansByWeek(
+        weekRange: IntRange,
+        currentStudentId: String,
+        coursesByAccount: Map<String, List<CourseWithTimes>>,
+        accountNameById: Map<String, String>
+    ): Map<Int, List<SectionSpan>> {
+        val spansByWeek = weekRange.associateWith { mutableListOf<SectionSpan>() }
+
+        coursesByAccount.forEach { (studentId, courses) ->
+            if (studentId == currentStudentId) return@forEach
+            val accountName = accountNameById[studentId] ?: studentId
+
+            courses.forEach { course ->
+                course.times.forEach { time ->
+                    val span = parseSectionSpan(
+                        time = time,
+                        accountName = accountName,
+                        courseName = course.course.courseName
+                    ) ?: return@forEach
+                    weekRange.forEach { week ->
+                        if (isWeekActive(week, time.weeks, time.weeksMask)) {
+                            spansByWeek[week]?.add(span)
+                        }
+                    }
+                }
+            }
+        }
+
+        return spansByWeek.mapValues { (_, spans) -> spans.toList() }
+    }
+
+    private fun parseSectionSpan(
+        time: ClassTimeEntity,
+        accountName: String = "",
+        courseName: String = ""
+    ): SectionSpan? {
+        val dayIndex = parseWeekday(time.weekday) - 1
+        if (dayIndex !in 0..6) return null
+
+        val (startSection, span) = parsePeriod(time.period)
+        val endSection = startSection + span - 1
+        return SectionSpan(
+            dayIndex = dayIndex,
+            startSection = startSection,
+            endSection = endSection,
+            accountName = accountName,
+            courseName = courseName
+        )
+    }
+
+    private fun calculateOverlapDetail(
+        item: ScheduleLayoutItem,
+        otherSpans: List<SectionSpan>
+    ): CourseOverlapDetail {
+        val currentSpan = parseSectionSpan(item.time)
+            ?: return CourseOverlapDetail(status = CourseOverlapStatus.NO_OVERLAP)
+
+        val overlaps = otherSpans.filter { other ->
+            other.dayIndex == currentSpan.dayIndex &&
+                other.startSection <= currentSpan.endSection &&
+                other.endSection >= currentSpan.startSection
+        }
+
+        if (overlaps.isEmpty()) {
+            return CourseOverlapDetail(status = CourseOverlapStatus.NO_OVERLAP)
+        }
+
+        val hasExactOverlap = overlaps.any { other ->
+            other.startSection == currentSpan.startSection &&
+                other.endSection == currentSpan.endSection
+        }
+
+        val status = if (hasExactOverlap) {
+            CourseOverlapStatus.OVERLAP
+        } else {
+            CourseOverlapStatus.PARTIAL_OVERLAP
+        }
+
+        val accountNames = overlaps
+            .mapNotNull { other -> other.accountName.ifBlank { null } }
+            .distinct()
+            .sorted()
+
+        val courseNames = overlaps
+            .map { other ->
+                if (other.accountName.isBlank()) {
+                    other.courseName
+                } else {
+                    "${other.courseName}（${other.accountName}）"
+                }
+            }
+            .filter { value -> value.isNotBlank() }
+            .distinct()
+            .sorted()
+
+        return CourseOverlapDetail(
+            status = status,
+            overlappedAccounts = accountNames,
+            overlappedCourses = courseNames
+        )
     }
 
     /**

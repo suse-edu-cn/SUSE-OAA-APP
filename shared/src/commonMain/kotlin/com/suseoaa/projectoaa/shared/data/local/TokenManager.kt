@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -48,6 +49,9 @@ object PreferencesKeys {
 
     // 652签到功能解锁
     val CHECKIN_UNLOCKED = booleanPreferencesKey("checkin_feature_unlocked")
+
+    // 默认起始页（0=首页, 1=课程, 2=教务信息, 3=个人）
+    val DEFAULT_START_TAB = intPreferencesKey("default_start_tab")
 }
 
 internal const val DATA_STORE_FILE_NAME = "auth_prefs.preferences_pb"
@@ -362,6 +366,18 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
 
     suspend fun isCheckinUnlocked(): Boolean {
         return checkinUnlockedFlow.first()
+    }
+
+    // ==================== 默认起始页设置 ====================
+
+    val defaultStartTabFlow: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.DEFAULT_START_TAB] ?: 0
+    }
+
+    suspend fun saveDefaultStartTab(tabIndex: Int) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.DEFAULT_START_TAB] = tabIndex
+        }
     }
 
     // ==================== 清除数据 ====================

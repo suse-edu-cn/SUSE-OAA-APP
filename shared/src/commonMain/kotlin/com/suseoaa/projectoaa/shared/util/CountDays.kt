@@ -54,7 +54,7 @@ fun parseExamTimeRange(timeStr: String): Pair<LocalDateTime, LocalDateTime>? {
  * 获取当前学期 (xnm, xqm)
  */
 fun getCurrentTerm(): Pair<String, String> {
-    val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    val now = OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
     val year = now.year
     val month = now.monthNumber
     return if (month >= 8 || month == 1) {

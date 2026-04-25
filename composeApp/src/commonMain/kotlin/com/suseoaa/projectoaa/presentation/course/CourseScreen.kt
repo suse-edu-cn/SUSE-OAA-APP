@@ -27,10 +27,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -60,7 +58,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -139,6 +136,52 @@ private data class PreparedCardItem(
     val color: Color
 )
 
+private enum class OverlapDisplayFilter {
+    ALL,
+    NO_OVERLAP,
+    OVERLAP,
+    PARTIAL_OVERLAP
+}
+
+private data class OverlapLegendCount(
+    val total: Int,
+    val noOverlap: Int,
+    val overlap: Int,
+    val partialOverlap: Int
+)
+
+private data class CourseDetailSelection(
+    val items: List<ScheduleLayoutItem>,
+    val overlapDetailByKey: Map<String, CourseOverlapDetail>
+)
+
+private fun CourseOverlapStatus.matchesFilter(filter: OverlapDisplayFilter): Boolean {
+    return when (filter) {
+        OverlapDisplayFilter.ALL -> true
+        OverlapDisplayFilter.NO_OVERLAP -> this == CourseOverlapStatus.NO_OVERLAP
+        OverlapDisplayFilter.OVERLAP -> this == CourseOverlapStatus.OVERLAP
+        OverlapDisplayFilter.PARTIAL_OVERLAP -> this == CourseOverlapStatus.PARTIAL_OVERLAP
+    }
+}
+
+private fun overlapFilterColor(filter: OverlapDisplayFilter): Color {
+    return when (filter) {
+        OverlapDisplayFilter.ALL -> Color(0xFF546E7A)
+        OverlapDisplayFilter.NO_OVERLAP -> Color(0xFF26A69A)
+        OverlapDisplayFilter.OVERLAP -> Color(0xFFE53935)
+        OverlapDisplayFilter.PARTIAL_OVERLAP -> Color(0xFFF9A825)
+    }
+}
+
+private fun overlapFilterLabel(filter: OverlapDisplayFilter): String {
+    return when (filter) {
+        OverlapDisplayFilter.ALL -> "全部"
+        OverlapDisplayFilter.NO_OVERLAP -> "未重合"
+        OverlapDisplayFilter.OVERLAP -> "重合"
+        OverlapDisplayFilter.PARTIAL_OVERLAP -> "重合部分"
+    }
+}
+
 // ==================== 主界面 ====================
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -157,6 +200,9 @@ fun CourseScreen(
     val realCurrentWeek by viewModel.realCurrentWeek.collectAsStateWithLifecycle()
     val termOptions by viewModel.termOptions.collectAsStateWithLifecycle()
     val weekLayoutMap by viewModel.weekLayoutMap.collectAsStateWithLifecycle()
+    val overlapStatusByWeek by viewModel.overlapStatusByWeek.collectAsStateWithLifecycle()
+    val overlapDetailByWeek by viewModel.overlapDetailByWeek.collectAsStateWithLifecycle()
+    val overlapSelectedAccountIds by viewModel.overlapSelectedAccountIds.collectAsStateWithLifecycle()
     val allCourses by viewModel.allCourses.collectAsStateWithLifecycle()
     val dailySchedule by viewModel.dailySchedule.collectAsStateWithLifecycle()
     val semesterStartDate by viewModel.semesterStartDate.collectAsStateWithLifecycle()
@@ -192,11 +238,7 @@ fun CourseScreen(
     }
 
     // 对话框状态
-    var selectedCourses by remember {
-        mutableStateOf<List<Pair<CourseWithTimes, ClassTimeEntity>>?>(
-            null
-        )
-    }
+    var selectedCourses by remember { mutableStateOf<CourseDetailSelection?>(null) }
     // 记录点击位置用于动画
     var clickedCardBounds by remember { mutableStateOf<Rect?>(null) }
     var showLoginDialog by remember { mutableStateOf(false) }
@@ -204,9 +246,38 @@ fun CourseScreen(
     var showCustomCourseDialog by remember { mutableStateOf(false) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
     var showTermSelectionDialog by remember { mutableStateOf(false) }
+    var showOverlapAccountDialog by remember { mutableStateOf(false) }
     var showCourseBackgroundPicker by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
+    var overlapFilter by remember { mutableStateOf(OverlapDisplayFilter.ALL) }
+    var onlyShowOverlap by remember { mutableStateOf(false) }
     val hasCourseBackgroundImage = !courseBackgroundImageBase64.isNullOrBlank()
+
+    val currentWeekItems = weekLayoutMap[currentDisplayWeek].orEmpty()
+    val currentWeekOverlapMap = overlapStatusByWeek[currentDisplayWeek].orEmpty()
+    val currentWeekOverlapDetailMap = overlapDetailByWeek[currentDisplayWeek].orEmpty()
+    val overlapLegendCount = remember(currentWeekItems, currentWeekOverlapMap) {
+        var noOverlap = 0
+        var overlap = 0
+        var partialOverlap = 0
+
+        currentWeekItems.forEach { item ->
+            val status = currentWeekOverlapMap[buildScheduleLayoutOverlapKey(item)]
+                ?: CourseOverlapStatus.NO_OVERLAP
+            when (status) {
+                CourseOverlapStatus.NO_OVERLAP -> noOverlap++
+                CourseOverlapStatus.OVERLAP -> overlap++
+                CourseOverlapStatus.PARTIAL_OVERLAP -> partialOverlap++
+            }
+        }
+
+        OverlapLegendCount(
+            total = currentWeekItems.size,
+            noOverlap = noOverlap,
+            overlap = overlap,
+            partialOverlap = partialOverlap
+        )
+    }
 
     // Pager 状态
     val pagerState = rememberPagerState(
@@ -347,6 +418,13 @@ fun CourseScreen(
                                     onClick = { menuExpanded = false; showAccountDialog = true }
                                 )
                                 DropdownMenuItem(
+                                    text = { Text("重课查询设置") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        showOverlapAccountDialog = true
+                                    }
+                                )
+                                DropdownMenuItem(
                                     text = { Text("设置开学日期") },
                                     onClick = { menuExpanded = false; showDatePickerDialog = true }
                                 )
@@ -466,6 +544,9 @@ fun CourseScreen(
                 // 课表主体
                 CourseScheduleLayout(
                     weekLayoutMap = weekLayoutMap,
+                    overlapStatusByWeek = overlapStatusByWeek,
+                    overlapFilter = overlapFilter,
+                    onlyShowOverlap = onlyShowOverlap,
                     startDate = semesterStartDate,
                     pagerState = pagerState,
                     dailySchedule = dailySchedule,
@@ -473,7 +554,14 @@ fun CourseScreen(
                     bottomPadding = bottomBarHeight,
                     onCourseClick = { courses, bounds ->
                         clickedCardBounds = bounds
-                        selectedCourses = courses
+                        selectedCourses = CourseDetailSelection(
+                            items = courses,
+                            overlapDetailByKey = courses.associate { item ->
+                                val key = buildScheduleLayoutOverlapKey(item)
+                                key to (currentWeekOverlapDetailMap[key]
+                                    ?: CourseOverlapDetail(status = CourseOverlapStatus.NO_OVERLAP))
+                            }
+                        )
                     }
                 )
             }
@@ -509,13 +597,16 @@ fun CourseScreen(
                     )
                 ) {
                     CourseDetailContent(
-                        infoList = courses,
+                        infoList = courses.items,
+                        overlapDetailByKey = courses.overlapDetailByKey,
                         onClose = {
                             selectedCourses = null
                             clickedCardBounds = null
                         },
-                        onDelete = { courseName ->
-                            viewModel.deleteCourse(courseName)
+                        onDelete = { courseName, studentId ->
+                            if (studentId == currentAccount?.studentId) {
+                                viewModel.deleteCourse(courseName)
+                            }
                             selectedCourses = null
                             clickedCardBounds = null
                         },
@@ -545,6 +636,36 @@ fun CourseScreen(
                 onDelete = { viewModel.deleteAccount(it) },
                 onAdd = { showAccountDialog = false; showLoginDialog = true },
                 onDismiss = { showAccountDialog = false }
+            )
+        }
+
+        if (showOverlapAccountDialog) {
+            OverlapAccountSelectionDialog(
+                accounts = savedAccounts,
+                currentId = currentAccount?.studentId.orEmpty(),
+                selectedIds = overlapSelectedAccountIds,
+                count = overlapLegendCount,
+                selectedFilter = overlapFilter,
+                onlyShowOverlap = onlyShowOverlap,
+                onFilterSelected = {
+                    overlapFilter = it
+                    if (onlyShowOverlap && it == OverlapDisplayFilter.NO_OVERLAP) {
+                        onlyShowOverlap = false
+                    }
+                },
+                onOnlyShowOverlapChange = { enabled ->
+                    onlyShowOverlap = enabled
+                    if (enabled && overlapFilter == OverlapDisplayFilter.NO_OVERLAP) {
+                        overlapFilter = OverlapDisplayFilter.OVERLAP
+                    }
+                },
+                onSelectedIdsChange = { selectedIds ->
+                    viewModel.setOverlapSelectedAccountIds(selectedIds)
+                },
+                onConfirm = {
+                    showOverlapAccountDialog = false
+                },
+                onDismiss = { showOverlapAccountDialog = false }
             )
         }
 
@@ -651,14 +772,17 @@ fun ScaleAnimatedDialog(
 // ==================== 课表布局组件 ====================
 
 @Composable
-fun CourseScheduleLayout(
+private fun CourseScheduleLayout(
     weekLayoutMap: Map<Int, List<ScheduleLayoutItem>>,
+    overlapStatusByWeek: Map<Int, Map<String, CourseOverlapStatus>>,
+    overlapFilter: OverlapDisplayFilter,
+    onlyShowOverlap: Boolean,
     startDate: LocalDate,
     pagerState: PagerState,
     dailySchedule: List<TimeSlotConfig>,
     minWeek: Int = 1,
     bottomPadding: Dp = 0.dp,
-    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
+    onCourseClick: (List<ScheduleLayoutItem>, Rect?) -> Unit
 ) {
     val density = LocalDensity.current
     val timeAxisWidth = 40.dp
@@ -728,6 +852,9 @@ fun CourseScheduleLayout(
                         DynamicWeekContent(
                             layoutItems = layoutItems,
                             weekStartDate = weekStart,
+                            overlapStatusMap = overlapStatusByWeek[weekIndex].orEmpty(),
+                            overlapFilter = overlapFilter,
+                            onlyShowOverlap = onlyShowOverlap,
                             unitHeightPx = unitHeightPx,
                             maxWidth = parentMaxWidth - timeAxisWidth,
                             dailySchedule = dailySchedule,
@@ -741,13 +868,16 @@ fun CourseScheduleLayout(
 }
 
 @Composable
-fun DynamicWeekContent(
+private fun DynamicWeekContent(
     layoutItems: List<ScheduleLayoutItem>,
     weekStartDate: LocalDate,
+    overlapStatusMap: Map<String, CourseOverlapStatus>,
+    overlapFilter: OverlapDisplayFilter,
+    onlyShowOverlap: Boolean,
     unitHeightPx: Float,
     maxWidth: Dp,
     dailySchedule: List<TimeSlotConfig>,
-    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
+    onCourseClick: (List<ScheduleLayoutItem>, Rect?) -> Unit
 ) {
     // 按“单日列宽”判断设备可用空间，而不是按平台名称硬编码，适配折叠屏/小窗等场景。
     val isCompactConflictMode = (maxWidth / 7f) < CompactConflictColWidthThreshold
@@ -762,6 +892,9 @@ fun DynamicWeekContent(
             HighlightTodayColumn(weekStartDate, maxWidth)
             ScheduleCourseOverlay(
                 items = layoutItems,
+                overlapStatusMap = overlapStatusMap,
+                overlapFilter = overlapFilter,
+                onlyShowOverlap = onlyShowOverlap,
                 unitHeightPx = unitHeightPx,
                 dailySchedule = dailySchedule,
                 isCompactConflictMode = isCompactConflictMode,
@@ -784,12 +917,15 @@ fun DynamicWeekContent(
  * `ScheduleCourseOverlay(layoutItems, unitHeightPx, dailySchedule, true, onCourseClick)`
  */
 @Composable
-fun ScheduleCourseOverlay(
+private fun ScheduleCourseOverlay(
     items: List<ScheduleLayoutItem>,
+    overlapStatusMap: Map<String, CourseOverlapStatus>,
+    overlapFilter: OverlapDisplayFilter,
+    onlyShowOverlap: Boolean,
     unitHeightPx: Float,
     dailySchedule: List<TimeSlotConfig>,
     isCompactConflictMode: Boolean,
-    onCourseClick: (List<Pair<CourseWithTimes, ClassTimeEntity>>, Rect?) -> Unit
+    onCourseClick: (List<ScheduleLayoutItem>, Rect?) -> Unit
 ) {
     val density = LocalDensity.current
     val verticalPaddingPx = with(density) { CardVerticalPadding.toPx() }
@@ -805,15 +941,32 @@ fun ScheduleCourseOverlay(
         else preparedItems.filter { it.laneIndex == 0 }
     }
 
+    val preparedWithOverlapStatus = remember(visiblePreparedItems, overlapStatusMap) {
+        visiblePreparedItems.map { prepared ->
+            val key = buildScheduleLayoutOverlapKey(prepared.layoutItem)
+            val status = overlapStatusMap[key] ?: CourseOverlapStatus.NO_OVERLAP
+            prepared to status
+        }
+    }
+
+    val filteredPreparedItems = remember(preparedWithOverlapStatus, overlapFilter, onlyShowOverlap) {
+        preparedWithOverlapStatus.filter { (_, status) ->
+            val keepByFilter = status.matchesFilter(overlapFilter)
+            val keepBySwitch = !onlyShowOverlap || status != CourseOverlapStatus.NO_OVERLAP
+            keepByFilter && keepBySwitch
+        }
+    }
+
     Layout(content = {
-        visiblePreparedItems.forEach { prepared ->
+        filteredPreparedItems.forEach { (prepared, overlapStatus) ->
             val item = prepared.layoutItem
-            val conflictData = prepared.conflictGroup.map { it.course to it.time }
+            val conflictData = prepared.conflictGroup
 
             CourseCard(
                 title = item.course.course.courseName,
                 location = item.time.location,
                 color = prepared.color,
+                overlapStatus = overlapStatus,
                 isConflict = prepared.conflictGroup.size > 1,
                 conflictCount = prepared.conflictGroup.size,
                 onClickWithBounds = { bounds -> onCourseClick(conflictData, bounds) },
@@ -969,6 +1122,7 @@ private fun CourseCard(
     title: String,
     location: String,
     color: Color,
+    overlapStatus: CourseOverlapStatus,
     isConflict: Boolean,
     conflictCount: Int,
     onClickWithBounds: (Rect?) -> Unit,
@@ -980,7 +1134,16 @@ private fun CourseCard(
         colors = CardDefaults.cardColors(containerColor = color),
         shape = RoundedCornerShape(6.dp),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = if (isConflict) BorderStroke(1.dp, Color.White.copy(alpha = 0.75f)) else null,
+        border = BorderStroke(
+            width = if (isConflict) 1.2.dp else 1.dp,
+            color = overlapFilterColor(
+                when (overlapStatus) {
+                    CourseOverlapStatus.NO_OVERLAP -> OverlapDisplayFilter.NO_OVERLAP
+                    CourseOverlapStatus.OVERLAP -> OverlapDisplayFilter.OVERLAP
+                    CourseOverlapStatus.PARTIAL_OVERLAP -> OverlapDisplayFilter.PARTIAL_OVERLAP
+                }
+            ).copy(alpha = 0.95f)
+        ),
         modifier = modifier
             .onGloballyPositioned { coordinates ->
                 cardBounds = coordinates.boundsInWindow()
@@ -1276,9 +1439,10 @@ fun HighlightTodayColumn(weekStartDate: LocalDate, maxWidth: Dp) {
 
 @Composable
 fun CourseDetailContent(
-    infoList: List<Pair<CourseWithTimes, ClassTimeEntity>>,
+    infoList: List<ScheduleLayoutItem>,
+    overlapDetailByKey: Map<String, CourseOverlapDetail>,
     onClose: () -> Unit,
-    onDelete: ((String) -> Unit)? = null,
+    onDelete: ((String, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -1298,8 +1462,13 @@ fun CourseDetailContent(
             )
             Row {
                 // 删除按钮（仅自定义课程显示）
-                if (onDelete != null && infoList.isNotEmpty() && infoList[0].first.course.isCustom) {
-                    IconButton(onClick = { onDelete(infoList[0].first.course.courseName) }) {
+                if (onDelete != null && infoList.isNotEmpty() && infoList[0].course.course.isCustom) {
+                    IconButton(
+                        onClick = {
+                            val courseEntity = infoList[0].course.course
+                            onDelete(courseEntity.courseName, courseEntity.studentId)
+                        }
+                    ) {
                         Icon(
                             Icons.Default.Delete,
                             "删除课程",
@@ -1329,8 +1498,14 @@ fun CourseDetailContent(
                     .fillMaxWidth()
                     .wrapContentHeight()
             ) { page ->
-                val (courseData, timeData) = infoList[page]
-                CourseDetailCard(courseData, timeData)
+                val item = infoList[page]
+                val overlapDetail = overlapDetailByKey[buildScheduleLayoutOverlapKey(item)]
+                    ?: CourseOverlapDetail(status = CourseOverlapStatus.NO_OVERLAP)
+                CourseDetailCard(
+                    courseData = item.course,
+                    timeData = item.time,
+                    overlapDetail = overlapDetail
+                )
             }
             if (infoList.size > 1) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1363,9 +1538,10 @@ fun CourseDetailContent(
 @Composable
 fun CourseDetailCard(
     courseData: CourseWithTimes,
-    timeData: ClassTimeEntity
+    timeData: ClassTimeEntity,
+    overlapDetail: CourseOverlapDetail
 ) {
-    val details = remember(courseData, timeData) {
+    val details = remember(courseData, timeData, overlapDetail) {
         buildList {
             add(DetailInfo(Icons.Default.Star, "课程名称", courseData.course.courseName))
             if (timeData.location.isNotBlank()) {
@@ -1406,6 +1582,38 @@ fun CourseDetailCard(
                         )
                     )
                 }
+            }
+
+            add(
+                DetailInfo(
+                    Icons.Default.Check,
+                    "重合状态",
+                    when (overlapDetail.status) {
+                        CourseOverlapStatus.NO_OVERLAP -> "未重合"
+                        CourseOverlapStatus.OVERLAP -> "重合"
+                        CourseOverlapStatus.PARTIAL_OVERLAP -> "重合部分"
+                    }
+                )
+            )
+
+            if (overlapDetail.overlappedAccounts.isNotEmpty()) {
+                add(
+                    DetailInfo(
+                        Icons.Default.Person,
+                        "重合账号",
+                        overlapDetail.overlappedAccounts.joinToString("\n")
+                    )
+                )
+            }
+
+            if (overlapDetail.overlappedCourses.isNotEmpty()) {
+                add(
+                    DetailInfo(
+                        Icons.Default.Menu,
+                        "重合课程",
+                        overlapDetail.overlappedCourses.joinToString("\n")
+                    )
+                )
             }
         }
     }
@@ -1607,6 +1815,202 @@ fun AccountSelectionDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("关闭") } }
+    )
+}
+
+@Composable
+private fun OverlapAccountSelectionDialog(
+    accounts: List<CourseAccountEntity>,
+    currentId: String,
+    selectedIds: Set<String>,
+    count: OverlapLegendCount,
+    selectedFilter: OverlapDisplayFilter,
+    onlyShowOverlap: Boolean,
+    onFilterSelected: (OverlapDisplayFilter) -> Unit,
+    onOnlyShowOverlapChange: (Boolean) -> Unit,
+    onSelectedIdsChange: (Set<String>) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val filters = remember {
+        listOf(
+            OverlapDisplayFilter.ALL,
+            OverlapDisplayFilter.NO_OVERLAP,
+            OverlapDisplayFilter.OVERLAP,
+            OverlapDisplayFilter.PARTIAL_OVERLAP
+        )
+    }
+    val countByFilter = remember(count) {
+        mapOf(
+            OverlapDisplayFilter.ALL to count.total,
+            OverlapDisplayFilter.NO_OVERLAP to count.noOverlap,
+            OverlapDisplayFilter.OVERLAP to count.overlap,
+            OverlapDisplayFilter.PARTIAL_OVERLAP to count.partialOverlap
+        )
+    }
+
+    AlertDialog(
+        containerColor = MaterialTheme.colorScheme.background,
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "重课查询账号",
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    "在这里配置重课查询：显示规则 + 参与账号。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    text = "显示规则",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "仅看与当前账号重合",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Switch(
+                        checked = onlyShowOverlap,
+                        onCheckedChange = onOnlyShowOverlapChange,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                            uncheckedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+                }
+
+                Spacer(Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    filters.forEach { filter ->
+                        val isSelected = selectedFilter == filter
+                        val label = "${overlapFilterLabel(filter)} ${countByFilter[filter] ?: 0}"
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onFilterSelected(filter) },
+                            label = { Text(label) },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(overlapFilterColor(filter))
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = overlapFilterColor(filter).copy(alpha = 0.2f)
+                            )
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    text = "参与账号",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(6.dp))
+
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 320.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(accounts) { account ->
+                        val isCurrent = account.studentId == currentId
+                        val checked = account.studentId in selectedIds || isCurrent
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (checked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                                )
+                                .clickable(enabled = !isCurrent) {
+                                    val updated = if (checked) {
+                                        selectedIds - account.studentId
+                                    } else {
+                                        selectedIds + account.studentId
+                                    }
+                                    val withCurrent = if (currentId.isNotBlank()) {
+                                        updated + currentId
+                                    } else {
+                                        updated
+                                    }
+                                    onSelectedIdsChange(withCurrent)
+                                }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = if (isCurrent) null else { checkedState ->
+                                    val updated = if (checkedState) {
+                                        selectedIds + account.studentId
+                                    } else {
+                                        selectedIds - account.studentId
+                                    }
+                                    val withCurrent = if (currentId.isNotBlank()) {
+                                        updated + currentId
+                                    } else {
+                                        updated
+                                    }
+                                    onSelectedIdsChange(withCurrent)
+                                }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "${account.name} (${account.studentId})",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = if (isCurrent) "当前查看账号（固定参与）" else account.className,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm
+            ) {
+                Text("关闭")
+            }
+        }
     )
 }
 

@@ -21,7 +21,8 @@ data class PersonUiState(
     val isCheckinUnlocked: Boolean = false,  // 652签到功能是否已解锁
     val isDynamicColorEnabled: Boolean = false,
     val dynamicPaletteLightColorHex: String? = null,
-    val dynamicPaletteDarkColorHex: String? = null
+    val dynamicPaletteDarkColorHex: String? = null,
+    val defaultStartTab: Int = 0  // 默认起始页（0=首页, 1=课程, 2=教务信息, 3=个人）
 )
 
 class PersonViewModel(
@@ -37,6 +38,7 @@ class PersonViewModel(
         loadCheckinUnlockStatus()
         loadDynamicColorStatus()
         loadDynamicPaletteColors()
+        loadDefaultStartTab()
     }
 
     private fun loadDynamicColorStatus() {
@@ -92,6 +94,21 @@ class PersonViewModel(
         viewModelScope.launch {
             tokenManager.unlockCheckinFeature()
             _uiState.update { it.copy(isCheckinUnlocked = true) }
+        }
+    }
+
+    private fun loadDefaultStartTab() {
+        viewModelScope.launch {
+            tokenManager.defaultStartTabFlow.collect { tab ->
+                _uiState.update { it.copy(defaultStartTab = tab) }
+            }
+        }
+    }
+
+    fun saveDefaultStartTab(tabIndex: Int) {
+        viewModelScope.launch {
+            tokenManager.saveDefaultStartTab(tabIndex)
+            _uiState.update { it.copy(defaultStartTab = tabIndex) }
         }
     }
 

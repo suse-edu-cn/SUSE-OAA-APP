@@ -94,6 +94,7 @@ fun MainScreen(
     val homeFeatureDrawerExpanded by mainViewModel.homeFeatureDrawerExpanded.collectAsState()
     val academicFeatureDrawerExpanded by mainViewModel.academicFeatureDrawerExpanded.collectAsState()
     val appBackgroundImages by mainViewModel.appBackgroundImages.collectAsState()
+    val defaultStartTab by mainViewModel.defaultStartTab.collectAsState()
 
     AdaptiveLayout { config ->
         if (config.useSideNavigation) {
@@ -130,6 +131,7 @@ fun MainScreen(
             PhoneLayout(
                 appBackgroundImages = appBackgroundImages,
                 selectedTab = selectedTab,
+                initialStartTab = defaultStartTab,
                 onTabChange = { mainViewModel.updateSelectedMainTab(it) },
                 homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
                 onHomeFeatureDrawerExpandedChange = { mainViewModel.updateHomeFeatureDrawerExpanded(it) },
@@ -253,6 +255,7 @@ private fun TabletLandscapeLayout(
 private fun PhoneLayout(
     appBackgroundImages: Map<String, String?>,
     selectedTab: Int,
+    initialStartTab: Int = 0,
     onTabChange: (Int) -> Unit,
     homeFeatureDrawerExpanded: Boolean,
     onHomeFeatureDrawerExpandedChange: (Boolean) -> Unit,
@@ -274,7 +277,7 @@ private fun PhoneLayout(
     onNavigateToUpdate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
+    val pagerState = rememberPagerState(initialPage = initialStartTab, pageCount = { 4 })
     val scope = rememberCoroutineScope()
     var isIndicatorDragging by remember { mutableStateOf(false) }
     var isProgrammaticTabTransition by remember { mutableStateOf(false) }

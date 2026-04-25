@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -128,6 +129,7 @@ fun PersonScreen(
     // 头像选择对话框状态
     var showAvatarDialog by remember { mutableStateOf(false) }
     var showPaletteDialog by remember { mutableStateOf(false) }
+    var showStartTabDialog by remember { mutableStateOf(false) }
 
     // 监听登出
     LaunchedEffect(uiState.isLoggedOut) {
@@ -218,6 +220,17 @@ fun PersonScreen(
             onConfirm = { lightHex, darkHex ->
                 viewModel.setDynamicPaletteColors(lightHex, darkHex)
                 showPaletteDialog = false
+            }
+        )
+    }
+
+    if (showStartTabDialog) {
+        StartTabDialog(
+            currentTab = uiState.defaultStartTab,
+            onDismiss = { showStartTabDialog = false },
+            onConfirm = { tabIndex ->
+                viewModel.saveDefaultStartTab(tabIndex)
+                showStartTabDialog = false
             }
         )
     }
@@ -380,6 +393,17 @@ fun PersonScreen(
                                 trailingText = if (updateUiState.hasUpdate && updateUiState.latestRelease != null)
                                     updateUiState.latestRelease!!.tagName else null,
                                 onClick = onNavigateToUpdate
+                            )
+                        }
+
+                        // 起始页设置
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            val startTabLabels = listOf("首页", "课程", "教务信息", "个人")
+                            SettingCard(
+                                icon = Icons.Default.Home,
+                                title = "起始页设置",
+                                subtitle = "打开应用时默认显示：${startTabLabels.getOrElse(uiState.defaultStartTab) { "首页" }}",
+                                onClick = { showStartTabDialog = true }
                             )
                         }
 
@@ -1444,4 +1468,86 @@ fun AppInfoCard(
             )
         }
     }
+}
+
+/**
+ * 起始页选择对话框
+ */
+@Composable
+private fun StartTabDialog(
+    currentTab: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    val tabOptions = listOf("首页", "课程", "教务信息", "个人")
+    var selectedTab by remember { mutableIntStateOf(currentTab) }
+
+    AlertDialog(
+        containerColor = MaterialTheme.colorScheme.background,
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "起始页设置",
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    "选择打开应用时默认显示的页面",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(16.dp))
+                tabOptions.forEachIndexed { index, label ->
+                    Surface(
+                        onClick = { selectedTab = index },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (selectedTab == index)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        tonalElevation = if (selectedTab == index) 2.dp else 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (selectedTab == index)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                            if (selectedTab == index) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(selectedTab) }) {
+                Text("确认")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }

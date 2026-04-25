@@ -9,8 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * 主 ViewModel - 管理应用级状态
@@ -27,6 +29,16 @@ class MainViewModel(
 
     private val _academicFeatureDrawerExpanded = MutableStateFlow(false)
     val academicFeatureDrawerExpanded: StateFlow<Boolean> = _academicFeatureDrawerExpanded.asStateFlow()
+
+    init {
+        // 启动时读取默认起始页并应用
+        viewModelScope.launch {
+            val startTab = tokenManager.defaultStartTabFlow.first()
+            if (startTab != 0) {
+                _selectedMainTab.value = startTab
+            }
+        }
+    }
 
     fun updateSelectedMainTab(index: Int) {
         _selectedMainTab.value = index
@@ -92,4 +104,18 @@ class MainViewModel(
                 BackgroundPageIds.PERSON to null,
             )
         )
+
+    // 默认起始页（0=首页, 1=课程, 2=教务信息, 3=个人）
+    val defaultStartTab: StateFlow<Int> = tokenManager.defaultStartTabFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = 0
+        )
+
+    fun saveDefaultStartTab(tabIndex: Int) {
+        viewModelScope.launch {
+            tokenManager.saveDefaultStartTab(tabIndex)
+        }
+    }
 }
