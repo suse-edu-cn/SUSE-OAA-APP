@@ -1005,7 +1005,7 @@ private fun ScheduleCourseOverlay(
 
             CourseCard(
                 title = prepared.customTitle ?: item.course.course.courseName,
-                location = item.time.location,
+                location = if (prepared.customTitle != null) "" else item.time.location,
                 color = prepared.color,
                 overlapStatus = overlapStatus,
                 isConflict = prepared.conflictGroup.size > 1,
@@ -1141,11 +1141,7 @@ private fun buildPreparedCardItems(
                     }
 
                     val accountNames = currentSegmentItems.map { it.course.course.studentId }.distinct().map { id -> accountNameById[id] ?: id }
-                    val accountText = if (accountNames.size <= 3) {
-                        accountNames.joinToString("、") + "有课"
-                    } else {
-                        "${accountNames.size}人有课"
-                    }
+                    val accountText = accountNames.joinToString("\n")
 
                     val statusText = overlapFilterLabel(
                         when (status) {
@@ -1269,16 +1265,6 @@ private fun CourseCard(
         colors = CardDefaults.cardColors(containerColor = color),
         shape = RoundedCornerShape(6.dp),
         elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(
-            width = if (isConflict) 1.2.dp else 1.dp,
-            color = overlapFilterColor(
-                when (overlapStatus) {
-                    CourseOverlapStatus.NO_OVERLAP -> OverlapDisplayFilter.NO_OVERLAP
-                    CourseOverlapStatus.OVERLAP -> OverlapDisplayFilter.OVERLAP
-                    CourseOverlapStatus.PARTIAL_OVERLAP -> OverlapDisplayFilter.PARTIAL_OVERLAP
-                }
-            ).copy(alpha = 0.95f)
-        ),
         modifier = modifier
             .onGloballyPositioned { coordinates ->
                 cardBounds = coordinates.boundsInWindow()
@@ -1288,7 +1274,7 @@ private fun CourseCard(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 3.dp, vertical = 2.dp)
+                .padding(3.dp)
         ) {
             val cardTextScale = rememberCourseCardTextScale(maxWidth, maxHeight)
             val conflictFontSize = timetableAdaptiveSp(
@@ -1342,12 +1328,12 @@ private fun CourseCard(
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     lineHeight = titleLineHeight,
-                    maxLines = 3,
+                    maxLines = 10,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(2.dp))
                 if (location.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     val displayLocation = location.removePrefix("L")
                     Text(
                         text = displayLocation,
@@ -2202,7 +2188,7 @@ private fun OverlapAccountSelectionDialog(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    text = if (isCurrent) "当前查看账号（固定参与）" else account.className,
+                                    text = if (isCurrent) "当前查看账号" else account.className,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )

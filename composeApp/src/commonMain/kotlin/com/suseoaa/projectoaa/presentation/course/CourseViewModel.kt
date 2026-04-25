@@ -148,6 +148,7 @@ class CourseViewModel(
     )
 
     private data class SectionSpan(
+        val studentId: String,
         val dayIndex: Int,
         val startSection: Int,
         val endSection: Int,
@@ -219,8 +220,13 @@ class CourseViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    private val _overlapSelectedAccountIds = MutableStateFlow<Set<String>>(emptySet())
-    val overlapSelectedAccountIds: StateFlow<Set<String>> = _overlapSelectedAccountIds.asStateFlow()
+    private val _overlapSelectedAccountIds = MutableStateFlow<Set<String>?>(null)
+    val overlapSelectedAccountIds: StateFlow<Set<String>> = combine(
+        _overlapSelectedAccountIds,
+        currentAccount
+    ) { selected, current ->
+        selected ?: current?.studentId?.let { setOf(it) } ?: emptySet()
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptySet())
 
     // ==================== 课程数据 ====================
 
@@ -228,7 +234,7 @@ class CourseViewModel(
     private val overlapCoursesByAccount: StateFlow<Map<String, List<CourseWithTimes>>> = combine(
         savedAccounts,
         currentAccount,
-        _overlapSelectedAccountIds,
+        overlapSelectedAccountIds,
         selectedXnm,
         selectedXqm
     ) { accounts, current, selectedIds, xnm, xqm ->
@@ -794,6 +800,7 @@ class CourseViewModel(
             combine(savedAccounts, currentAccount, _overlapSelectedAccountIds) { accounts, current, selected ->
                 Triple(accounts, current?.studentId, selected)
             }.collect { (accounts, currentStudentId, selected) ->
+                if (selected == null) return@collect
                 val normalized = normalizeOverlapAccountIds(
                     selectedIds = selected,
                     availableAccountIds = accounts.map { it.studentId }.toSet(),
@@ -813,16 +820,7 @@ class CourseViewModel(
     ): Set<String> {
         if (availableAccountIds.isEmpty()) return emptySet()
 
-        val normalized = selectedIds
-            .filterTo(linkedSetOf()) { it in availableAccountIds }
-
-        // Remove the automatic addition of currentStudentId so it can be un-checked
-        if (normalized.isNotEmpty()) return normalized
-
-        return currentStudentId
-            ?.takeIf { it in availableAccountIds }
-            ?.let { setOf(it) }
-            ?: setOf(availableAccountIds.first())
+        return selectedIds.filterTo(linkedSetOf()) { it in availableAccountIds }
     }
 
     private fun buildOtherAccountSpansByWeek(
@@ -834,13 +832,13 @@ class CourseViewModel(
         val spansByWeek = weekRange.associateWith { mutableListOf<SectionSpan>() }
 
         coursesByAccount.forEach { (studentId, courses) ->
-            if (studentId == currentStudentId) return@forEach
             val accountName = accountNameById[studentId] ?: studentId
 
             courses.forEach { course ->
                 course.times.forEach { time ->
                     val span = parseSectionSpan(
                         time = time,
+                        studentId = studentId,
                         accountName = accountName,
                         courseName = course.course.courseName
                     ) ?: return@forEach
@@ -858,6 +856,7 @@ class CourseViewModel(
 
     private fun parseSectionSpan(
         time: ClassTimeEntity,
+        studentId: String = "",
         accountName: String = "",
         courseName: String = ""
     ): SectionSpan? {
@@ -867,6 +866,7 @@ class CourseViewModel(
         val (startSection, span) = parsePeriod(time.period)
         val endSection = startSection + span - 1
         return SectionSpan(
+            studentId = studentId,
             dayIndex = dayIndex,
             startSection = startSection,
             endSection = endSection,
@@ -879,10 +879,12 @@ class CourseViewModel(
         item: ScheduleLayoutItem,
         otherSpans: List<SectionSpan>
     ): CourseOverlapDetail {
+        val currentStudentId = item.course.course.studentId
         val currentSpan = parseSectionSpan(item.time)
             ?: return CourseOverlapDetail(status = CourseOverlapStatus.NO_OVERLAP)
 
         val overlaps = otherSpans.filter { other ->
+            other.studentId != currentStudentId &&
             other.dayIndex == currentSpan.dayIndex &&
                 other.startSection <= currentSpan.endSection &&
                 other.endSection >= currentSpan.startSection
