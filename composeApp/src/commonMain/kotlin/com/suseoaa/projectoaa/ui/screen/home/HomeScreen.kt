@@ -45,6 +45,7 @@ fun HomeScreen(
     onNavigateToDetail: (String) -> Unit,
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
+    onNavigateToActivityCheckin: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
     featureDrawerExpanded: Boolean = false,
     onFeatureDrawerExpandedChange: (Boolean) -> Unit = {},
@@ -90,6 +91,7 @@ fun HomeScreen(
         onExpandedChange = onFeatureDrawerExpandedChange,
         onNavigateToRecruitment = onNavigateToRecruitment,
         onNavigateToUserQuery = onNavigateToUserQuery,
+        onNavigateToActivityCheckin = onNavigateToActivityCheckin,
         bottomBarHeight = bottomBarHeight,
         backGestureProgress = backGestureProgress,
         backGestureCancelCount = backGestureCancelCount
@@ -104,7 +106,7 @@ fun HomeScreen(
                     .background(MaterialTheme.colorScheme.background)
             ) {
                 Row {
-    //            部门介绍卡片
+                    //            部门介绍卡片
                     DepartmentGrid(
                         departments = departments,
                         cardInfos = uiState.cardInfos,
@@ -114,7 +116,7 @@ fun HomeScreen(
                         onUserQueryClick = onNavigateToUserQuery,
                         bottomBarHeight = bottomBarHeight
                     )
-    //
+                    //
                 }
             }
         }

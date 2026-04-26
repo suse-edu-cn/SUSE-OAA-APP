@@ -25,8 +25,9 @@ sealed class Screen(val route: String) {
     data object AcademicStatus : Screen("academicStatus")
     data object AcademicMessages : Screen("academicMessages")
 
-    // 隐藏功能
+    // 签到相关
     data object Checkin : Screen("checkin")
+    data object ActivityCheckin : Screen("activityCheckin")
     data object CheckinTasks : Screen("checkin/tasks/{accountId}") {
         fun createRoute(accountId: Long) = "checkin/tasks/$accountId"
         val arguments = listOf(

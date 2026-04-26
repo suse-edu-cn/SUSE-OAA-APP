@@ -232,6 +232,11 @@ val sharedModule = module {
             get<ClearableCookieStorage>(qualifier = named("qrCheckinCookieStorage"))
         )
     }
+
+    // 近场签到 Repository
+    single {
+        com.suseoaa.projectoaa.shared.data.repository.NearFieldCheckinRepository(get(), get())
+    }
 }
 
 /**

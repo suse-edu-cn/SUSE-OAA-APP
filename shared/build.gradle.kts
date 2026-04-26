@@ -54,6 +54,7 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
+            implementation(libs.ktor.network)
 
             // SQLDelight
             api(libs.sqldelight.runtime)

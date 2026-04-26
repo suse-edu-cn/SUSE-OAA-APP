@@ -2,6 +2,9 @@ package com.suseoaa.projectoaa.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.ui.screen.changepassword.ChangePasswordScreen
 import com.suseoaa.projectoaa.ui.screen.checkin.CheckinScreen
@@ -121,6 +124,9 @@ fun AppNavHost(
                 onNavigateToCheckin = {
                     navController.navigate(Screen.Checkin.route)
                 },
+                onNavigateToActivityCheckin = {
+                    navController.navigate(Screen.ActivityCheckin.route)
+                },
                 onNavigateToUpdate = {
                     navController.navigate(Screen.Update.route)
                 },
@@ -167,7 +173,7 @@ fun AppNavHost(
             route = Screen.DepartmentDetail.route,
             arguments = Screen.DepartmentDetail.arguments
         ) { backStackEntry ->
-            val department = backStackEntry.arguments?.getString("department") ?: ""
+            val department = backStackEntry.savedStateHandle.get<String>("department") ?: ""
             DepartmentDetailScreen(
                 departmentName = department,
                 onBack = { navController.popBackStack() },
@@ -181,7 +187,7 @@ fun AppNavHost(
             route = Screen.DepartmentEdit.route,
             arguments = Screen.DepartmentEdit.arguments
         ) { backStackEntry ->
-            val department = backStackEntry.arguments?.getString("department") ?: ""
+            val department = backStackEntry.savedStateHandle.get<String>("department") ?: ""
             DepartmentEditScreen(
                 departmentName = department,
                 onBack = { navController.popBackStack() }
@@ -222,9 +228,16 @@ fun AppNavHost(
             route = Screen.CheckinTasks.route,
             arguments = Screen.CheckinTasks.arguments
         ) { backStackEntry ->
-            val accountId = backStackEntry.arguments?.getLong("accountId") ?: -1L
+            val accountId = backStackEntry.savedStateHandle.get<Long>("accountId") ?: -1L
             CheckinTaskScreen(
                 accountId = accountId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // 活动签到
+        composable(Screen.ActivityCheckin.route) {
+            com.suseoaa.projectoaa.ui.screen.checkin.ActivityCheckinScreen(
                 onBack = { navController.popBackStack() }
             )
         }

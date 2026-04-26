@@ -32,6 +32,9 @@ actual class CourseDatabaseDriverFactory {
         // 迁移 ExamCache 表：为旧版本数据库添加新字段
         migrateExamCacheTable(driver)
 
+        // 迁移近场签到表
+        migrateNearFieldCheckinTables(driver)
+
         return driver
     }
 
@@ -76,6 +79,49 @@ actual class CourseDatabaseDriverFactory {
                 0
             )
         } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * 迁移近场签到相关的表
+     */
+    private fun migrateNearFieldCheckinTables(driver: SqlDriver) {
+        try {
+            driver.execute(null, """
+                CREATE TABLE IF NOT EXISTS NearFieldTask (
+                    taskIdentifier TEXT PRIMARY KEY NOT NULL,
+                    activityName TEXT NOT NULL,
+                    hostName TEXT NOT NULL,
+                    startTime INTEGER NOT NULL,
+                    endTime INTEGER NOT NULL,
+                    publishTimestamp INTEGER NOT NULL,
+                    securityNonce TEXT NOT NULL,
+                    isMyHosted INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent(), 0)
+
+            driver.execute(null, """
+                CREATE TABLE IF NOT EXISTS NearFieldParticipant (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    taskIdentifier TEXT NOT NULL,
+                    participantName TEXT NOT NULL,
+                    participantId TEXT NOT NULL,
+                    checkinTime INTEGER NOT NULL,
+                    FOREIGN KEY (taskIdentifier) REFERENCES NearFieldTask(taskIdentifier) ON DELETE CASCADE
+                )
+            """.trimIndent(), 0)
+
+            // 迁移现有表，添加 status 字段
+            try {
+                driver.execute(null, "ALTER TABLE NearFieldParticipant ADD COLUMN status TEXT NOT NULL DEFAULT '正常'", 0)
+            } catch (_: Exception) {}
+
+            // 增加唯一索引防止重复签到
+            try {
+                driver.execute(null, "CREATE UNIQUE INDEX IF NOT EXISTS idx_participant_task_student ON NearFieldParticipant(taskIdentifier, participantId)", 0)
+            } catch (_: Exception) {}
+        } catch (_: Exception) {
+            // 忽略创建错误
         }
     }
 }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
+import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +27,7 @@ fun HomeWithDrawer(
     onExpandedChange: (Boolean) -> Unit,
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
+    onNavigateToActivityCheckin: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
     backGestureProgress: Float? = null,
     backGestureCancelCount: Int = 0,
@@ -56,6 +59,20 @@ fun HomeWithDrawer(
                         onNavigateToRecruitment()
                     },
                     sharedBoundKey = "recruitment_feature"
+                )
+            }
+
+            item(key = "feature_activity_checkin") {
+                FeatureCard(
+                    name = "活动签到",
+                    icon = Icons.AutoMirrored.Filled.BluetoothSearching,
+                    color = MaterialTheme.colorScheme.surface,
+                    onColor = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        onExpandedChange(true)
+                        onNavigateToActivityCheckin()
+                    },
+                    sharedBoundKey = "activity_checkin_feature"
                 )
             }
 

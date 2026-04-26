@@ -159,11 +159,13 @@ class CourseViewModel(
     // ==================== 日期计算 ====================
 
     private fun getCurrentMonday(): LocalDate {
-        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        return today.minus(today.dayOfWeek.ordinal, DateTimeUnit.DAY)
+        val today = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+        return today.minus(today.dayOfWeek.ordinal, kotlinx.datetime.DateTimeUnit.DAY)
     }
 
-    private fun today(): LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault())
+    private fun today(): LocalDate = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
 
     // ==================== 状态 ====================
 
@@ -192,8 +194,10 @@ class CourseViewModel(
 
     /** 最小周次：有第0周时为0，否则为1 */
     val minWeek: Int get() = if (_hasWeekZero.value) 0 else 1
+
     /** 最大周次 */
     val maxWeek: Int get() = if (_hasWeekZero.value) 25 else 25
+
     /** 总周数 */
     val totalWeeks: Int get() = maxWeek - minWeek + 1
 
@@ -267,8 +271,8 @@ class CourseViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val allCourses: StateFlow<List<CourseWithTimes>> = overlapCoursesByAccount
-        .map { map -> 
-            map.values.flatten().distinctBy { 
+        .map { map ->
+            map.values.flatten().distinctBy {
                 "${it.course.studentId}_${it.course.courseName}_${it.times.joinToString { t -> t.uniqueId.toString() }}"
             }
         }
@@ -331,13 +335,14 @@ class CourseViewModel(
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
-    val overlapStatusByWeek: StateFlow<Map<Int, Map<String, CourseOverlapStatus>>> = overlapDetailByWeek
-        .map { detailByWeek ->
-            detailByWeek.mapValues { (_, detailByKey) ->
-                detailByKey.mapValues { (_, detail) -> detail.status }
+    val overlapStatusByWeek: StateFlow<Map<Int, Map<String, CourseOverlapStatus>>> =
+        overlapDetailByWeek
+            .map { detailByWeek ->
+                detailByWeek.mapValues { (_, detailByKey) ->
+                    detailByKey.mapValues { (_, detail) -> detail.status }
+                }
             }
-        }
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
     val courseBackgroundImageBase64: StateFlow<String?> = tokenManager.appBackgroundImagesFlow
         .map { images -> images[BackgroundPageIds.COURSE] }
@@ -699,8 +704,10 @@ class CourseViewModel(
         val parts = cleanStr.split(",")
         val hasSegmentParityTag = parts.any { it.contains("#ODD#") || it.contains("#EVEN#") }
         // 仅当所有分段都没有显式单双周标记时，才使用全局单双周兜底
-        val globalOddOnly = !hasSegmentParityTag && weeksStr.contains("单") && !weeksStr.contains("双")
-        val globalEvenOnly = !hasSegmentParityTag && weeksStr.contains("双") && !weeksStr.contains("单")
+        val globalOddOnly =
+            !hasSegmentParityTag && weeksStr.contains("单") && !weeksStr.contains("双")
+        val globalEvenOnly =
+            !hasSegmentParityTag && weeksStr.contains("双") && !weeksStr.contains("单")
 
         for (part in parts) {
             // 检查此部分是否有单双周标记
@@ -797,7 +804,11 @@ class CourseViewModel(
 
     private fun observeOverlapSelectionState() {
         viewModelScope.launch {
-            combine(savedAccounts, currentAccount, _overlapSelectedAccountIds) { accounts, current, selected ->
+            combine(
+                savedAccounts,
+                currentAccount,
+                _overlapSelectedAccountIds
+            ) { accounts, current, selected ->
                 Triple(accounts, current?.studentId, selected)
             }.collect { (accounts, currentStudentId, selected) ->
                 if (selected == null) return@collect
@@ -885,9 +896,9 @@ class CourseViewModel(
 
         val overlaps = otherSpans.filter { other ->
             other.studentId != currentStudentId &&
-            other.dayIndex == currentSpan.dayIndex &&
-                other.startSection <= currentSpan.endSection &&
-                other.endSection >= currentSpan.startSection
+                    other.dayIndex == currentSpan.dayIndex &&
+                    other.startSection <= currentSpan.endSection &&
+                    other.endSection >= currentSpan.startSection
         }
 
         if (overlaps.isEmpty()) {
@@ -896,7 +907,7 @@ class CourseViewModel(
 
         val hasExactOverlap = overlaps.any { other ->
             other.startSection == currentSpan.startSection &&
-                other.endSection == currentSpan.endSection
+                    other.endSection == currentSpan.endSection
         }
 
         val status = if (hasExactOverlap) {
@@ -963,7 +974,8 @@ class CourseViewModel(
     }
 
     private fun generateTermOptions(njdmId: String) {
-        val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
+        val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+            .toLocalDateTime(TimeZone.currentSystemDefault()).year
         val startYear = njdmId.take(4).toIntOrNull() ?: (currentYear - 4)
 
         val options = mutableListOf<TermOption>()
@@ -975,7 +987,8 @@ class CourseViewModel(
     }
 
     private fun calculateCurrentRealTerm(): Pair<String, String> {
-        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+            .toLocalDateTime(TimeZone.currentSystemDefault())
         val month = now.monthNumber
         val year = now.year
 

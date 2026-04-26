@@ -84,7 +84,8 @@ fun MainScreen(
     onNavigateToAcademicStatus: () -> Unit = {},
     onNavigateToCheckin: () -> Unit = {},
     onNavigateToRecruitment: () -> Unit = {},
-    onNavigateToUserQuery: () -> Unit = {},
+    onNavigateToUserQuery: () -> Unit,
+    onNavigateToActivityCheckin: () -> Unit = {},
     onNavigateToUpdate: () -> Unit = {},
     mainViewModel: MainViewModel = koinViewModel(),
     modifier: Modifier = Modifier
@@ -105,7 +106,11 @@ fun MainScreen(
                 selectedTab = selectedTab,
                 onTabChange = { mainViewModel.updateSelectedMainTab(it) },
                 homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
-                onHomeFeatureDrawerExpandedChange = { mainViewModel.updateHomeFeatureDrawerExpanded(it) },
+                onHomeFeatureDrawerExpandedChange = {
+                    mainViewModel.updateHomeFeatureDrawerExpanded(
+                        it
+                    )
+                },
                 academicFeatureDrawerExpanded = academicFeatureDrawerExpanded,
                 onAcademicFeatureDrawerExpandedChange = {
                     mainViewModel.updateAcademicFeatureDrawerExpanded(it)
@@ -123,6 +128,7 @@ fun MainScreen(
                 onNavigateToCheckin = onNavigateToCheckin,
                 onNavigateToRecruitment = onNavigateToRecruitment,
                 onNavigateToUserQuery = onNavigateToUserQuery,
+                onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                 onNavigateToUpdate = onNavigateToUpdate,
                 modifier = modifier
             )
@@ -134,7 +140,11 @@ fun MainScreen(
                 initialStartTab = defaultStartTab,
                 onTabChange = { mainViewModel.updateSelectedMainTab(it) },
                 homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
-                onHomeFeatureDrawerExpandedChange = { mainViewModel.updateHomeFeatureDrawerExpanded(it) },
+                onHomeFeatureDrawerExpandedChange = {
+                    mainViewModel.updateHomeFeatureDrawerExpanded(
+                        it
+                    )
+                },
                 academicFeatureDrawerExpanded = academicFeatureDrawerExpanded,
                 onAcademicFeatureDrawerExpandedChange = {
                     mainViewModel.updateAcademicFeatureDrawerExpanded(it)
@@ -152,6 +162,7 @@ fun MainScreen(
                 onNavigateToCheckin = onNavigateToCheckin,
                 onNavigateToRecruitment = onNavigateToRecruitment,
                 onNavigateToUserQuery = onNavigateToUserQuery,
+                onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                 onNavigateToUpdate = onNavigateToUpdate,
                 modifier = modifier
             )
@@ -185,6 +196,7 @@ private fun TabletLandscapeLayout(
     onNavigateToCheckin: () -> Unit,
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
+    onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -241,6 +253,7 @@ private fun TabletLandscapeLayout(
                     onNavigateToCheckin = onNavigateToCheckin,
                     onNavigateToRecruitment = onNavigateToRecruitment,
                     onNavigateToUserQuery = onNavigateToUserQuery,
+                    onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                     onNavigateToUpdate = onNavigateToUpdate
                 )
             }
@@ -274,6 +287,7 @@ private fun PhoneLayout(
     onNavigateToCheckin: () -> Unit,
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
+    onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -405,6 +419,7 @@ private fun PhoneLayout(
                     onNavigateToCheckin = onNavigateToCheckin,
                     onNavigateToRecruitment = onNavigateToRecruitment,
                     onNavigateToUserQuery = onNavigateToUserQuery,
+                    onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                     onNavigateToUpdate = onNavigateToUpdate
                 )
             }
@@ -494,6 +509,7 @@ private fun KeepAliveMainPages(
     onNavigateToCheckin: () -> Unit,
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
+    onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit
 ) {
     val orderedTabs = remember(selectedTab) {
@@ -505,42 +521,43 @@ private fun KeepAliveMainPages(
             // key(tab.index) 确保 Tab 顺序重排时 Compose 移动而非销毁重建 composable，
             // 避免抽屉状态（isInitialized、offsetYAnim 等）在每次切换时被重置
             key(tab.index) {
-            val isVisible = tab.index == selectedTab
+                val isVisible = tab.index == selectedTab
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawWithContent {
-                        if (isVisible) drawContent()
-                    }
-                    .graphicsLayer {
-                        alpha = if (isVisible) 1f else 0f
-                    }
-            ) {
-                MainTabPage(
-                    tabIndex = tab.index,
-                    isVisible = isVisible,
-                    bottomBarHeight = bottomBarHeight,
-                    homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
-                    onHomeFeatureDrawerExpandedChange = onHomeFeatureDrawerExpandedChange,
-                    academicFeatureDrawerExpanded = academicFeatureDrawerExpanded,
-                    onAcademicFeatureDrawerExpandedChange = onAcademicFeatureDrawerExpandedChange,
-                    onNavigateToLogin = onNavigateToLogin,
-                    onNavigateToChangePassword = onNavigateToChangePassword,
-                    onNavigateToGrades = onNavigateToGrades,
-                    onNavigateToGpa = onNavigateToGpa,
-                    onNavigateToExams = onNavigateToExams,
-                    onNavigateToAcademicMessages = onNavigateToAcademicMessages,
-                    onNavigateToDepartmentDetail = onNavigateToDepartmentDetail,
-                    onNavigateToStudyRequirement = onNavigateToStudyRequirement,
-                    onNavigateToCourseInfo = onNavigateToCourseInfo,
-                    onNavigateToAcademicStatus = onNavigateToAcademicStatus,
-                    onNavigateToCheckin = onNavigateToCheckin,
-                    onNavigateToRecruitment = onNavigateToRecruitment,
-                    onNavigateToUserQuery = onNavigateToUserQuery,
-                    onNavigateToUpdate = onNavigateToUpdate
-                )
-            }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .drawWithContent {
+                            if (isVisible) drawContent()
+                        }
+                        .graphicsLayer {
+                            alpha = if (isVisible) 1f else 0f
+                        }
+                ) {
+                    MainTabPage(
+                        tabIndex = tab.index,
+                        isVisible = isVisible,
+                        bottomBarHeight = bottomBarHeight,
+                        homeFeatureDrawerExpanded = homeFeatureDrawerExpanded,
+                        onHomeFeatureDrawerExpandedChange = onHomeFeatureDrawerExpandedChange,
+                        academicFeatureDrawerExpanded = academicFeatureDrawerExpanded,
+                        onAcademicFeatureDrawerExpandedChange = onAcademicFeatureDrawerExpandedChange,
+                        onNavigateToLogin = onNavigateToLogin,
+                        onNavigateToChangePassword = onNavigateToChangePassword,
+                        onNavigateToGrades = onNavigateToGrades,
+                        onNavigateToGpa = onNavigateToGpa,
+                        onNavigateToExams = onNavigateToExams,
+                        onNavigateToAcademicMessages = onNavigateToAcademicMessages,
+                        onNavigateToDepartmentDetail = onNavigateToDepartmentDetail,
+                        onNavigateToStudyRequirement = onNavigateToStudyRequirement,
+                        onNavigateToCourseInfo = onNavigateToCourseInfo,
+                        onNavigateToAcademicStatus = onNavigateToAcademicStatus,
+                        onNavigateToCheckin = onNavigateToCheckin,
+                        onNavigateToRecruitment = onNavigateToRecruitment,
+                        onNavigateToUserQuery = onNavigateToUserQuery,
+                        onNavigateToActivityCheckin = onNavigateToActivityCheckin,
+                        onNavigateToUpdate = onNavigateToUpdate
+                    )
+                }
             } // end key(tab.index)
         }
     }
@@ -568,6 +585,7 @@ private fun MainTabPage(
     onNavigateToCheckin: () -> Unit,
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
+    onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit
 ) {
     CompositionLocalProvider(LocalMainTabVisible provides isVisible) {
@@ -578,7 +596,8 @@ private fun MainTabPage(
                 onNavigateToRecruitment = onNavigateToRecruitment,
                 onNavigateToUserQuery = onNavigateToUserQuery,
                 featureDrawerExpanded = homeFeatureDrawerExpanded,
-                onFeatureDrawerExpandedChange = onHomeFeatureDrawerExpandedChange
+                onFeatureDrawerExpandedChange = onHomeFeatureDrawerExpandedChange,
+                onNavigateToActivityCheckin = onNavigateToActivityCheckin
             )
 
             MainTab.COURSE.index -> CourseScreen(

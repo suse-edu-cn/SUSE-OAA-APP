@@ -94,6 +94,7 @@ private val DateHeaderHeight = 32.dp
 private val CardVerticalPadding = 2.dp  // 上下各留的间距
 private val CardHorizontalPadding = 1.dp  // 左右各留的间距
 private val ConflictCardInnerSpacing = 2.dp
+
 // 当单列宽度低于此阈值时，启用手机端冲突策略：仅显示一张主卡片 + 冲突角标。
 private val CompactConflictColWidthThreshold = 62.dp
 
@@ -978,25 +979,27 @@ private fun ScheduleCourseOverlay(
         else preparedItems.filter { it.laneIndex == 0 }
     }
 
-    val preparedWithOverlapStatus = remember(visiblePreparedItems, overlapStatusMap, activeQueryCount) {
-        visiblePreparedItems.map { prepared ->
-            val status = if (activeQueryCount > 1) {
-                prepared.overlapStatus
-            } else {
-                val key = buildScheduleLayoutOverlapKey(prepared.layoutItem)
-                overlapStatusMap[key] ?: CourseOverlapStatus.NO_OVERLAP
+    val preparedWithOverlapStatus =
+        remember(visiblePreparedItems, overlapStatusMap, activeQueryCount) {
+            visiblePreparedItems.map { prepared ->
+                val status = if (activeQueryCount > 1) {
+                    prepared.overlapStatus
+                } else {
+                    val key = buildScheduleLayoutOverlapKey(prepared.layoutItem)
+                    overlapStatusMap[key] ?: CourseOverlapStatus.NO_OVERLAP
+                }
+                prepared to status
             }
-            prepared to status
         }
-    }
 
-    val filteredPreparedItems = remember(preparedWithOverlapStatus, overlapFilter, onlyShowOverlap) {
-        preparedWithOverlapStatus.filter { (_, status) ->
-            val keepByFilter = status.matchesFilter(overlapFilter)
-            val keepBySwitch = !onlyShowOverlap || status != CourseOverlapStatus.NO_OVERLAP
-            keepByFilter && keepBySwitch
+    val filteredPreparedItems =
+        remember(preparedWithOverlapStatus, overlapFilter, onlyShowOverlap) {
+            preparedWithOverlapStatus.filter { (_, status) ->
+                val keepByFilter = status.matchesFilter(overlapFilter)
+                val keepBySwitch = !onlyShowOverlap || status != CourseOverlapStatus.NO_OVERLAP
+                keepByFilter && keepBySwitch
+            }
         }
-    }
 
     Layout(content = {
         filteredPreparedItems.forEach { (prepared, overlapStatus) ->
@@ -1062,7 +1065,8 @@ private fun ScheduleCourseOverlay(
                 } else {
                     (availableColWidth - conflictInnerSpacingPx * (laneCount - 1)).coerceAtLeast(0f) / laneCount
                 }
-                val laneXOffset = if (isCompactConflictMode) 0f else prepared.laneIndex * (laneWidth + conflictInnerSpacingPx)
+                val laneXOffset =
+                    if (isCompactConflictMode) 0f else prepared.laneIndex * (laneWidth + conflictInnerSpacingPx)
 
                 placeable.place(
                     // 水平方向：列起始位置 + 左边距
@@ -1086,7 +1090,7 @@ private fun ScheduleCourseOverlay(
  * 结果由 [ScheduleCourseOverlay] 消费，用于手机/平板两种冲突显示模式。
  */
 private fun buildPreparedCardItems(
-    items: List<ScheduleLayoutItem>, 
+    items: List<ScheduleLayoutItem>,
     activeQueryCount: Int = 1,
     accountNameById: Map<String, String> = emptyMap()
 ): List<PreparedCardItem> {
@@ -1122,7 +1126,9 @@ private fun buildPreparedCardItems(
         clusters.forEach { cluster ->
             if (activeQueryCount > 1) {
                 // Shared Query mode: split cluster into atomic temporal segments for precise overlap representation
-                val boundaries = cluster.flatMap { listOf(it.startNodeIndex, it.endNodeIndex + 1) }.distinct().sorted()
+                val boundaries =
+                    cluster.flatMap { listOf(it.startNodeIndex, it.endNodeIndex + 1) }.distinct()
+                        .sorted()
 
                 var currentSegmentStart = -1
                 var currentSegmentEnd = -1
@@ -1130,17 +1136,21 @@ private fun buildPreparedCardItems(
 
                 fun emitSegment() {
                     if (currentSegmentItems.isEmpty()) return
-                    
-                    val clusterUniqueAccountsCount = cluster.map { it.course.course.studentId }.distinct().size
-                    val uniqueAccountsCount = currentSegmentItems.map { it.course.course.studentId }.distinct().size
-                    
+
+                    val clusterUniqueAccountsCount =
+                        cluster.map { it.course.course.studentId }.distinct().size
+                    val uniqueAccountsCount =
+                        currentSegmentItems.map { it.course.course.studentId }.distinct().size
+
                     val status = when {
                         clusterUniqueAccountsCount <= 1 -> CourseOverlapStatus.NO_OVERLAP
                         uniqueAccountsCount >= activeQueryCount -> CourseOverlapStatus.OVERLAP
                         else -> CourseOverlapStatus.PARTIAL_OVERLAP
                     }
 
-                    val accountNames = currentSegmentItems.map { it.course.course.studentId }.distinct().map { id -> accountNameById[id] ?: id }
+                    val accountNames =
+                        currentSegmentItems.map { it.course.course.studentId }.distinct()
+                            .map { id -> accountNameById[id] ?: id }
                     val accountText = accountNames.joinToString("\n")
 
                     val statusText = overlapFilterLabel(
@@ -1151,12 +1161,13 @@ private fun buildPreparedCardItems(
                         }
                     )
 
-                    val representativeItem = currentSegmentItems.minByOrNull { it.startNodeIndex } ?: currentSegmentItems.first()
+                    val representativeItem = currentSegmentItems.minByOrNull { it.startNodeIndex }
+                        ?: currentSegmentItems.first()
                     val unifiedItem = representativeItem.copy(
                         startNodeIndex = currentSegmentStart,
                         endNodeIndex = currentSegmentEnd
                     )
-                    
+
                     val baseColor = overlapFilterColor(
                         when (status) {
                             CourseOverlapStatus.NO_OVERLAP -> OverlapDisplayFilter.NO_OVERLAP
@@ -1164,7 +1175,7 @@ private fun buildPreparedCardItems(
                             CourseOverlapStatus.PARTIAL_OVERLAP -> OverlapDisplayFilter.PARTIAL_OVERLAP
                         }
                     )
-                    
+
                     result.add(
                         PreparedCardItem(
                             layoutItem = unifiedItem,
@@ -1183,13 +1194,16 @@ private fun buildPreparedCardItems(
                     val segEnd = boundaries[i + 1] - 1
                     if (segStart > segEnd) continue
 
-                    val segItems = cluster.filter { it.startNodeIndex <= segStart && it.endNodeIndex >= segEnd }
+                    val segItems =
+                        cluster.filter { it.startNodeIndex <= segStart && it.endNodeIndex >= segEnd }
                     if (segItems.isEmpty()) continue
 
                     // Match item sets by examining if they contain exactly the same courses
-                    val hasSameCourses = currentSegmentItems.size == segItems.size && 
-                        currentSegmentItems.map { it.course.course.studentId + it.course.course.courseName }.toSet() == 
-                        segItems.map { it.course.course.studentId + it.course.course.courseName }.toSet()
+                    val hasSameCourses = currentSegmentItems.size == segItems.size &&
+                            currentSegmentItems.map { it.course.course.studentId + it.course.course.courseName }
+                                .toSet() ==
+                            segItems.map { it.course.course.studentId + it.course.course.courseName }
+                                .toSet()
 
                     if (hasSameCourses && currentSegmentEnd + 1 == segStart) {
                         currentSegmentEnd = segEnd
@@ -1498,7 +1512,10 @@ fun StaticGridBackground(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Floa
 
 @Composable
 fun DynamicDateRow(startDate: LocalDate) {
-    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    val today = remember {
+        com.suseoaa.projectoaa.shared.util.OaaClock.now()
+            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+    }
     val dateFontSize = timetableAdaptiveSp(
         baseSp = 11f,
         minSp = 9f,
@@ -1538,7 +1555,8 @@ fun DynamicDateRow(startDate: LocalDate) {
 
 @Composable
 fun HighlightTodayColumn(weekStartDate: LocalDate, maxWidth: Dp) {
-    val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+    val today = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
     val daysBetween = weekStartDate.daysUntil(today)
     if (daysBetween in 0..6) {
         val density = LocalDensity.current
@@ -1569,7 +1587,7 @@ fun CourseDetailContent(
     modifier: Modifier = Modifier
 ) {
     var expandedItemIndex by remember { mutableStateOf<Int?>(null) }
-    
+
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -1648,7 +1666,9 @@ fun CourseDetailContent(
                                     .fillMaxWidth()
                                     .clickable { expandedItemIndex = index },
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                        alpha = 0.5f
+                                    )
                                 ),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
@@ -1661,7 +1681,8 @@ fun CourseDetailContent(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = accountNameById[item.course.course.studentId] ?: item.course.course.studentId, // Use resolved account name
+                                            text = accountNameById[item.course.course.studentId]
+                                                ?: item.course.course.studentId, // Use resolved account name
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -2153,7 +2174,9 @@ private fun OverlapAccountSelectionDialog(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(
-                                    if (checked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                    if (checked) MaterialTheme.colorScheme.primaryContainer.copy(
+                                        alpha = 0.5f
+                                    )
                                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
                                 )
                                 .clickable {
@@ -3135,7 +3158,7 @@ private fun TermWheelPicker(
                     optionCount = options.size
                 )
                 val shouldSnap = listState.firstVisibleItemIndex != targetIndex ||
-                    listState.firstVisibleItemScrollOffset != 0
+                        listState.firstVisibleItemScrollOffset != 0
                 if (shouldSnap) {
                     listState.animateScrollToItem(targetIndex)
                 }

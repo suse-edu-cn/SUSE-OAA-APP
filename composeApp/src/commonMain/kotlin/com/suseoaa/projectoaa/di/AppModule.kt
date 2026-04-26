@@ -49,7 +49,13 @@ val appModule = module {
 
     // 打卡 ViewModel (同时注入两个 Repository)
     viewModel { CheckinViewModel(get(), get()) }
-    
+
     // 招新换届
     viewModel { com.suseoaa.projectoaa.presentation.recruitment.RecruitmentViewModel(get(), get()) }
+
+    // 近场活动签到
+    viewModel { com.suseoaa.projectoaa.presentation.checkin.ActivityCheckinViewModel(get(), get()) }
+
+    // 工具类
+    single { com.suseoaa.projectoaa.util.ToastManager }
 }

@@ -1,0 +1,44 @@
+CREATE TABLE NearFieldTask (
+    taskIdentifier TEXT PRIMARY KEY NOT NULL,
+    activityName TEXT NOT NULL,
+    hostName TEXT NOT NULL,
+    startTime INTEGER NOT NULL,
+    endTime INTEGER NOT NULL,
+    publishTimestamp INTEGER NOT NULL,
+    securityNonce TEXT NOT NULL,
+    isMyHosted INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE NearFieldParticipant (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    taskIdentifier TEXT NOT NULL,
+    participantName TEXT NOT NULL,
+    participantId TEXT NOT NULL,
+    checkinTime INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT '正常',
+    FOREIGN KEY (taskIdentifier) REFERENCES NearFieldTask(taskIdentifier) ON DELETE CASCADE,
+    UNIQUE(taskIdentifier, participantId)
+);
+
+-- Queries
+insertTask:
+INSERT OR REPLACE INTO NearFieldTask (taskIdentifier, activityName, hostName, startTime, endTime, publishTimestamp, securityNonce, isMyHosted)
+VALUES (:taskIdentifier, :activityName, :hostName, :startTime, :endTime, :publishTimestamp, :securityNonce, 
+    MAX(COALESCE((SELECT isMyHosted FROM NearFieldTask WHERE taskIdentifier = :taskIdentifier), 0), :isMyHosted)
+);
+
+insertParticipant:
+INSERT OR REPLACE INTO NearFieldParticipant (taskIdentifier, participantName, participantId, checkinTime, status)
+VALUES (?, ?, ?, ?, ?);
+
+getAllTasks:
+SELECT * FROM NearFieldTask ORDER BY publishTimestamp DESC;
+
+getParticipantsForTask:
+SELECT * FROM NearFieldParticipant WHERE taskIdentifier = ? ORDER BY checkinTime ASC;
+
+deleteTask:
+DELETE FROM NearFieldTask WHERE taskIdentifier = ?;
+
+deleteParticipant:
+DELETE FROM NearFieldParticipant WHERE id = ?;
