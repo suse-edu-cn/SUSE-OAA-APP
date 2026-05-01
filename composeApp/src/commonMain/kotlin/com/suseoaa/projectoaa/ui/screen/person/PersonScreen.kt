@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,12 +56,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.suseoaa.projectoaa.presentation.update.getAppVersionName
+import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinViewModel
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
 import com.suseoaa.projectoaa.presentation.update.UpdateEvent
 import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.LocalMainTabVisible
 import com.suseoaa.projectoaa.ui.component.UpdateDialog
+import com.suseoaa.projectoaa.ui.screen.checkin.ScheduledCheckinDialog
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.pickImageForAvatar
 import com.suseoaa.projectoaa.util.showToast
@@ -115,11 +118,13 @@ fun PersonScreen(
     onNavigateToUpdate: () -> Unit = {},
     bottomBarHeight: Dp = 0.dp,
     viewModel: PersonViewModel = koinViewModel(),
-    updateViewModel: AppUpdateViewModel = koinViewModel()
+    updateViewModel: AppUpdateViewModel = koinViewModel(),
+    scheduledCheckinViewModel: ScheduledCheckinViewModel = koinViewModel()
 ) {
     val isMainTabVisible = LocalMainTabVisible.current
     val uiState by viewModel.uiState.collectAsState()
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val scheduledCheckinUiState by scheduledCheckinViewModel.uiState.collectAsState()
 
     // 更新相关状态
     var showUpdateDialog by remember { mutableStateOf(false) }
@@ -130,6 +135,7 @@ fun PersonScreen(
     var showAvatarDialog by remember { mutableStateOf(false) }
     var showPaletteDialog by remember { mutableStateOf(false) }
     var showStartTabDialog by remember { mutableStateOf(false) }
+    var showScheduledCheckinDialog by remember { mutableStateOf(false) }
 
     // 监听登出
     LaunchedEffect(uiState.isLoggedOut) {
@@ -232,6 +238,27 @@ fun PersonScreen(
                 viewModel.saveDefaultStartTab(tabIndex)
                 showStartTabDialog = false
             }
+        )
+    }
+
+    // 定时签到弹窗
+    if (showScheduledCheckinDialog) {
+        LaunchedEffect(Unit) {
+            scheduledCheckinViewModel.show()
+        }
+        ScheduledCheckinDialog(
+            uiState = scheduledCheckinUiState,
+            onDismiss = {
+                showScheduledCheckinDialog = false
+                scheduledCheckinViewModel.dismiss()
+            },
+            onToggleEnabled = { scheduledCheckinViewModel.toggleEnabled() },
+            onSetHour = { scheduledCheckinViewModel.setHour(it) },
+            onSetMinute = { scheduledCheckinViewModel.setMinute(it) },
+            onSetRetryCount = { scheduledCheckinViewModel.setRetryCount(it) },
+            onSetRetryInterval = { scheduledCheckinViewModel.setRetryInterval(it) },
+            onToggleAccount = { scheduledCheckinViewModel.toggleAccount(it) },
+            onSave = { scheduledCheckinViewModel.saveConfig() }
         )
     }
 
@@ -372,6 +399,23 @@ fun PersonScreen(
                                     subtitle = "快速签到打卡",
                                     modifier = Modifier.sharedBoundsTransition("checkin"),
                                     onClick = onNavigateToCheckin
+                                )
+                            }
+
+                            // 定时签到入口
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                val schedulerConfig = scheduledCheckinUiState.config
+                                SettingCard(
+                                    icon = Icons.Default.Schedule,
+                                    title = "定时签到",
+                                    subtitle = if (schedulerConfig.enabled) {
+                                        "每天 ${schedulerConfig.scheduledHour.toString().padStart(2, '0')}:${schedulerConfig.scheduledMinute.toString().padStart(2, '0')} 自动签到 ${schedulerConfig.targetAccountIds.size} 个账号"
+                                    } else {
+                                        "未启用"
+                                    },
+                                    modifier = Modifier.sharedBoundsTransition("scheduled_checkin"),
+                                    showBadge = scheduledCheckinUiState.schedulerStatus is com.suseoaa.projectoaa.presentation.checkin.SchedulerStatus.Running,
+                                    onClick = { showScheduledCheckinDialog = true }
                                 )
                             }
                         }

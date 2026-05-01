@@ -108,6 +108,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.koin.android)
 
+            // Lifecycle Process (用于 App 生命周期监听)
+            implementation("androidx.lifecycle:lifecycle-process:2.8.5")
+
             // Compose Preview
             implementation(compose.preview)
 

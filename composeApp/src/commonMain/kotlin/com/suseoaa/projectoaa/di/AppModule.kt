@@ -3,7 +3,10 @@ package com.suseoaa.projectoaa.di
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.changePassword.ChangePasswordViewModel
+import com.suseoaa.projectoaa.presentation.checkin.CheckinScheduler
 import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
+import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinManager
+import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinViewModel
 import com.suseoaa.projectoaa.presentation.course.CourseViewModel
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
@@ -49,6 +52,11 @@ val appModule = module {
 
     // 打卡 ViewModel (同时注入两个 Repository)
     viewModel { CheckinViewModel(get(), get()) }
+
+    // 定时签到
+    single { ScheduledCheckinManager(get()) }
+    single { CheckinScheduler(get(), get()) }
+    viewModel { ScheduledCheckinViewModel(get(), get(), get()) }
 
     // 招新换届
     viewModel { com.suseoaa.projectoaa.presentation.recruitment.RecruitmentViewModel(get(), get()) }
