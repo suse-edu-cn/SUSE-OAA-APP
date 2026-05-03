@@ -3,6 +3,7 @@ package com.suseoaa.projectoaa.di
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.changePassword.ChangePasswordViewModel
+import com.suseoaa.projectoaa.presentation.checkin.CheckinExecutor
 import com.suseoaa.projectoaa.presentation.checkin.CheckinScheduler
 import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
 import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinManager
@@ -55,8 +56,9 @@ val appModule = module {
 
     // 定时签到
     single { ScheduledCheckinManager(get()) }
-    single { CheckinScheduler(get(), get()) }
-    viewModel { ScheduledCheckinViewModel(get(), get(), get()) }
+    single { CheckinExecutor(get()) }
+    single { CheckinScheduler(get(), get(), get()) }
+    viewModel { ScheduledCheckinViewModel(get(), get(), get(), get()) }
 
     // 招新换届
     viewModel { com.suseoaa.projectoaa.presentation.recruitment.RecruitmentViewModel(get(), get()) }

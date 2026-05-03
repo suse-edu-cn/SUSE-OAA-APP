@@ -15,6 +15,10 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" />
 
+    <!-- 定时签到后台执行权限 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:name="com.suseoaa.projectoaa.OaaApplication"
         android:allowBackup="true"
@@ -46,6 +50,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 定时签到闹钟接收器 -->
+        <receiver
+            android:name="com.suseoaa.projectoaa.scheduling.CheckinAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.suseoaa.projectoaa.CHECKIN_ALARM" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 开机重注册闹钟 -->
+        <receiver
+            android:name="com.suseoaa.projectoaa.scheduling.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

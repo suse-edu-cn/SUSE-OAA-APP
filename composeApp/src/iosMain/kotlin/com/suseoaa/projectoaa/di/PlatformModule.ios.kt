@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.di
 
 import com.suseoaa.projectoaa.data.repository.AppUpdateRepository
+import com.suseoaa.projectoaa.scheduling.PlatformCheckinScheduler
 import org.koin.dsl.module
 import platform.Foundation.*
 
@@ -16,4 +17,7 @@ actual fun platformModule() = module {
             currentVersionName = currentVersion
         )
     }
+
+    // 定时签到平台调度器
+    single { PlatformCheckinScheduler() }
 }

@@ -4,6 +4,8 @@ import android.app.Application
 import com.suseoaa.projectoaa.di.appModule
 import com.suseoaa.projectoaa.di.platformModule
 import com.suseoaa.projectoaa.presentation.checkin.CheckinScheduler
+import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinManager
+import com.suseoaa.projectoaa.scheduling.CheckinAlarmManager
 import com.suseoaa.projectoaa.shared.di.getSharedModules
 import com.suseoaa.projectoaa.util.AppLifecycleObserver
 import org.koin.android.ext.koin.androidContext
@@ -34,6 +36,19 @@ class OaaApplication : Application() {
             val koin = GlobalContext.get()
             val scheduler = koin.get<CheckinScheduler>()
             scheduler.start()
+
+            // 注册系统闹钟，确保后台也能触发
+            kotlinx.coroutines.runBlocking {
+                try {
+                    val manager = koin.get<ScheduledCheckinManager>()
+                    val config = manager.getConfig()
+                    if (config.enabled && config.targetAccountIds.isNotEmpty()) {
+                        CheckinAlarmManager.scheduleNextAlarm(this@OaaApplication, config)
+                    }
+                } catch (e: Exception) {
+                    println("[OaaApplication] 注册签到闹钟失败: ${e.message}")
+                }
+            }
 
             lifecycleObserver = AppLifecycleObserver(this).apply {
                 startObserving(

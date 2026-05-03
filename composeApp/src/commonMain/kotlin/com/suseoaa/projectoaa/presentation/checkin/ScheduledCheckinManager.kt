@@ -4,9 +4,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.suseoaa.projectoaa.shared.util.OaaClock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -23,7 +26,8 @@ data class SchedulerConfig(
     val maxRetryCount: Int = 3,
     val retryIntervalMinutes: Int = 5,
     val lastRunTimestamp: String? = null,
-    val lastRunResult: String? = null
+    val lastRunResult: String? = null,
+    val lastRunDate: String? = null
 )
 
 /**
@@ -51,6 +55,18 @@ class ScheduledCheckinManager(private val dataStore: DataStore<Preferences>) {
     suspend fun updateLastRun(timestamp: String, result: String) {
         val current = getConfig()
         saveConfig(current.copy(lastRunTimestamp = timestamp, lastRunResult = result))
+    }
+
+    suspend fun updateLastRunDate(date: String) {
+        val current = getConfig()
+        saveConfig(current.copy(lastRunDate = date))
+    }
+
+    fun hasAlreadyRunToday(config: SchedulerConfig): Boolean {
+        val today = OaaClock.now()
+            .toLocalDateTime(TimeZone.of("Asia/Shanghai"))
+            .date.toString()
+        return config.lastRunDate == today
     }
 
     companion object {

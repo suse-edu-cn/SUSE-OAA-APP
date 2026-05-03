@@ -51,5 +51,13 @@
 	</dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.suseoaa.projectoaa.checkin-refresh</string>
+	</array>
 </dict>
 </plist>

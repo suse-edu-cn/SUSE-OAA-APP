@@ -2,6 +2,7 @@ package com.suseoaa.projectoaa.presentation.checkin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.scheduling.PlatformCheckinScheduler
 import com.suseoaa.projectoaa.shared.data.repository.CheckinRepository
 import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinAccountData
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +30,8 @@ data class ScheduledCheckinUiState(
 class ScheduledCheckinViewModel(
     private val scheduledCheckinManager: ScheduledCheckinManager,
     private val checkinRepository: CheckinRepository,
-    private val checkinScheduler: CheckinScheduler
+    private val checkinScheduler: CheckinScheduler,
+    private val platformCheckinScheduler: PlatformCheckinScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScheduledCheckinUiState())
@@ -146,15 +148,18 @@ class ScheduledCheckinViewModel(
                 maxRetryCount = state.config.maxRetryCount,
                 retryIntervalMinutes = state.config.retryIntervalMinutes,
                 lastRunTimestamp = state.config.lastRunTimestamp,
-                lastRunResult = state.config.lastRunResult
+                lastRunResult = state.config.lastRunResult,
+                lastRunDate = state.config.lastRunDate
             )
 
             scheduledCheckinManager.saveConfig(config)
 
             if (config.enabled && config.targetAccountIds.isNotEmpty()) {
                 checkinScheduler.start()
+                platformCheckinScheduler.schedule(config)
             } else {
                 checkinScheduler.stop()
+                platformCheckinScheduler.cancel()
             }
 
             _uiState.update { it.copy(isSaving = false, showDialog = false) }
