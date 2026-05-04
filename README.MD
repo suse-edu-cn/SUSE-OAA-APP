@@ -572,7 +572,7 @@ open iosApp/iosApp.xcodeproj   # 在 Xcode 中 Run (⌘R)
 
 <div align="center">
 
-**Made with ❤️ by SUSE OAA Team**
+**Made with  by SUSE OAA Team**
 
 [⬆ 返回顶部](#-青蟹-project-oaa)
 
