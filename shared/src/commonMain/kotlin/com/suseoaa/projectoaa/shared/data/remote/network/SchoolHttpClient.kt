@@ -82,12 +82,8 @@ object SchoolHttpClient {
                 storage = cookieStorage
             }
 
-            // 添加默认请求头（模拟浏览器）
+            // 添加默认请求头（不硬编码User-Agent）
             defaultRequest {
-                if (!headers.contains("User-Agent")) headers.append(
-                    "User-Agent",
-                    "Mozilla/5.0 (Linux; Android 13; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
-                )
                 if (!headers.contains("Accept-Language")) headers.append(
                     "Accept-Language",
                     "zh-CN,zh;q=0.9"

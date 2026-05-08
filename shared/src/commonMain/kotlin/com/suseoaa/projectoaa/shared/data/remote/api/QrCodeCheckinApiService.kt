@@ -142,10 +142,6 @@ class QrCodeCheckinApiService(private val httpClient: HttpClient) {
             header("Accept-Language", "zh-CN,zh;q=0.9")
             header("Cookie", sopSessionCookie)
             header("Referer", "$QFHY_BASE/xg/app/qddk/admin?open_id=$openId")
-            header(
-                "User-Agent",
-                "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-            )
         }
     }
 
@@ -164,10 +160,6 @@ class QrCodeCheckinApiService(private val httpClient: HttpClient) {
             header("Accept-Language", "zh-CN,zh;q=0.9")
             header("Cookie", sopSessionCookie)
             header("Referer", "$QFHY_BASE/edu/")
-            header(
-                "User-Agent",
-                "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-            )
         }
     }
 
