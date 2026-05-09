@@ -66,6 +66,11 @@ class LoginViewModel(
                 }
                 tokenManager.saveCurrentStudentId(cleanAccount)
 
+                // 将密码保存下来供之后在后台刷新 token 使用
+                viewModelScope.launch {
+                    tokenManager.savePassword(cleanPassword)
+                }
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,

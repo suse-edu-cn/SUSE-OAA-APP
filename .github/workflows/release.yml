@@ -52,17 +52,40 @@ jobs:
           # 获取上一个 tag 的名字
           PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           
-          # 指定输出格式为纯文本，并且过滤掉 Merge Commit
+          # 获取提交记录
           if [ -z "$PREV_TAG" ]; then
             echo "没有找到上一个 tag，获取所有提交记录。"
-            LOGS=$(git log --no-merges --pretty=format:"- %s")
+            LOGS=$(git log --no-merges --pretty=format:"%s")
           else
             echo "上一个 tag: $PREV_TAG"
-            LOGS=$(git log $PREV_TAG..HEAD --no-merges --pretty=format:"- %s")
+            LOGS=$(git log $PREV_TAG..HEAD --no-merges --pretty=format:"%s")
           fi
           
-          # 将日志写入文件（解决多行输出的问题），作为 Release 的正文
-          echo "$LOGS" > changelog.txt
+          FEATS=""
+          FIXES=""
+          
+          # 解析提交记录
+          while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ $line =~ ^feat:[[:space:]]*(.*) ]]; then
+              FEATS+="- ${BASH_REMATCH[1]}"$'\n'
+            elif [[ $line =~ ^fix:[[:space:]]*(.*) ]]; then
+              FIXES+="- ${BASH_REMATCH[1]}"$'\n'
+            elif [[ $line =~ ^tmp: ]]; then
+              continue
+            fi
+          done <<< "$LOGS"
+          
+          # 构建更新日志
+          CHANGELOG=""
+          if [ -n "$FEATS" ]; then
+            CHANGELOG+="### 功能"$'\n'"$FEATS"$'\n'
+          fi
+          if [ -n "$FIXES" ]; then
+            CHANGELOG+="### 修复"$'\n'"$FIXES"$'\n'
+          fi
+          
+          # 将日志写入文件，作为 Release 的正文
+          echo "$CHANGELOG" > changelog.txt
           cat changelog.txt
           
       - name: Setup Java

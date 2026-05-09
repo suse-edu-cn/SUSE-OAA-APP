@@ -13,12 +13,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.suseoaa.projectoaa.shared.data.repository.OaaAuthRepository
+import com.suseoaa.projectoaa.shared.util.OaaClock
 
 /**
  * 主 ViewModel - 管理应用级状态
  */
 class MainViewModel(
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val oaaAuthRepository: OaaAuthRepository
 ) : ViewModel() {
 
     private val _selectedMainTab = MutableStateFlow(0)
@@ -36,6 +39,32 @@ class MainViewModel(
             val startTab = tokenManager.defaultStartTabFlow.first()
             if (startTab != 0) {
                 _selectedMainTab.value = startTab
+            }
+        }
+
+        // 检查 Token 是否需要刷新
+        viewModelScope.launch {
+            val isLoggedIn = tokenManager.isLoggedIn.first()
+            if (isLoggedIn) {
+                val currentStudentId = tokenManager.currentStudentId.first()
+                val userPassword = tokenManager.getPasswordSynchronously()
+
+                if (!currentStudentId.isNullOrEmpty() && !userPassword.isNullOrEmpty()) {
+                    val lastUpdateTime = tokenManager.getTokenLastUpdateTime()
+                    val currentTime = OaaClock.now().toEpochMilliseconds()
+                    val tenDaysInMillis = 10L * 24 * 60 * 60 * 1000
+
+                    if (lastUpdateTime == 0L || (currentTime - lastUpdateTime > tenDaysInMillis)) {
+                        // 执行一次登录以刷新 local token
+                        val result = oaaAuthRepository.login(currentStudentId, userPassword)
+                        result.onSuccess { response ->
+                            response.data?.token?.let { token ->
+                                tokenManager.saveToken(token)
+                            }
+                            tokenManager.saveTokenLastUpdateTime(currentTime)
+                        }
+                    }
+                }
             }
         }
     }

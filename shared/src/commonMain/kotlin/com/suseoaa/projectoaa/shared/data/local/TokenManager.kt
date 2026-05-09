@@ -19,6 +19,8 @@ object PreferencesKeys {
     val USER_TOKEN = stringPreferencesKey("jwt_token")
     val USER_ID = stringPreferencesKey("user_id")
     val CURRENT_STUDENT_ID = stringPreferencesKey("current_student_id")
+    val USER_PASSWORD = stringPreferencesKey("user_password")
+    val TOKEN_LAST_UPDATE_TIME = stringPreferencesKey("token_last_update_time")
     val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
     
     // 用户绩点计算相关
@@ -115,6 +117,26 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
             preferences[PreferencesKeys.IS_LOGGED_IN] = true
         }
         cachedToken = token
+    }
+
+    suspend fun savePassword(password: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USER_PASSWORD] = password
+        }
+    }
+
+    suspend fun getPasswordSynchronously(): String? {
+        return dataStore.data.map { it[PreferencesKeys.USER_PASSWORD] }.first()
+    }
+
+    suspend fun saveTokenLastUpdateTime(timestamp: Long) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.TOKEN_LAST_UPDATE_TIME] = timestamp.toString()
+        }
+    }
+
+    suspend fun getTokenLastUpdateTime(): Long {
+        return dataStore.data.map { it[PreferencesKeys.TOKEN_LAST_UPDATE_TIME]?.toLongOrNull() ?: 0L }.first()
     }
 
     suspend fun saveCurrentStudentId(studentId: String) {
