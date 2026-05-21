@@ -25,8 +25,46 @@ class MainActivity : ComponentActivity() {
             CaptchaOcrRecognizer.initialize(this@MainActivity)
         }
 
+        // 请求通知权限并启动课程提醒服务
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val requestPermissionLauncher = registerForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+            ) { isGranted: Boolean ->
+                if (isGranted) {
+                    startCourseReminderService()
+                }
+            }
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                startCourseReminderService()
+            }
+        } else {
+            startCourseReminderService()
+        }
+
         setContent {
             App()
+        }
+    }
+
+    private fun startCourseReminderService() {
+        try {
+            val serviceIntent = android.content.Intent(
+                this,
+                com.suseoaa.projectoaa.scheduling.CourseReminderService::class.java
+            )
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

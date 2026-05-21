@@ -78,6 +78,15 @@ class CheckinAlarmReceiver : BroadcastReceiver() {
                 val today = OaaClock.now()
                     .toLocalDateTime(TimeZone.of("Asia/Shanghai")).date.toString()
                 manager.updateLastRunDate(today)
+                
+                // 不管有没有在软件内，都使用 Toast 提示结果
+                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(
+                        context.applicationContext,
+                        "自动签到: ${result.summary}",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
 
                 // 重新调度下一天的闹钟
                 val freshConfig = manager.getConfig()

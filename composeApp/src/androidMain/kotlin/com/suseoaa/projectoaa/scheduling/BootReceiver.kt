@@ -33,6 +33,19 @@ class BootReceiver : BroadcastReceiver() {
                     CheckinAlarmManager.scheduleNextAlarm(context, config)
                     println("[BootReceiver] 开机后重新注册签到闹钟")
                 }
+
+                // 开机拉起常驻课表提醒服务
+                try {
+                    val serviceIntent = Intent(context, CourseReminderService::class.java)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        context.startForegroundService(serviceIntent)
+                    } else {
+                        context.startService(serviceIntent)
+                    }
+                    println("[BootReceiver] 开机拉起课程提醒服务")
+                } catch (e: Exception) {
+                    println("[BootReceiver] 拉起课程提醒服务失败: ${e.message}")
+                }
             } catch (e: Exception) {
                 println("[BootReceiver] 重新注册闹钟失败: ${e.message}")
             } finally {
