@@ -109,6 +109,11 @@ class CheckinScheduler(
         _status.value = SchedulerStatus.Completed(executionResult.summary)
         scheduledCheckinManager.updateLastRun(CheckinTimeCalculator.formatCurrentTime(), executionResult.summary)
 
+        // 在 App 内部运行时，也通过 ToastManager 推送 Toast
+        for (msg in executionResult.messages) {
+            com.suseoaa.projectoaa.util.ToastManager.showToast(msg)
+        }
+
         val today = OaaClock.now().toLocalDateTime(TimeZone.of("Asia/Shanghai")).date.toString()
         scheduledCheckinManager.updateLastRunDate(today)
     }

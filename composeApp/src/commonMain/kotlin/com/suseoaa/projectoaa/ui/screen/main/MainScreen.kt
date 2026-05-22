@@ -291,7 +291,7 @@ private fun PhoneLayout(
     onNavigateToUpdate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pagerState = rememberPagerState(initialPage = initialStartTab, pageCount = { 4 })
+    val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
     val scope = rememberCoroutineScope()
     var isIndicatorDragging by remember { mutableStateOf(false) }
     var isProgrammaticTabTransition by remember { mutableStateOf(false) }

@@ -22,6 +22,9 @@
     <!-- 定时签到后台执行权限 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Android 12+ 精确闹钟权限，setAlarmClock() 依赖此权限 -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <!-- 课程提醒常驻前台服务权限 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

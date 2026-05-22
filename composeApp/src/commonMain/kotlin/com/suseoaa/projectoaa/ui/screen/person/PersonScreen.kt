@@ -255,6 +255,7 @@ fun PersonScreen(
             onToggleEnabled = { scheduledCheckinViewModel.toggleEnabled() },
             onSetHour = { scheduledCheckinViewModel.setHour(it) },
             onSetMinute = { scheduledCheckinViewModel.setMinute(it) },
+            onSetSecond = { scheduledCheckinViewModel.setSecond(it) },
             onSetRetryCount = { scheduledCheckinViewModel.setRetryCount(it) },
             onSetRetryInterval = { scheduledCheckinViewModel.setRetryInterval(it) },
             onToggleAccount = { scheduledCheckinViewModel.toggleAccount(it) },
@@ -409,7 +410,7 @@ fun PersonScreen(
                                     icon = Icons.Default.Schedule,
                                     title = "定时签到",
                                     subtitle = if (schedulerConfig.enabled) {
-                                        "每天 ${schedulerConfig.scheduledHour.toString().padStart(2, '0')}:${schedulerConfig.scheduledMinute.toString().padStart(2, '0')} 自动签到 ${schedulerConfig.targetAccountIds.size} 个账号"
+                                        "每天 ${schedulerConfig.scheduledHour.toString().padStart(2, '0')}:${schedulerConfig.scheduledMinute.toString().padStart(2, '0')}:${schedulerConfig.scheduledSecond.toString().padStart(2, '0')} 自动签到 ${schedulerConfig.targetAccountIds.size} 个账号"
                                     } else {
                                         "未启用"
                                     },

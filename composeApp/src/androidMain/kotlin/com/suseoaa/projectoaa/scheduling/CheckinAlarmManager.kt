@@ -20,16 +20,50 @@ object CheckinAlarmManager {
         val pendingIntent = createPendingIntent(context)
 
         val triggerTimeMillis = CheckinTimeCalculator.calculateNextRunTimeEpochMillis(
-            config.scheduledHour, config.scheduledMinute
+            config.scheduledHour, config.scheduledMinute, config.scheduledSecond
         )
 
+        println("[CheckinAlarmManager] 准备设置闹钟: ${CheckinTimeCalculator.formatTime(config.scheduledHour, config.scheduledMinute, config.scheduledSecond)}, trigger=$triggerTimeMillis")
+
         try {
-            alarmManager.setAlarmClock(
-                AlarmManager.AlarmClockInfo(triggerTimeMillis, pendingIntent),
-                pendingIntent
-            )
-            println("[CheckinAlarmManager] 闹钟已设置: ${CheckinTimeCalculator.formatTime(config.scheduledHour, config.scheduledMinute)}, 触发时间: $triggerTimeMillis")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Android 12+ 需要检查精确闹钟权限
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setAlarmClock(
+                        AlarmManager.AlarmClockInfo(triggerTimeMillis, pendingIntent),
+                        pendingIntent
+                    )
+                    println("[CheckinAlarmManager] 精确闹钟已设置 (setAlarmClock)")
+                } else {
+                    // 没有精确闹钟权限，使用 setAndAllowWhileIdle 作为备用（精度较低但可用）
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTimeMillis,
+                        pendingIntent
+                    )
+                    println("[CheckinAlarmManager] 无精确闹钟权限，使用 setAndAllowWhileIdle 备用方案")
+                }
+            } else {
+                // Android 12 以下直接使用精确闹钟
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(triggerTimeMillis, pendingIntent),
+                    pendingIntent
+                )
+                println("[CheckinAlarmManager] 精确闹钟已设置 (legacy)")
+            }
         } catch (e: SecurityException) {
+            println("[CheckinAlarmManager] 设置精确闹钟失败(SecurityException): ${e.message}，尝试备用方案")
+            try {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTimeMillis,
+                    pendingIntent
+                )
+                println("[CheckinAlarmManager] 备用闹钟已设置 (setAndAllowWhileIdle)")
+            } catch (e2: Exception) {
+                println("[CheckinAlarmManager] 备用闹钟也设置失败: ${e2.message}")
+            }
+        } catch (e: Exception) {
             println("[CheckinAlarmManager] 设置闹钟失败: ${e.message}")
         }
     }
@@ -39,6 +73,19 @@ object CheckinAlarmManager {
         val pendingIntent = createPendingIntent(context)
         alarmManager.cancel(pendingIntent)
         println("[CheckinAlarmManager] 闹钟已取消")
+    }
+
+    fun isAlarmScheduled(context: Context): Boolean {
+        val intent = Intent(ACTION_CHECKIN_ALARM).apply {
+            setPackage(context.packageName)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        return pendingIntent != null
     }
 
     private fun createPendingIntent(context: Context): PendingIntent {

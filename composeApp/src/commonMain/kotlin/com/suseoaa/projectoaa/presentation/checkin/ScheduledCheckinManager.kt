@@ -23,6 +23,7 @@ data class SchedulerConfig(
     val targetAccountIds: List<Long> = emptyList(),
     val scheduledHour: Int = 7,
     val scheduledMinute: Int = 0,
+    val scheduledSecond: Int = 0,
     val maxRetryCount: Int = 3,
     val retryIntervalMinutes: Int = 5,
     val lastRunTimestamp: String? = null,

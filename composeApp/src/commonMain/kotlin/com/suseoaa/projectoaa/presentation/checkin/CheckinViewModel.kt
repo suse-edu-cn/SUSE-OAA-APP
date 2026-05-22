@@ -200,8 +200,12 @@ class CheckinViewModel(
                     _uiState.update { it.copy(currentCheckingAccount = account) }
 
                     // 使用自动打卡流程
-                    val result = performAutoCheckinSync(account)
-                    if (result) {
+                    val (success, message) = performAutoCheckinSync(account)
+                    
+                    val accountName = account.name.ifBlank { account.studentId }
+                    com.suseoaa.projectoaa.util.ToastManager.showToast("[$accountName] $message")
+                    
+                    if (success) {
                         successCount++
                     } else {
                         failCount++
@@ -211,6 +215,8 @@ class CheckinViewModel(
                     delay(500)
                 } catch (e: Throwable) {
                     failCount++
+                    val accountName = account.name.ifBlank { account.studentId }
+                    com.suseoaa.projectoaa.util.ToastManager.showToast("[$accountName] 打卡异常")
                     println("[BatchCheckin] 账号 ${account.studentId} 打卡失败: ${e.message}")
                 }
             }
@@ -228,7 +234,7 @@ class CheckinViewModel(
     /**
      * 同步执行自动打卡（用于批量打卡）
      */
-    private suspend fun performAutoCheckinSync(account: CheckinAccountData): Boolean {
+    private suspend fun performAutoCheckinSync(account: CheckinAccountData): Pair<Boolean, String> {
         try {
             // 先尝试复用 rememberMe 登录态，失败再回退验证码登录。
             val loginSuccess = autoLoginForPasswordAccount(account)
@@ -236,20 +242,20 @@ class CheckinViewModel(
                 if (passwordRepository.hasPendingSmsChallenge()) {
                     passwordRepository.clearPendingSmsChallenge()
                 }
-                return false
+                return Pair(false, "自动登录失败")
             }
             loggedInPasswordStudentId = account.studentId
 
             // 执行打卡
             val checkinResult = passwordRepository.performCheckinAfterLogin(account)
             return when (checkinResult) {
-                is CheckinResult.Success -> true
-                is CheckinResult.AlreadyChecked -> true
-                is CheckinResult.NoTask -> true
-                is CheckinResult.Failed -> false
+                is CheckinResult.Success -> Pair(true, checkinResult.message)
+                is CheckinResult.AlreadyChecked -> Pair(true, checkinResult.message)
+                is CheckinResult.NoTask -> Pair(true, checkinResult.message)
+                is CheckinResult.Failed -> Pair(false, checkinResult.error)
             }
         } catch (e: Throwable) {
-            return false
+            return Pair(false, "异常: ${e.message}")
         }
     }
 
@@ -483,13 +489,13 @@ class CheckinViewModel(
                         is CheckinResult.NoTask -> checkinResult.message
                         is CheckinResult.Failed -> checkinResult.error
                     }
+                    
+                    com.suseoaa.projectoaa.util.ToastManager.showToast(message)
 
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            currentCheckingAccount = null,
-                            successMessage = if (checkinResult is CheckinResult.Failed) null else message,
-                            errorMessage = if (checkinResult is CheckinResult.Failed) message else null
+                            currentCheckingAccount = null
                         )
                     }
                     loadAccounts()
@@ -575,13 +581,13 @@ class CheckinViewModel(
                     is CheckinResult.NoTask -> checkinResult.message
                     is CheckinResult.Failed -> checkinResult.error
                 }
+                
+                com.suseoaa.projectoaa.util.ToastManager.showToast(message)
 
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        currentCheckingAccount = null,
-                        successMessage = if (checkinResult is CheckinResult.Failed) null else message,
-                        errorMessage = if (checkinResult is CheckinResult.Failed) message else null
+                        currentCheckingAccount = null
                     )
                 }
                 loadAccounts()
@@ -679,13 +685,13 @@ class CheckinViewModel(
                     result.error
                 }
             }
+            
+            com.suseoaa.projectoaa.util.ToastManager.showToast(message)
 
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    currentCheckingAccount = null,
-                    successMessage = if (result is CheckinResult.Failed) null else message,
-                    errorMessage = if (result is CheckinResult.Failed) message else null
+                    currentCheckingAccount = null
                 )
             }
             loadAccounts()
@@ -781,15 +787,15 @@ class CheckinViewModel(
                 is CheckinResult.NoTask -> checkinResult.message
                 is CheckinResult.Failed -> checkinResult.error
             }
+            
+            com.suseoaa.projectoaa.util.ToastManager.showToast(message)
 
             _uiState.update {
                 it.copy(
                     isLoggingIn = false,
                     showCaptchaDialog = false,
                     currentCheckingAccount = null,
-                    captchaImageBytes = null,
-                    successMessage = if (checkinResult is CheckinResult.Failed) null else message,
-                    errorMessage = if (checkinResult is CheckinResult.Failed) message else null
+                    captchaImageBytes = null
                 )
             }
             loadAccounts() // 刷新状态

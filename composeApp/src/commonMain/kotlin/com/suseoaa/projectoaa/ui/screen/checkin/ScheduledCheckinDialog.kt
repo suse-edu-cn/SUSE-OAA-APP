@@ -59,6 +59,7 @@ fun ScheduledCheckinDialog(
     onToggleEnabled: () -> Unit,
     onSetHour: (Int) -> Unit,
     onSetMinute: (Int) -> Unit,
+    onSetSecond: (Int) -> Unit,
     onSetRetryCount: (Int) -> Unit,
     onSetRetryInterval: (Int) -> Unit,
     onToggleAccount: (Long) -> Unit,
@@ -144,8 +145,10 @@ fun ScheduledCheckinDialog(
                         TimeSelector(
                             hour = uiState.config.scheduledHour,
                             minute = uiState.config.scheduledMinute,
+                            second = uiState.config.scheduledSecond,
                             onHourChange = onSetHour,
                             onMinuteChange = onSetMinute,
+                            onSecondChange = onSetSecond,
                             enabled = uiState.config.enabled
                         )
                     }
@@ -299,8 +302,10 @@ private fun SettingRow(
 private fun TimeSelector(
     hour: Int,
     minute: Int,
+    second: Int,
     onHourChange: (Int) -> Unit,
     onMinuteChange: (Int) -> Unit,
+    onSecondChange: (Int) -> Unit,
     enabled: Boolean
 ) {
     val alpha = if (enabled) 1f else 0.5f
@@ -348,6 +353,21 @@ private fun TimeSelector(
                     value = minute,
                     range = 0..59,
                     onValueChange = onMinuteChange,
+                    enabled = enabled
+                )
+
+                Text(
+                    text = " : ",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
+                )
+
+                // 秒数
+                TimeWheel(
+                    value = second,
+                    range = 0..59,
+                    onValueChange = onSecondChange,
                     enabled = enabled
                 )
             }

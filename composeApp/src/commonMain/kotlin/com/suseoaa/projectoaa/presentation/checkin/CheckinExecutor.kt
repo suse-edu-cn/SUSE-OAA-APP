@@ -9,7 +9,8 @@ import kotlinx.coroutines.delay
 data class CheckinExecutionResult(
     val successCount: Int,
     val failCount: Int,
-    val total: Int
+    val total: Int,
+    val messages: List<String> = emptyList()
 ) {
     val summary: String get() = "签到完成: 成功 $successCount，失败 $failCount，共 $total 个账号"
 }
@@ -26,6 +27,7 @@ class CheckinExecutor(
         var successCount = 0
         var failCount = 0
         val total = accounts.size
+        val messages = mutableListOf<String>()
 
         for ((index, account) in accounts.withIndex()) {
             onProgress?.invoke(
@@ -34,34 +36,40 @@ class CheckinExecutor(
                 total
             )
 
-            val success = executeForAccount(account, maxRetryCount, retryIntervalMinutes)
+            val (success, message) = executeForAccount(account, maxRetryCount, retryIntervalMinutes)
             if (success) successCount++ else failCount++
+            
+            // 构造带名字的提示消息
+            val accountName = account.name.ifBlank { account.studentId }
+            messages.add("[$accountName] $message")
 
             if (index < accounts.size - 1) {
                 delay(1000)
             }
         }
 
-        return CheckinExecutionResult(successCount, failCount, total)
+        return CheckinExecutionResult(successCount, failCount, total, messages)
     }
 
     private suspend fun executeForAccount(
         account: CheckinAccountData,
         maxRetry: Int,
         retryIntervalMinutes: Int
-    ): Boolean {
+    ): Pair<Boolean, String> {
+        var lastMessage = "未知错误"
         repeat(maxRetry + 1) { attempt ->
             if (attempt > 0) {
                 println("[CheckinExecutor] 账号 ${account.studentId} 第 $attempt 次重试")
                 delay(retryIntervalMinutes * 60_000L)
             }
-            val success = performAutoCheckin(account)
-            if (success) return true
+            val (success, message) = performAutoCheckin(account)
+            lastMessage = message
+            if (success) return Pair(true, message)
         }
-        return false
+        return Pair(false, lastMessage)
     }
 
-    private suspend fun performAutoCheckin(account: CheckinAccountData): Boolean {
+    private suspend fun performAutoCheckin(account: CheckinAccountData): Pair<Boolean, String> {
         return try {
             // 1. 尝试 rememberMe 快速登录
             val fastLogin = checkinRepository.tryAutoLoginWithRememberMe(account).getOrDefault(false)
@@ -69,18 +77,19 @@ class CheckinExecutor(
                 println("[CheckinExecutor] 账号 ${account.studentId} rememberMe 快速登录成功")
                 val result = checkinRepository.performCheckinAfterLogin(account)
                 return when (result) {
-                    is CheckinResult.Success -> { println("[CheckinExecutor] ${account.studentId}: ${result.message}"); true }
-                    is CheckinResult.AlreadyChecked -> { println("[CheckinExecutor] ${account.studentId}: ${result.message}"); true }
-                    is CheckinResult.NoTask -> { println("[CheckinExecutor] ${account.studentId}: ${result.message}"); true }
-                    is CheckinResult.Failed -> { println("[CheckinExecutor] ${account.studentId}: ${result.error}"); false }
+                    is CheckinResult.Success -> Pair(true, "打卡成功")
+                    is CheckinResult.AlreadyChecked -> Pair(true, "已打卡")
+                    is CheckinResult.NoTask -> Pair(true, "无任务")
+                    is CheckinResult.Failed -> Pair(false, "打卡失败")
                 }
             }
 
             // 2. 获取验证码图片
             val captchaResult = checkinRepository.fetchCaptchaImage()
             if (captchaResult.isFailure) {
-                println("[CheckinExecutor] 获取验证码失败: ${captchaResult.exceptionOrNull()?.message}")
-                return false
+                val errorMsg = captchaResult.exceptionOrNull()?.message ?: "获取验证码失败"
+                println("[CheckinExecutor] $errorMsg")
+                return Pair(false, errorMsg)
             }
 
             val captchaBytes = captchaResult.getOrThrow()
@@ -90,11 +99,11 @@ class CheckinExecutor(
                 PlatformCaptchaOcr.recognize(captchaBytes)
             } catch (t: Throwable) {
                 println("[CheckinExecutor] OCR 异常: ${t.message}")
-                return false
+                return Pair(false, "OCR识别异常")
             }
             if (ocrResult.isFailure || ocrResult.getOrNull()?.length != 4) {
                 println("[CheckinExecutor] OCR 识别失败")
-                return false
+                return Pair(false, "验证码识别失败")
             }
 
             val captchaCode = ocrResult.getOrThrow()
@@ -109,30 +118,30 @@ class CheckinExecutor(
             )
 
             if (loginResult.isFailure) {
-                val errorMsg = loginResult.exceptionOrNull()?.message ?: ""
+                val errorMsg = loginResult.exceptionOrNull()?.message ?: "登录失败"
                 if (errorMsg.contains("验证码") || errorMsg.contains("captcha", ignoreCase = true)) {
                     println("[CheckinExecutor] 验证码错误，重试")
                     return performAutoCheckin(account)
                 }
                 if (checkinRepository.isSmsVerificationRequired(loginResult.exceptionOrNull())) {
                     println("[CheckinExecutor] 账号 ${account.studentId} 需要短信验证，跳过")
-                    return false
+                    return Pair(false, "需要短信验证")
                 }
                 println("[CheckinExecutor] 登录失败: $errorMsg")
-                return false
+                return Pair(false, errorMsg)
             }
 
             // 5. 执行签到
             val checkinResult = checkinRepository.performCheckinAfterLogin(account)
             when (checkinResult) {
-                is CheckinResult.Success -> { println("[CheckinExecutor] ${account.studentId}: ${checkinResult.message}"); true }
-                is CheckinResult.AlreadyChecked -> { println("[CheckinExecutor] ${account.studentId}: ${checkinResult.message}"); true }
-                is CheckinResult.NoTask -> { println("[CheckinExecutor] ${account.studentId}: ${checkinResult.message}"); true }
-                is CheckinResult.Failed -> { println("[CheckinExecutor] ${account.studentId}: ${checkinResult.error}"); false }
+                is CheckinResult.Success -> Pair(true, "打卡成功")
+                is CheckinResult.AlreadyChecked -> Pair(true, "已打卡")
+                is CheckinResult.NoTask -> Pair(true, "无任务")
+                is CheckinResult.Failed -> Pair(false, "打卡失败")
             }
         } catch (e: Throwable) {
             println("[CheckinExecutor] 账号 ${account.studentId} 异常: ${e.message}")
-            false
+            Pair(false, e.message ?: "未知异常")
         }
     }
 }

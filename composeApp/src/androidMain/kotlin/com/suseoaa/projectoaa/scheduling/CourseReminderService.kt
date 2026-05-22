@@ -48,6 +48,9 @@ class CourseReminderService : Service(), KoinComponent {
     private val POPUP_NOTIFICATION_ID = 200606
     private val CHANNEL_ID_PERSISTENT = "course_reminder_persistent"
     private val CHANNEL_ID_POPUP = "course_reminder_popup"
+    
+    // 防止同一2分钟窗口内重复触发652签到
+    private var lastAuxTriggerKey: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -334,15 +337,21 @@ class CourseReminderService : Service(), KoinComponent {
             val config = scheduledCheckinManager.getConfig()
             if (config.enabled && config.targetAccountIds.isNotEmpty()) {
                 val nowTime = OaaClock.now().toLocalDateTime(TimeZone.of("Asia/Shanghai"))
-                // 如果当前时间正好是设定的签到时间（或者延迟了1分钟内），且今天还没签到
-                if (nowTime.hour == config.scheduledHour && 
-                    (nowTime.minute == config.scheduledMinute || nowTime.minute == config.scheduledMinute + 1)) {
-                    
+                val currentSeconds = nowTime.hour * 3600 + nowTime.minute * 60 + nowTime.second
+                val scheduledSeconds = config.scheduledHour * 3600 + config.scheduledMinute * 60 + config.scheduledSecond
+                
+                // 如果当前时间正好在设定的签到时间之后（允许2分钟延迟），且今天还没签到
+                if (currentSeconds in scheduledSeconds..(scheduledSeconds + 120)) {
                     if (!scheduledCheckinManager.hasAlreadyRunToday(config)) {
-                        println("[CourseReminderService] 保活服务检测到签到时间，主动拉起 CheckinAlarmReceiver")
-                        val intent = Intent(this, CheckinAlarmReceiver::class.java)
-                        intent.action = "com.suseoaa.projectoaa.CHECKIN_ALARM"
-                        sendBroadcast(intent)
+                        // 使用标志避免在同一2分钟窗口内重复触发
+                        val triggerKey = "${nowTime.date}_${config.scheduledHour}_${config.scheduledMinute}"
+                        if (lastAuxTriggerKey != triggerKey) {
+                            lastAuxTriggerKey = triggerKey
+                            println("[CourseReminderService] 保活服务检测到签到时间，主动拉起 CheckinAlarmReceiver")
+                            val intent = Intent(this, CheckinAlarmReceiver::class.java)
+                            intent.action = "com.suseoaa.projectoaa.CHECKIN_ALARM"
+                            sendBroadcast(intent)
+                        }
                     }
                 }
             }

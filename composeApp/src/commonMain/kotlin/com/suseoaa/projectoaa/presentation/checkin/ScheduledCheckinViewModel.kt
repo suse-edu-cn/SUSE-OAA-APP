@@ -106,6 +106,15 @@ class ScheduledCheckinViewModel(
     }
 
     /**
+     * 设置签到秒数
+     */
+    fun setSecond(second: Int) {
+        _uiState.update {
+            it.copy(config = it.config.copy(scheduledSecond = second.coerceIn(0, 59)))
+        }
+    }
+
+    /**
      * 设置重试次数
      */
     fun setRetryCount(count: Int) {
@@ -145,6 +154,7 @@ class ScheduledCheckinViewModel(
                 targetAccountIds = state.selectedAccountIds.toList(),
                 scheduledHour = state.config.scheduledHour,
                 scheduledMinute = state.config.scheduledMinute,
+                scheduledSecond = state.config.scheduledSecond,
                 maxRetryCount = state.config.maxRetryCount,
                 retryIntervalMinutes = state.config.retryIntervalMinutes,
                 lastRunTimestamp = state.config.lastRunTimestamp,
