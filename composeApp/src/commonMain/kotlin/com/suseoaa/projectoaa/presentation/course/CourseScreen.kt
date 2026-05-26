@@ -1511,11 +1511,39 @@ fun StaticGridBackground(dailySchedule: List<TimeSlotConfig>, unitHeightPx: Floa
 }
 
 @Composable
-fun DynamicDateRow(startDate: LocalDate) {
-    val today = remember {
-        com.suseoaa.projectoaa.shared.util.OaaClock.now()
-            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+fun rememberCurrentDate(): LocalDate {
+    var today by remember {
+        mutableStateOf(
+            com.suseoaa.projectoaa.shared.util.OaaClock.now()
+                .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+        )
     }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                today = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    LaunchedEffect(Unit) {
+        while(true) {
+            kotlinx.coroutines.delay(60_000L)
+            today = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+                .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+        }
+    }
+    return today
+}
+
+@Composable
+fun DynamicDateRow(startDate: LocalDate) {
+    val today = rememberCurrentDate()
     val dateFontSize = timetableAdaptiveSp(
         baseSp = 11f,
         minSp = 9f,
@@ -1555,8 +1583,7 @@ fun DynamicDateRow(startDate: LocalDate) {
 
 @Composable
 fun HighlightTodayColumn(weekStartDate: LocalDate, maxWidth: Dp) {
-    val today = com.suseoaa.projectoaa.shared.util.OaaClock.now()
-        .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
+    val today = rememberCurrentDate()
     val daysBetween = weekStartDate.daysUntil(today)
     if (daysBetween in 0..6) {
         val density = LocalDensity.current

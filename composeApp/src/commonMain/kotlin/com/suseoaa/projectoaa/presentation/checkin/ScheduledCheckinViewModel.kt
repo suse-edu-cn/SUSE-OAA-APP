@@ -44,6 +44,15 @@ class ScheduledCheckinViewModel(
                 _uiState.update { it.copy(schedulerStatus = status) }
             }
         }
+        
+        // 自动收集最新配置，以保证外部页面不点击也能展示正确状态
+        viewModelScope.launch {
+            scheduledCheckinManager.configFlow.collectLatest { config ->
+                _uiState.update { state ->
+                    state.copy(config = config)
+                }
+            }
+        }
     }
 
     /**

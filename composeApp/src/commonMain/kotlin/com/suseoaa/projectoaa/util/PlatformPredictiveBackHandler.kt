@@ -1,6 +1,8 @@
 package com.suseoaa.projectoaa.util
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 /**
  * 系统导航模式。
@@ -38,6 +40,28 @@ data class PlatformPredictiveBackEvent(
  */
 @Composable
 expect fun rememberPlatformNavigationMode(): PlatformNavigationMode
+
+/**
+ * 带有配置开关检查的预测性返回手势处理器。
+ * 会自动读取用户的开启/关闭配置。
+ */
+@Composable
+fun AppPredictiveBackHandler(
+    enabled: Boolean = true,
+    onProgress: (PlatformPredictiveBackEvent) -> Unit,
+    onCancel: () -> Unit = {},
+    onBack: () -> Unit
+) {
+    val tokenManager: com.suseoaa.projectoaa.shared.data.local.TokenManager = org.koin.compose.koinInject()
+    val isGlobalEnabled by tokenManager.predictiveBackEnabledFlow.collectAsState(initial = true)
+
+    PlatformPredictiveBackHandler(
+        enabled = enabled && isGlobalEnabled,
+        onProgress = onProgress,
+        onCancel = onCancel,
+        onBack = onBack
+    )
+}
 
 /**
  * 平台无关的预测返回手势处理器。

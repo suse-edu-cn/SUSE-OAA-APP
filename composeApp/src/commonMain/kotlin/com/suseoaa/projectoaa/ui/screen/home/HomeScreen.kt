@@ -36,7 +36,8 @@ import com.suseoaa.projectoaa.ui.theme.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.suseoaa.projectoaa.util.PlatformPredictiveBackHandler
+import com.suseoaa.projectoaa.util.AppPredictiveBackHandler
+import com.suseoaa.projectoaa.util.PlatformPredictiveBackEvent
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,7 +73,7 @@ fun HomeScreen(
     var backGestureProgress by remember { mutableStateOf<Float?>(null) }
     var backGestureCancelCount by remember { mutableIntStateOf(0) }
 
-    PlatformPredictiveBackHandler(
+    AppPredictiveBackHandler(
         enabled = featureDrawerExpanded,
         onProgress = { event -> backGestureProgress = event.progress },
         onCancel = {

@@ -54,6 +54,9 @@ object PreferencesKeys {
 
     // 默认起始页（0=首页, 1=课程, 2=教务信息, 3=个人）
     val DEFAULT_START_TAB = intPreferencesKey("default_start_tab")
+
+    // 预测性返回手势
+    val PREDICTIVE_BACK_ENABLED = booleanPreferencesKey("predictive_back_enabled")
 }
 
 internal const val DATA_STORE_FILE_NAME = "auth_prefs.preferences_pb"
@@ -399,6 +402,18 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
     suspend fun saveDefaultStartTab(tabIndex: Int) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.DEFAULT_START_TAB] = tabIndex
+        }
+    }
+
+    // ==================== 预测性返回手势设置 ====================
+
+    val predictiveBackEnabledFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.PREDICTIVE_BACK_ENABLED] ?: true
+    }
+
+    suspend fun savePredictiveBackEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.PREDICTIVE_BACK_ENABLED] = enabled
         }
     }
 

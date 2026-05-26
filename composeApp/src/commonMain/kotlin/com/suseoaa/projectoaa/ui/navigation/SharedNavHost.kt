@@ -47,8 +47,8 @@ import com.suseoaa.projectoaa.ui.animation.ScaleTransition.enterScale
 import com.suseoaa.projectoaa.ui.animation.ScaleTransition.exitScale
 import com.suseoaa.projectoaa.ui.animation.ScaleTransition.popEnterScale
 import com.suseoaa.projectoaa.ui.animation.ScaleTransition.popExitScale
+import com.suseoaa.projectoaa.util.AppPredictiveBackHandler
 import com.suseoaa.projectoaa.util.PlatformBackSwipeEdge
-import com.suseoaa.projectoaa.util.PlatformPredictiveBackHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
@@ -430,8 +430,7 @@ fun SharedNavHost(
             }
         }
 
-        // 放在 NavHost 之后声明，确保手势回调优先级高于 NavHost 内部默认回调。
-        PlatformPredictiveBackHandler(
+        AppPredictiveBackHandler(
             enabled = navController.previousBackStackEntry != null,
             onProgress = { event ->
                 settleAnimationJob?.cancel()

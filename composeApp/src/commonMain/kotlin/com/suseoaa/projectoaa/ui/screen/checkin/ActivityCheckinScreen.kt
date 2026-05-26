@@ -27,7 +27,7 @@ import com.suseoaa.projectoaa.shared.database.NearFieldTask
 import com.suseoaa.projectoaa.shared.database.NearFieldParticipant
 import com.suseoaa.projectoaa.util.PlatformPermissionManager
 import com.suseoaa.projectoaa.util.ToastManager
-import com.suseoaa.projectoaa.util.PlatformPredictiveBackHandler
+import com.suseoaa.projectoaa.util.AppPredictiveBackHandler
 import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import kotlinx.datetime.toLocalDateTime
@@ -64,7 +64,7 @@ fun ActivityCheckinScreen(
     var pendingHostParams by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     // 处理回退逻辑
-    PlatformPredictiveBackHandler(
+    AppPredictiveBackHandler(
         enabled = uiState.isBroadcasting,
         onProgress = {},
         onBack = { showExitConfirmDialog = true }

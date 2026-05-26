@@ -452,6 +452,33 @@ fun PersonScreen(
                             )
                         }
 
+                        // 预测性返回手势开关
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SettingCard(
+                                icon = Icons.Default.Edit,
+                                title = "预测性返回手势",
+                                subtitle = if (uiState.isPredictiveBackEnabled) {
+                                    "已开启，支持跟手滑动返回"
+                                } else {
+                                    "已关闭"
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = uiState.isPredictiveBackEnabled,
+                                        onCheckedChange = { viewModel.togglePredictiveBackEnabled() },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                            uncheckedBorderColor = MaterialTheme.colorScheme.outline
+                                        )
+                                    )
+                                },
+                                onClick = null
+                            )
+                        }
+
                         // 莫奈取色开关 (Dynamic Color)
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             SettingCard(

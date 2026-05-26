@@ -48,7 +48,7 @@ import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.getExamCountDown
 import kotlinx.datetime.*
 import org.koin.compose.viewmodel.koinViewModel
-import com.suseoaa.projectoaa.util.PlatformPredictiveBackHandler
+import com.suseoaa.projectoaa.util.AppPredictiveBackHandler
 import kotlin.collections.listOf
 
 data class PortalFunction(
@@ -93,7 +93,7 @@ fun AcademicScreen(
     var backGestureProgress by remember { mutableStateOf<Float?>(null) }
     var backGestureCancelCount by remember { mutableIntStateOf(0) }
 
-    PlatformPredictiveBackHandler(
+    AppPredictiveBackHandler(
         enabled = featureDrawerExpanded,
         onProgress = { event -> backGestureProgress = event.progress },
         onCancel = {
