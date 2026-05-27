@@ -56,9 +56,9 @@ fun AppPredictiveBackHandler(
     val isGlobalEnabled by tokenManager.predictiveBackEnabledFlow.collectAsState(initial = true)
 
     PlatformPredictiveBackHandler(
-        enabled = enabled && isGlobalEnabled,
-        onProgress = onProgress,
-        onCancel = onCancel,
+        enabled = enabled,
+        onProgress = { if (isGlobalEnabled) onProgress(it) },
+        onCancel = { if (isGlobalEnabled) onCancel() },
         onBack = onBack
     )
 }

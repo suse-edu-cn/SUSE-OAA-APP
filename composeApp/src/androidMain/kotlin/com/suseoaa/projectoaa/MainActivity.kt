@@ -3,15 +3,33 @@ package com.suseoaa.projectoaa
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
+import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.util.CaptchaOcrRecognizer
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
+    private val tokenManager: TokenManager by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val rootBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                finish()
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, rootBackCallback)
+
+        lifecycleScope.launch {
+            tokenManager.predictiveBackEnabledFlow.collect { isEnabled ->
+                rootBackCallback.isEnabled = !isEnabled
+            }
+        }
 
         // 手机端锁定竖屏，平板端保持可旋转
         if (resources.configuration.smallestScreenWidthDp < 600) {
