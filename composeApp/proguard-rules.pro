@@ -21,8 +21,14 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 
-# Keep check-in models to avoid release-only serialization/obfuscation issues.
--keep class com.suseoaa.projectoaa.shared.domain.model.checkin.** { *; }
+# Keep ALL network/domain models to avoid release-only serialization/obfuscation issues.
+-keep class com.suseoaa.projectoaa.shared.domain.model.** { *; }
+
+# Keep ViewModels for Koin reflection
+-keep class * extends androidx.lifecycle.ViewModel { *; }
+-keepclassmembers class * extends androidx.lifecycle.ViewModel {
+    <init>(...);
+}
 
 # Keep OCR pipeline classes used by check-in auto login.
 -keep class com.suseoaa.projectoaa.util.CaptchaOcrRecognizer { *; }
@@ -31,3 +37,15 @@
 -keep class ai.onnxruntime.** { *; }
 -dontwarn com.google.mlkit.**
 -dontwarn ai.onnxruntime.**
+
+# Keep Room databases (fixes WorkManager / Room crash in Release)
+-keep class * extends androidx.room.RoomDatabase {
+    <init>();
+}
+-keep class **_Impl {
+    <init>();
+}
+-keep class androidx.work.impl.WorkDatabase_Impl {
+    <init>();
+}
+-keep class androidx.work.impl.** { *; }
