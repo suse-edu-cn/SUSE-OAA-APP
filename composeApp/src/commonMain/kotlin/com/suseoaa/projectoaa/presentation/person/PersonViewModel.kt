@@ -23,7 +23,8 @@ data class PersonUiState(
     val dynamicPaletteLightColorHex: String? = null,
     val dynamicPaletteDarkColorHex: String? = null,
     val defaultStartTab: Int = 0,  // 默认起始页（0=首页, 1=课程, 2=教务信息, 3=个人）
-    val isPredictiveBackEnabled: Boolean = true
+    val isPredictiveBackEnabled: Boolean = true,
+    val isLiquidGlassTabbarEnabled: Boolean = false
 )
 
 class PersonViewModel(
@@ -41,6 +42,7 @@ class PersonViewModel(
         loadDynamicPaletteColors()
         loadDefaultStartTab()
         loadPredictiveBackEnabled()
+        loadLiquidGlassTabbarEnabled()
     }
 
     private fun loadDynamicColorStatus() {
@@ -126,6 +128,21 @@ class PersonViewModel(
         viewModelScope.launch {
             val currentState = _uiState.value.isPredictiveBackEnabled
             tokenManager.savePredictiveBackEnabled(!currentState)
+        }
+    }
+
+    private fun loadLiquidGlassTabbarEnabled() {
+        viewModelScope.launch {
+            tokenManager.liquidGlassTabbarEnabledFlow.collect { enabled ->
+                _uiState.update { it.copy(isLiquidGlassTabbarEnabled = enabled) }
+            }
+        }
+    }
+
+    fun toggleLiquidGlassTabbarEnabled() {
+        viewModelScope.launch {
+            val currentState = _uiState.value.isLiquidGlassTabbarEnabled
+            tokenManager.saveLiquidGlassTabbarEnabled(!currentState)
         }
     }
 

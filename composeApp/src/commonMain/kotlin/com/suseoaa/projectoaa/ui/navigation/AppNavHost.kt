@@ -130,6 +130,9 @@ fun AppNavHost(
                 onNavigateToUpdate = {
                     navController.navigate(Screen.Update.route)
                 },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
+                },
                 mainViewModel = mainViewModel
             )
         }
@@ -246,6 +249,14 @@ fun AppNavHost(
         composable(Screen.Update.route) {
             UpdateScreen(
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // 设置页面
+        composable(Screen.Settings.route) {
+            com.suseoaa.projectoaa.ui.screen.settings.SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                viewModel = org.koin.compose.viewmodel.koinViewModel()
             )
         }
     }

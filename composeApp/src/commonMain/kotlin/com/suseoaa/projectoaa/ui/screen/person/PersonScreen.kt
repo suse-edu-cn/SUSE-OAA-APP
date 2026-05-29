@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -38,7 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -82,8 +85,8 @@ private val LightGradientColors = listOf(
 
 // 暗色渐变
 private val DarkGradientColors = listOf(
-    Color(0xFF1A3A4A),
-    Color(0xFF1A2A4A),
+    Color(0xFF15191D),
+    Color(0xFF0D0F12),
 )
 
 private data class DynamicColorPaletteOption(
@@ -116,6 +119,7 @@ fun PersonScreen(
     onNavigateToChangePassword: () -> Unit,
     onNavigateToCheckin: () -> Unit = {},
     onNavigateToUpdate: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     bottomBarHeight: Dp = 0.dp,
     viewModel: PersonViewModel = koinViewModel(),
     updateViewModel: AppUpdateViewModel = koinViewModel(),
@@ -268,7 +272,6 @@ fun PersonScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { _ ->
         val isDarkTheme = isSystemInDarkTheme()
-        val backgroundColor = MaterialTheme.colorScheme.background
         val gradientColors = if (isDarkTheme) DarkGradientColors else LightGradientColors
         val headerTextColor = if (isDarkTheme) Color.White else Color.Black
         val gridState = rememberLazyGridState()
@@ -287,48 +290,36 @@ fun PersonScreen(
             }
         }
 
-        val backgroundBlur = (backgroundProgress * 24f).dp
-        val backgroundOverlayAlpha = backgroundProgress
-        val headerTextScale = 1f - (backgroundProgress * 0.14f)
-        val headerTextAlpha = 1f - (backgroundProgress * 0.25f)
-        val headerTextTranslationY = with(density) { ((-18).dp).toPx() } * backgroundProgress
-        val headerTextBlur = (backgroundProgress * 8f).dp
 
         Box(modifier = Modifier.fillMaxSize()) {
-            // 底层：动态背景
+            // 层1：全屏蔓延的渐变背景
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = gradientColors
+                        )
+                    )
+            )
+
+            // 层2：固定的头部文字（随着滚动逐渐缩小、上移并淡出）
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(HeaderHeight)
-                    .background(color = Color.Transparent),
+                    .height(HeaderHeight),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = gradientColors + backgroundColor
-                            )
-                        )
-                        .blur(backgroundBlur)
-                )
-
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(backgroundColor.copy(alpha = backgroundOverlayAlpha))
-                )
-
                 Column(
                     modifier = Modifier
                         .graphicsLayer {
-                            scaleX = headerTextScale
-                            scaleY = headerTextScale
-                            alpha = headerTextAlpha
-                            translationY = headerTextTranslationY
-                        }
-                        .blur(headerTextBlur),
+                            val scale = 1f - (backgroundProgress * 0.14f)
+                            scaleX = scale
+                            scaleY = scale
+                            // 加快淡出速度，确保被卡片完全覆盖前消失
+                            alpha = (1f - backgroundProgress * 1.5f).coerceIn(0f, 1f)
+                            translationY = with(density) { ((-18).dp).toPx() } * backgroundProgress
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -337,6 +328,7 @@ fun PersonScreen(
                         fontWeight = FontWeight.Bold,
                         color = headerTextColor.copy(alpha = 0.7f)
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "致力服务于四川轻化工大学开放原子开源协会",
                         style = MaterialTheme.typography.bodyMedium,
@@ -344,6 +336,13 @@ fun PersonScreen(
                     )
                 }
             }
+
+            // 层3：纯色背景覆盖（根据滚动进度逐渐变为纯背景色）
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = backgroundProgress))
+            )
 
             // 顶层：滚动内容
             if (uiState.isLoading) {
@@ -379,140 +378,70 @@ fun PersonScreen(
                             )
                         }
 
-                        // 修改密码卡片
+                        // 功能入口组
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            SettingCard(
-                                icon = Icons.Default.Lock,
-                                title = "修改密码",
-                                subtitle = "更新您的账户密码",
-                                modifier = Modifier.sharedBoundsTransition("change_password"),
-                                onClick = onNavigateToChangePassword
-                            )
+                            SettingGroupCard {
+                                SettingRow(
+                                    icon = Icons.Default.Lock,
+                                    title = "修改密码",
+                                    subtitle = "更新您的账户密码",
+                                    modifier = Modifier.sharedBoundsTransition("change_password"),
+                                    onClick = onNavigateToChangePassword
+                                )
+                                
+                                if (uiState.isCheckinUnlocked) {
+                                    androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(start = 80.dp, end = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    SettingRow(
+                                        icon = Icons.Default.Edit,
+                                        title = "652签到",
+                                        subtitle = "快速签到打卡",
+                                        modifier = Modifier.sharedBoundsTransition("checkin"),
+                                        onClick = onNavigateToCheckin
+                                    )
+                                    androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(start = 80.dp, end = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    val schedulerConfig = scheduledCheckinUiState.config
+                                    SettingRow(
+                                        icon = Icons.Default.Schedule,
+                                        title = "定时签到",
+                                        subtitle = if (schedulerConfig.enabled) {
+                                            "每天 ${schedulerConfig.scheduledHour.toString().padStart(2, '0')}:${schedulerConfig.scheduledMinute.toString().padStart(2, '0')}:${schedulerConfig.scheduledSecond.toString().padStart(2, '0')} 自动签到 ${schedulerConfig.targetAccountIds.size} 个账号"
+                                        } else {
+                                            "未启用"
+                                        },
+                                        modifier = Modifier.sharedBoundsTransition("scheduled_checkin"),
+                                        showBadge = scheduledCheckinUiState.schedulerStatus is com.suseoaa.projectoaa.presentation.checkin.SchedulerStatus.Running,
+                                        onClick = { showScheduledCheckinDialog = true }
+                                    )
+                                }
+                            }
                         }
 
+                        // 系统设置组
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SettingGroupCard {
+                                SettingRow(
+                                    icon = Icons.Default.Refresh,
+                                    title = "检查更新",
+                                    subtitle = when {
+                                        updateUiState.isChecking -> "正在检查..."
+                                        updateUiState.hasUpdate && updateUiState.latestRelease != null ->
+                                            "发现新版本 ${updateUiState.latestRelease!!.tagName}"
 
-                        // 652签到入口（解锁后永久显示）
-                        if (uiState.isCheckinUnlocked) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                SettingCard(
-                                    icon = Icons.Default.Edit,
-                                    title = "652签到",
-                                    subtitle = "快速签到打卡",
-                                    modifier = Modifier.sharedBoundsTransition("checkin"),
-                                    onClick = onNavigateToCheckin
-                                )
-                            }
-
-                            // 定时签到入口
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                val schedulerConfig = scheduledCheckinUiState.config
-                                SettingCard(
-                                    icon = Icons.Default.Schedule,
-                                    title = "定时签到",
-                                    subtitle = if (schedulerConfig.enabled) {
-                                        "每天 ${schedulerConfig.scheduledHour.toString().padStart(2, '0')}:${schedulerConfig.scheduledMinute.toString().padStart(2, '0')}:${schedulerConfig.scheduledSecond.toString().padStart(2, '0')} 自动签到 ${schedulerConfig.targetAccountIds.size} 个账号"
-                                    } else {
-                                        "未启用"
+                                        else -> "当前已经是最新版本了"
                                     },
-                                    modifier = Modifier.sharedBoundsTransition("scheduled_checkin"),
-                                    showBadge = scheduledCheckinUiState.schedulerStatus is com.suseoaa.projectoaa.presentation.checkin.SchedulerStatus.Running,
-                                    onClick = { showScheduledCheckinDialog = true }
+                                    modifier = Modifier.sharedBoundsTransition("update"),
+                                    showBadge = updateUiState.hasUpdate && updateUiState.latestRelease != null,
+                                    trailingText = if (updateUiState.hasUpdate && updateUiState.latestRelease != null)
+                                        updateUiState.latestRelease!!.tagName else null,
+                                    onClick = onNavigateToUpdate
                                 )
-                            }
-                        }
-
-                        // 检查更新卡片
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            SettingCard(
-                                icon = Icons.Default.Refresh,
-                                title = "检查更新",
-                                subtitle = when {
-                                    updateUiState.isChecking -> "正在检查..."
-                                    updateUiState.hasUpdate && updateUiState.latestRelease != null ->
-                                        "发现新版本 ${updateUiState.latestRelease!!.tagName}"
-
-                                    else -> "当前已经是最新版本了"
-                                },
-                                modifier = Modifier.sharedBoundsTransition("update"),
-                                showBadge = updateUiState.hasUpdate && updateUiState.latestRelease != null,
-                                trailingText = if (updateUiState.hasUpdate && updateUiState.latestRelease != null)
-                                    updateUiState.latestRelease!!.tagName else null,
-                                onClick = onNavigateToUpdate
-                            )
-                        }
-
-                        // 起始页设置
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            val startTabLabels = listOf("首页", "课程", "教务信息", "个人")
-                            SettingCard(
-                                icon = Icons.Default.Home,
-                                title = "起始页设置",
-                                subtitle = "打开应用时默认显示：${startTabLabels.getOrElse(uiState.defaultStartTab) { "首页" }}",
-                                onClick = { showStartTabDialog = true }
-                            )
-                        }
-
-                        // 预测性返回手势开关
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            SettingCard(
-                                icon = Icons.Default.Edit,
-                                title = "预测性返回手势",
-                                subtitle = if (uiState.isPredictiveBackEnabled) {
-                                    "已开启，支持跟手滑动返回"
-                                } else {
-                                    "已关闭"
-                                },
-                                trailingContent = {
-                                    Switch(
-                                        checked = uiState.isPredictiveBackEnabled,
-                                        onCheckedChange = { viewModel.togglePredictiveBackEnabled() },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                            uncheckedBorderColor = MaterialTheme.colorScheme.outline
-                                        )
-                                    )
-                                },
-                                onClick = null
-                            )
-                        }
-
-                        // 莫奈取色开关 (Dynamic Color)
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            SettingCard(
-                                icon = Icons.Default.Edit,
-                                title = "动态取色",
-                                subtitle = if (uiState.isDynamicColorEnabled) {
-                                    "已开启，可使用下方莫奈调色盘自定义主题强调色"
-                                } else {
-                                    "已关闭，当前使用软件默认配色"
-                                },
-                                trailingContent = {
-                                    Switch(
-                                        checked = uiState.isDynamicColorEnabled,
-                                        onCheckedChange = { viewModel.toggleDynamicColor() },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                            uncheckedBorderColor = MaterialTheme.colorScheme.outline
-                                        )
-                                    )
-                                },
-                                onClick = null
-                            )
-                        }
-
-                        if (uiState.isDynamicColorEnabled) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                DynamicColorPaletteEntryCard(
-                                    lightColorHex = uiState.dynamicPaletteLightColorHex,
-                                    darkColorHex = uiState.dynamicPaletteDarkColorHex,
-                                    dynamicColorEnabled = uiState.isDynamicColorEnabled,
-                                    onClick = { showPaletteDialog = true }
+                                androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(start = 80.dp, end = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                SettingRow(
+                                    icon = Icons.Default.Settings,
+                                    title = "设置",
+                                    subtitle = "界面、手势与个性化偏好",
+                                    modifier = Modifier.sharedBoundsTransition("settings"),
+                                    onClick = onNavigateToSettings
                                 )
                             }
                         }
@@ -1387,7 +1316,24 @@ fun EditInfoDialog(
 }
 
 @Composable
-fun SettingCard(
+fun SettingGroupCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            content()
+        }
+    }
+}
+
+@Composable
+fun SettingRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
@@ -1397,13 +1343,7 @@ fun SettingCard(
     trailingContent: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
-    Card(
-        onClick = { onClick?.invoke() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
+    val content = @Composable {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1473,6 +1413,44 @@ fun SettingCard(
                 )
             }
         }
+    }
+
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            color = Color.Transparent,
+            modifier = modifier.fillMaxWidth()
+        ) {
+            content()
+        }
+    } else {
+        Box(modifier = modifier.fillMaxWidth()) {
+            content()
+        }
+    }
+}
+
+@Composable
+fun SettingCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    showBadge: Boolean = false,
+    trailingText: String? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null
+) {
+    SettingGroupCard(modifier = modifier) {
+        SettingRow(
+            icon = icon,
+            title = title,
+            subtitle = subtitle,
+            showBadge = showBadge,
+            trailingText = trailingText,
+            trailingContent = trailingContent,
+            onClick = onClick
+        )
     }
 }
 

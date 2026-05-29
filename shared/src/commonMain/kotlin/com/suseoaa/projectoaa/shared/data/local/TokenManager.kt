@@ -57,6 +57,9 @@ object PreferencesKeys {
 
     // 预测性返回手势
     val PREDICTIVE_BACK_ENABLED = booleanPreferencesKey("predictive_back_enabled")
+
+    // 液态玻璃导航栏
+    val LIQUID_GLASS_TABBAR_ENABLED = booleanPreferencesKey("liquid_glass_tabbar_enabled")
 }
 
 internal const val DATA_STORE_FILE_NAME = "auth_prefs.preferences_pb"
@@ -414,6 +417,18 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
     suspend fun savePredictiveBackEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.PREDICTIVE_BACK_ENABLED] = enabled
+        }
+    }
+
+    // ==================== 液态玻璃导航栏设置 ====================
+
+    val liquidGlassTabbarEnabledFlow: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.LIQUID_GLASS_TABBAR_ENABLED] ?: false
+    }
+
+    suspend fun saveLiquidGlassTabbarEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.LIQUID_GLASS_TABBAR_ENABLED] = enabled
         }
     }
 
