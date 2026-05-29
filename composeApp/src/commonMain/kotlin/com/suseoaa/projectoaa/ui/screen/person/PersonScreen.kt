@@ -1326,7 +1326,7 @@ fun SettingGroupCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))) {
             content()
         }
     }

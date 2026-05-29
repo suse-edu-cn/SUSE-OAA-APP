@@ -90,6 +90,13 @@ class AppUpdateViewModel(
                 showDialog = true
             )
 
+            // 提前拉取所有历史版本以支持归纳更新日志
+            if (_allReleases.value.isEmpty()) {
+                appUpdateRepository.getAllReleases().onSuccess {
+                    _allReleases.value = it
+                }
+            }
+
             appUpdateRepository.checkUpdate()
                 .onSuccess { release ->
                     if (release != null) {
@@ -388,5 +395,71 @@ class AppUpdateViewModel(
         _uiState.value = _uiState.value.copy(
             showDialog = false
         )
+    }
+
+    /**
+     * 获取归纳后的更新日志
+     * 将多个遗留版本或单个版本中重复的功能/修复标题合并在一起
+     */
+    fun getConsolidatedReleaseNotes(): String {
+        val latest = _uiState.value.latestRelease ?: return ""
+        val releases = _allReleases.value
+        
+        val bodiesToConsolidate = mutableListOf<String>()
+        
+        if (releases.isEmpty()) {
+            bodiesToConsolidate.add(latest.body)
+        } else {
+            val currentVersion = getAppVersionName()
+            for (r in releases) {
+                if (r.tagName.removePrefix("v") == currentVersion) break
+                bodiesToConsolidate.add(r.body)
+            }
+            if (bodiesToConsolidate.isEmpty()) {
+                bodiesToConsolidate.add(latest.body)
+            }
+        }
+        
+        val sections = LinkedHashMap<String, MutableList<String>>()
+        
+        for (body in bodiesToConsolidate) {
+            var currentHeading = ""
+            for (line in body.lines()) {
+                val trimmed = line.trim()
+                // 根据 Markdown 标题语法 # 进行归类
+                if (trimmed.startsWith("#")) {
+                    currentHeading = trimmed
+                    if (!sections.containsKey(currentHeading)) {
+                        sections[currentHeading] = mutableListOf()
+                    }
+                } else {
+                    if (!sections.containsKey(currentHeading)) {
+                        sections[currentHeading] = mutableListOf()
+                    }
+                    if (trimmed.isEmpty() && sections[currentHeading]!!.isEmpty()) {
+                        continue
+                    }
+                    sections[currentHeading]!!.add(line)
+                }
+            }
+        }
+
+        val result = StringBuilder()
+        for ((heading, contentLines) in sections) {
+            if (heading.isNotEmpty()) {
+                result.appendLine(heading)
+            }
+            val lastNonEmpty = contentLines.indexOfLast { it.trim().isNotEmpty() }
+            if (lastNonEmpty != -1) {
+                for (i in 0..lastNonEmpty) {
+                    result.appendLine(contentLines[i])
+                }
+            }
+            if (heading.isNotEmpty() || lastNonEmpty != -1) {
+                result.appendLine()
+            }
+        }
+        
+        return result.toString().trimEnd()
     }
 }

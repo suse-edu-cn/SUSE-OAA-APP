@@ -91,6 +91,42 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!-- 桌面小组件：下一节课 -->
+        <receiver
+            android:name="com.suseoaa.projectoaa.composeapp.widget.NextCourseWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_next_course" />
+        </receiver>
+
+        <!-- 桌面小组件：今日课程 -->
+        <receiver
+            android:name="com.suseoaa.projectoaa.composeapp.widget.TodayCoursesWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_today_courses" />
+        </receiver>
+
+        <!-- 桌面小组件：一周课程 -->
+        <receiver
+            android:name="com.suseoaa.projectoaa.composeapp.widget.WeeklyScheduleWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_weekly_schedule" />
+        </receiver>
     </application>
 
 </manifest>

@@ -19,7 +19,7 @@ import com.mikepenz.markdown.m3.markdownTypography
 fun OaaMarkdownText(
     markdown: String,
     modifier: Modifier = Modifier,
-    style: TextStyle = MaterialTheme.typography.bodyMedium,
+    style: TextStyle = MaterialTheme.typography.bodyLarge,
     color: Color = MaterialTheme.colorScheme.onSurface
 ) {
     // 定义代码块背景色
@@ -31,9 +31,9 @@ fun OaaMarkdownText(
         modifier = modifier.fillMaxWidth(),
         // 文字样式配置
         typography = markdownTypography(
-            h1 = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            h2 = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            h3 = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            h1 = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            h2 = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            h3 = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             paragraph = style,
             bullet = style,
             list = style,

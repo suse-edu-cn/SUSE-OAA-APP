@@ -114,6 +114,10 @@ kotlin {
             // Compose Preview
             implementation(compose.preview)
 
+            // Jetpack Glance (App Widgets)
+            implementation(libs.androidx.glance.appwidget)
+            implementation(libs.androidx.glance.material3)
+
             // Ktor Android Engine
             implementation(libs.ktor.client.okhttp)
 

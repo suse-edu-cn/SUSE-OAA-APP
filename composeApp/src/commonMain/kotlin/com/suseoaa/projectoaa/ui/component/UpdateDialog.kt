@@ -73,7 +73,7 @@ fun UpdateDialog(
                                     .verticalScroll(rememberScrollState())
                             ) {
                                 OaaMarkdownText(
-                                    markdown = release.body,
+                                    markdown = viewModel.getConsolidatedReleaseNotes(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
