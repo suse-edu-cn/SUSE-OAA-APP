@@ -29,6 +29,10 @@ CREATE INDEX idx_classtime_course ON ClassTime(studentId, courseOwnerName, xnm, 
 selectByTerm:
 SELECT * FROM ClassTime WHERE studentId = ? AND xnm = ? AND xqm = ?;
 
+-- 查询该学生所有的课程时间
+selectAllByStudent:
+SELECT * FROM ClassTime WHERE studentId = ?;
+
 -- 插入课程时间
 insert:
 INSERT INTO ClassTime(studentId, courseOwnerName, xnm, xqm, isCustom, weekday, period, weeks, weeksMask, location, teacher, duration, teacherTitle, politicalStatus, classGroup)

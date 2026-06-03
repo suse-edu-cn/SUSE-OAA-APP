@@ -93,6 +93,7 @@ fun MainScreen(
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit = {},
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit = {},
+    onNavigateToCourseStatistics: () -> Unit = {},
     mainViewModel: MainViewModel = koinViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -137,6 +138,7 @@ fun MainScreen(
                 onNavigateToUserQuery = onNavigateToUserQuery,
                 onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                 onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
+                onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                 modifier = modifier
             )
         } else {
@@ -171,6 +173,7 @@ fun MainScreen(
                 onNavigateToUserQuery = onNavigateToUserQuery,
                 onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                 onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
+                onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                 isLiquidGlassTabbarEnabled = isLiquidGlassTabbarEnabled,
                 modifier = modifier
             )
@@ -206,6 +209,7 @@ private fun TabletLandscapeLayout(
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
+    onNavigateToCourseStatistics: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -262,7 +266,8 @@ private fun TabletLandscapeLayout(
                     onNavigateToRecruitment = onNavigateToRecruitment,
                     onNavigateToUserQuery = onNavigateToUserQuery,
                     onNavigateToActivityCheckin = onNavigateToActivityCheckin,
-                    onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings
+                    onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToCourseStatistics = onNavigateToCourseStatistics
                 )
             }
         }
@@ -297,6 +302,7 @@ private fun PhoneLayout(
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
+    onNavigateToCourseStatistics: () -> Unit,
     isLiquidGlassTabbarEnabled: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -429,7 +435,8 @@ private fun PhoneLayout(
                     onNavigateToRecruitment = onNavigateToRecruitment,
                     onNavigateToUserQuery = onNavigateToUserQuery,
                     onNavigateToActivityCheckin = onNavigateToActivityCheckin,
-                    onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings
+                    onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToCourseStatistics = onNavigateToCourseStatistics
                 )
             }
         }
@@ -520,7 +527,8 @@ private fun KeepAliveMainPages(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
-    onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit
+    onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
+    onNavigateToCourseStatistics: () -> Unit
 ) {
     val orderedTabs = remember(selectedTab) {
         MainTab.entries.sortedBy { if (it.index == selectedTab) 1 else 0 }
@@ -565,7 +573,8 @@ private fun KeepAliveMainPages(
                         onNavigateToRecruitment = onNavigateToRecruitment,
                         onNavigateToUserQuery = onNavigateToUserQuery,
                         onNavigateToActivityCheckin = onNavigateToActivityCheckin,
-                        onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings
+                        onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
+                        onNavigateToCourseStatistics = onNavigateToCourseStatistics
                     )
                 }
             } // end key(tab.index)
@@ -596,7 +605,8 @@ private fun MainTabPage(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
-    onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit
+    onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
+    onNavigateToCourseStatistics: () -> Unit
 ) {
     CompositionLocalProvider(LocalMainTabVisible provides isVisible) {
         when (tabIndex) {
@@ -612,6 +622,7 @@ private fun MainTabPage(
 
             MainTab.COURSE.index -> CourseScreen(
                 onNavigateToLogin = onNavigateToLogin,
+                onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                 bottomBarHeight = bottomBarHeight
             )
 

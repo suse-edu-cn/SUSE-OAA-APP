@@ -24,6 +24,7 @@ import com.suseoaa.projectoaa.ui.screen.teachingplan.AcademicStatusScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.CourseInfoScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.StudyRequirementScreen
 import com.suseoaa.projectoaa.ui.screen.update.UpdateScreen
+import com.suseoaa.projectoaa.presentation.course.CourseStatisticsScreen
 
 @Composable
 fun AppNavHost(
@@ -132,6 +133,9 @@ fun AppNavHost(
                 },
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
+                },
+                onNavigateToCourseStatistics = {
+                    navController.navigate(Screen.CourseStatistics.route)
                 },
                 mainViewModel = mainViewModel
             )
@@ -257,6 +261,12 @@ fun AppNavHost(
             com.suseoaa.projectoaa.ui.screen.settings.SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 viewModel = org.koin.compose.viewmodel.koinViewModel()
+            )
+        }
+
+        composable(Screen.CourseStatistics.route) {
+            CourseStatisticsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }

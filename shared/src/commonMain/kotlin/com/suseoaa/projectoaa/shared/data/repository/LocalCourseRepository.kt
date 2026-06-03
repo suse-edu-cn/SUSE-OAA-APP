@@ -105,6 +105,32 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         }
     }
 
+    fun getAllCoursesByStudent(studentId: String): Flow<List<CourseWithTimes>> {
+        return database.courseQueries.selectAllByStudent(studentId)
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { list ->
+                val allTimes = database.classTimeQueries.selectAllByStudent(studentId).executeAsList().map { it.toEntity() }
+                val timesByCourseKey = allTimes.groupBy { 
+                    "${it.studentId}_${it.courseOwnerName}_${it.xnm}_${it.xqm}_${it.isCustom}" 
+                }
+                list.map { c ->
+                    val course = c.toEntity()
+                    val key = "${course.studentId}_${course.courseName}_${course.xnm}_${course.xqm}_${course.isCustom}"
+                    CourseWithTimes(course, timesByCourseKey[key] ?: emptyList())
+                }
+            }
+    }
+
+    fun getAvailableTerms(studentId: String): Flow<List<Pair<String, String>>> {
+        return database.courseQueries.selectDistinctTerms(studentId)
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { list ->
+                list.map { it.xnm to it.xqm }
+            }
+    }
+
     // removed suspend from insert helpers to allow usage inside transaction
     private fun insertCourseInternal(course: CourseEntity) {
         database.courseQueries.insertOrReplace(

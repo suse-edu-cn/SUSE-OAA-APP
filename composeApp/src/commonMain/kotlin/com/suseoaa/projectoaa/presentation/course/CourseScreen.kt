@@ -23,6 +23,12 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
@@ -194,6 +200,7 @@ private fun overlapFilterLabel(filter: OverlapDisplayFilter): String {
 @Composable
 fun CourseScreen(
     onNavigateToLogin: () -> Unit = {},
+    onNavigateToCourseStatistics: () -> Unit = {},
     bottomBarHeight: Dp = 0.dp,
     viewModel: CourseViewModel = koinViewModel()
 ) {
@@ -259,6 +266,15 @@ fun CourseScreen(
     var overlapFilter by remember { mutableStateOf(OverlapDisplayFilter.ALL) }
     var onlyShowOverlap by remember { mutableStateOf(false) }
     val hasCourseBackgroundImage = !courseBackgroundImageBase64.isNullOrBlank()
+    val haptic = LocalHapticFeedback.current
+
+    // Pinch to zoom state
+    var courseScreenScale by remember { mutableFloatStateOf(1f) }
+    val animatedScale by animateFloatAsState(
+        targetValue = courseScreenScale,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "courseScreenScale"
+    )
 
     val currentWeekItems = weekLayoutMap[currentDisplayWeek].orEmpty()
     val currentWeekOverlapMap = overlapStatusByWeek[currentDisplayWeek].orEmpty()
@@ -345,6 +361,31 @@ fun CourseScreen(
     }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    var triggered = false
+                    do {
+                        val event = awaitPointerEvent()
+                        val zoom = event.calculateZoom()
+                        if (zoom != 1f) {
+                            courseScreenScale *= zoom
+                            if (courseScreenScale < 0.85f && !triggered) {
+                                triggered = true
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onNavigateToCourseStatistics()
+                            }
+                        }
+                    } while (event.changes.any { it.pressed })
+                    courseScreenScale = 1f
+                }
+            },
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {

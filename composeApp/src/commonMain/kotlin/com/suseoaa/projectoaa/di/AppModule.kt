@@ -9,6 +9,7 @@ import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
 import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinManager
 import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinViewModel
 import com.suseoaa.projectoaa.presentation.course.CourseViewModel
+import com.suseoaa.projectoaa.presentation.course.CourseStatisticsViewModel
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
@@ -38,6 +39,7 @@ val appModule = module {
     viewModel { HomeViewModel(get(), get(), get()) }
     viewModel { ChangePasswordViewModel(get()) }
     viewModel { CourseViewModel(get(), get(), get(), get()) }
+    viewModel { CourseStatisticsViewModel(get(), get(), get()) }
     viewModel { AcademicViewModel(get(), get(), get(), get()) }
     viewModel { ExamViewModel(get(), get(), get(), get()) }
     viewModel { PersonViewModel(get(), get()) }

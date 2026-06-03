@@ -18,6 +18,14 @@ CREATE TABLE Course (
 selectByTerm:
 SELECT * FROM Course WHERE studentId = ? AND xnm = ? AND xqm = ?;
 
+-- 查询指定学生的所有学期的课程
+selectAllByStudent:
+SELECT * FROM Course WHERE studentId = ?;
+
+-- 查询该学生拥有的所有不重复学期组合
+selectDistinctTerms:
+SELECT DISTINCT xnm, xqm FROM Course WHERE studentId = ? ORDER BY xnm DESC, xqm DESC;
+
 -- 插入或替换课程
 insertOrReplace:
 INSERT OR REPLACE INTO Course(studentId, courseName, xnm, xqm, isCustom, remoteCourseId, nature, background, category, assessment, totalHours)

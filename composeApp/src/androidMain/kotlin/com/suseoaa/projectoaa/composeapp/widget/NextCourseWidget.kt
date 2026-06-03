@@ -1,3 +1,4 @@
+@file:SuppressLint("RestrictedApi")
 package com.suseoaa.projectoaa.composeapp.widget
 
 import android.content.Context
@@ -27,6 +28,8 @@ import androidx.glance.unit.ColorProvider
 import androidx.glance.color.ColorProvider as DayNightColorProvider
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseWithTimes
 import androidx.glance.appwidget.cornerRadius
+import kotlin.math.abs
+import android.annotation.SuppressLint
 
 class NextCourseWidget : GlanceAppWidget() {
 
@@ -39,16 +42,37 @@ class NextCourseWidget : GlanceAppWidget() {
     }
 
     private fun getCourseTheme(name: String): CourseTheme {
-        val themes = CourseTheme.values()
-        val index = Math.abs(name.hashCode()) % themes.size
+        val themes = CourseTheme.entries.toTypedArray()
+        val index = abs(name.hashCode()) % themes.size
         return themes[index]
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val nextCourseData = WidgetDataFetcher.getNextCourse()
+        var errorMsg: String? = null
+        var nextCourseData: Pair<CourseWithTimes, WidgetDataFetcher.TimeSlotConfig>? = null
+        try {
+            nextCourseData = WidgetDataFetcher.getNextCourse()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            errorMsg = e.stackTraceToString()
+        }
 
         provideContent {
-            if (nextCourseData == null) {
+            if (errorMsg != null) {
+                Box(
+                    modifier = GlanceModifier
+                        .fillMaxSize()
+                        .background(ColorProvider(Color.White))
+                        .cornerRadius(12.dp)
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "加载失败: ${errorMsg.take(50)}",
+                        style = TextStyle(color = ColorProvider(Color.Red), fontSize = 10.sp)
+                    )
+                }
+            } else if (nextCourseData == null) {
                 Box(
                     modifier = GlanceModifier
                         .fillMaxSize()
@@ -91,7 +115,10 @@ class NextCourseWidget : GlanceAppWidget() {
                     val hour = timeParts.getOrNull(0) ?: "00"
                     val minute = timeParts.getOrNull(1) ?: "00"
                     
+                    @SuppressLint("RestrictedApi")
                     val badgeBg = DayNightColorProvider(day = Color(theme.bgHex), night = Color(theme.bgHex).copy(alpha = 0.2f))
+                    
+                    @SuppressLint("RestrictedApi")
                     val badgeTitle = DayNightColorProvider(day = Color(theme.titleHex), night = Color(theme.textHex))
 
                     Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
@@ -107,7 +134,7 @@ class NextCourseWidget : GlanceAppWidget() {
                                 text = hour,
                                 style = TextStyle(
                                     color = badgeTitle,
-                                    fontSize = 22.sp,
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             )
@@ -115,7 +142,7 @@ class NextCourseWidget : GlanceAppWidget() {
                                 text = minute,
                                 style = TextStyle(
                                     color = badgeTitle,
-                                    fontSize = 22.sp,
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             )
@@ -128,14 +155,16 @@ class NextCourseWidget : GlanceAppWidget() {
                             Spacer(modifier = GlanceModifier.defaultWeight())
                             
                             Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "下一节课",
-                                    style = TextStyle(
-                                        color = DayNightColorProvider(day = Color(theme.textHex), night = Color(theme.bgHex)),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
+                                    @SuppressLint("RestrictedApi")
+                                    val textColor = DayNightColorProvider(day = Color(theme.textHex), night = Color(theme.bgHex))
+                                    Text(
+                                        text = "下一节课",
+                                        style = TextStyle(
+                                            color = textColor,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     )
-                                )
                                 Spacer(modifier = GlanceModifier.width(6.dp))
                                 Text(
                                     text = "至 ${slot.endTime}",
