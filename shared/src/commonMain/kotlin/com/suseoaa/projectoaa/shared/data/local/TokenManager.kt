@@ -442,13 +442,30 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
         cachedToken = null
     }
 
-    /** 清除所有数据 */
-    suspend fun clear() {
+    /** 清除用户会话相关数据，保留系统设置 */
+    suspend fun clearSession() {
         dataStore.edit { preferences ->
-            preferences.clear()
+            preferences.remove(PreferencesKeys.USER_TOKEN)
+            preferences[PreferencesKeys.IS_LOGGED_IN] = false
+            preferences.remove(PreferencesKeys.USER_ID)
+            preferences.remove(PreferencesKeys.CURRENT_STUDENT_ID)
+            preferences.remove(PreferencesKeys.USER_PASSWORD)
+            preferences.remove(PreferencesKeys.TOKEN_LAST_UPDATE_TIME)
+            preferences.remove(PreferencesKeys.JG_ID)
+            preferences.remove(PreferencesKeys.ZYH_ID)
+            preferences.remove(PreferencesKeys.NJDM_ID)
+            // 不清除 THEME_MODE, BACKGROUND_IMAGE 等全局设置
         }
         cachedToken = null
         cachedStudentId = null
+        
+        // 清理所有的 HttpClient Cookie 缓存
+        com.suseoaa.projectoaa.shared.data.remote.network.SessionCleaner.clearAllNetworkSessions()
+    }
+
+    /** 彻底清除所有数据 (仅在真的需要恢复出厂设置时使用) */
+    suspend fun clear() {
+        clearSession() // 默认调用 clearSession 避免误删主题等设置
     }
 
     /** Alias for [clear] */

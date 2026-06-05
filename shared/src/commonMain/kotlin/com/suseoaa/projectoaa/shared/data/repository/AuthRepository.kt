@@ -69,7 +69,7 @@ class AuthRepository(
      * 登出
      */
     suspend fun logout() {
-        tokenManager.clearToken()
+        tokenManager.clearSession()
     }
 
     /**
