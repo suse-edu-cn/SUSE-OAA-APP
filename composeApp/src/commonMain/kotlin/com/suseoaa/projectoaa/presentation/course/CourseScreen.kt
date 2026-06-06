@@ -268,7 +268,7 @@ fun CourseScreen(
     val hasCourseBackgroundImage = !courseBackgroundImageBase64.isNullOrBlank()
     val haptic = LocalHapticFeedback.current
 
-    // Pinch to zoom state
+    // 双指缩放状态
     var courseScreenScale by remember { mutableFloatStateOf(1f) }
     val animatedScale by animateFloatAsState(
         targetValue = courseScreenScale,
@@ -1166,7 +1166,7 @@ private fun buildPreparedCardItems(
 
         clusters.forEach { cluster ->
             if (activeQueryCount > 1) {
-                // Shared Query mode: split cluster into atomic temporal segments for precise overlap representation
+                // 共享查询模式：将聚集块分割为原子时间段以精确表示重叠
                 val boundaries =
                     cluster.flatMap { listOf(it.startNodeIndex, it.endNodeIndex + 1) }.distinct()
                         .sorted()
@@ -1239,7 +1239,7 @@ private fun buildPreparedCardItems(
                         cluster.filter { it.startNodeIndex <= segStart && it.endNodeIndex >= segEnd }
                     if (segItems.isEmpty()) continue
 
-                    // Match item sets by examining if they contain exactly the same courses
+                    // 通过检查是否包含完全相同的课程来匹配项目集
                     val hasSameCourses = currentSegmentItems.size == segItems.size &&
                             currentSegmentItems.map { it.course.course.studentId + it.course.course.courseName }
                                 .toSet() ==
@@ -1257,7 +1257,7 @@ private fun buildPreparedCardItems(
                 }
                 emitSegment()
             } else {
-                // Normal mode: put them in parallel lanes if physically conflicting
+                // 正常模式：如果存在物理冲突，将它们放在平行的轨道中
                 val laneEnd = mutableListOf<Int>()
                 val laneAssignment = mutableMapOf<ScheduleLayoutItem, Int>()
 
@@ -1701,7 +1701,7 @@ fun CourseDetailContent(
         if (infoList.isNotEmpty()) {
             if (activeQueryCount > 1) {
                 if (expandedItemIndex != null) {
-                    // Show specific item detail
+                    // 显示具体的项目详情
                     Column {
                         Text(
                             text = "返回列表",
@@ -1722,7 +1722,7 @@ fun CourseDetailContent(
                         )
                     }
                 } else {
-                    // List view for shared query
+                    // 共享查询的列表视图
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.heightIn(max = 400.dp)

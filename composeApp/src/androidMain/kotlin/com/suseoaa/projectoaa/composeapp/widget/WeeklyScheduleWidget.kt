@@ -43,7 +43,7 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
     private val dayNames = listOf("一", "二", "三", "四", "五", "六", "日")
 
-    // Define 5 distinct theme colors for seamless drawables
+    // 定义 5 种不同的主题颜色用于无缝绘制
     enum class CourseTheme(val textHex: Long, val baseName: String) {
         BLUE(0xFF1565C0, "bg_course_blue"),
         GREEN(0xFF2E7D32, "bg_course_green"),
@@ -199,7 +199,7 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
                 )
 
                 Column(modifier = GlanceModifier.fillMaxSize()) {
-                    // Header Row
+                    // 头部 Row
                     Row(modifier = GlanceModifier.fillMaxWidth().padding(bottom = 2.dp)) {
                         Spacer(modifier = GlanceModifier.defaultWeight())
                         for (day in 1..7) {
@@ -348,12 +348,12 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
         val textTertiary = DayNightColorProvider(day = Color.Gray, night = Color.Gray)
         val todayBgCol = DayNightColorProvider(day = Color(0xFFF1F5F9), night = Color(0xFF374151).copy(alpha = 0.3f))
 
-        // Zero vertical padding for seamless continuity
+        // 零垂直边距以实现无缝连续性
         Row(
             modifier = modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left column
+            // 左列
             Box(
                 modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
                 contentAlignment = Alignment.Center
@@ -392,7 +392,7 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
                 ) {
                     Box(modifier = GlanceModifier.fillMaxSize()) {
                         if (course1 != null && course1 == course2) {
-                            // Same course covers BOTH periods -> Full block
+                            // 同一门课程覆盖两个时间段 -> 完整区块
                             val theme = getCourseTheme(course1.first.course.courseName)
                             val part1 = getCoursePart(course1.first, p1)
                             val part2 = getCoursePart(course1.first, p2)
@@ -414,7 +414,7 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
                                 modifier = GlanceModifier.fillMaxSize()
                             )
                         } else if (course1 != null || course2 != null) {
-                            // Subdivided block
+                            // 细分区块
                             Column(modifier = GlanceModifier.fillMaxSize()) {
                                 if (course1 != null) {
                                     val theme1 = getCourseTheme(course1.first.course.courseName)
@@ -453,7 +453,7 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
                                 }
                             }
                         } else {
-                            // Empty
+                            // 空白
                             Spacer(modifier = GlanceModifier.fillMaxSize())
                         }
                     }

@@ -37,8 +37,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.suseoaa.projectoaa.util.LockScreenOrientation
+import com.suseoaa.projectoaa.util.LockFullscreen
 import com.suseoaa.projectoaa.ui.component.isTabletFormFactorDevice
+import com.suseoaa.projectoaa.ui.component.common.FakeLandscape
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,9 +48,7 @@ fun CourseStatisticsScreen(
     onBack: () -> Unit,
     viewModel: CourseStatisticsViewModel = koinViewModel()
 ) {
-    // 强制横屏
-    LockScreenOrientation(landscape = true)
-
+    LockFullscreen(fullscreen = true)
     val timelineData by viewModel.timelineData.collectAsStateWithLifecycle()
     val allAccounts by viewModel.allAccounts.collectAsStateWithLifecycle()
     val selectedAccountIds by viewModel.selectedAccountIds.collectAsStateWithLifecycle()
@@ -60,10 +59,11 @@ fun CourseStatisticsScreen(
 
     var showSidePanel by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    FakeLandscape {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
         // 全端统一：左侧侧滑挤出，右侧时间线
         Row(modifier = Modifier.fillMaxSize()) {
             AnimatedVisibility(visible = showSidePanel) {
@@ -103,6 +103,7 @@ fun CourseStatisticsScreen(
                 }
             }
         }
+    }
     }
 }
 

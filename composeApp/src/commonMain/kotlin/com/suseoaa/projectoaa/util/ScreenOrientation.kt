@@ -4,3 +4,6 @@ import androidx.compose.runtime.Composable
 
 @Composable
 expect fun LockScreenOrientation(landscape: Boolean)
+
+@Composable
+expect fun LockFullscreen(fullscreen: Boolean)

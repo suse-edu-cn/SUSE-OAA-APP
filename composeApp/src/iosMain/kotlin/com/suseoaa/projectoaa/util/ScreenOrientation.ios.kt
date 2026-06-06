@@ -8,3 +8,8 @@ actual fun LockScreenOrientation(landscape: Boolean) {
     // 在 iOS 中通常建议由系统和设备物理旋转接管。
     // 若必须在 iOS 强制横屏，需要通过 interop 调用 UIDevice 或直接在视图层用 Modifier.rotate 模拟。
 }
+
+@Composable
+actual fun LockFullscreen(fullscreen: Boolean) {
+    // iOS全屏状态栏隐藏暂不实现
+}

@@ -133,7 +133,7 @@ class NextCourseWidget : GlanceAppWidget() {
                     val badgeTitle = DayNightColorProvider(day = Color(theme.titleHex), night = Color(theme.textHex))
 
                     Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                        // Left: Artistic Stacked Time Badge
+                        // 左侧：充满艺术感的堆叠时间徽章
                         Column(
                             modifier = GlanceModifier
                                 .background(badgeBg)
@@ -161,7 +161,7 @@ class NextCourseWidget : GlanceAppWidget() {
 
                         Spacer(modifier = GlanceModifier.width(16.dp))
 
-                        // Right: Course Information Typography
+                        // 右侧：课程信息排版
                         Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
                             Spacer(modifier = GlanceModifier.defaultWeight())
                             

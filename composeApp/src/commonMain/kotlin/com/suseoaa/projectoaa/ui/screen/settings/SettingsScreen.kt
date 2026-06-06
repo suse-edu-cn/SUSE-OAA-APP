@@ -185,7 +185,7 @@ fun SettingsScreen(
 }
 
 // -------------------------------------------------------------
-// UI Components Moved From PersonScreen
+// 从个人界面移动过来的 UI 组件
 // -------------------------------------------------------------
 
 @Composable
@@ -373,7 +373,7 @@ fun DynamicColorPaletteDialog(
             tonalElevation = 6.dp
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Header
+                // 头部
                 Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)).padding(20.dp)) {
                     Text("莫奈调色盘", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(4.dp))
@@ -382,7 +382,7 @@ fun DynamicColorPaletteDialog(
                     Spacer(Modifier.height(20.dp))
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // Light Mode Target
+                        // 浅色模式目标
                         Surface(
                             onClick = { isEditingLightColor = true },
                             modifier = Modifier.weight(1f),
@@ -399,7 +399,7 @@ fun DynamicColorPaletteDialog(
                             }
                         }
 
-                        // Dark Mode Target
+                        // 暗色模式目标
                         Surface(
                             onClick = { isEditingLightColor = false },
                             modifier = Modifier.weight(1f),
@@ -418,7 +418,7 @@ fun DynamicColorPaletteDialog(
                     }
                 }
 
-                // Content
+                // 内容区
                 Column(modifier = Modifier.weight(1f).padding(20.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("选择颜色", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -431,7 +431,7 @@ fun DynamicColorPaletteDialog(
                     Spacer(Modifier.height(16.dp))
 
                     if (isCustomMode) {
-                        // Custom color picker (simplified for SettingsScreen)
+                        // 自定义颜色选择器（针对设置界面简化）
                         val previewColor = hslToColor(customHue, customSaturation, customLightness, 1f)
                         Box(modifier = Modifier.fillMaxWidth().height(100.dp).clip(RoundedCornerShape(16.dp)).background(previewColor))
                         Spacer(Modifier.height(16.dp))
@@ -476,7 +476,7 @@ fun DynamicColorPaletteDialog(
                     }
                 }
 
-                // Footer
+                // 底部
                 Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(16.dp), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) { Text("取消") }
                     Spacer(Modifier.width(8.dp))

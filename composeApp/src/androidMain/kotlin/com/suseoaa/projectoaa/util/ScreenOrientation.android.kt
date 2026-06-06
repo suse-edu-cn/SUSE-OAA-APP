@@ -8,6 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+
 @Composable
 actual fun LockScreenOrientation(landscape: Boolean) {
     val context = LocalContext.current
@@ -20,8 +23,29 @@ actual fun LockScreenOrientation(landscape: Boolean) {
             ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
         }
         onDispose {
-            // Restore original orientation
+            // 恢复原始方向
             activity.requestedOrientation = originalOrientation
+        }
+    }
+}
+
+@Composable
+actual fun LockFullscreen(fullscreen: Boolean) {
+    val context = LocalContext.current
+    DisposableEffect(fullscreen) {
+        val activity = context.findActivity() ?: return@DisposableEffect onDispose {}
+        val window = activity.window
+        val insetsController = WindowInsetsControllerCompat(window, window.decorView)
+        
+        if (fullscreen) {
+            insetsController.hide(WindowInsetsCompat.Type.systemBars())
+            insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        } else {
+            insetsController.show(WindowInsetsCompat.Type.systemBars())
+        }
+        
+        onDispose {
+            insetsController.show(WindowInsetsCompat.Type.systemBars())
         }
     }
 }

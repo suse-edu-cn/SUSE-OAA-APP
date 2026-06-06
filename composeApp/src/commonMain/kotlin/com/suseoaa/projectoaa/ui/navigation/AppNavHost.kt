@@ -66,7 +66,7 @@ fun AppNavHost(
         }
     }
 
-    NavHost(
+    SharedNavHost(
         navController = navController,
         startDestination = startDestination
     ) {

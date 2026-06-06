@@ -64,7 +64,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         withContext(Dispatchers.IO) {
             database.transaction {
                 accounts.forEachIndexed { index, account ->
-                    // transaction is synchronous, so we call generated updateSortIndex.
+                    // 事务是同步的，因此我们调用生成的 updateSortIndex。
                     database.courseAccountQueries.updateSortIndex(index.toLong(), account.studentId)
                 }
             }
@@ -131,7 +131,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
             }
     }
 
-    // removed suspend from insert helpers to allow usage inside transaction
+    // 从插入辅助函数中移除了 suspend 以便在事务内部使用
     private fun insertCourseInternal(course: CourseEntity) {
         database.courseQueries.insertOrReplace(
             studentId = course.studentId,
@@ -289,7 +289,7 @@ class LocalCourseRepository(private val database: CourseDatabase) {
         list.forEach { item ->
             val courseName = item.kcmc ?: "未知课程"
 
-            // Deduplicate courses
+            // 课程去重
             if (courseName !in processedCourseNames) {
                 processedCourseNames.add(courseName)
                 courseEntities.add(

@@ -16,11 +16,11 @@ data class UserManagementUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val users: List<UserQueryData> = emptyList(),
-    // Filter conditions
+    // 过滤条件
     val filterDepartment: String = "",
     val filterName: String = "",
     val filterRole: String = "",
-    // Update State
+    // 更新状态
     val isUpdating: Boolean = false,
     val updateMessage: String? = null
 )

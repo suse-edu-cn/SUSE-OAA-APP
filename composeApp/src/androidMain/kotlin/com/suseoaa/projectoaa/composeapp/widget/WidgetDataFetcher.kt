@@ -72,7 +72,7 @@ object WidgetDataFetcher {
             val tokenManager = koin.get<TokenManager>()
             val courseRepo = koin.get<LocalCourseRepository>()
 
-            // Get current student ID
+            // 获取当前学生 ID
             val studentId = tokenManager.currentStudentId.first() ?: return emptyList()
 
             val (xnm, xqm) = calculateCurrentRealTerm()
@@ -230,7 +230,7 @@ object WidgetDataFetcher {
         val courses = getActiveCourses()
         val currentWeek = getCurrentWeek()
         
-        // Filter courses for current week
+        // 过滤本周课程
         val currentWeekCourses = courses.filter { courseWithTimes ->
             courseWithTimes.times.any { time ->
                 isWeekActive(currentWeek, time.weeks, time.weeksMask)
@@ -244,7 +244,7 @@ object WidgetDataFetcher {
         val currentMinute = now.minute
         val currentTotalMinutes = currentHour * 60 + currentMinute
         
-        // Try to find a course today that hasn't started yet
+        // 尝试寻找今天尚未开始的课程
         val todayCourses = currentWeekCourses.filter { courseWithTimes ->
             courseWithTimes.times.any { time ->
                 isWeekActive(currentWeek, time.weeks, time.weeksMask) && parseWeekday(time.weekday) == currentDay
@@ -280,7 +280,7 @@ object WidgetDataFetcher {
             return nextCourseToday
         }
         
-        // Find first course tomorrow
+        // 寻找明天的第一节课
         val tomorrowDay = if (currentDay == 7) 1 else currentDay + 1
         val tomorrowWeek = if (currentDay == 7) currentWeek + 1 else currentWeek
         
@@ -343,7 +343,7 @@ object WidgetDataFetcher {
             }
         }
         
-        // Sort by start time
+        // 按开始时间排序
         todayCoursesList.sortBy {
             val parts = it.second.startTime.split(":")
             if (parts.size == 2) parts[0].toInt() * 60 + parts[1].toInt() else 0
@@ -396,7 +396,7 @@ object WidgetDataFetcher {
             }
         }
         
-        // Sort courses in each day
+        // 对每天的课程进行排序
         for (day in 1..7) {
             weeklyMap[day]?.sortBy {
                 val parts = it.second.startTime.split(":")
@@ -421,7 +421,7 @@ object WidgetDataFetcher {
 
             val studentId = tokenManager.currentStudentId.first() ?: return ExamsSummary(emptyList(), 0, 0)
             
-            // Get all exams from the local cache
+            // 从本地缓存获取所有考试
             val exams = schoolInfoRepo.observeExams(studentId).first()
             
             val timeZone = TimeZone.currentSystemDefault()
@@ -441,7 +441,7 @@ object WidgetDataFetcher {
                         upcoming.add(exam)
                     }
                 } else {
-                    // if time is unknown, assume untaken but do not show in recent list
+                    // 如果时间未知，假设未考但不显示在近期列表中
                     untaken++
                 }
             }

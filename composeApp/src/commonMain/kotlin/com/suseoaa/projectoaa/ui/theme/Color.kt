@@ -55,7 +55,7 @@ val md_theme_light_inverseOnSurface = Color(0xFFF4EFF4)
 val md_theme_light_inverseSurface = Color(0xFF313033)
 val md_theme_light_inversePrimary = NightBlue
 
-// Dark Theme Colors
+// 暗色主题颜色
 val md_theme_dark_primary = NightBlue
 val md_theme_dark_onPrimary = Color(0xFFFFFFFF)
 val md_theme_dark_primaryContainer = NightContainer

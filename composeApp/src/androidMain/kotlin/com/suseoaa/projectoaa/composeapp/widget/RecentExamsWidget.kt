@@ -141,7 +141,7 @@ class RecentExamsWidget : GlanceAppWidget() {
                                     .padding(bottom = if (index < maxExams.size - 1) 4.dp else 0.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Left: Badge
+                                // 左侧：徽章
                                     Column(
                                         modifier = GlanceModifier
                                             .background(badgeBg)
@@ -162,7 +162,7 @@ class RecentExamsWidget : GlanceAppWidget() {
 
                                     Spacer(modifier = GlanceModifier.width(10.dp))
 
-                                    // Middle: Details
+                                    // 中间：详情
                                     Column(modifier = GlanceModifier.defaultWeight()) {
                                         Text(
                                             text = exam.courseName,
@@ -184,7 +184,7 @@ class RecentExamsWidget : GlanceAppWidget() {
                                         )
                                     }
 
-                                    // Right: Countdown
+                                    // 右侧：倒计时
                                     val parsedTime = parseExamTimeRange(exam.time)
                                     val daysLeftStr = if (parsedTime != null) {
                                         val now = OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault()).date

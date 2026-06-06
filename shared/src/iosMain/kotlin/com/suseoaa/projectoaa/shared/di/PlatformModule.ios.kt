@@ -13,6 +13,6 @@ actual fun platformModule(): Module = module {
     single<DataStore<Preferences>> { createDataStore() }
     single { TokenManager(get<DataStore<Preferences>>()) }
 
-    // Database
+    // 数据库
     single { CourseDatabaseDriverFactory() }
 }

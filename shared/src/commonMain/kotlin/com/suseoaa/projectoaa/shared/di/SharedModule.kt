@@ -80,7 +80,7 @@ val sharedModule = module {
     // OAA API 服务
     single { OaaApiService(get(qualifier = named("oaa")), get()) }
 
-    // OAA Repositories
+    // OAA 仓库
     single { OaaAuthRepository(get<OaaApiService>()) }
     single { OaaRegisterRepository(get<OaaApiService>(), get()) }
     single { PersonRepository(get<OaaApiService>(), get()) }

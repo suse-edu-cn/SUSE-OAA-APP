@@ -298,7 +298,7 @@ class CourseReminderService : Service(), KoinComponent {
                         todayClasses.add(ClassItem(courseData.course.courseName, time, startLocalTime))
                     }
                 } catch (e: Exception) {
-                    // Ignore parse error
+                    // 忽略解析错误
                 }
             }
         }

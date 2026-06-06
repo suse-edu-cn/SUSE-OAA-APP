@@ -162,7 +162,7 @@ actual class AppUpdateRepository(
      * iOS 不支持取消下载
      */
     actual fun cancelDownload(downloadId: Long) {
-        // no-op
+        // 空实现
     }
 
     /**

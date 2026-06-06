@@ -209,7 +209,7 @@ fun QrCodeLoginDialog(
                     
                     // ★★★ 关键修复 (2025年验证) ★★★
                     // 直接访问 SSO API 获取 SESSION，而不是访问 /xg/ 页面
-                    // SSO API: /site/appware/system/sso/loginUrl?service=<redirect_url>
+                    // SSO 接口：/site/appware/system/sso/loginUrl?service=<redirect_url>
                     val serviceUrl = "https://qfhy.suse.edu.cn/xg/app/qddk/admin?open_id=$openId"
                     val encodedService = java.net.URLEncoder.encode(serviceUrl, "UTF-8")
                     val ssoUrl = "https://qfhy.suse.edu.cn/site/appware/system/sso/loginUrl?service=$encodedService"

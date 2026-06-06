@@ -10,10 +10,10 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 actual fun platformModule(): Module = module {
-    // DataStore - requires Context from Android
+    // DataStore - 需要 Android 的 Context
     single<DataStore<Preferences>> { createDataStore(get<Context>()) }
     single { TokenManager(get<DataStore<Preferences>>()) }
     
-    // Database - requires Context from Android
+    // 数据库 - 需要 Android 的 Context
     single { CourseDatabaseDriverFactory(get<Context>()) }
 }

@@ -793,7 +793,7 @@ fun OaaBottomBar(
     val indicatorColor = colorScheme.secondaryContainer.copy(alpha = 0.95f)
     val hazeSurface = colorScheme.surfaceColorAtElevation(3.dp)
     
-    // Liquid Glass Style Switch
+    // 液态玻璃风格切换
     val hazeBackground = if (isLiquidGlassTabbarEnabled) Color.White.copy(alpha = 0.35f) else hazeSurface.copy(alpha = 0.58f)
     val hazeTintColor = if (isLiquidGlassTabbarEnabled) Color.White.copy(alpha = 0.15f) else hazeSurface.copy(alpha = 0.86f)
     val blurRadius = if (isLiquidGlassTabbarEnabled) 48.dp else 28.dp
@@ -900,7 +900,7 @@ fun OaaBottomBar(
                 // 计算气泡的垂直偏移（严格数学居中，确保静置和按压时上下对称）
                 val bubbleOffsetY = (60.dp - animatedBubbleHeight) / 2
 
-                // The Glass Bubble Lens (Background of the lens)
+                // 玻璃气泡透镜（透镜的背景）
                 val indicatorModifier = if (isLiquidGlassTabbarEnabled) {
                     Modifier
                         .hazeEffect(
