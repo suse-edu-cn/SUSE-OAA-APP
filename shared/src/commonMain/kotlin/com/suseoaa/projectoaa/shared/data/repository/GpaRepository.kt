@@ -15,6 +15,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlin.math.pow
 import kotlin.math.round
+import com.suseoaa.projectoaa.shared.util.getCurrentTerm
 
 /**
  * GPA 仓库 - 处理成绩数据和培养计划
@@ -40,12 +41,48 @@ class GpaRepository(
                 // 1. 获取本地所有成绩
                 val allGrades = gradeRepository.observeAllGrades(studentId).first()
 
-                if (allGrades.isEmpty()) {
-                    return@withContext Result.failure(Exception("暂无成绩数据，请先在成绩查询页面同步成绩"))
+                // 2. 获取本地排课课程（用于提取本学期及以后学期未出分课程进行提前模拟）
+                val allScheduleCourses = localCourseRepository.getAllCoursesByStudent(studentId).first()
+
+                val (currentXnm, currentXqm) = getCurrentTerm()
+                val currentTermValue = currentXnm.toIntOrNull()?.times(100)?.plus(currentXqm.toIntOrNull() ?: 0) ?: 0
+
+                val simulatedGrades = allScheduleCourses.filter { courseWithTimes ->
+                    val c = courseWithTimes.course
+                    val termValue = c.xnm.toIntOrNull()?.times(100)?.plus(c.xqm.toIntOrNull() ?: 0) ?: 0
+                    // 只包含当前或未来学期，且不是自定义课程的
+                    termValue >= currentTermValue && !c.isCustom
+                }.map { courseWithTimes ->
+                    val c = courseWithTimes.course
+                    GradeEntity(
+                        studentId = studentId,
+                        xnm = c.xnm,
+                        xqm = c.xqm,
+                        courseId = c.remoteCourseId.ifEmpty { c.courseName },
+                        jxbId = "",
+                        courseName = c.courseName,
+                        score = "", // 空成绩
+                        credit = c.totalHours.ifEmpty { "0" },
+                        gpa = "0",
+                        courseType = c.nature,
+                        examType = c.assessment,
+                        teacher = courseWithTimes.times.firstOrNull()?.teacher ?: "",
+                        examNature = ""
+                    )
                 }
 
-                // 2. 按课程名去重，保留最高分
-                val uniqueGrades = allGrades
+                // 过滤掉已有真实成绩的课，防止覆盖
+                val existingCourseNames = allGrades.map { it.courseName }.toSet()
+                val newSimulatedGrades = simulatedGrades.filter { it.courseName !in existingCourseNames }
+
+                val combinedGrades = allGrades + newSimulatedGrades
+
+                if (combinedGrades.isEmpty()) {
+                    return@withContext Result.failure(Exception("暂无数据，请先同步成绩或课表"))
+                }
+
+                // 3. 按课程名去重，保留最高分
+                val uniqueGrades = combinedGrades
                     .groupBy { it.courseName }
                     .mapValues { entry ->
                         entry.value.maxByOrNull { parseScore(it.score) } ?: entry.value.first()
@@ -54,12 +91,12 @@ class GpaRepository(
                     .toList()
                     .sortedWith(compareBy({ it.xnm }, { it.xqm }))
 
-                // 3. 加载学位课信息（优先从数据库，然后从网络）
+                // 4. 加载学位课信息（优先从数据库，然后从网络）
                 if (degreeCourseCache.isEmpty()) {
                     loadDegreeCourseCache(studentId)
                 }
 
-                // 4. 合并数据
+                // 5. 合并数据
                 val result = uniqueGrades.map { entity ->
                     val scoreStr = entity.score.trim()
                     // "缓考" 完全排除（未完成考试）
@@ -74,7 +111,8 @@ class GpaRepository(
                             ?: false
                     }
 
-                    val scoreVal = if (isPassOnly) 60.0 else parseScore(entity.score)  // 合格/通过默认60分
+                    // 对于空成绩（提前模拟），scoreVal 设为空，用户需要手动修改
+                    val scoreVal = if (scoreStr.isEmpty()) null else if (isPassOnly) 60.0 else parseScore(entity.score)
 
                     GpaCourseWrapper(
                         originalEntity = entity,
@@ -82,7 +120,8 @@ class GpaRepository(
                         simulatedScore = if (isExcluded) null else scoreVal,
                         isExcluded = isExcluded,
                         isPassOnly = isPassOnly,
-                        originalScoreText = scoreStr
+                        originalScoreText = scoreStr,
+                        isIncludedInCalculation = true
                     )
                 }.filter { !it.isExcluded }
 
@@ -234,7 +273,8 @@ data class GpaCourseWrapper(
     val simulatedGpa: Double? = null,  // 模拟绩点（用户修改后的值）
     val isExcluded: Boolean = false,
     val isPassOnly: Boolean = false,   // 仅通过类成绩（合格/通过/免修），用于显示标记
-    val originalScoreText: String = ""  // 原始成绩文本（用于显示优/良/中/差）
+    val originalScoreText: String = "", // 原始成绩文本（用于显示优/良/中/差）
+    val isIncludedInCalculation: Boolean = true // 是否纳入当前绩点计算（供用户排除特定课程）
 ) {
     val credit: Double
         get() = originalEntity.credit.toDoubleOrNull() ?: 0.0

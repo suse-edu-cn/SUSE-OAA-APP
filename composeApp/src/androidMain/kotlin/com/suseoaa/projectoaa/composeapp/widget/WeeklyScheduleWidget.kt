@@ -33,6 +33,10 @@ import androidx.glance.unit.ColorProvider
 import androidx.glance.color.ColorProvider as DayNightColorProvider
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseWithTimes
 import java.util.Calendar
+import android.content.Intent
+import android.net.Uri
+import androidx.glance.action.clickable
+import androidx.glance.appwidget.action.actionStartActivity
 
 class WeeklyScheduleWidget : GlanceAppWidget() {
 
@@ -101,11 +105,17 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
         val textTertiary = DayNightColorProvider(day = Color.Gray, night = Color.Gray)
 
         val allCourses = morning + afternoon
+        
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("app://suseoaa/main?tab=1")).apply {
+            setPackage(context.packageName)
+        }
+
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(bgSurface)
                 .cornerRadius(16.dp)
+                .clickable(actionStartActivity(intent))
                 .padding(12.dp)
         ) {
             if (allCourses.isEmpty()) {
@@ -165,11 +175,16 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
         val todayBgCol = DayNightColorProvider(day = Color(0xFFF1F5F9), night = Color(0xFF374151).copy(alpha = 0.3f))
         val highlightText = DayNightColorProvider(day = Color(0xFF007AFF), night = Color(0xFF60A5FA))
 
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("app://suseoaa/main?tab=1")).apply {
+            setPackage(context.packageName)
+        }
+
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(bgSurface)
                 .cornerRadius(16.dp)
+                .clickable(actionStartActivity(intent))
                 .padding(8.dp)
         ) {
             Column(modifier = GlanceModifier.fillMaxSize()) {
@@ -470,10 +485,10 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
                     text = courseName,
                     style = TextStyle(
                         color = ColorProvider(Color(theme.textHex)),
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         textAlign = TextAlign.Center
                     ),
-                    maxLines = 4
+                    maxLines = 6
                 )
                 Spacer(modifier = GlanceModifier.defaultWeight())
             } else {

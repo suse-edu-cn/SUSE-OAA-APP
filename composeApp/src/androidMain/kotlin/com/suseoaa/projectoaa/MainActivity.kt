@@ -11,12 +11,15 @@ import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.util.CaptchaOcrRecognizer
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import com.suseoaa.projectoaa.util.DeepLinkManager
+import android.content.Intent
 
 class MainActivity : ComponentActivity() {
     private val tokenManager: TokenManager by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleIntent(intent)
 
         val rootBackCallback = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
@@ -83,6 +86,19 @@ class MainActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val uri = intent?.data
+        if (uri != null) {
+            DeepLinkManager.pendingDeepLink.value = uri.toString()
         }
     }
 }

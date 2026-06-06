@@ -55,11 +55,20 @@
         <activity
             android:name="com.suseoaa.projectoaa.MainActivity"
             android:enableOnBackInvokedCallback="true"
+            android:launchMode="singleTask"
             android:exported="true"
             android:theme="@style/Theme.ProjectOAA">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            
+            <!-- 深层链接支持 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="app" android:host="suseoaa" />
             </intent-filter>
         </activity>
 
@@ -126,6 +135,17 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_weekly_schedule" />
+        </receiver>
+        <!-- 桌面小组件：近期考试 -->
+        <receiver
+            android:name="com.suseoaa.projectoaa.composeapp.widget.RecentExamsWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_recent_exams" />
         </receiver>
     </application>
 

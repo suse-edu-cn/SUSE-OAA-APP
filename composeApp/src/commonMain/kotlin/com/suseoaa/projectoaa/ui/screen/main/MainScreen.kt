@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.flow.first
 import coil3.compose.AsyncImage
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.shared.data.local.BackgroundPageIds
@@ -309,7 +310,7 @@ private fun PhoneLayout(
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
     val scope = rememberCoroutineScope()
     var isIndicatorDragging by remember { mutableStateOf(false) }
-    var isProgrammaticTabTransition by remember { mutableStateOf(false) }
+    var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var dragIndicatorProgress by remember { mutableStateOf<Float?>(null) }
     val tabIndicatorProgress by remember {
         derivedStateOf {
@@ -320,39 +321,40 @@ private fun PhoneLayout(
     val density = LocalDensity.current
     val hazeState = remember { HazeState() }
 
+    var isFirstComposition by remember { mutableStateOf(true) }
+
     // 手势滑动完成后，同步 settledPage 到 selectedTab。
-    // 程序化跨页动画期间忽略中间页回调，避免目标页被中途页覆盖。
-    LaunchedEffect(pagerState.settledPage, isProgrammaticTabTransition, isIndicatorDragging) {
-        if (!isIndicatorDragging && !isProgrammaticTabTransition && pagerState.settledPage != selectedTab) {
+    // 程序化跨页动画期间通过检测 scrollJob?.isActive 来避免目标页被中途页覆盖。
+    // 使用 isFirstComposition 忽略初始化的首次执行，避免后台恢复时旧的 settledPage 覆盖正确的 selectedTab。
+    LaunchedEffect(pagerState.settledPage, isIndicatorDragging) {
+        if (isFirstComposition) {
+            isFirstComposition = false
+            return@LaunchedEffect
+        }
+        if (!isIndicatorDragging && scrollJob?.isActive != true && pagerState.settledPage != selectedTab) {
             onTabChange(pagerState.settledPage)
         }
     }
 
     // 若外部或点击产生的 selectedTab 变化，控制 pager 滚动
     LaunchedEffect(selectedTab) {
-        if (!isIndicatorDragging && pagerState.currentPage != selectedTab) {
-            isProgrammaticTabTransition = true
-            try {
+        val isNotAtTarget = pagerState.currentPage != selectedTab || kotlin.math.abs(pagerState.currentPageOffsetFraction) > 0.001f
+        if (!isIndicatorDragging && isNotAtTarget) {
+            scrollJob?.cancel()
+            scrollJob = scope.launch {
                 val maxIndex = MainTab.entries.size - 1
-                val startProgress =
-                    (pagerState.currentPage + pagerState.currentPageOffsetFraction)
-                        .coerceIn(0f, maxIndex.toFloat())
+                val startProgress = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, maxIndex.toFloat())
                 val targetProgress = selectedTab.toFloat().coerceIn(0f, maxIndex.toFloat())
                 val distance = kotlin.math.abs(targetProgress - startProgress)
                 val durationMillis = (220 + (distance * 140).toInt()).coerceAtMost(680)
 
-                val startNanos = withFrameNanos { it }
+                val startNanos = androidx.compose.runtime.withFrameNanos { it }
                 var rawFraction = 0f
                 while (rawFraction < 1f) {
-                    val nowNanos = withFrameNanos { it }
+                    val nowNanos = androidx.compose.runtime.withFrameNanos { it }
                     val elapsedMs = ((nowNanos - startNanos) / 1_000_000f)
-                    rawFraction =
-                        if (durationMillis <= 0) 1f else (elapsedMs / durationMillis).coerceIn(
-                            0f,
-                            1f
-                        )
-                    val easedFraction =
-                        androidx.compose.animation.core.FastOutSlowInEasing.transform(rawFraction)
+                    rawFraction = if (durationMillis <= 0) 1f else (elapsedMs / durationMillis).coerceIn(0f, 1f)
+                    val easedFraction = androidx.compose.animation.core.FastOutSlowInEasing.transform(rawFraction)
 
                     val progress = startProgress + (targetProgress - startProgress) * easedFraction
                     val page = progress.roundToInt().coerceIn(0, maxIndex)
@@ -361,8 +363,9 @@ private fun PhoneLayout(
                 }
 
                 pagerState.scrollToPage(page = selectedTab, pageOffsetFraction = 0f)
-            } finally {
-                isProgrammaticTabTransition = false
+
+                // 这样能够防止因为布局刷新延迟导致的 selectedTab 回退问题
+                androidx.compose.runtime.snapshotFlow { pagerState.settledPage }.first { it == selectedTab }
             }
         }
     }

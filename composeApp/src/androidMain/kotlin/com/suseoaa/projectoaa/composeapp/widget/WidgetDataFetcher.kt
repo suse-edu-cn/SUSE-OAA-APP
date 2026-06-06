@@ -2,8 +2,11 @@ package com.suseoaa.projectoaa.composeapp.widget
 
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.shared.data.repository.LocalCourseRepository
+import com.suseoaa.projectoaa.shared.data.repository.SchoolInfoRepository
+import com.suseoaa.projectoaa.shared.data.repository.ExamCacheEntity
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseWithTimes
 import com.suseoaa.projectoaa.shared.util.OaaClock
+import com.suseoaa.projectoaa.shared.util.parseExamTimeRange
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -402,5 +405,55 @@ object WidgetDataFetcher {
         }
         
         return weeklyMap
+    }
+
+    data class ExamsSummary(
+        val upcoming: List<ExamCacheEntity>,
+        val takenCount: Int,
+        val unTakenCount: Int
+    )
+
+    suspend fun getExamsSummary(): ExamsSummary {
+        return try {
+            val koin = GlobalContext.get()
+            val tokenManager = koin.get<TokenManager>()
+            val schoolInfoRepo = koin.get<SchoolInfoRepository>()
+
+            val studentId = tokenManager.currentStudentId.first() ?: return ExamsSummary(emptyList(), 0, 0)
+            
+            // Get all exams from the local cache
+            val exams = schoolInfoRepo.observeExams(studentId).first()
+            
+            val timeZone = TimeZone.currentSystemDefault()
+            val now = OaaClock.now().toLocalDateTime(timeZone)
+            
+            var taken = 0
+            var untaken = 0
+            val upcoming = mutableListOf<ExamCacheEntity>()
+
+            exams.forEach { exam ->
+                val timeRange = parseExamTimeRange(exam.time)
+                if (timeRange != null) {
+                    if (now > timeRange.second) {
+                        taken++
+                    } else {
+                        untaken++
+                        upcoming.add(exam)
+                    }
+                } else {
+                    // if time is unknown, assume untaken but do not show in recent list
+                    untaken++
+                }
+            }
+
+            val sortedUpcoming = upcoming.sortedBy { exam ->
+                parseExamTimeRange(exam.time)?.first
+            }.take(3)
+
+            ExamsSummary(sortedUpcoming, taken, untaken)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ExamsSummary(emptyList(), 0, 0)
+        }
     }
 }

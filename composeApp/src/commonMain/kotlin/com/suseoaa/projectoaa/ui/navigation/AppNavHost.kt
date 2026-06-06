@@ -1,10 +1,12 @@
 package com.suseoaa.projectoaa.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.ui.screen.changepassword.ChangePasswordScreen
 import com.suseoaa.projectoaa.ui.screen.checkin.CheckinScreen
@@ -25,6 +27,7 @@ import com.suseoaa.projectoaa.ui.screen.teachingplan.CourseInfoScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.StudyRequirementScreen
 import com.suseoaa.projectoaa.ui.screen.update.UpdateScreen
 import com.suseoaa.projectoaa.presentation.course.CourseStatisticsScreen
+import com.suseoaa.projectoaa.util.DeepLinkManager
 
 @Composable
 fun AppNavHost(
@@ -32,7 +35,38 @@ fun AppNavHost(
     startDestination: String = Screen.Login.route,
     mainViewModel: MainViewModel
 ) {
-    SharedNavHost(
+    val pendingDeepLink by DeepLinkManager.pendingDeepLink.collectAsState()
+
+    LaunchedEffect(pendingDeepLink) {
+        val link = pendingDeepLink ?: return@LaunchedEffect
+        DeepLinkManager.consume()
+
+        if (link.startsWith("app://suseoaa/main")) {
+            val query = if (link.contains("tab=")) link.substringAfter("tab=") else "0"
+            val tabIndex = query.toIntOrNull() ?: 0
+            mainViewModel.updateSelectedMainTab(tabIndex)
+            
+            // 安全回退到主页
+            val currentRoute = navController.currentDestination?.route
+            if (currentRoute != Screen.Main.route) {
+                val popped = navController.popBackStack(Screen.Main.route, inclusive = false)
+                if (!popped) {
+                    navController.navigate(Screen.Main.route) {
+                        launchSingleTop = true
+                    }
+                }
+            }
+        } else if (link.startsWith("app://suseoaa/exams")) {
+            val currentRoute = navController.currentDestination?.route
+            if (currentRoute != Screen.Exams.route) {
+                navController.navigate(Screen.Exams.route) {
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
+
+    NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
@@ -82,7 +116,9 @@ fun AppNavHost(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-        composable(Screen.Main.route) {
+        composable(
+            route = Screen.Main.route
+        ) {
             MainScreen(
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route) {
@@ -164,7 +200,9 @@ fun AppNavHost(
             )
         }
 
-        composable(Screen.Exams.route) {
+        composable(
+            route = Screen.Exams.route
+        ) {
             ExamInfoScreen(
                 onBack = { navController.popBackStack() }
             )

@@ -34,18 +34,19 @@ import com.suseoaa.projectoaa.shared.util.OaaClock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
+import androidx.glance.action.clickable
+import androidx.glance.appwidget.action.actionStartActivity
 import kotlin.math.abs
 class TodayCoursesWidget : GlanceAppWidget() {
 
-    enum class CourseTheme(
-        val dayBgHex: Long, val dayTextHex: Long,
-        val nightBgHex: Long, val nightTextHex: Long
-    ) {
-        BLUE(0xFFE0F2FE, 0xFF0369A1, 0xFF263346, 0xFF93C5FD),
-        RED(0xFFFFE4E6, 0xFFBE123C, 0xFF3B2A2F, 0xFFFCA5A5),
-        GREEN(0xFFDCFCE7, 0xFF15803D, 0xFF24362F, 0xFF86EFAC),
-        PURPLE(0xFFF3E8FF, 0xFF7E22CE, 0xFF332940, 0xFFD8B4FE),
-        ORANGE(0xFFFFEDD5, 0xFFC2410C, 0xFF3D2E24, 0xFFFDBA74)
+    enum class CourseTheme(val bgHex: Long, val textHex: Long, val titleHex: Long) {
+        BLUE(0xFFE0F2FE, 0xFF0284C7, 0xFF0C4A6E),
+        GREEN(0xFFDCFCE7, 0xFF16A34A, 0xFF14532D),
+        PINK(0xFFFCE7F3, 0xFFDB2777, 0xFF831843),
+        ORANGE(0xFFFFEDD5, 0xFFEA580C, 0xFF7C2D12),
+        PURPLE(0xFFF3E8FF, 0xFF9333EA, 0xFF581C87)
     }
 
     private fun getCourseTheme(name: String): CourseTheme {
@@ -79,40 +80,57 @@ class TodayCoursesWidget : GlanceAppWidget() {
         }
 
         provideContent {
-            val bgSurface = DayNightColorProvider(day = Color.White, night = Color(0xFF282828))
+            val bgSurface = DayNightColorProvider(day = Color.White, night = Color(0xFF1F2937))
             val textPrimary = DayNightColorProvider(day = Color.Black, night = Color.White)
-            val textSecondary = DayNightColorProvider(day = Color.DarkGray, night = Color(0xFFAAAAAA))
-            
-            Box(
-                modifier = GlanceModifier
-                    .fillMaxSize()
-                    .background(bgSurface)
-                    .cornerRadius(20.dp)
-                    .padding(16.dp)
-            ) {
-                if (errorMsg != null) {
-                    Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "加载失败: ${errorMsg.take(50)}",
-                            style = TextStyle(color = ColorProvider(Color.Red), fontSize = 10.sp)
+            val textSecondary = DayNightColorProvider(day = Color.DarkGray, night = Color.LightGray)
+
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("app://suseoaa/main?tab=1")).apply {
+                setPackage(context.packageName)
+            }
+
+            if (errorMsg != null) {
+                Box(
+                    modifier = GlanceModifier
+                        .fillMaxSize()
+                        .background(bgSurface)
+                        .cornerRadius(12.dp)
+                        .clickable(actionStartActivity(intent))
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "加载失败: ${errorMsg.take(50)}",
+                        style = TextStyle(color = ColorProvider(Color.Red), fontSize = 10.sp)
+                    )
+                }
+            } else if (todaySchedule == null || (todaySchedule.morning.isEmpty() && todaySchedule.afternoon.isEmpty() && todaySchedule.evening.isEmpty())) {
+                Box(
+                    modifier = GlanceModifier
+                        .fillMaxSize()
+                        .background(bgSurface)
+                        .cornerRadius(12.dp)
+                        .clickable(actionStartActivity(intent))
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "今日无课，好好休息！",
+                        style = TextStyle(
+                            color = textSecondary,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                    }
-                } else if (todaySchedule == null || (todaySchedule.morning.isEmpty() && todaySchedule.afternoon.isEmpty() && todaySchedule.evening.isEmpty())) {
-                    Column(
-                        modifier = GlanceModifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "今日无课",
-                            style = TextStyle(
-                                fontWeight = FontWeight.Bold,
-                                color = textSecondary,
-                                fontSize = 16.sp
-                            )
-                        )
-                    }
-                } else {
+                    )
+                }
+            } else {
+                Box(
+                    modifier = GlanceModifier
+                        .fillMaxSize()
+                        .background(bgSurface)
+                        .cornerRadius(12.dp)
+                        .clickable(actionStartActivity(intent))
+                        .padding(12.dp)
+                ) {
                     val allCourses = todaySchedule.morning + todaySchedule.afternoon + todaySchedule.evening
                     
                     Column(modifier = GlanceModifier.fillMaxSize()) {
@@ -121,21 +139,21 @@ class TodayCoursesWidget : GlanceAppWidget() {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = "今日周$weekdayStr，共有 ",
-                                        style = TextStyle(color = textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                        style = TextStyle(color = textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                                     )
                                     Text(
                                         text = "${allCourses.size}",
-                                        style = TextStyle(color = ColorProvider(Color(0xFFF472B6)), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                        style = TextStyle(color = ColorProvider(Color(0xFFF472B6)), fontSize = 15.sp, fontWeight = FontWeight.Bold)
                                     )
                                     Text(
                                         text = " 门课要上",
-                                        style = TextStyle(color = textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                        style = TextStyle(color = textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                                     )
                                 }
                                 Spacer(modifier = GlanceModifier.height(4.dp))
                                 Text(
                                     text = "$month.$day / 今日课程",
-                                    style = TextStyle(color = textSecondary, fontSize = 11.sp)
+                                    style = TextStyle(color = textSecondary, fontSize = 10.sp)
                                 )
                             }
                             // 青蟹的logo
@@ -186,31 +204,31 @@ class TodayCoursesWidget : GlanceAppWidget() {
             start.toString() == slot.sectionName
         }
         val theme = getCourseTheme(course.course.courseName)
-        val bgProvider = DayNightColorProvider(day = Color(theme.dayBgHex), night = Color(theme.nightBgHex))
-        val textProvider = DayNightColorProvider(day = Color(theme.dayTextHex), night = Color(theme.nightTextHex))
+        val bgProvider = DayNightColorProvider(day = Color(theme.bgHex), night = Color(theme.bgHex).copy(alpha = 0.2f))
+        val textProvider = DayNightColorProvider(day = Color(theme.titleHex), night = Color(theme.textHex))
         
         Column(
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .background(bgProvider)
                 .cornerRadius(12.dp)
-                .padding(12.dp)
+                .padding(10.dp)
         ) {
             Text(
                 text = course.course.courseName,
                 style = TextStyle(
                     fontWeight = FontWeight.Bold,
                     color = textProvider,
-                    fontSize = 13.sp
+                    fontSize = 12.sp
                 ),
-                maxLines = 1
+                maxLines = 2
             )
             Spacer(modifier = GlanceModifier.height(4.dp))
             Text(
                 text = "${slot.startTime} - ${slot.endTime}  ${time?.location ?: ""}",
                 style = TextStyle(
                     color = textProvider,
-                    fontSize = 11.sp
+                    fontSize = 10.sp
                 ),
                 maxLines = 1
             )
