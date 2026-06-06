@@ -91,6 +91,9 @@ kotlin {
 
             // Cryptography Provider
             implementation(libs.cryptography.provider.jdk)
+
+            // MediaPipe Tasks GenAI
+            implementation(libs.mediapipe.tasks.genai)
         }
 
         iosMain.dependencies {

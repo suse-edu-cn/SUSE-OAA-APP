@@ -22,6 +22,7 @@ object PreferencesKeys {
     val USER_PASSWORD = stringPreferencesKey("user_password")
     val TOKEN_LAST_UPDATE_TIME = stringPreferencesKey("token_last_update_time")
     val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+    val KAGGLE_AUTH_TOKEN = stringPreferencesKey("kaggle_auth_token") // Kaggle API Basic Auth Base64
     
     // 用户绩点计算相关
     val JG_ID = stringPreferencesKey("user_jg_id")
@@ -470,4 +471,39 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
 
     /** Alias for [clear] */
     suspend fun clearAll() = clear()
+    // ==================== Kaggle Auth 相关 ====================
+
+    /**
+     * 获取 Kaggle Auth 流
+     */
+    val kaggleAuthFlow: Flow<String?> = dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.KAGGLE_AUTH_TOKEN]
+        }
+
+    /**
+     * 保存 Kaggle Auth
+     */
+    suspend fun saveKaggleAuth(authBase64: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.KAGGLE_AUTH_TOKEN] = authBase64
+        }
+    }
+
+    /**
+     * 获取模型 ETag 流
+     */
+    fun getModelETagFlow(modelId: String): Flow<String?> = dataStore.data
+        .map { preferences ->
+            preferences[stringPreferencesKey("etag_$modelId")]
+        }
+
+    /**
+     * 保存模型 ETag
+     */
+    suspend fun saveModelETag(modelId: String, etag: String) {
+        dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("etag_$modelId")] = etag
+        }
+    }
 }

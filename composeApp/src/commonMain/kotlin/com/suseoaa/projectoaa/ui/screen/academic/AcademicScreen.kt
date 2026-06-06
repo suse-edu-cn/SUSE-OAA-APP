@@ -366,8 +366,9 @@ private fun TabletMessageItem(
     subtextColor: Color
 ) {
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+        val displayContent = message.aiSummary ?: message.content
         Text(
-            text = message.content,
+            text = displayContent,
             style = MaterialTheme.typography.bodyMedium,
             color = textColor,
             lineHeight = 20.sp,
@@ -637,8 +638,9 @@ fun ReschedulingCard(
                                     .fillMaxWidth()
                                     .padding(horizontal = 12.dp, vertical = 10.dp)
                             ) {
+                                val displayContent = message.aiSummary ?: message.content
                                 Text(
-                                    text = message.content,
+                                    text = displayContent,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     lineHeight = 22.sp,
@@ -752,7 +754,10 @@ fun MessagesDialog(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(messages) { message ->
-                            MessageItem(message)
+                            MessageItem(
+                                message = message,
+                                onSummarizeClick = { /* No-op or trigger from AcademicScreen */ }
+                            )
                         }
                     }
                 }
@@ -765,7 +770,10 @@ fun MessagesDialog(
  * 单条消息项
  */
 @Composable
-private fun MessageItem(message: MessageCacheEntity) {
+private fun MessageItem(
+    message: MessageCacheEntity,
+    onSummarizeClick: () -> Unit
+) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -777,11 +785,34 @@ private fun MessageItem(message: MessageCacheEntity) {
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            Text(
-                text = message.content,
-                style = MaterialTheme.typography.bodyMedium,
-                lineHeight = 22.sp
-            )
+            val displayContent = message.aiSummary ?: message.content
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = displayContent,
+                    style = MaterialTheme.typography.bodyMedium,
+                    lineHeight = 22.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.clickable(onClick = onSummarizeClick)
+                ) {
+                    Text(
+                        text = if (message.aiSummary == null) "总结" else "重试",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
             if (message.date > 0) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(

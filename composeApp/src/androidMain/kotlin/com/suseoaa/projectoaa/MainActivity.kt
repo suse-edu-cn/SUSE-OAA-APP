@@ -46,6 +46,12 @@ class MainActivity : ComponentActivity() {
             CaptchaOcrRecognizer.initialize(this@MainActivity)
         }
 
+        // 初始化模型下载器
+        com.suseoaa.projectoaa.util.ModelDownloader.init(this@MainActivity)
+        
+        // 初始化 AI 引擎上下文
+        com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.initContext(this@MainActivity)
+
         // 请求通知权限并启动课程提醒服务
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             val requestPermissionLauncher = registerForActivityResult(

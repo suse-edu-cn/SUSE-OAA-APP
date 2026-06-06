@@ -10,6 +10,7 @@ import com.suseoaa.projectoaa.shared.data.repository.LocalCourseRepository
 import com.suseoaa.projectoaa.shared.data.repository.MessageCacheEntity
 import com.suseoaa.projectoaa.shared.data.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.shared.data.repository.SchoolInfoRepository
+import com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine
 import com.suseoaa.projectoaa.shared.domain.model.exam.ExamResponse
 import com.suseoaa.projectoaa.shared.domain.model.exam.ExamItem
 import com.suseoaa.projectoaa.shared.util.parseExamTimeRange
@@ -44,7 +45,8 @@ data class AcademicUiState(
     val isRefreshing: Boolean = false,
     val messages: List<MessageCacheEntity> = emptyList(),
     val exams: List<ExamUiState> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val summarizingMessageId: Long? = null
 )
 
 class AcademicViewModel(
@@ -208,6 +210,25 @@ class AcademicViewModel(
                 _uiState.update { it.copy(errorMessage = "刷新消息失败: ${e.message}") }
             } finally {
                 _uiState.update { it.copy(isRefreshing = false) }
+            }
+        }
+    }
+
+    fun summarizeSingleMessage(message: com.suseoaa.projectoaa.shared.data.repository.MessageCacheEntity) {
+        viewModelScope.launch {
+            if (!CampusAiEngine.isModelAvailable()) return@launch
+            if (_uiState.value.summarizingMessageId != null) return@launch // Debounce/Prevent concurrent
+            
+            try {
+                _uiState.update { it.copy(summarizingMessageId = message.id) }
+                CampusAiEngine.loadModel()
+                val summary = CampusAiEngine.summarizeAcademicMessage(message.content)
+                schoolInfoRepository.updateMessageSummary(message.id, summary)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                CampusAiEngine.unloadModel()
+                _uiState.update { it.copy(summarizingMessageId = null) }
             }
         }
     }

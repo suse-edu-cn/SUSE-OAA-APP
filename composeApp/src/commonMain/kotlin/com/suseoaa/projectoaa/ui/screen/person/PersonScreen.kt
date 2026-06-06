@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -120,6 +121,7 @@ fun PersonScreen(
     onNavigateToCheckin: () -> Unit = {},
     onNavigateToUpdate: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToAiLab: () -> Unit = {},
     bottomBarHeight: Dp = 0.dp,
     viewModel: PersonViewModel = koinViewModel(),
     updateViewModel: AppUpdateViewModel = koinViewModel(),
@@ -416,7 +418,7 @@ fun PersonScreen(
                             }
                         }
 
-                        // 系统设置组
+                                // 系统设置组
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             SettingGroupCard {
                                 SettingRow(
@@ -434,6 +436,14 @@ fun PersonScreen(
                                     trailingText = if (updateUiState.hasUpdate && updateUiState.latestRelease != null)
                                         updateUiState.latestRelease!!.tagName else null,
                                     onClick = onNavigateToUpdate
+                                )
+                                androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(start = 80.dp, end = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                SettingRow(
+                                    icon = Icons.Default.AutoAwesome,
+                                    title = "AI 实验室",
+                                    subtitle = "本地 AI 功能 · 调课摘要、学业分析、智能查询",
+                                    modifier = Modifier.sharedBoundsTransition("ai_lab"),
+                                    onClick = onNavigateToAiLab
                                 )
                                 androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(start = 80.dp, end = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 SettingRow(

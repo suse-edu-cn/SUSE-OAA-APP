@@ -3,7 +3,9 @@ CREATE TABLE MessageCache (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     studentId TEXT NOT NULL,
     content TEXT NOT NULL,
-    date INTEGER NOT NULL
+    date INTEGER NOT NULL,
+    contentHash TEXT,
+    aiSummary TEXT
 );
 
 -- 创建索引
@@ -15,10 +17,28 @@ SELECT * FROM MessageCache WHERE studentId = ? ORDER BY date DESC;
 
 -- 插入消息
 insert:
-INSERT INTO MessageCache(studentId, content, date)
-VALUES (?, ?, ?);
+INSERT INTO MessageCache(studentId, content, date, contentHash, aiSummary)
+VALUES (?, ?, ?, ?, ?);
+
+-- 通过 contentHash 查询（用于去重）
+selectHashesByStudent:
+SELECT contentHash FROM MessageCache WHERE studentId = ? AND contentHash IS NOT NULL;
+
+-- 写回 AI 摘要
+updateAiSummary:
+UPDATE MessageCache SET aiSummary = ? WHERE id = ?;
+
+-- 查询需要生成摘要的消息（已有 hash 但还没有 summary）
+selectPendingSummary:
+SELECT * FROM MessageCache
+WHERE studentId = ? AND contentHash IS NOT NULL AND aiSummary IS NULL
+ORDER BY date DESC;
 
 -- 删除指定学生的所有消息
 deleteByStudent:
 DELETE FROM MessageCache WHERE studentId = ?;
+
+-- 删除单条消息
+deleteById:
+DELETE FROM MessageCache WHERE id = ?;
 

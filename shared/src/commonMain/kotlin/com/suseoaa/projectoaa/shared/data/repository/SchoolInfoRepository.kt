@@ -46,7 +46,9 @@ data class MessageCacheEntity(
     val id: Long = 0,
     val studentId: String,
     val content: String,
-    val date: Long = com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds()
+    val date: Long = com.suseoaa.projectoaa.shared.util.OaaClock.now().toEpochMilliseconds(),
+    val contentHash: String? = null,
+    val aiSummary: String? = null
 )
 
 /**
@@ -313,7 +315,8 @@ class SchoolInfoRepository(
                     val entities = rawList.map { content ->
                         MessageCacheEntity(
                             studentId = account.studentId,
-                            content = content
+                            content = content,
+                            contentHash = com.suseoaa.projectoaa.shared.util.ContentHasher.hashPrefix(content)
                         )
                     }
                     updateMessages(account.studentId, entities)
@@ -327,21 +330,44 @@ class SchoolInfoRepository(
         }
 
     /**
-     * 更新消息缓存
+     * 更新消息缓存（保留原有已被总结的消息）
      */
     private suspend fun updateMessages(studentId: String, messages: List<MessageCacheEntity>) =
         withContext(Dispatchers.IO) {
             database.transaction {
-                database.messageCacheQueries.deleteByStudent(studentId)
+                val existingMessages = database.messageCacheQueries.selectByStudent(studentId).executeAsList()
+                val existingHashes = existingMessages.mapNotNull { it.contentHash }.toSet()
+
+                val newHashes = messages.mapNotNull { it.contentHash }.toSet()
+
+                // 删除已经不在最新列表中的旧消息（避免缓存无限膨胀）
+                existingMessages.forEach { oldMsg ->
+                    if (oldMsg.contentHash != null && oldMsg.contentHash !in newHashes) {
+                        database.messageCacheQueries.deleteById(oldMsg.id)
+                    }
+                }
+
+                // 插入全新的消息
                 messages.forEach { msg ->
-                    database.messageCacheQueries.insert(
-                        studentId = msg.studentId,
-                        content = msg.content,
-                        date = msg.date
-                    )
+                    if (msg.contentHash == null || msg.contentHash !in existingHashes) {
+                        database.messageCacheQueries.insert(
+                            studentId = msg.studentId,
+                            content = msg.content,
+                            date = msg.date,
+                            contentHash = msg.contentHash,
+                            aiSummary = msg.aiSummary
+                        )
+                    }
                 }
             }
         }
+
+    /**
+     * 写回 AI 摘要
+     */
+    suspend fun updateMessageSummary(id: Long, summary: String) = withContext(Dispatchers.IO) {
+        database.messageCacheQueries.updateAiSummary(summary, id)
+    }
 
     // ==================== 课程信息获取 ====================
 
@@ -414,5 +440,7 @@ private fun MessageCache.toEntity() = MessageCacheEntity(
     id = id,
     studentId = studentId,
     content = content,
-    date = date
+    date = date,
+    contentHash = contentHash,
+    aiSummary = aiSummary
 )

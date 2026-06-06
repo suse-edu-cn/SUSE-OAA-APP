@@ -62,6 +62,9 @@ playServicesMaps = "20.0.0"
 # ML Kit Text Recognition (Android only)
 mlkitTextRecognition = "16.0.1"
 
+# MediaPipe Tasks GenAI
+mediapipeTasksGenai = "0.10.14"
+
 # ONNX Runtime (Android)
 onnxruntime = "1.24.3"
 
@@ -148,6 +151,9 @@ play-services-maps = { module = "com.google.android.gms:play-services-maps", ver
 # ML Kit Text Recognition (Android only)
 mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkitTextRecognition" }
 mlkit-text-recognition-chinese = { module = "com.google.mlkit:text-recognition-chinese", version.ref = "mlkitTextRecognition" }
+
+# MediaPipe LLM Inference
+mediapipe-tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "mediapipeTasksGenai" }
 
 # ONNX Runtime (跨平台深度学习推理)
 # 1.22.0+ 完全支持 Android 16KB 页面对齐

@@ -95,6 +95,7 @@ fun MainScreen(
     onNavigateToActivityCheckin: () -> Unit = {},
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit = {},
     onNavigateToCourseStatistics: () -> Unit = {},
+    onNavigateToAiLab: () -> Unit = {},
     mainViewModel: MainViewModel = koinViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -140,6 +141,7 @@ fun MainScreen(
                 onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                 onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
                 onNavigateToCourseStatistics = onNavigateToCourseStatistics,
+                onNavigateToAiLab = onNavigateToAiLab,
                 modifier = modifier
             )
         } else {
@@ -175,6 +177,7 @@ fun MainScreen(
                 onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                 onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
                 onNavigateToCourseStatistics = onNavigateToCourseStatistics,
+                onNavigateToAiLab = onNavigateToAiLab,
                 isLiquidGlassTabbarEnabled = isLiquidGlassTabbarEnabled,
                 modifier = modifier
             )
@@ -211,6 +214,7 @@ private fun TabletLandscapeLayout(
     onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
     onNavigateToCourseStatistics: () -> Unit,
+    onNavigateToAiLab: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -268,7 +272,8 @@ private fun TabletLandscapeLayout(
                     onNavigateToUserQuery = onNavigateToUserQuery,
                     onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                     onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
-                    onNavigateToCourseStatistics = onNavigateToCourseStatistics
+                    onNavigateToCourseStatistics = onNavigateToCourseStatistics,
+                    onNavigateToAiLab = onNavigateToAiLab
                 )
             }
         }
@@ -304,6 +309,7 @@ private fun PhoneLayout(
     onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
     onNavigateToCourseStatistics: () -> Unit,
+    onNavigateToAiLab: () -> Unit = {},
     isLiquidGlassTabbarEnabled: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -439,7 +445,8 @@ private fun PhoneLayout(
                     onNavigateToUserQuery = onNavigateToUserQuery,
                     onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                     onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
-                    onNavigateToCourseStatistics = onNavigateToCourseStatistics
+                    onNavigateToCourseStatistics = onNavigateToCourseStatistics,
+                    onNavigateToAiLab = onNavigateToAiLab
                 )
             }
         }
@@ -531,7 +538,8 @@ private fun KeepAliveMainPages(
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
-    onNavigateToCourseStatistics: () -> Unit
+    onNavigateToCourseStatistics: () -> Unit,
+    onNavigateToAiLab: () -> Unit = {}
 ) {
     val orderedTabs = remember(selectedTab) {
         MainTab.entries.sortedBy { if (it.index == selectedTab) 1 else 0 }
@@ -577,7 +585,8 @@ private fun KeepAliveMainPages(
                         onNavigateToUserQuery = onNavigateToUserQuery,
                         onNavigateToActivityCheckin = onNavigateToActivityCheckin,
                         onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
-                        onNavigateToCourseStatistics = onNavigateToCourseStatistics
+                        onNavigateToCourseStatistics = onNavigateToCourseStatistics,
+                        onNavigateToAiLab = onNavigateToAiLab
                     )
                 }
             } // end key(tab.index)
@@ -609,7 +618,8 @@ private fun MainTabPage(
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
-    onNavigateToCourseStatistics: () -> Unit
+    onNavigateToCourseStatistics: () -> Unit,
+    onNavigateToAiLab: () -> Unit = {}
 ) {
     CompositionLocalProvider(LocalMainTabVisible provides isVisible) {
         when (tabIndex) {
@@ -646,7 +656,9 @@ private fun MainTabPage(
                 onNavigateToLogin = onNavigateToLogin,
                 onNavigateToChangePassword = onNavigateToChangePassword,
                 onNavigateToCheckin = onNavigateToCheckin,
-                onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
+                onNavigateToUpdate = onNavigateToUpdate,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToAiLab = onNavigateToAiLab,
                 bottomBarHeight = bottomBarHeight
             )
         }
