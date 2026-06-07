@@ -12,6 +12,7 @@ import com.suseoaa.projectoaa.util.CaptchaOcrRecognizer
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import com.suseoaa.projectoaa.util.DeepLinkManager
+import com.suseoaa.projectoaa.util.LiteRtNativePreloader
 import android.content.Intent
 
 class MainActivity : ComponentActivity() {
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LiteRtNativePreloader.preload(this)
         handleIntent(intent)
 
         val rootBackCallback = object : OnBackPressedCallback(false) {

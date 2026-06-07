@@ -62,7 +62,8 @@ actual object PlatformDeviceInfo {
             totalStorage = totalStorage,
             availableStorage = availableStorage,
             osVersion = osVersion,
-            socVendor = "Apple"
+            socVendor = "Apple",
+            socModel = cpuModel
         )
     }
 

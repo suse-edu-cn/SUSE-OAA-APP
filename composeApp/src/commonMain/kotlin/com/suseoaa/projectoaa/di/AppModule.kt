@@ -76,6 +76,6 @@ val appModule = module {
 
     // AI 实验室（factory：退出页面即释放，防止模型驻留内存）
     viewModel { AiLabViewModel(get()) }
-    viewModel { AiChatViewModel() }
+    viewModel { AiChatViewModel(get()) }
     viewModel { AcademicAnalysisViewModel(get(), get()) }
 }

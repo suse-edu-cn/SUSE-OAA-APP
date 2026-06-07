@@ -222,6 +222,9 @@ class AcademicViewModel(
             try {
                 _uiState.update { it.copy(summarizingMessageId = message.id) }
                 CampusAiEngine.loadModel()
+                if (CampusAiEngine.lastGpuCrashDetected()) {
+                    com.suseoaa.projectoaa.util.ToastManager.showToast("检测到 GPU 驱动异常，已自动降级至 CPU 推理，建议前往 AI 实验室手动切换模式。")
+                }
                 val summary = CampusAiEngine.summarizeAcademicMessage(message.content)
                 schoolInfoRepository.updateMessageSummary(message.id, summary)
             } catch (e: Exception) {

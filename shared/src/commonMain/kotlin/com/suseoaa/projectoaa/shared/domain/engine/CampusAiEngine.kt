@@ -16,6 +16,24 @@ expect object CampusAiEngine {
     fun isModelAvailable(): Boolean
 
     /**
+     * 设置是否优先使用GPU后端。
+     * 必须在loadModel()之前调用。
+     */
+    fun setPreferGpu(preferGpu: Boolean)
+
+    /**
+     * 设置目标使用的模型文件名称。
+     * 必须在loadModel()之前调用，用于在一机多模型的情况下准确选择要运行的文件。
+     */
+    fun setTargetModelFileName(fileName: String?)
+
+    /**
+     * 检测上一次loadModel时是否发生了GPU初始化失败（即发生了降级）。
+     * 读取后通常会自动重置该状态。
+     */
+    fun lastGpuCrashDetected(): Boolean
+
+    /**
      * 载入模型到内存（如果在后台调用，确保在 Dispatchers.Default 执行）
      * 如果已载入则无副作用
      */

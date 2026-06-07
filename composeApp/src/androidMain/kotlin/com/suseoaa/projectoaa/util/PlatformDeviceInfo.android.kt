@@ -39,7 +39,8 @@ actual object PlatformDeviceInfo {
         }
 
         // ── SoC Vendor & NPU ─────────────────────────────────────────────
-        val socVendorStr = Build.SOC_MANUFACTURER.takeIf { it.isNotBlank() } ?: inferSocVendor(cpuModel)
+        val socVendorStr = readSocManufacturer().takeIf { it.isNotBlank() } ?: inferSocVendor(cpuModel)
+        val socModel = readSocModel()
         val hardware = Build.HARDWARE.lowercase()
         val cpuLower = cpuModel.lowercase()
         val hasNpu: Boolean
@@ -88,8 +89,36 @@ actual object PlatformDeviceInfo {
             totalStorage = totalStorage,
             availableStorage = availableStorage,
             osVersion = osVersion,
-            socVendor = socVendorStr
+            socVendor = socVendorStr,
+            socModel = socModel
         )
+    }
+
+    private fun readSocManufacturer(): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Build.SOC_MANUFACTURER
+        } else {
+            ""
+        }
+    }
+
+    private fun readSocModel(): String {
+        val buildSocModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Build.SOC_MODEL
+        } else {
+            ""
+        }
+        return buildSocModel.ifBlank { readSystemProperty("ro.soc.model") }.trim()
+    }
+
+    private fun readSystemProperty(name: String): String {
+        return try {
+            val systemProperties = Class.forName("android.os.SystemProperties")
+            val get = systemProperties.getMethod("get", String::class.java)
+            get.invoke(null, name) as? String ?: ""
+        } catch (_: Exception) {
+            ""
+        }
     }
 
     /** 从 CPU 型号字符串推断 SoC 厂商 */

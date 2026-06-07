@@ -23,6 +23,7 @@ import com.suseoaa.projectoaa.util.AiModelMetadata
 import com.suseoaa.projectoaa.util.AvailableAiModels
 import com.suseoaa.projectoaa.util.LocalModelFile
 import com.suseoaa.projectoaa.util.ModelDownloader
+import com.suseoaa.projectoaa.util.isCompatibleWithDevice
 
 /**
  * 模型下载状态
@@ -49,7 +50,11 @@ data class AiLabUiState(
     val hasUpdateAvailable: Boolean = false,
     val latestRemoteETag: String? = null,
     val errorMessage: String? = null,
-    val localModels: List<LocalModelFile> = emptyList()
+    val localModels: List<LocalModelFile> = emptyList(),
+    /** 用户是否巧大GPU推理，默认true（优先GPU） */
+    val preferGpu: Boolean = true,
+    /** GPU初始化失败后设为true，用于触发Toast提醒 */
+    val gpuCrashDetected: Boolean = false
 )
 
 class AiLabViewModel(private val tokenManager: TokenManager) : ViewModel() {
@@ -73,12 +78,16 @@ class AiLabViewModel(private val tokenManager: TokenManager) : ViewModel() {
             try {
                 val info = PlatformDeviceInfo.queryDeviceInfo()
                 val available = AvailableAiModels // Assuming utility access
+                val compatibleModels = available.filter { it.isCompatibleWithDevice(info) }
+                    .ifEmpty { available.filter { it.targetSocModels.isEmpty() } }
+                    .ifEmpty { available }
                 val rec = computeModelRecommendation(info)
                 val localFiles = ModelDownloader.getDownloadedModels()
                 
                 println("AiLab: localFiles from disk: ${localFiles.map { it.name }}")
+                println("AiLab: detected SoC model: ${info.socModel.ifBlank { "<unknown>" }}")
                 
-                val downloadedAvailableModels = available.filter { model ->
+                val downloadedAvailableModels = compatibleModels.filter { model ->
                     val fileName = model.downloadUrl.substringAfterLast("/").substringBefore("?")
                     localFiles.any { 
                         it.name == fileName || 
@@ -90,11 +99,26 @@ class AiLabViewModel(private val tokenManager: TokenManager) : ViewModel() {
                 
                 println("AiLab: matched downloadedAvailableModels: ${downloadedAvailableModels.map { it.name }}")
                 
-                val defaultModel = available.find { it.recommendedLevel == rec.level }
-                val selected = if (downloadedAvailableModels.isNotEmpty()) {
+                val savedModelId = tokenManager.aiLabSelectedModelIdFlow.firstOrNull()
+                val savedModel = available.firstOrNull { it.id == savedModelId }
+                if (savedModel != null && !savedModel.isCompatibleWithDevice(info)) {
+                    println(
+                        "AiLab: saved model ${savedModel.name} is incompatible with SoC ${info.socModel}; selecting a compatible model instead."
+                    )
+                }
+                val defaultModel = compatibleModels.find { it.recommendedLevel == rec.level }
+                
+                val selected = if (savedModel != null && savedModel.isCompatibleWithDevice(info)) {
+                    savedModel
+                } else if (downloadedAvailableModels.isNotEmpty()) {
                     downloadedAvailableModels.first()
                 } else {
-                    defaultModel ?: available.first()
+                    defaultModel ?: compatibleModels.first()
+                }
+                val selectedFileName = selected.downloadUrl.substringAfterLast("/").substringBefore("?")
+                com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.setTargetModelFileName(selectedFileName)
+                if (savedModelId.isNullOrBlank() || savedModelId != selected.id) {
+                    tokenManager.saveAiLabSelectedModelId(selected.id)
                 }
                 
                 println("AiLab: selectedModel determined as: ${selected.name}")
@@ -107,7 +131,7 @@ class AiLabViewModel(private val tokenManager: TokenManager) : ViewModel() {
                         deviceInfo = info, 
                         recommendation = rec, 
                         selectedModel = selected,
-                        availableModels = available,
+                        availableModels = compatibleModels,
                         downloadState = if (isDownloaded) ModelDownloadState.Downloaded else ModelDownloadState.Idle,
                         localModels = localFiles
                     ) 
@@ -129,6 +153,13 @@ class AiLabViewModel(private val tokenManager: TokenManager) : ViewModel() {
                 currentKaggleAuth = auth
             }
         }
+        
+        viewModelScope.launch {
+            tokenManager.aiLabPreferGpuFlow.collect { preferGpu ->
+                _uiState.update { it.copy(preferGpu = preferGpu) }
+                com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.setPreferGpu(preferGpu)
+            }
+        }
     }
 
     /**
@@ -146,6 +177,11 @@ class AiLabViewModel(private val tokenManager: TokenManager) : ViewModel() {
                     downloadState = if (isDownloaded) ModelDownloadState.Downloaded else ModelDownloadState.Idle
                 ) 
             }
+            viewModelScope.launch {
+                tokenManager.saveAiLabSelectedModelId(modelId)
+            }
+            val fileName = model.downloadUrl.substringAfterLast("/").substringBefore("?")
+            com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.setTargetModelFileName(fileName)
             checkForUpdates()
         }
     }
@@ -280,5 +316,30 @@ class AiLabViewModel(private val tokenManager: TokenManager) : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         httpClient.close()
+    }
+
+    /**
+     * 用户在弹窗中切换GPU/CPU偏好时调用。
+     * 不需要重新下载模型，下次调用loadModel()时会自动采用新的Backend配置。
+     */
+    fun setPreferGpu(prefer: Boolean) {
+        _uiState.update { it.copy(preferGpu = prefer) }
+        viewModelScope.launch {
+            tokenManager.saveAiLabPreferGpu(prefer)
+        }
+    }
+
+    /**
+     * GPU崩溃Toast弹出后由UI调用此函数，将gpuCrashDetected重置为false以避免重复弹出。
+     */
+    fun dismissGpuCrashNotification() {
+        _uiState.update { it.copy(gpuCrashDetected = false) }
+    }
+
+    /**
+     * 通知ViewModel GPU后端初始化失败，触发Toast提醒用户切换CPU模式。
+     */
+    fun reportGpuCrash() {
+        _uiState.update { it.copy(gpuCrashDetected = true, preferGpu = false) }
     }
 }

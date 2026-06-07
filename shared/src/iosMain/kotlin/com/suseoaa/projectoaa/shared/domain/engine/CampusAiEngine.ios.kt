@@ -3,6 +3,9 @@ package com.suseoaa.projectoaa.shared.domain.engine
 import kotlinx.coroutines.delay
 
 actual object CampusAiEngine {
+    private var userPreferGpu: Boolean = true
+    private var targetModelFileName: String? = null
+
     actual fun initContext(context: Any) {
         // iOS does not need a context
     }
@@ -12,8 +15,18 @@ actual object CampusAiEngine {
         return false
     }
 
+    actual fun setPreferGpu(preferGpu: Boolean) {
+        userPreferGpu = preferGpu
+    }
+
+    actual fun setTargetModelFileName(fileName: String?) {
+        targetModelFileName = fileName
+    }
+
+    actual fun lastGpuCrashDetected(): Boolean = false
+
     actual suspend fun loadModel(): Boolean {
-        // TODO: 初始化 iOS 端的 LiteRT C++ 引擎
+        // TODO: 初始化 iOS 端的 LiteRT C++ 引擎，如果 targetModelFileName 不为 null，则加载该特定模型
         delay(500)
         return true
     }

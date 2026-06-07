@@ -93,6 +93,9 @@ class AcademicAnalysisViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isModelLoading = true) }
             val success = CampusAiEngine.loadModel()
+            if (CampusAiEngine.lastGpuCrashDetected()) {
+                com.suseoaa.projectoaa.util.ToastManager.showToast("检测到 GPU 驱动异常，已自动降级至 CPU 推理，建议前往设置切换。")
+            }
             println("AiLab: AcademicAnalysisViewModel CampusAiEngine.loadModel() returned $success")
             if (!success) {
                 _uiState.update { it.copy(error = "模型加载失败，请重试。") }
@@ -126,7 +129,13 @@ class AcademicAnalysisViewModel(
                 com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.loadModel()
 
                 // 生成上下文
-                val contextStr = aiToolEngine?.buildAcademicContext() ?: ""
+                val directAnswer = aiToolEngine?.answerDirectlyIfPossible(query)
+                if (directAnswer != null) {
+                    addMessage(directAnswer, isUser = false)
+                    return@launch
+                }
+
+                val contextStr = aiToolEngine?.buildAcademicContext(query) ?: ""
                 
                 // 进行对话
                 val reply = CampusAiEngine.chatWithContext(contextStr, query)

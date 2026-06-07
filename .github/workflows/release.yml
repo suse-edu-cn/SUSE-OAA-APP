@@ -4,12 +4,12 @@ on:
   push:
     branches:
       - main
-      - master # 如果你的主分支叫 master，可以保留这行
+      - master
     paths:
-      - 'androidApp/build.gradle.kts' # 只有当这个文件变动时才会检查并触发
+      - 'androidApp/build.gradle.kts'
 
 permissions:
-  contents: write # 允许 GITHUB_TOKEN 创建 Release 和 Tag
+  contents: write
 
 jobs:
   build-and-release:
@@ -18,29 +18,27 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 需要完整的提交历史来获取 tag 和并生成 changelog
+          fetch-depth: 0
 
       - name: Check if Version Changed
         id: check_version
         run: |
-          # 提取 androidApp/build.gradle.kts 中的 versionName
           VERSION_NAME=$(grep 'versionName =' androidApp/build.gradle.kts | head -n 1 | awk -F'"' '{print $2}')
           echo "当前代码中的 versionName: $VERSION_NAME"
-          
+
           if [ -z "$VERSION_NAME" ]; then
             echo "未能提取到 versionName，退出。"
             exit 1
           fi
-          
+
           TAG_NAME="v$VERSION_NAME"
-          
-          # 检查对应的 tag 是否已经存在
+
           if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
             echo "Tag $TAG_NAME 已经存在，说明版本没有更新或已发版，跳过后续操作。"
             echo "changed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           echo "检测到新版本，将构建并发布 $TAG_NAME。"
           echo "changed=true" >> $GITHUB_OUTPUT
           echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
@@ -49,10 +47,8 @@ jobs:
         if: steps.check_version.outputs.changed == 'true'
         id: changelog
         run: |
-          # 获取上一个 tag 的名字
           PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          
-          # 获取提交记录
+
           if [ -z "$PREV_TAG" ]; then
             echo "没有找到上一个 tag，获取所有提交记录。"
             LOGS=$(git log --no-merges --pretty=format:"%s")
@@ -60,11 +56,10 @@ jobs:
             echo "上一个 tag: $PREV_TAG"
             LOGS=$(git log $PREV_TAG..HEAD --no-merges --pretty=format:"%s")
           fi
-          
+
           FEATS=""
           FIXES=""
-          
-          # 解析提交记录
+
           while IFS= read -r line || [[ -n "$line" ]]; do
             if [[ $line =~ ^feat:[[:space:]]*(.*) ]]; then
               FEATS+="- ${BASH_REMATCH[1]}"$'\n'
@@ -74,8 +69,7 @@ jobs:
               continue
             fi
           done <<< "$LOGS"
-          
-          # 构建更新日志
+
           CHANGELOG=""
           if [ -n "$FEATS" ]; then
             CHANGELOG+="### 功能"$'\n'"$FEATS"$'\n'
@@ -83,18 +77,37 @@ jobs:
           if [ -n "$FIXES" ]; then
             CHANGELOG+="### 修复"$'\n'"$FIXES"$'\n'
           fi
-          
-          # 将日志写入文件，作为 Release 的正文
+
           echo "$CHANGELOG" > changelog.txt
           cat changelog.txt
-          
+
+      # -------------------------------------------------------
+      # 修复1：Java 版本与 jvmToolchain(25) 对齐，使用 JDK 25
+      # -------------------------------------------------------
       - name: Setup Java
         if: steps.check_version.outputs.changed == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '25'
           cache: 'gradle'
+
+      # -------------------------------------------------------
+      # 修复2：安装 NDK 27.0.12077973（androidApp 指定的版本）
+      # ubuntu-latest 默认不带该 NDK，CMakeLists.txt 编译 native
+      # 库（suseoaa_litert_preload / LiteRtTopKOpenClSampler）时
+      # 必须有对应 NDK 才能成功。
+      # -------------------------------------------------------
+      - name: Setup Android NDK
+        if: steps.check_version.outputs.changed == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK 27.0.12077973
+        if: steps.check_version.outputs.changed == 'true'
+        run: |
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "ndk;27.0.12077973" \
+            "cmake;3.22.1"
 
       - name: Decode Keystore
         if: steps.check_version.outputs.changed == 'true'
@@ -103,6 +116,11 @@ jobs:
         run: |
           echo $ENCODED_KEYSTORE | base64 -d > $RUNNER_TEMP/keystore.jks
 
+      # -------------------------------------------------------
+      # 修复3：移除多余的 :androidApp:minifyReleaseWithR8
+      # assembleRelease 已经内含 R8 混淆步骤，重复调用会报错
+      # "Task 'minifyReleaseWithR8' not found"。
+      # -------------------------------------------------------
       - name: Build Release APK
         if: steps.check_version.outputs.changed == 'true'
         env:
@@ -112,14 +130,19 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon :androidApp:assembleRelease :androidApp:minifyReleaseWithR8
+          ./gradlew --no-daemon :androidApp:assembleRelease
 
-          # 重命名打包好的 APK，准备发布
           APK_DIR="androidApp/build/outputs/apk/release"
-          # 寻找构建出来的 apk 并重命名（屏蔽掉可能存在的未签名包等）
-          find $APK_DIR -name "*.apk" -print0 | while IFS= read -r -d '' file; do
-            mv "$file" "$APK_DIR/青蟹-${{ steps.check_version.outputs.tag }}.apk"
-          done
+          TAG="${{ steps.check_version.outputs.tag }}"
+
+          # -------------------------------------------------------
+          # 修复4：只重命名第一个 apk，防止 while 循环把已重命名的
+          # 文件再次覆盖自身（原先多文件时会出现竞争问题）。
+          # -------------------------------------------------------
+          SRC_APK=$(find "$APK_DIR" -name "*.apk" | head -n 1)
+          if [ -n "$SRC_APK" ]; then
+            mv "$SRC_APK" "$APK_DIR/青蟹-${TAG}.apk"
+          fi
 
       - name: Publish GitHub Release
         if: steps.check_version.outputs.changed == 'true'

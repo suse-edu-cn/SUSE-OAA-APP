@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +48,10 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Summarize
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -62,10 +67,14 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -124,6 +133,7 @@ fun AiLabScreen(
 
     val showTokenDialog by viewModel.showTokenDialog.collectAsState()
     var showModelManagerDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadLocalModels()
@@ -179,6 +189,56 @@ fun AiLabScreen(
         )
     }
 
+    if (showSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsDialog = false },
+            title = { Text("推理设置", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("选择底层计算引擎后端。GPU 提供更高性能，但在部分设备上可能存在兼容性问题。")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            viewModel.setPreferGpu(true)
+                            com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.setPreferGpu(true)
+                        }
+                    ) {
+                        RadioButton(
+                            selected = uiState.preferGpu,
+                            onClick = { 
+                                viewModel.setPreferGpu(true)
+                                com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.setPreferGpu(true)
+                            }
+                        )
+                        Text("GPU 性能模式 (推荐)")
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            viewModel.setPreferGpu(false)
+                            com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.setPreferGpu(false)
+                        }
+                    ) {
+                        RadioButton(
+                            selected = !uiState.preferGpu,
+                            onClick = { 
+                                viewModel.setPreferGpu(false)
+                                com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.setPreferGpu(false)
+                            }
+                        )
+                        Text("CPU 兼容模式")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSettingsDialog = false }) {
+                    Text("确定")
+                }
+            }
+        )
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -190,6 +250,9 @@ fun AiLabScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showSettingsDialog = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "推理设置")
+                    }
                     IconButton(onClick = { 
                         viewModel.loadLocalModels()
                         showModelManagerDialog = true 
@@ -399,6 +462,7 @@ private fun buildHardwareItems(info: DeviceInfo): List<Pair<String, String>> {
     val totalRamGb = info.totalRam / (1024f * 1024f * 1024f)
     return buildList {
         add("CPU 型号" to info.cpuModel.take(28))
+        if (info.socModel.isNotBlank()) add("SoC 型号" to info.socModel.take(28))
         add("GPU 渲染器" to info.gpuRenderer.take(28))
         add("NPU 支持" to if (info.hasNpu) info.npuDescription.take(24) else "未检测到")
         add("总内存" to "${"%.1f".format(totalRamGb)} GB")

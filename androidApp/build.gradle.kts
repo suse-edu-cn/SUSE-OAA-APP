@@ -8,18 +8,20 @@ plugins {
 extensions.configure<ApplicationExtension>("android") {
     namespace = "com.suseoaa.projectoaa"
     compileSdk = 36
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 36
-        versionCode = 201623
-        versionName = "2.16.23"
+        versionCode = 201723
+        versionName = "2.17.23"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
             abiFilters.add("arm64-v8a")
         }
+
     }
 
     signingConfigs {
@@ -66,6 +68,12 @@ extensions.configure<ApplicationExtension>("android") {
         buildConfig = true
     }
 
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
+    }
+
     // KMP 库模块的 assets 在当前工程结构下未自动并入 APK，
     // 这里显式加入 composeApp 的 androidMain/assets 目录以确保 ddddocr 模型可用。
     sourceSets {
@@ -85,7 +93,5 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
-
-
 
 

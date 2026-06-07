@@ -42,6 +42,18 @@
         android:theme="@style/Theme.ProjectOAA"
         android:usesCleartextTraffic="true">
 
+        <!--
+            LiteRT-LM GPU后端（Backend.GPU()）在Android上激活Vulkan/OpenCL计算路径时，
+            需要访问厂商提供的原生共享库。android:required="false" 确保在不支持该库的设备上
+            应用仍能正常安装运行，LiteRT-LM将自动降级至CPU后端。
+        -->
+        <uses-native-library
+            android:name="libvndksupport.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libOpenCL.so"
+            android:required="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -150,4 +162,3 @@
     </application>
 
 </manifest>
-

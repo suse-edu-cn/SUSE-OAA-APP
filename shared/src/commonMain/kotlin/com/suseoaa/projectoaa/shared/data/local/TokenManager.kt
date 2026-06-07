@@ -61,6 +61,10 @@ object PreferencesKeys {
 
     // 液态玻璃导航栏
     val LIQUID_GLASS_TABBAR_ENABLED = booleanPreferencesKey("liquid_glass_tabbar_enabled")
+
+    // AiLab 持久化设置
+    val AILAB_SELECTED_MODEL_ID = stringPreferencesKey("ailab_selected_model_id")
+    val AILAB_PREFER_GPU = booleanPreferencesKey("ailab_prefer_gpu")
 }
 
 internal const val DATA_STORE_FILE_NAME = "auth_prefs.preferences_pb"
@@ -476,10 +480,29 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
     /**
      * 获取 Kaggle Auth 流
      */
-    val kaggleAuthFlow: Flow<String?> = dataStore.data
-        .map { preferences ->
-            preferences[PreferencesKeys.KAGGLE_AUTH_TOKEN]
+    val kaggleAuthFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.KAGGLE_AUTH_TOKEN]
+    }
+
+    // 获取/设置选中的模型ID
+    val aiLabSelectedModelIdFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.AILAB_SELECTED_MODEL_ID]
+    }
+    suspend fun saveAiLabSelectedModelId(modelId: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AILAB_SELECTED_MODEL_ID] = modelId
         }
+    }
+
+    // 获取/设置是否偏好GPU
+    val aiLabPreferGpuFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.AILAB_PREFER_GPU] ?: true
+    }
+    suspend fun saveAiLabPreferGpu(preferGpu: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AILAB_PREFER_GPU] = preferGpu
+        }
+    }
 
     /**
      * 保存 Kaggle Auth

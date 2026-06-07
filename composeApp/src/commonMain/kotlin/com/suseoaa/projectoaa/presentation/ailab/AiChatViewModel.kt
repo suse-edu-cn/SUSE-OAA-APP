@@ -2,7 +2,11 @@ package com.suseoaa.projectoaa.presentation.ailab
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.util.AvailableAiModels
+import com.suseoaa.projectoaa.util.PlatformDeviceInfo
+import com.suseoaa.projectoaa.util.isCompatibleWithDevice
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +30,7 @@ data class AiChatUiState(
     val isModelLoaded: Boolean = false
 )
 
-class AiChatViewModel : ViewModel() {
+class AiChatViewModel(private val tokenManager: com.suseoaa.projectoaa.shared.data.local.TokenManager) : ViewModel() {
     private val _uiState = MutableStateFlow(AiChatUiState())
     val uiState: StateFlow<AiChatUiState> = _uiState.asStateFlow()
 
@@ -51,7 +55,34 @@ class AiChatViewModel : ViewModel() {
         println("AiLab: AiChatViewModel.ensureModelLoaded() called")
         viewModelScope.launch {
             _uiState.update { it.copy(isModelLoading = true) }
+            
+            // 在加载模型之前，确保已经读取并应用了用户的模型选择和 GPU 偏好
+            val preferGpu = tokenManager.aiLabPreferGpuFlow.firstOrNull() ?: true
+            com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.setPreferGpu(preferGpu)
+            
+            val savedModelId = tokenManager.aiLabSelectedModelIdFlow.firstOrNull()
+            val deviceInfo = PlatformDeviceInfo.queryDeviceInfo()
+            val savedModel = AvailableAiModels.firstOrNull { it.id == savedModelId }
+            val targetModel = if (savedModel != null && savedModel.isCompatibleWithDevice(deviceInfo)) {
+                savedModel
+            } else {
+                if (savedModel != null) {
+                    println(
+                        "AiLab: saved chat model ${savedModel.name} is incompatible with SoC ${deviceInfo.socModel}; using a compatible model."
+                    )
+                }
+                AvailableAiModels.firstOrNull { it.targetSocModels.isEmpty() }
+            }
+            val modelUrl = targetModel?.downloadUrl
+            if (modelUrl != null) {
+                val fileName = modelUrl.substringAfterLast("/").substringBefore("?")
+                com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.setTargetModelFileName(fileName)
+            }
+            
             val success = com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.loadModel()
+            if (com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine.lastGpuCrashDetected()) {
+                com.suseoaa.projectoaa.util.ToastManager.showToast("检测到 GPU 驱动异常，已自动降级至 CPU 推理，建议前往设置切换。")
+            }
             println("AiLab: AiChatViewModel CampusAiEngine.loadModel() returned $success")
             _uiState.update { it.copy(isModelLoading = false, isModelLoaded = success) }
         }

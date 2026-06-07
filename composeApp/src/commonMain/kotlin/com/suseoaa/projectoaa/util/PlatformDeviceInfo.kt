@@ -24,7 +24,9 @@ data class DeviceInfo(
     /** 操作系统版本字符串，例如 "Android 14 (API 34)" */
     val osVersion: String,
     /** SoC 制造商，例如 "Qualcomm", "MediaTek", "Apple" */
-    val socVendor: String
+    val socVendor: String,
+    /** SoC 型号，例如 "SM8650" / "SM8750"。专版 NPU 模型必须与该值匹配。 */
+    val socModel: String = ""
 )
 
 /** 推荐模型等级 */
@@ -50,39 +52,49 @@ data class AiModelMetadata(
     val name: String,
     val sizeDesc: String,
     val downloadUrl: String,
-    val recommendedLevel: ModelRecommendationLevel
+    val recommendedLevel: ModelRecommendationLevel,
+    /** 用户设置的GPU待假首选，默认为true，如果GPU初始化失败则自动降级CPU */
+    val preferGpu: Boolean = true,
+    /** 非空时表示该模型只适配这些 SoC 型号，例如 Qualcomm NPU 的 sm8650/sm8750。 */
+    val targetSocModels: Set<String> = emptySet()
 )
 
+/**
+ * 模型目录：litert-community/gemma-4-E2B-it-litert-lm
+ *
+ * CPU和GPU使用同一个.litertlm模型文件，差LiteRT-LM引擎的Backend配置决定硬件加速路径。
+ * 用户可在界面上选择指定GPU首选还是CPU首选，不需重新下载。
+ */
 val AvailableAiModels = listOf(
     AiModelMetadata(
         id = "gemma-4-e2b-int4",
-        name = "Gemma 2B (INT4 极致性能)",
-        sizeDesc = "约 1.25GB",
-        downloadUrl = "https://huggingface.co/autoocrat0413/gemma-2b-it-gpu-int4-mediapipe/resolve/main/gemma-2b-it-cpu-int4.bin",
+        name = "Gemma 4 E2B (混合量化)",
+        sizeDesc = "约 2.41 GB",
+        downloadUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm",
         recommendedLevel = ModelRecommendationLevel.E2B_RECOMMENDED
     ),
     AiModelMetadata(
-        id = "gemma-4-e2b-int8",
-        name = "Gemma 2B (INT8 高精度)",
-        sizeDesc = "约 2.76GB",
-        downloadUrl = "https://huggingface.co/CarlosJefte/Gemma-2-2b-mediapipe/resolve/main/gemma2-2b-it-gpu-int8.bin",
-        recommendedLevel = ModelRecommendationLevel.E2B_RECOMMENDED
+        id = "gemma-4-e2b-qualcomm",
+        name = "Gemma 4 E2B (高通 SM8750 专版)",
+        sizeDesc = "约 2.81 GB",
+        downloadUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it_qualcomm_sm8750.litertlm",
+        recommendedLevel = ModelRecommendationLevel.E2B_RECOMMENDED,
+        targetSocModels = setOf("sm8750")
     ),
     AiModelMetadata(
         id = "gemma-4-e4b-int4",
-        name = "Gemma 2 2B (INT4 极致性能)",
-        sizeDesc = "约 1.25GB",
-        downloadUrl = "https://huggingface.co/autoocrat0413/gemma-2b-it-gpu-int4-mediapipe/resolve/main/gemma-2b-it-cpu-int4.bin",
-        recommendedLevel = ModelRecommendationLevel.E4B_RECOMMENDED
-    ),
-    AiModelMetadata(
-        id = "gemma-4-e4b-int8",
-        name = "Gemma 2 2B (INT8 高精度)",
-        sizeDesc = "约 2.76GB",
-        downloadUrl = "https://huggingface.co/CarlosJefte/Gemma-2-2b-mediapipe/resolve/main/gemma2-2b-it-cpu-int8.task",
+        name = "Gemma 4 E4B (混合量化)",
+        sizeDesc = "约 3.41 GB",
+        downloadUrl = "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm",
         recommendedLevel = ModelRecommendationLevel.E4B_RECOMMENDED
     )
 )
+
+fun AiModelMetadata.isCompatibleWithDevice(info: DeviceInfo): Boolean {
+    if (targetSocModels.isEmpty()) return true
+    val normalizedSocModel = info.socModel.trim().lowercase()
+    return normalizedSocModel.isNotBlank() && normalizedSocModel in targetSocModels
+}
 
 /**
  * 跨平台设备信息查询接口（expect/actual）

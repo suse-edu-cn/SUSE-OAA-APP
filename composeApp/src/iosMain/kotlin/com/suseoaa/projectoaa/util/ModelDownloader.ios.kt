@@ -43,30 +43,49 @@ actual object ModelDownloader {
             val fileName = url.substringAfterLast("/").substringBefore("?")
             val targetFilePath = "$modelDir/$fileName"
             
+            var downloadedLength = 0L
             if (fileManager.fileExistsAtPath(targetFilePath)) {
-                fileManager.removeItemAtPath(targetFilePath, null)
+                val attributes = fileManager.attributesOfItemAtPath(targetFilePath, null)
+                downloadedLength = (attributes?.get(platform.Foundation.NSFileSize) as? platform.Foundation.NSNumber)?.longValue ?: 0L
+            } else {
+                fileManager.createFileAtPath(targetFilePath, null, null)
             }
             
-            fileManager.createFileAtPath(targetFilePath, null, null)
             val fileHandle = NSFileHandle.fileHandleForWritingAtPath(targetFilePath)
-            
             if (fileHandle == null) return@withContext Pair(false, null)
 
             client.prepareGet(url) {
                 if (!kaggleAuth.isNullOrBlank()) {
                     header("Authorization", "Basic $kaggleAuth")
                 }
-                onDownload { bytesSentTotal, contentLength ->
-                    onProgress(bytesSentTotal, contentLength ?: -1L)
+                if (downloadedLength > 0) {
+                    header(HttpHeaders.Range, "bytes=$downloadedLength-")
                 }
             }.execute { response ->
+                val isPartial = response.status == HttpStatusCode.PartialContent
+                
                 if (!response.status.isSuccess()) {
                     fileHandle.closeFile()
+                    if (response.status == HttpStatusCode.RequestedRangeNotSatisfiable) {
+                        return@execute Pair(true, response.etag())
+                    }
                     return@execute Pair(false, "HTTP ${response.status.value}")
                 }
+                
+                if (!isPartial) {
+                    downloadedLength = 0L
+                    fileHandle.truncateFileAtOffset(0uL)
+                } else {
+                    fileHandle.seekToEndOfFile()
+                }
+                
                 val etag = response.etag()
+                val contentLength = response.contentLength() ?: -1L
+                val totalLength = if (contentLength != -1L) downloadedLength + contentLength else -1L
+
                 val channel: ByteReadChannel = response.bodyAsChannel()
-                val buffer = ByteArray(8192)
+                val buffer = ByteArray(32768)
+                var currentRead = downloadedLength
                 
                 while (!channel.isClosedForRead) {
                     val read = channel.readAvailable(buffer, 0, buffer.size)
@@ -78,6 +97,8 @@ actual object ModelDownloader {
                             )
                         }
                         fileHandle.writeData(nsData)
+                        currentRead += read
+                        onProgress(currentRead, totalLength)
                     }
                 }
                 fileHandle.closeFile()
