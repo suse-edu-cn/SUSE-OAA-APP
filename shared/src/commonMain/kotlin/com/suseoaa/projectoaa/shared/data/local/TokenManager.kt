@@ -61,6 +61,7 @@ object PreferencesKeys {
 
     // 液态玻璃导航栏
     val LIQUID_GLASS_TABBAR_ENABLED = booleanPreferencesKey("liquid_glass_tabbar_enabled")
+    val LIQUID_GLASS_TABBAR_STYLE = intPreferencesKey("liquid_glass_tabbar_style")
 
     // AiLab 持久化设置
     val AILAB_SELECTED_MODEL_ID = stringPreferencesKey("ailab_selected_model_id")
@@ -434,6 +435,16 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
     suspend fun saveLiquidGlassTabbarEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.LIQUID_GLASS_TABBAR_ENABLED] = enabled
+        }
+    }
+
+    val liquidGlassTabbarStyleFlow: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.LIQUID_GLASS_TABBAR_STYLE] ?: 1
+    }
+
+    suspend fun saveLiquidGlassTabbarStyle(style: Int) {
+        dataStore.edit { prefs ->
+            prefs[PreferencesKeys.LIQUID_GLASS_TABBAR_STYLE] = style
         }
     }
 

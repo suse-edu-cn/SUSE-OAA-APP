@@ -7,15 +7,15 @@ plugins {
 
 extensions.configure<ApplicationExtension>("android") {
     namespace = "com.suseoaa.projectoaa"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
-        targetSdk = 36
-        versionCode = 201723
-        versionName = "2.17.23"
+        targetSdk = 37
+        versionCode = 201823
+        versionName = "2.18.23"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -92,6 +92,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+configurations.all {
+    exclude(group = "dev.chrisbanes.material3", module = "material3-window-size-class-multiplatform")
 }
 
 

@@ -48,6 +48,7 @@ import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
 import com.suseoaa.projectoaa.ui.component.LocalMainTabVisible
 import com.suseoaa.projectoaa.ui.screen.academic.AcademicScreen
 import com.suseoaa.projectoaa.presentation.course.CourseScreen
+
 import com.suseoaa.projectoaa.ui.screen.home.HomeScreen
 import com.suseoaa.projectoaa.ui.screen.person.PersonScreen
 import com.suseoaa.projectoaa.ui.theme.*
@@ -57,6 +58,7 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
@@ -106,6 +108,7 @@ fun MainScreen(
     val appBackgroundImages by mainViewModel.appBackgroundImages.collectAsState()
     val defaultStartTab by mainViewModel.defaultStartTab.collectAsState()
     val isLiquidGlassTabbarEnabled by mainViewModel.isLiquidGlassTabbarEnabled.collectAsState()
+    val liquidGlassTabbarStyle by mainViewModel.liquidGlassTabbarStyle.collectAsState()
 
     AdaptiveLayout { config ->
         if (config.useSideNavigation) {
@@ -179,6 +182,7 @@ fun MainScreen(
                 onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                 onNavigateToAiLab = onNavigateToAiLab,
                 isLiquidGlassTabbarEnabled = isLiquidGlassTabbarEnabled,
+                liquidGlassTabbarStyle = liquidGlassTabbarStyle,
                 modifier = modifier
             )
         }
@@ -311,6 +315,7 @@ private fun PhoneLayout(
     onNavigateToCourseStatistics: () -> Unit,
     onNavigateToAiLab: () -> Unit = {},
     isLiquidGlassTabbarEnabled: Boolean = false,
+    liquidGlassTabbarStyle: Int = 1,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
@@ -403,25 +408,36 @@ private fun PhoneLayout(
         pagerState.scrollToPage(page = page, pageOffsetFraction = offsetFraction)
     }
 
+    val displayedIndicatorProgress = dragIndicatorProgress ?: tabIndicatorProgress
+
     // 通过测量获取 BottomBar 的实际高度
     var bottomBarHeightPx by rememberSaveable { mutableIntStateOf(0) }
     val bottomBarHeight: Dp = with(density) { bottomBarHeightPx.toDp() }
-    val displayedIndicatorProgress = dragIndicatorProgress ?: tabIndicatorProgress
-
-    Box(modifier = modifier.fillMaxSize()) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(state = hazeState),
-            beyondViewportPageCount = MainTab.entries.size - 1,
-        ) { page ->
-            MainPageBackground(
-                encodedImage = resolveBackgroundImage(appBackgroundImages, page),
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+        com.suseoaa.projectoaa.ui.component.sukisu.LiquidGlassBackdropWrapper(
+            isLiquidGlassTabbarEnabled = isLiquidGlassTabbarEnabled,
+            liquidGlassTabbarStyle = liquidGlassTabbarStyle,
+            selectedIndex = { selectedTab },
+            onNavigate = onTabChange,
+            onBottomBarHeightChanged = { bottomBarHeightPx = it },
+            modifier = Modifier.fillMaxSize()
+        ) { backdropModifier ->
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer { clip = true }
-            ) {
+                    .then(backdropModifier)
+                    .hazeSource(state = hazeState),
+                beyondViewportPageCount = MainTab.entries.size - 1,
+            ) { page ->
+                MainPageBackground(
+                    encodedImage = resolveBackgroundImage(appBackgroundImages, page),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { clip = true }
+                ) {
                 MainTabPage(
                     tabIndex = page,
                     isVisible = page == selectedTab,
@@ -448,11 +464,13 @@ private fun PhoneLayout(
                     onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                     onNavigateToAiLab = onNavigateToAiLab
                 )
-            }
-        }
+            } // End MainPageBackground
+        } // End HorizontalPager
+        } // End LiquidGlassBackdropWrapper
 
         // 底部导航栏 - 测量实际高度
-        OaaBottomBar(
+        if (!(isLiquidGlassTabbarEnabled && liquidGlassTabbarStyle == 2)) {
+            OaaBottomBar(
             selectedIndex = selectedTab, // 直接拿状态驱动按钮
             indicatorProgress = displayedIndicatorProgress,
             onIndicatorDrag = { deltaProgress ->
@@ -506,12 +524,14 @@ private fun PhoneLayout(
             },
             hazeState = hazeState,
             isLiquidGlassTabbarEnabled = isLiquidGlassTabbarEnabled,
+            liquidGlassTabbarStyle = liquidGlassTabbarStyle,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .onGloballyPositioned { coordinates ->
                     bottomBarHeightPx = coordinates.size.height
                 }
         )
+        }
     }
 }
 
@@ -796,6 +816,7 @@ fun OaaBottomBar(
     onNavigate: (Int) -> Unit,
     hazeState: HazeState,
     isLiquidGlassTabbarEnabled: Boolean = false,
+    liquidGlassTabbarStyle: Int = 1,
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -811,6 +832,8 @@ fun OaaBottomBar(
     val blurRadius = if (isLiquidGlassTabbarEnabled) 48.dp else 28.dp
     val outlineColor = if (isLiquidGlassTabbarEnabled) colorScheme.outlineVariant.copy(alpha = 0.35f) else colorScheme.outlineVariant.copy(alpha = 0.8f)
     val barOverlay = if (isLiquidGlassTabbarEnabled) Color.Transparent else colorScheme.surface.copy(alpha = 0.82f)
+
+
 
     Box(
         modifier = modifier

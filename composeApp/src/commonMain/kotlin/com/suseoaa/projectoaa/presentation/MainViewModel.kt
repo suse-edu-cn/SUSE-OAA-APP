@@ -149,6 +149,13 @@ class MainViewModel(
             initialValue = false
         )
 
+    val liquidGlassTabbarStyle: StateFlow<Int> = tokenManager.liquidGlassTabbarStyleFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = 1
+        )
+
     fun saveDefaultStartTab(tabIndex: Int) {
         viewModelScope.launch {
             tokenManager.saveDefaultStartTab(tabIndex)

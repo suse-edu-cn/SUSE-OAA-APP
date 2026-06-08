@@ -42,12 +42,19 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showStartTabDialog by remember { mutableStateOf(false) }
     var showPaletteDialog by remember { mutableStateOf(false) }
+    var showLiquidGlassStyleDialog by remember { mutableStateOf(false) }
 
     SharedTransitionPageContainer(transitionKey = "settings") {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
+                    title = {
+                        Text(
+                            "设置",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
@@ -123,6 +130,17 @@ fun SettingsScreen(
                     )
                 }
 
+                if (uiState.isLiquidGlassTabbarEnabled) {
+                    item {
+                        SettingCard(
+                            icon = Icons.Default.Palette,
+                            title = "液态玻璃样式",
+                            subtitle = if (uiState.liquidGlassTabbarStyle == 1) "当前：液态薄片·杂" else "当前：液态玻璃·纯",
+                            onClick = { showLiquidGlassStyleDialog = true }
+                        )
+                    }
+                }
+
                 // 莫奈取色开关 (Dynamic Color)
                 item {
                     SettingCard(
@@ -164,7 +182,7 @@ fun SettingsScreen(
         StartTabDialog(
             currentTab = uiState.defaultStartTab,
             onDismiss = { showStartTabDialog = false },
-            onConfirm = { 
+            onConfirm = {
                 viewModel.saveDefaultStartTab(it) // It was saveDefaultStartTab in PersonScreen
                 showStartTabDialog = false
             }
@@ -179,6 +197,17 @@ fun SettingsScreen(
             onConfirm = { light, dark ->
                 viewModel.setDynamicPaletteColors(light, dark)
                 showPaletteDialog = false
+            }
+        )
+    }
+
+    if (showLiquidGlassStyleDialog) {
+        LiquidGlassStyleDialog(
+            currentStyle = uiState.liquidGlassTabbarStyle,
+            onDismiss = { showLiquidGlassStyleDialog = false },
+            onConfirm = { style ->
+                viewModel.setLiquidGlassTabbarStyle(style)
+                showLiquidGlassStyleDialog = false
             }
         )
     }
@@ -256,7 +285,9 @@ fun StartTabDialog(
                         onClick = { selectedTab = index },
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         shape = RoundedCornerShape(12.dp),
-                        color = if (selectedTab == index) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        color = if (selectedTab == index) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(
+                            alpha = 0.4f
+                        ),
                         tonalElevation = if (selectedTab == index) 2.dp else 0.dp
                     ) {
                         Row(
@@ -271,7 +302,12 @@ fun StartTabDialog(
                                 color = if (selectedTab == index) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                             )
                             if (selectedTab == index) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                     }
@@ -284,6 +320,66 @@ fun StartTabDialog(
 }
 
 data class DynamicColorPaletteOption(val label: String, val color: Color)
+
+@Composable
+fun LiquidGlassStyleDialog(
+    currentStyle: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    val options = mapOf(1 to "液态薄片·杂", 2 to "液态玻璃·纯")
+    var selectedStyle by remember { mutableIntStateOf(currentStyle) }
+
+    AlertDialog(
+        containerColor = MaterialTheme.colorScheme.background,
+        onDismissRequest = onDismiss,
+        title = { Text("液态玻璃样式", style = MaterialTheme.typography.titleMedium) },
+        text = {
+            Column {
+                Text(
+                    "选择液态玻璃导航栏的显示样式",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(16.dp))
+                options.forEach { (styleValue, label) ->
+                    Surface(
+                        onClick = { selectedStyle = styleValue },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (selectedStyle == styleValue) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(
+                            alpha = 0.4f
+                        ),
+                        tonalElevation = if (selectedStyle == styleValue) 2.dp else 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (selectedStyle == styleValue) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (selectedStyle == styleValue) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                            )
+                            if (selectedStyle == styleValue) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { Button(onClick = { onConfirm(selectedStyle) }) { Text("确认") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
+}
 
 val DynamicColorPaletteOptions = listOf(
     DynamicColorPaletteOption("电光蓝", ElectricBlue),
@@ -333,9 +429,9 @@ fun Color.toHexString(): String {
     val redInt = (this.red * 255).toInt()
     val greenInt = (this.green * 255).toInt()
     val blueInt = (this.blue * 255).toInt()
-    
+
     fun Int.toHex2(): String = this.toString(16).padStart(2, '0').uppercase()
-    
+
     return if (alphaInt == 255) {
         "#${redInt.toHex2()}${greenInt.toHex2()}${blueInt.toHex2()}"
     } else {
@@ -374,28 +470,66 @@ fun DynamicColorPaletteDialog(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // 头部
-                Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)).padding(20.dp)) {
-                    Text("莫奈调色盘", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        "莫奈调色盘",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                     Spacer(Modifier.height(4.dp))
-                    Text("自定义亮色与暗色模式的强调色", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "自定义亮色与暗色模式的强调色",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
                     Spacer(Modifier.height(20.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         // 浅色模式目标
                         Surface(
                             onClick = { isEditingLightColor = true },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
                             color = if (isEditingLightColor) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-                            border = if (isEditingLightColor) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            border = if (isEditingLightColor) BorderStroke(
+                                2.dp,
+                                MaterialTheme.colorScheme.primary
+                            ) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
-                            Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("亮色模式", style = MaterialTheme.typography.labelMedium, color = if (isEditingLightColor) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    "亮色模式",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isEditingLightColor) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                                 Spacer(Modifier.height(8.dp))
-                                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(lightColorHex?.toColorOrNull() ?: defaultPaletteColor(false)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape))
+                                Box(
+                                    modifier = Modifier.size(32.dp).clip(CircleShape).background(
+                                        lightColorHex?.toColorOrNull() ?: defaultPaletteColor(false)
+                                    ).border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant,
+                                        CircleShape
+                                    )
+                                )
                                 Spacer(Modifier.height(4.dp))
-                                Text(lightColorHex ?: "自动", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    lightColorHex ?: "自动",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
 
@@ -405,14 +539,36 @@ fun DynamicColorPaletteDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
                             color = if (!isEditingLightColor) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-                            border = if (!isEditingLightColor) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            border = if (!isEditingLightColor) BorderStroke(
+                                2.dp,
+                                MaterialTheme.colorScheme.primary
+                            ) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
-                            Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("暗色模式", style = MaterialTheme.typography.labelMedium, color = if (!isEditingLightColor) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    "暗色模式",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (!isEditingLightColor) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                                 Spacer(Modifier.height(8.dp))
-                                Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(darkColorHex?.toColorOrNull() ?: defaultPaletteColor(true)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape))
+                                Box(
+                                    modifier = Modifier.size(32.dp).clip(CircleShape).background(
+                                        darkColorHex?.toColorOrNull() ?: defaultPaletteColor(true)
+                                    ).border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant,
+                                        CircleShape
+                                    )
+                                )
                                 Spacer(Modifier.height(4.dp))
-                                Text(darkColorHex ?: "自动", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    darkColorHex ?: "自动",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -420,27 +576,64 @@ fun DynamicColorPaletteDialog(
 
                 // 内容区
                 Column(modifier = Modifier.weight(1f).padding(20.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("选择颜色", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "选择颜色",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("预设", style = MaterialTheme.typography.labelMedium, color = if (isCustomMode) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
-                            Switch(checked = isCustomMode, onCheckedChange = { isCustomMode = it }, modifier = Modifier.padding(horizontal = 8.dp).size(width = 40.dp, height = 24.dp))
-                            Text("自定义", style = MaterialTheme.typography.labelMedium, color = if (isCustomMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "预设",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isCustomMode) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+                            )
+                            Switch(
+                                checked = isCustomMode,
+                                onCheckedChange = { isCustomMode = it },
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                                    .size(width = 40.dp, height = 24.dp)
+                            )
+                            Text(
+                                "自定义",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isCustomMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                     Spacer(Modifier.height(16.dp))
 
                     if (isCustomMode) {
                         // 自定义颜色选择器（针对设置界面简化）
-                        val previewColor = hslToColor(customHue, customSaturation, customLightness, 1f)
-                        Box(modifier = Modifier.fillMaxWidth().height(100.dp).clip(RoundedCornerShape(16.dp)).background(previewColor))
+                        val previewColor =
+                            hslToColor(customHue, customSaturation, customLightness, 1f)
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(100.dp)
+                                .clip(RoundedCornerShape(16.dp)).background(previewColor)
+                        )
                         Spacer(Modifier.height(16.dp))
                         Text("色相 (Hue)")
-                        Slider(value = customHue, onValueChange = { customHue = it }, valueRange = 0f..360f)
+                        Slider(
+                            value = customHue,
+                            onValueChange = { customHue = it },
+                            valueRange = 0f..360f
+                        )
                         Text("饱和度 (Saturation)")
-                        Slider(value = customSaturation, onValueChange = { customSaturation = it }, valueRange = 0f..1f)
+                        Slider(
+                            value = customSaturation,
+                            onValueChange = { customSaturation = it },
+                            valueRange = 0f..1f
+                        )
                         Text("亮度 (Lightness)")
-                        Slider(value = customLightness, onValueChange = { customLightness = it }, valueRange = 0f..1f)
+                        Slider(
+                            value = customLightness,
+                            onValueChange = { customLightness = it },
+                            valueRange = 0f..1f
+                        )
                         Button(onClick = {
                             if (isEditingLightColor) lightColorHex = previewColor.toHexString()
                             else darkColorHex = previewColor.toHexString()
@@ -448,25 +641,59 @@ fun DynamicColorPaletteDialog(
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             item {
-                                Row(modifier = Modifier.fillMaxWidth().clickable {
-                                    if (isEditingLightColor) lightColorHex = null else darkColorHex = null
-                                }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape), contentAlignment = Alignment.Center) {
-                                        if (activeColorHex == null) Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().clickable {
+                                        if (isEditingLightColor) lightColorHex =
+                                            null else darkColorHex = null
+                                    }.padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier.size(40.dp).clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .border(
+                                                1.dp,
+                                                MaterialTheme.colorScheme.outlineVariant,
+                                                CircleShape
+                                            ), contentAlignment = Alignment.Center
+                                    ) {
+                                        if (activeColorHex == null) Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                     Spacer(Modifier.width(16.dp))
-                                    Text("自动 (随系统莫奈或默认)", style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        "自动 (随系统莫奈或默认)",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
                                 }
                             }
                             items(DynamicColorPaletteOptions.size) { index ->
                                 val option = DynamicColorPaletteOptions[index]
                                 val isSelected = activeColorHex?.toColorOrNull() == option.color
-                                Row(modifier = Modifier.fillMaxWidth().clickable {
-                                    if (isEditingLightColor) lightColorHex = option.color.toHexString()
-                                    else darkColorHex = option.color.toHexString()
-                                }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(option.color).border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape), contentAlignment = Alignment.Center) {
-                                        if (isSelected) Icon(Icons.Default.Check, contentDescription = null, tint = if (option.color.luminance() > 0.5f) Color.Black else Color.White)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().clickable {
+                                        if (isEditingLightColor) lightColorHex =
+                                            option.color.toHexString()
+                                        else darkColorHex = option.color.toHexString()
+                                    }.padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier.size(40.dp).clip(CircleShape)
+                                            .background(option.color).border(
+                                                1.dp,
+                                                MaterialTheme.colorScheme.outlineVariant,
+                                                CircleShape
+                                            ), contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isSelected) Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = if (option.color.luminance() > 0.5f) Color.Black else Color.White
+                                        )
                                     }
                                     Spacer(Modifier.width(16.dp))
                                     Text(option.label, style = MaterialTheme.typography.bodyLarge)
@@ -477,7 +704,10 @@ fun DynamicColorPaletteDialog(
                 }
 
                 // 底部
-                Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(16.dp), horizontalArrangement = Arrangement.End) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
+                        .padding(16.dp), horizontalArrangement = Arrangement.End
+                ) {
                     TextButton(onClick = onDismiss) { Text("取消") }
                     Spacer(Modifier.width(8.dp))
                     Button(onClick = { onConfirm(lightColorHex, darkColorHex) }) { Text("保存") }
@@ -502,7 +732,12 @@ private fun hslToColor(hue: Float, saturation: Float, lightness: Float, alpha: F
         h < 300f -> Triple(x, 0f, c)
         else -> Triple(c, 0f, x)
     }
-    return Color(red = (r1 + m).coerceIn(0f, 1f), green = (g1 + m).coerceIn(0f, 1f), blue = (b1 + m).coerceIn(0f, 1f), alpha = alpha.coerceIn(0f, 1f))
+    return Color(
+        red = (r1 + m).coerceIn(0f, 1f),
+        green = (g1 + m).coerceIn(0f, 1f),
+        blue = (b1 + m).coerceIn(0f, 1f),
+        alpha = alpha.coerceIn(0f, 1f)
+    )
 }
 
 fun Color.luminance(): Float {

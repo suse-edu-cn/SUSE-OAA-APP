@@ -193,11 +193,10 @@ class AcademicToolRouter(private val grades: List<GradeEntity>) {
                 valueTransform = { (_, courseName) -> courseName }
             )
             .mapValues { (_, courseNames) -> courseNames.distinct().sorted() }
-            .toSortedMap()
 
         if (teacherCourses.isEmpty()) return "当前成绩数据里没有记录任课教师信息。"
 
-        val lines = teacherCourses.map { (teacher, courseNames) ->
+        val lines = teacherCourses.entries.sortedBy { it.key }.map { (teacher, courseNames) ->
             "- $teacher：${courseNames.joinToString("、")}"
         }
         return "你成绩记录中出现过 ${teacherCourses.size} 位任课教师：\n" + lines.joinToString("\n")

@@ -108,7 +108,8 @@ class CourseStatisticsViewModel(
         courses.groupBy { it.course.studentId }
             .mapValues { (studentId, studentCourses) ->
                 studentCourses.groupBy { Pair(it.course.xnm, it.course.xqm) }
-                    .toSortedMap(compareBy<Pair<String, String>> { it.first }.thenBy { it.second })
+                    .entries.sortedWith(compareBy<Map.Entry<Pair<String, String>, *>> { it.key.first }.thenBy { it.key.second })
+                    .associate { it.key to it.value }
                     .mapValues { (_, coursesInTerm) ->
                         val teacherMap = mutableMapOf<String, MutableSet<CourseNodeData>>()
                         coursesInTerm.forEach { c ->

@@ -20,7 +20,7 @@ kotlin {
 
     android {
         namespace = "com.suseoaa.projectoaa.composeapp"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 28
 
         compilerOptions {
@@ -127,6 +127,10 @@ kotlin {
 
             // ONNX Runtime (ddddocr 移植)
             implementation(libs.onnxruntime.android)
+            
+            // Miuix for BottomBar liquid glass
+            implementation(libs.miuix.blur)
+            implementation(libs.miuix.ui)
         }
 
         iosMain.dependencies {
