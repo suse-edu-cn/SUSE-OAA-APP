@@ -26,6 +26,7 @@ import com.suseoaa.projectoaa.presentation.usermanagement.UserManagementViewMode
 import com.suseoaa.projectoaa.presentation.ailab.AiLabViewModel
 import com.suseoaa.projectoaa.presentation.ailab.AiChatViewModel
 import com.suseoaa.projectoaa.presentation.ailab.AcademicAnalysisViewModel
+import com.suseoaa.projectoaa.widget.WidgetRefresher
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -43,8 +44,8 @@ val appModule = module {
     viewModel { ChangePasswordViewModel(get()) }
     viewModel { CourseViewModel(get(), get(), get(), get()) }
     viewModel { CourseStatisticsViewModel(get(), get(), get()) }
-    viewModel { AcademicViewModel(get(), get(), get(), get()) }
-    viewModel { ExamViewModel(get(), get(), get(), get()) }
+    viewModel { AcademicViewModel(get(), get(), get(), get(), get<WidgetRefresher>()) }
+    viewModel { ExamViewModel(get(), get(), get(), get(), get<WidgetRefresher>()) }
     viewModel { PersonViewModel(get(), get()) }
     viewModel { GpaViewModel(get(), get()) }
     viewModel { GradesViewModel(get(), get(), get(), get()) }

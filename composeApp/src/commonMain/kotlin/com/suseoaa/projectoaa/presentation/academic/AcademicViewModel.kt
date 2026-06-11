@@ -14,6 +14,7 @@ import com.suseoaa.projectoaa.shared.domain.engine.CampusAiEngine
 import com.suseoaa.projectoaa.shared.domain.model.exam.ExamResponse
 import com.suseoaa.projectoaa.shared.domain.model.exam.ExamItem
 import com.suseoaa.projectoaa.shared.util.parseExamTimeRange
+import com.suseoaa.projectoaa.widget.WidgetRefresher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,7 +54,8 @@ class AcademicViewModel(
     private val tokenManager: TokenManager,
     private val localCourseRepository: LocalCourseRepository,
     private val schoolAuthRepository: SchoolAuthRepository,
-    private val schoolInfoRepository: SchoolInfoRepository
+    private val schoolInfoRepository: SchoolInfoRepository,
+    private val widgetRefresher: WidgetRefresher
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AcademicUiState())
@@ -174,6 +176,8 @@ class AcademicViewModel(
                 schoolInfoRepository.refreshAcademicExamInfo(account)
                 // 刷新调课通知
                 schoolInfoRepository.refreshAcademicMessageInfo(account)
+                // 同步刷新桌面小组件
+                widgetRefresher.refreshExamWidgets()
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "刷新失败: ${e.message}") }
             } finally {
@@ -190,6 +194,7 @@ class AcademicViewModel(
 
             try {
                 schoolInfoRepository.refreshAcademicExamInfo(account)
+                widgetRefresher.refreshExamWidgets() // 同步刷新桌面小组件
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "刷新考试信息失败: ${e.message}") }
             } finally {

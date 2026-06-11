@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.suseoaa.projectoaa.widget.WidgetRefresher
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -82,7 +83,8 @@ class ExamViewModel(
     private val tokenManager: TokenManager,
     private val localCourseRepository: LocalCourseRepository,
     private val schoolAuthRepository: SchoolAuthRepository,
-    private val schoolInfoRepository: SchoolInfoRepository
+    private val schoolInfoRepository: SchoolInfoRepository,
+    private val widgetRefresher: WidgetRefresher
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExamUiState())
@@ -316,6 +318,7 @@ class ExamViewModel(
                     onSuccess = { items ->
                         val uiItems = processExamItems(items)
                         _uiState.update { it.copy(exams = uiItems) }
+                        widgetRefresher.refreshExamWidgets()
                     },
                     onFailure = { e ->
                         _uiState.update { it.copy(errorMessage = e.message ?: "刷新失败") }
@@ -493,6 +496,7 @@ class ExamViewModel(
 
                 hideEditDialog()
                 loadExams() // 刷新列表
+                widgetRefresher.refreshExamWidgets() // 同步刷新桌面小组件
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message ?: "保存失败") }
             }
@@ -508,6 +512,7 @@ class ExamViewModel(
                 schoolInfoRepository.deleteExam(exam.id)
                 hideEditDialog()
                 loadExams() // 刷新列表
+                widgetRefresher.refreshExamWidgets() // 同步刷新桌面小组件
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message ?: "删除失败") }
             }

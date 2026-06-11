@@ -2,6 +2,8 @@ package com.suseoaa.projectoaa.di
 
 import com.suseoaa.projectoaa.data.repository.AppUpdateRepository
 import com.suseoaa.projectoaa.scheduling.PlatformCheckinScheduler
+import com.suseoaa.projectoaa.widget.IosWidgetRefresher
+import com.suseoaa.projectoaa.widget.WidgetRefresher
 import org.koin.dsl.module
 import platform.Foundation.*
 
@@ -20,4 +22,7 @@ actual fun platformModule() = module {
 
     // 定时签到平台调度器
     single { PlatformCheckinScheduler() }
+
+    // 桌面小组件刷新器（iOS 空实现）
+    single<WidgetRefresher> { IosWidgetRefresher() }
 }
