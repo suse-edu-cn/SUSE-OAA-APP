@@ -52,6 +52,15 @@ fun QrCodeLoginDialog(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var webView by remember { mutableStateOf<WebView?>(null) }
     
+    var loginSuccessCalled by remember { mutableStateOf(false) }
+
+    fun triggerLoginSuccess(cookieMap: Map<String, String>) {
+        if (!loginSuccessCalled) {
+            loginSuccessCalled = true
+            onLoginSuccess(cookieMap)
+        }
+    }
+    
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     
     // 标记是否正在等待 SSO 流程完成以获取 SESSION
@@ -74,26 +83,13 @@ fun QrCodeLoginDialog(
     }
 
     fun clearAuthCookies(cookieManager: CookieManager) {
-        val domains = listOf(
-            "https://qfhy.suse.edu.cn",
-            "https://suse.edu.cn"
-        )
-        val authCookieKeys = listOf(
-            "_sop_session_",
-            "SESSION",
-            "JSESSIONID",
-            "CASTGC"
-        )
-
-        domains.forEach { domain ->
-            authCookieKeys.forEach { key ->
-                cookieManager.setCookie(
-                    domain,
-                    "$key=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/"
-                )
-            }
+        try {
+            cookieManager.removeAllCookies(null)
+            cookieManager.flush()
+            println("[QrCode] clearAuthCookies: WebView cookies cleared successfully")
+        } catch (e: Exception) {
+            println("[QrCode] clearAuthCookies error: ${e.message}")
         }
-        cookieManager.flush()
     }
     
     // 处理登录成功（从 SSO API 获取 SESSION 后调用）
@@ -118,7 +114,7 @@ fun QrCodeLoginDialog(
                 val hasSession = cookieMap.containsKey("SESSION")
                 println("[QrCode] 最终 cookies: ${cookieMap.keys}, 包含 SESSION: $hasSession")
                 loadingState = 3
-                onLoginSuccess(cookieMap)
+                triggerLoginSuccess(cookieMap)
                 return
             }
         }
@@ -168,7 +164,7 @@ fun QrCodeLoginDialog(
                 if (hasSession) {
                     println("[QrCode] 已有 SESSION，直接完成登录")
                     loadingState = 3
-                    onLoginSuccess(cookieMap)
+                    triggerLoginSuccess(cookieMap)
                     return
                 }
                 
@@ -205,7 +201,7 @@ fun QrCodeLoginDialog(
                 if (openId != null) {
                     // 标记正在等待 SSO 流程完成
                     waitingForXgSession = true
-                    loadingState = 0 // 重置状态允许后续调用
+                    loadingState = 2 // 保持在正在登录状态，防止重复进入 handleLoginSuccess
                     
                     // ★★★ 关键修复 (2025年验证) ★★★
                     // 直接访问 SSO API 获取 SESSION，而不是访问 /xg/ 页面
@@ -224,7 +220,7 @@ fun QrCodeLoginDialog(
                 // 无法获取 SESSION，使用现有 cookies
                 loadingState = 3
                 println("[QrCode] 最终 cookies (无 SESSION): ${cookieMap.keys}")
-                onLoginSuccess(cookieMap)
+                triggerLoginSuccess(cookieMap)
                 return
             } else {
                 println("[QrCode] cookieMap 不包含 _sop_session_ 键!")

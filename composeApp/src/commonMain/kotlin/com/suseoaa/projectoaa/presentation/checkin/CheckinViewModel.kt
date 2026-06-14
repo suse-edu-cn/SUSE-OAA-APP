@@ -444,17 +444,34 @@ class CheckinViewModel(
      */
     fun startCheckin(account: CheckinAccountData) {
         if (account.isQrCodeLogin) {
-            // 扫码登录账号 - 检查Session是否有效
-            if (account.isSessionValid()) {
-                // Session 有效，直接签到
-                performQrCodeCheckin(account)
-            } else {
-                // Session 过期，提示重新扫码
-                _uiState.update {
-                    it.copy(
-                        accountNeedRelogin = account,
-                        showReloginDialog = true
-                    )
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true, currentCheckingAccount = account) }
+                var isSessionOk = account.isSessionValid()
+                var currentAccount = account
+                if (!isSessionOk) {
+                    println("[Checkin] startCheckin: Session已过期，尝试自动刷新...")
+                    _uiState.update { it.copy(successMessage = "正在更新登录状态...") }
+                    val refreshResult = qrCodeRepository.refreshSessionIfExpired(account)
+                    if (refreshResult.isSuccess) {
+                        isSessionOk = true
+                        val updatedAccount = passwordRepository.getAccountById(account.id)
+                        if (updatedAccount != null) {
+                            currentAccount = updatedAccount
+                        }
+                    }
+                }
+                
+                if (isSessionOk) {
+                    performQrCodeCheckin(currentAccount)
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            currentCheckingAccount = null,
+                            accountNeedRelogin = account,
+                            showReloginDialog = true
+                        )
+                    }
                 }
             }
         } else {
@@ -1011,6 +1028,10 @@ class CheckinViewModel(
      * @param cookies WebView 获取的 Cookie 字符串
      */
     fun onWebViewLoginSuccess(cookies: Map<String, String>) {
+        if (_uiState.value.isLoading) {
+            println("[Checkin] onWebViewLoginSuccess: 已经在登录处理中，忽略重复的成功回调")
+            return
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -1162,14 +1183,50 @@ class CheckinViewModel(
 
             try {
                 // 根据登录类型获取任务（初始加载打卡时间的数量与显示数量一致）
-                val (pending, completed, absent) = if (account.isQrCodeLogin && account.isSessionValid()) {
-                    // 扫码登录：使用已保存的sessionToken
+                val (pending, completed, absent) = if (account.isQrCodeLogin) {
+                    var currentCookies = account.sessionToken ?: ""
+                    var isSessionOk = account.isSessionValid()
+                    if (!isSessionOk) {
+                        println("[TaskList] 扫码登录 Session 已过期，尝试自动刷新...")
+                        val refreshResult = qrCodeRepository.refreshSessionIfExpired(account)
+                        if (refreshResult.isSuccess) {
+                            currentCookies = refreshResult.getOrThrow()
+                            isSessionOk = true
+                        }
+                    }
+
+                    if (!isSessionOk) {
+                        _uiState.update {
+                            it.copy(
+                                isLoadingTasks = false,
+                                accountNeedRelogin = account,
+                                showReloginDialog = true
+                            )
+                        }
+                        return@launch
+                    }
+
                     println("[TaskList] 使用扫码登录的Session Token")
-                    qrCodeRepository.getAllTasksWithCookies(
-                        account.sessionToken ?: "",
-                        initialDisplayCount
-                    )
-                } else if (!account.isQrCodeLogin) {
+                    var result: Triple<List<CheckinTask>, List<CheckinTask>, List<CheckinTask>>? = null
+                    try {
+                        result = qrCodeRepository.getAllTasksWithCookies(currentCookies, initialDisplayCount)
+                    } catch (e: Exception) {
+                        val errMsg = e.message ?: ""
+                        if (errMsg.contains("401") || errMsg.contains("未登录") || errMsg.contains("过期")) {
+                            println("[TaskList] 任务请求返回登录已失效(401)，尝试强制刷新 Session...")
+                            val refreshResult = qrCodeRepository.refreshSessionIfExpired(account)
+                            if (refreshResult.isSuccess) {
+                                currentCookies = refreshResult.getOrThrow()
+                                result = qrCodeRepository.getAllTasksWithCookies(currentCookies, initialDisplayCount)
+                            } else {
+                                throw e
+                            }
+                        } else {
+                            throw e
+                        }
+                    }
+                    result ?: Triple(emptyList(), emptyList(), emptyList())
+                } else {
                     // 密码登录：检查是否需要重新登录
                     if (loggedInPasswordStudentId != account.studentId) {
                         currentPasswordLoginEntry = PasswordLoginEntry.TASKS
@@ -1198,16 +1255,6 @@ class CheckinViewModel(
                         println("[TaskList] 密码登录账号，已登录，直接加载任务列表")
                     }
                     passwordRepository.getAllTasks(initialDisplayCount)
-                } else {
-                    // 扫码登录但Session过期
-                    _uiState.update {
-                        it.copy(
-                            isLoadingTasks = false,
-                            accountNeedRelogin = account,
-                            showReloginDialog = true
-                        )
-                    }
-                    return@launch
                 }
 
                 _uiState.update {
@@ -1269,14 +1316,26 @@ class CheckinViewModel(
                 val endIndex = minOf(startIndex + loadCount, state.completedTasks.size)
 
                 // 为新显示的任务加载打卡时间
-                val updatedTasks = if (account.isQrCodeLogin && account.isSessionValid()) {
-                    val cookies = account.sessionToken ?: ""
-                    qrCodeRepository.loadCheckinTimeForTasks(
-                        tasks = state.completedTasks,
-                        startIndex = startIndex,
-                        endIndex = endIndex,
-                        cookies = cookies
-                    ).getOrNull() ?: state.completedTasks
+                val updatedTasks = if (account.isQrCodeLogin) {
+                    var currentCookies = account.sessionToken ?: ""
+                    var isSessionOk = account.isSessionValid()
+                    if (!isSessionOk) {
+                        val refreshResult = qrCodeRepository.refreshSessionIfExpired(account)
+                        if (refreshResult.isSuccess) {
+                            currentCookies = refreshResult.getOrThrow()
+                            isSessionOk = true
+                        }
+                    }
+                    if (isSessionOk) {
+                        qrCodeRepository.loadCheckinTimeForTasks(
+                            tasks = state.completedTasks,
+                            startIndex = startIndex,
+                            endIndex = endIndex,
+                            cookies = currentCookies
+                        ).getOrNull() ?: state.completedTasks
+                    } else {
+                        state.completedTasks
+                    }
                 } else {
                     // 密码登录：使用 cookie storage 内部方法
                     passwordRepository.loadCheckinTimeForTasksInternal(
@@ -1317,17 +1376,6 @@ class CheckinViewModel(
             return
         }
 
-        // 扫码登录账号检查Session有效性
-        if (account.isQrCodeLogin && !account.isSessionValid()) {
-            _uiState.update {
-                it.copy(
-                    accountNeedRelogin = account,
-                    showReloginDialog = true
-                )
-            }
-            return
-        }
-
         // 如果任务在已打卡列表中且不允许重复，提示用户
         if (!allowRepeat && _uiState.value.completedTasks.any { it.id == task.id }) {
             _uiState.update { it.copy(errorMessage = "该任务已打卡，不可重复打卡") }
@@ -1340,9 +1388,37 @@ class CheckinViewModel(
                 it.copy(checkingTaskId = task.id)
             }
 
-            val result = if (account.isQrCodeLogin) {
+            var currentAccount = account
+            if (account.isQrCodeLogin) {
+                var isSessionOk = account.isSessionValid()
+                if (!isSessionOk) {
+                    println("[CheckinForTask] 扫码登录 Session 已过期，尝试自动刷新...")
+                    _uiState.update { it.copy(successMessage = "正在自动更新登录凭证...") }
+                    val refreshResult = qrCodeRepository.refreshSessionIfExpired(account)
+                    if (refreshResult.isSuccess) {
+                        isSessionOk = true
+                        val updatedAccount = passwordRepository.getAccountById(account.id)
+                        if (updatedAccount != null) {
+                            currentAccount = updatedAccount
+                        }
+                    }
+                }
+                
+                if (!isSessionOk) {
+                    _uiState.update {
+                        it.copy(
+                            checkingTaskId = null,
+                            accountNeedRelogin = account,
+                            showReloginDialog = true
+                        )
+                    }
+                    return@launch
+                }
+            }
+
+            val result = if (currentAccount.isQrCodeLogin) {
                 // 扫码登录：使用session cookies
-                val sessionToken = account.sessionToken ?: ""
+                val sessionToken = currentAccount.sessionToken ?: ""
                 val cookies = if (sessionToken.contains(";") || sessionToken.contains("=")) {
                     sessionToken
                 } else {
@@ -1351,7 +1427,7 @@ class CheckinViewModel(
                 qrCodeRepository.checkinForSpecificTask(
                     cookies = cookies,
                     taskId = task.id,
-                    account = account
+                    account = currentAccount
                 )
             } else {
                 // 密码登录：检查是否需要登录

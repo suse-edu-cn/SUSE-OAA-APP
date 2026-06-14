@@ -425,6 +425,30 @@ class QrCodeCheckinRepository(
     /**
      * 使用保存的 Session 执行签到
      */
+    /**
+     * 如果 Session 过期或无效，尝试使用 _sop_session_ 自动刷新
+     */
+    suspend fun refreshSessionIfExpired(account: CheckinAccountData): Result<String> {
+        val cookies = account.sessionToken ?: return Result.failure(Exception("Session token is null"))
+        return try {
+            println("[QrCheckin] 正在自动刷新账号 ${account.studentId} 的 Session...")
+            val ssoResult = completeSsoWithSopSession(cookies)
+            if (ssoResult.isSuccess) {
+                val newCookies = ssoResult.getOrThrow()
+                updateAccountSession(account.id, newCookies)
+                println("[QrCheckin] 账号 ${account.studentId} Session 自动刷新成功")
+                Result.success(newCookies)
+            } else {
+                val exception = ssoResult.exceptionOrNull() ?: Exception("Unknown error during SSO refresh")
+                println("[QrCheckin] 账号 ${account.studentId} Session 自动刷新失败: ${exception.message}")
+                Result.failure(exception)
+            }
+        } catch (e: Exception) {
+            println("[QrCheckin] 账号 ${account.studentId} Session 自动刷新异常: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     suspend fun performCheckinWithSession(account: CheckinAccountData): CheckinResult =
         withContext(Dispatchers.IO) {
             try {
@@ -433,13 +457,34 @@ class QrCodeCheckinRepository(
                     return@withContext CheckinResult.Failed("Session 无效，请重新扫码登录")
                 }
 
-                // 检查 Session 是否过期
-                if (!account.isSessionValid()) {
-                    return@withContext CheckinResult.Failed("Session 已过期，请重新扫码登录")
+                // 检查 Session 是否过期，如果过期则尝试自动刷新
+                var currentCookies = cookies
+                var isSessionOk = account.isSessionValid()
+                if (!isSessionOk) {
+                    println("[QrCheckin] Session已过期，尝试自动刷新...")
+                    val refreshResult = refreshSessionIfExpired(account)
+                    if (refreshResult.isSuccess) {
+                        currentCookies = refreshResult.getOrThrow()
+                        isSessionOk = true
+                    } else {
+                        return@withContext CheckinResult.Failed("Session 已过期且自动刷新失败，请重新扫码登录")
+                    }
                 }
 
                 // 获取待签到任务
-                val pendingResult = getPendingTasks(cookies)
+                var pendingResult = getPendingTasks(currentCookies)
+                if (pendingResult.isFailure) {
+                    val error = pendingResult.exceptionOrNull()?.message ?: "获取任务失败"
+                    if (error.contains("401") || error.contains("未登录") || error.contains("过期")) {
+                        println("[QrCheckin] 任务请求返回登录已失效，尝试刷新 Session...")
+                        val refreshResult = refreshSessionIfExpired(account)
+                        if (refreshResult.isSuccess) {
+                            currentCookies = refreshResult.getOrThrow()
+                            pendingResult = getPendingTasks(currentCookies)
+                        }
+                    }
+                }
+
                 if (pendingResult.isFailure) {
                     val error = pendingResult.exceptionOrNull()?.message ?: "获取任务失败"
                     if (error.contains("401") || error.contains("未登录") || error.contains("过期")) {
@@ -458,7 +503,7 @@ class QrCodeCheckinRepository(
 
                 // 对第一个任务执行签到
                 val task = pendingTasks.first()
-                performCheckin(cookies, task.id, location)
+                performCheckin(currentCookies, task.id, location)
             } catch (e: Exception) {
                 println("[QrCheckin] 签到异常: ${e.message}")
                 CheckinResult.Failed(e.message ?: "签到失败")
@@ -502,7 +547,13 @@ class QrCodeCheckinRepository(
         sessionExpireTime: String,
         selectedLocation: String
     ): Result<Long> {
-        return saveQrCodeAccount(studentId, name, sessionToken, selectedLocation)
+        return saveQrCodeAccountInternal(
+            studentId = studentId,
+            name = name,
+            cookies = sessionToken,
+            selectedLocation = selectedLocation,
+            sessionExpireTime = sessionExpireTime
+        )
     }
 
     // ==================== 签到功能 ====================
@@ -798,16 +849,17 @@ class QrCodeCheckinRepository(
     /**
      * 保存扫码登录账号到数据库
      */
-    fun saveQrCodeAccount(
+    fun saveQrCodeAccountInternal(
         studentId: String,
         name: String,
         cookies: String,
-        selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name
+        selectedLocation: String = CheckinLocations.DEFAULT_CAMPUS.name,
+        sessionExpireTime: String? = null
     ): Result<Long> {
         return try {
             val now = getCurrentTimeString()
-            // 计算 Session 过期时间 (假设24小时后过期)
-            val expireTime = calculateExpireTime(24)
+            // 计算 Session 过期时间 (若未传入，则默认 24 小时后过期)
+            val expireTime = sessionExpireTime ?: calculateExpireTime(24)
 
             // 检查是否已存在
             val existing = queries.selectByStudentId(studentId).executeAsOneOrNull()
@@ -849,7 +901,7 @@ class QrCodeCheckinRepository(
     fun updateAccountSession(accountId: Long, cookies: String): Result<Unit> {
         return try {
             val now = getCurrentTimeString()
-            val expireTime = calculateExpireTime(24)
+            val expireTime = calculateExpireTime(24 * 7) // 自动刷新成功后，直接将有效期延长 7 天
             queries.updateSession(
                 sessionToken = cookies,
                 sessionExpireTime = expireTime,

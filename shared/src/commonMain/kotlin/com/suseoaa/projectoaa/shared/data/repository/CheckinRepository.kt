@@ -77,6 +77,13 @@ class CheckinRepository(
     }
 
     /**
+     * 根据 ID 获取账号
+     */
+    fun getAccountById(id: Long): CheckinAccountData? {
+        return queries.selectById(id).executeAsOneOrNull()?.toData()
+    }
+
+    /**
      * 添加打卡账号（密码登录）
      */
     fun addAccount(
