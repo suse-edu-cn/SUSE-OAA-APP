@@ -14,8 +14,8 @@ extensions.configure<ApplicationExtension>("android") {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 37
-        versionCode = 201925
-        versionName = "2.19.25"
+        versionCode = 202026
+        versionName = "2.20.26"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -49,6 +49,7 @@ extensions.configure<ApplicationExtension>("android") {
 
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -78,10 +79,8 @@ extensions.configure<ApplicationExtension>("android") {
     // 这里显式加入 composeApp 的 androidMain/assets 目录以确保 ddddocr 模型可用。
     sourceSets {
         getByName("main") {
-            assets.srcDirs(
-                "src/main/assets",
-                project(":composeApp").file("src/androidMain/assets")
-            )
+            assets.directories.add("src/main/assets")
+            assets.directories.add(project(":composeApp").file("src/androidMain/assets").path)
         }
     }
 }

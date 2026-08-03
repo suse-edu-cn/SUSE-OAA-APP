@@ -26,8 +26,10 @@ import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
 import com.suseoaa.projectoaa.ui.component.BackButton
 import com.suseoaa.projectoaa.ui.component.getListColumns
+import com.suseoaa.projectoaa.ui.component.common.SlidingSelector
 import com.suseoaa.projectoaa.ui.theme.*
 import com.suseoaa.projectoaa.util.showToast
+import androidx.compose.ui.unit.sp
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
@@ -185,7 +187,7 @@ fun GradesScreen(
 private fun BoxWithConstraintsScope.TabletGradesLayout(
     uiState: com.suseoaa.projectoaa.presentation.grades.GradesUiState,
     config: AdaptiveLayoutConfig,
-    onFilterChange: (String, String) -> Unit,
+    onFilterChange: (Set<String>, Set<String>) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -219,8 +221,8 @@ private fun BoxWithConstraintsScope.TabletGradesLayout(
                 )
 
                 VerticalFilterSection(
-                    selectedYear = uiState.selectedYear,
-                    selectedSemester = uiState.selectedSemester,
+                    selectedYears = uiState.selectedYears,
+                    selectedSemesters = uiState.selectedSemesters,
                     startYear = uiState.startYear,
                     onFilterChange = onFilterChange
                 )
@@ -268,15 +270,15 @@ private fun BoxWithConstraintsScope.TabletGradesLayout(
 private fun BoxWithConstraintsScope.PhoneGradesLayout(
     uiState: com.suseoaa.projectoaa.presentation.grades.GradesUiState,
     config: AdaptiveLayoutConfig,
-    onFilterChange: (String, String) -> Unit,
+    onFilterChange: (Set<String>, Set<String>) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         // 筛选栏
-        SelectOption(
-            selectedYear = uiState.selectedYear,
-            selectedSemester = uiState.selectedSemester,
+        FilterSliders(
+            selectedYears = uiState.selectedYears,
+            selectedSemesters = uiState.selectedSemesters,
             startYear = uiState.startYear,
             onFilterChange = onFilterChange
         )
@@ -372,10 +374,10 @@ private fun GradesContent(
  */
 @Composable
 private fun VerticalFilterSection(
-    selectedYear: String,
-    selectedSemester: String,
+    selectedYears: Set<String>,
+    selectedSemesters: Set<String>,
     startYear: Int,
-    onFilterChange: (String, String) -> Unit
+    onFilterChange: (Set<String>, Set<String>) -> Unit
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val primaryColor = if (isDarkTheme) NightBlue else ElectricBlue
@@ -406,10 +408,13 @@ private fun VerticalFilterSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         yearOptions.forEach { (label, value) ->
-            val isSelected = selectedYear == value
+            val isSelected = value in selectedYears
             FilterChip(
                 selected = isSelected,
-                onClick = { onFilterChange(value, selectedSemester) },
+                onClick = { 
+                    val newSelection = if (isSelected && selectedYears.size > 1) selectedYears - value else selectedYears + value
+                    onFilterChange(newSelection, selectedSemesters) 
+                },
                 label = {
                     Text(
                         label,
@@ -447,10 +452,13 @@ private fun VerticalFilterSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         semesterOptions.forEach { (label, value) ->
-            val isSelected = selectedSemester == value
+            val isSelected = value in selectedSemesters
             FilterChip(
                 selected = isSelected,
-                onClick = { onFilterChange(selectedYear, value) },
+                onClick = { 
+                    val newSelection = if (isSelected && selectedSemesters.size > 1) selectedSemesters - value else selectedSemesters + value
+                    onFilterChange(selectedYears, newSelection) 
+                },
                 label = {
                     Text(
                         label,
@@ -477,11 +485,11 @@ private fun VerticalFilterSection(
 }
 
 @Composable
-fun SelectOption(
-    selectedYear: String,
-    selectedSemester: String,
+fun FilterSliders(
+    selectedYears: Set<String>,
+    selectedSemesters: Set<String>,
     startYear: Int,
-    onFilterChange: (String, String) -> Unit
+    onFilterChange: (Set<String>, Set<String>) -> Unit
 ) {
     val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now()
         .toLocalDateTime(TimeZone.currentSystemDefault()).year
@@ -489,92 +497,51 @@ fun SelectOption(
         val endYear = currentYear + 1
         val list = mutableListOf<Pair<String, String>>()
         for (y in endYear downTo startYear) {
-            list.add("$y-${y + 1} 学年" to y.toString())
+            list.add("$y-${y + 1}" to y.toString())
         }
         list
     }
-
     val semesterOptions = listOf("上学期" to "3", "下学期" to "12")
-    val currentYearLabel =
-        yearOptions.find { it.second == selectedYear }?.first ?: "${selectedYear}学年"
-    val currentSemesterLabel =
-        semesterOptions.find { it.second == selectedSemester }?.first ?: "未知学期"
 
-    var expandedYear by remember { mutableStateOf(false) }
-    var expandedSemester by remember { mutableStateOf(false) }
+    val selectedYearIndices = yearOptions.mapIndexedNotNull { index, pair -> 
+        if (pair.second in selectedYears) index else null
+    }.toSet()
 
-    Row(
+    val selectedSemesterIndices = semesterOptions.mapIndexedNotNull { index, pair -> 
+        if (pair.second in selectedSemesters) index else null
+    }.toSet()
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(modifier = Modifier.weight(1f)) {
-            FilterButton(text = currentYearLabel, onClick = { expandedYear = true })
-            DropdownMenu(
-                expanded = expandedYear,
-                onDismissRequest = { expandedYear = false },
-                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-            ) {
-                yearOptions.forEach { (label, value) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = {
-                            expandedYear = false
-                            onFilterChange(value, selectedSemester)
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Box(modifier = Modifier.weight(1f)) {
-            FilterButton(text = currentSemesterLabel, onClick = { expandedSemester = true })
-            DropdownMenu(
-                expanded = expandedSemester,
-                onDismissRequest = { expandedSemester = false },
-                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-            ) {
-                semesterOptions.forEach { (label, value) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = {
-                            expandedSemester = false
-                            onFilterChange(selectedYear, value)
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun FilterButton(text: String, onClick: () -> Unit) {
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        onClick = onClick
-    ) {
-        Row(
+        SlidingSelector(
+            options = yearOptions.map { it.first },
+            selectedIndices = selectedYearIndices,
+            onSelectionChanged = { indices ->
+                val newYears = indices.map { yearOptions[it].second }.toSet()
+                onFilterChange(newYears, selectedSemesters)
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                Icons.Default.ArrowDropDown,
-                null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+                .height(36.dp),
+            textFontSize = 12.sp
+        )
+        
+        SlidingSelector(
+            options = semesterOptions.map { it.first },
+            selectedIndices = selectedSemesterIndices,
+            onSelectionChanged = { indices ->
+                val newSemesters = indices.map { semesterOptions[it].second }.toSet()
+                onFilterChange(selectedYears, newSemesters)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp),
+            textFontSize = 14.sp
+        )
     }
 }
 

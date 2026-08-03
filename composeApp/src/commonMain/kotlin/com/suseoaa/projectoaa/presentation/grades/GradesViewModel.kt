@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -31,8 +32,8 @@ import kotlinx.datetime.toLocalDateTime
 data class GradesUiState(
     val isRefreshing: Boolean = false,
     val grades: List<GradeEntity> = emptyList(),
-    val selectedYear: String = "",
-    val selectedSemester: String = "3",
+    val selectedYears: Set<String> = emptySet(),
+    val selectedSemesters: Set<String> = setOf("3"),
     val startYear: Int = 2020,
     val message: String? = null,
     val currentAccount: CourseAccountEntity? = null,
@@ -73,9 +74,11 @@ class GradesViewModel(
         currentAccount.filterNotNull(),
         _uiState
     ) { account, state ->
-        Triple(account.studentId, state.selectedYear, state.selectedSemester)
-    }.flatMapLatest { (studentId, xnm, xqm) ->
-        schoolGradeRepository.observeGrades(studentId, xnm, xqm)
+        Triple(account.studentId, state.selectedYears, state.selectedSemesters)
+    }.flatMapLatest { (studentId, years, semesters) ->
+        schoolGradeRepository.observeAllGrades(studentId).map { list ->
+            list.filter { it.xnm in years && it.xqm in semesters }
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Lazily,
@@ -92,7 +95,7 @@ class GradesViewModel(
 
         _uiState.update {
             it.copy(
-                selectedYear = academicYear.toString(),
+                selectedYears = setOf(academicYear.toString()),
                 startYear = academicYear - 4
             )
         }
@@ -136,8 +139,8 @@ class GradesViewModel(
                 var currentDegreeCredits = 0.0
 
                 val currentState = _uiState.value
-                val selectedYear = currentState.selectedYear
-                val selectedSemester = currentState.selectedSemester
+                val selectedYears = currentState.selectedYears
+                val selectedSemesters = currentState.selectedSemesters
 
                 allCourses.forEach { item ->
                     if (!item.isIncludedInCalculation) return@forEach
@@ -156,7 +159,7 @@ class GradesViewModel(
                         }
                         
                         // Check if it belongs to current term
-                        if (item.originalEntity.xnm == selectedYear && item.originalEntity.xqm == selectedSemester) {
+                        if (item.originalEntity.xnm in selectedYears && item.originalEntity.xqm in selectedSemesters) {
                             currentPoints += gpa * credit
                             currentCredits += credit
                             
@@ -245,18 +248,16 @@ class GradesViewModel(
                 val loginResult = schoolAuthRepository.login(account.studentId, account.password)
 
                 if (loginResult.isSuccess) {
-                    _uiState.update { it.copy(message = "正在同步当前学期成绩...") }
-                    val result = schoolGradeRepository.fetchCurrentTermGrades(
-                        account,
-                        state.selectedYear,
-                        state.selectedSemester
-                    )
-
-                    result.onSuccess { msg ->
-                        _uiState.update { it.copy(message = msg) }
-                    }.onFailure { e ->
-                        _uiState.update { it.copy(message = "更新失败: ${e.message}") }
+                    _uiState.update { it.copy(message = "正在同步所选学期成绩...") }
+                    var successCount = 0
+                    for (year in state.selectedYears) {
+                        for (semester in state.selectedSemesters) {
+                            val result = schoolGradeRepository.fetchCurrentTermGrades(account, year, semester)
+                            if (result.isSuccess) successCount++
+                            kotlinx.coroutines.delay(300)
+                        }
                     }
+                    _uiState.update { it.copy(message = "同步完成：成功更新 $successCount 个学期") }
                 } else {
                     _uiState.update { it.copy(message = "教务登录失败，请检查密码或网络") }
                 }
@@ -268,11 +269,11 @@ class GradesViewModel(
         }
     }
 
-    fun updateFilter(year: String, semester: String) {
+    fun updateFilter(years: Set<String>, semesters: Set<String>) {
         _uiState.update { state ->
             state.copy(
-                selectedYear = year,
-                selectedSemester = semester
+                selectedYears = years,
+                selectedSemesters = semesters
             )
         }
         currentAccount.value?.let { account ->
