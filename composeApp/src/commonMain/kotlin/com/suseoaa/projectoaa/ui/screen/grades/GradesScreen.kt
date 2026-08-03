@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -109,20 +110,43 @@ fun GradesScreen(
                     )
                 },
                 actions = {
-                    IconButton(
-                        onClick = { viewModel.refreshGrades() },
-                        enabled = !uiState.isRefreshing
-                    ) {
-                        if (uiState.isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                strokeWidth = 2.dp
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(
+                            onClick = { menuExpanded = true },
+                            enabled = !uiState.isRefreshing
+                        ) {
+                            if (uiState.isRefreshing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "刷新"
+                                )
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("更新当前学期") },
+                                onClick = {
+                                    menuExpanded = false
+                                    viewModel.refreshCurrentTermGrades()
+                                }
                             )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "刷新"
+                            DropdownMenuItem(
+                                text = { Text("更新全部学期") },
+                                onClick = {
+                                    menuExpanded = false
+                                    viewModel.refreshGrades()
+                                }
                             )
                         }
                     }
@@ -327,6 +351,10 @@ private fun GradesContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    GpaStatsCard(uiState)
+                }
+
                 items(
                     items = gradeCardUiList,
                     key = { it.itemKey },
@@ -742,5 +770,62 @@ fun getGradeColor(score: String): Color {
         "及格", "合格" -> Color(0xFFEF6C00)
         "不及格", "不合格" -> Color(0xFFC62828)
         else -> Color.Gray
+    }
+}
+
+/**
+ * 绩点统计卡片
+ */
+@Composable
+private fun GpaStatsCard(uiState: com.suseoaa.projectoaa.presentation.grades.GradesUiState) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val cardBackgroundColor = if (isDarkTheme) NightSurface else OxygenWhite
+    val textColor = if (isDarkTheme) Color.White else InkBlack
+    val subtextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else InkGrey
+    val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else InkGrey.copy(alpha = 0.2f)
+
+    Card(
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "学业概况",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = textColor,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                // 总绩点
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(text = "总绩点", style = MaterialTheme.typography.labelMedium, color = subtextColor)
+                    Text(text = uiState.totalGpa, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = textColor)
+                }
+                // 总学位绩点
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(text = "总学位绩点", style = MaterialTheme.typography.labelMedium, color = subtextColor)
+                    Text(text = uiState.totalDegreeGpa, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = textColor)
+                }
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = dividerColor)
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                // 当前学期绩点
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(text = "当前学期绩点", style = MaterialTheme.typography.labelMedium, color = subtextColor)
+                    Text(text = uiState.currentTermGpa, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium, color = textColor)
+                }
+                // 当前学期学位绩点
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(text = "学期学位绩点", style = MaterialTheme.typography.labelMedium, color = subtextColor)
+                    Text(text = uiState.currentTermDegreeGpa, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium, color = textColor)
+                }
+            }
+        }
     }
 }

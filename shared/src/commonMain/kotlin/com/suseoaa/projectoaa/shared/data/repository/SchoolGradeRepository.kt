@@ -110,6 +110,19 @@ class SchoolGradeRepository(
         }
 
     /**
+     * 获取指定学期的成绩（单学期同步）
+     */
+    suspend fun fetchCurrentTermGrades(account: CourseAccountEntity, year: String, semester: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            executeWithAutoRetry(account) {
+                fetchAndSaveSingleTerm(account, year, semester)
+            }.map {
+                val termName = if (semester == "3") "上学期" else "下学期"
+                "同步完成：${year}-${year.toInt() + 1}学年 $termName"
+            }
+        }
+
+    /**
      * 获取并保存单学期成绩
      */
     private suspend fun fetchAndSaveSingleTerm(

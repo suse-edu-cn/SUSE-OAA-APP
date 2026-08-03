@@ -48,7 +48,7 @@ val appModule = module {
     viewModel { ExamViewModel(get(), get(), get(), get(), get<WidgetRefresher>()) }
     viewModel { PersonViewModel(get(), get()) }
     viewModel { GpaViewModel(get(), get()) }
-    viewModel { GradesViewModel(get(), get(), get(), get()) }
+    viewModel { GradesViewModel(get(), get(), get(), get(), get()) }
     single { AppUpdateViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { UserManagementViewModel(get()) }
