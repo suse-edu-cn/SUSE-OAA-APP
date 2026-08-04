@@ -275,7 +275,7 @@ class AppUpdateViewModel(
         }
 
         val url =
-            if (isProxy) "https://ghfast.top/${apkAsset.downloadUrl}" else apkAsset.downloadUrl
+            if (isProxy) apkAsset.downloadUrl.replace("https://github.com/", "https://update.vincenthzr.org:8443/download/") else apkAsset.downloadUrl
 
         // 调用我们已经定义好的带代理和 digest 参数的方法
         downloadApk(url, apkAsset.name, apkAsset.digest, isProxy, release.tagName)

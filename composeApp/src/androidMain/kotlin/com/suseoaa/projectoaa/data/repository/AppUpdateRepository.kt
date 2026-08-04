@@ -39,7 +39,7 @@ actual class AppUpdateRepository(
     actual suspend fun checkUpdate(): Result<GithubRelease?> = withContext(Dispatchers.IO) {
         try {
             val response: HttpResponse =
-                httpClient.get("https://api.github.com/repos/$OWNER/$REPO/releases/latest")
+                httpClient.get("https://update.vincenthzr.org:8443/api/releases/latest")
 
             if (response.status.value == 200) {
                 val latestRelease: GithubRelease = response.body()
@@ -65,7 +65,7 @@ actual class AppUpdateRepository(
     private suspend fun mergeMissedReleaseLogs(latestRelease: GithubRelease): GithubRelease {
         return try {
             val releasesResponse: HttpResponse =
-                httpClient.get("https://api.github.com/repos/$OWNER/$REPO/releases")
+                httpClient.get("https://update.vincenthzr.org:8443/api/releases")
             if (releasesResponse.status.value != 200) {
                 return latestRelease
             }
@@ -115,7 +115,7 @@ actual class AppUpdateRepository(
      */
     actual suspend fun getAllReleases(): Result<List<GithubRelease>> = withContext(Dispatchers.IO) {
         try {
-            val response: HttpResponse = httpClient.get("https://api.github.com/repos/$OWNER/$REPO/releases")
+            val response: HttpResponse = httpClient.get("https://update.vincenthzr.org:8443/api/releases")
             
             if (response.status.value == 200) {
                 val releases: List<GithubRelease> = response.body()

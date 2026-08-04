@@ -625,7 +625,7 @@ private fun ReleaseCardActionButtons(
             Button(
                 onClick = {
                     viewModel.downloadApk(
-                        url = "https://ghfast.top/${apkAsset.downloadUrl}",
+                        url = apkAsset.downloadUrl.replace("https://github.com/", "https://update.vincenthzr.org:8443/download/"),
                         fileName = apkAsset.name,
                         digest = apkAsset.digest,
                         isProxy = true,
