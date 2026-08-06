@@ -24,6 +24,7 @@ import com.suseoaa.projectoaa.shared.data.repository.SchoolCourseRepository
 import com.suseoaa.projectoaa.shared.data.repository.SchoolGradeRepository
 import com.suseoaa.projectoaa.shared.data.repository.SchoolInfoRepository
 import com.suseoaa.projectoaa.shared.data.repository.TeachingPlanRepository
+import com.suseoaa.projectoaa.shared.data.repository.ValueCalculatorRepository
 import com.suseoaa.projectoaa.shared.database.CourseDatabase
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
@@ -237,6 +238,9 @@ val sharedModule = module {
     single {
         com.suseoaa.projectoaa.shared.data.repository.NearFieldCheckinRepository(get(), get())
     }
+
+    // 物品价值计算 Repository
+    single { ValueCalculatorRepository(get()) }
 }
 
 /**

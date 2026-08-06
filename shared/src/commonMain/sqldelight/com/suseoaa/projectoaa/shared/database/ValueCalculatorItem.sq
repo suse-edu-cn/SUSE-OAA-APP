@@ -1,0 +1,19 @@
+CREATE TABLE ValueCalculatorItem (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    itemName TEXT NOT NULL,
+    price REAL NOT NULL,
+    purchaseDateMillis INTEGER NOT NULL,
+    createdAtMillis INTEGER NOT NULL
+);
+
+insertItem:
+INSERT INTO ValueCalculatorItem(itemName, price, purchaseDateMillis, createdAtMillis)
+VALUES (?, ?, ?, ?);
+
+getAllItems:
+SELECT * FROM ValueCalculatorItem
+ORDER BY createdAtMillis DESC;
+
+deleteItem:
+DELETE FROM ValueCalculatorItem
+WHERE id = ?;

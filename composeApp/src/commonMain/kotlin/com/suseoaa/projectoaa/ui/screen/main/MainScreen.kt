@@ -95,6 +95,7 @@ fun MainScreen(
     onNavigateToRecruitment: () -> Unit = {},
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit = {},
+    onNavigateToValueCalculator: () -> Unit = {},
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit = {},
     onNavigateToCourseStatistics: () -> Unit = {},
     onNavigateToAiLab: () -> Unit = {},
@@ -142,6 +143,7 @@ fun MainScreen(
                 onNavigateToRecruitment = onNavigateToRecruitment,
                 onNavigateToUserQuery = onNavigateToUserQuery,
                 onNavigateToActivityCheckin = onNavigateToActivityCheckin,
+                onNavigateToValueCalculator = onNavigateToValueCalculator,
                 onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
                 onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                 onNavigateToAiLab = onNavigateToAiLab,
@@ -178,6 +180,7 @@ fun MainScreen(
                 onNavigateToRecruitment = onNavigateToRecruitment,
                 onNavigateToUserQuery = onNavigateToUserQuery,
                 onNavigateToActivityCheckin = onNavigateToActivityCheckin,
+                onNavigateToValueCalculator = onNavigateToValueCalculator,
                 onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
                 onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                 onNavigateToAiLab = onNavigateToAiLab,
@@ -216,6 +219,7 @@ private fun TabletLandscapeLayout(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
+    onNavigateToValueCalculator: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
     onNavigateToCourseStatistics: () -> Unit,
     onNavigateToAiLab: () -> Unit = {},
@@ -275,6 +279,7 @@ private fun TabletLandscapeLayout(
                     onNavigateToRecruitment = onNavigateToRecruitment,
                     onNavigateToUserQuery = onNavigateToUserQuery,
                     onNavigateToActivityCheckin = onNavigateToActivityCheckin,
+                    onNavigateToValueCalculator = onNavigateToValueCalculator,
                     onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
                     onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                     onNavigateToAiLab = onNavigateToAiLab
@@ -311,6 +316,7 @@ private fun PhoneLayout(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
+    onNavigateToValueCalculator: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
     onNavigateToCourseStatistics: () -> Unit,
     onNavigateToAiLab: () -> Unit = {},
@@ -460,6 +466,7 @@ private fun PhoneLayout(
                     onNavigateToRecruitment = onNavigateToRecruitment,
                     onNavigateToUserQuery = onNavigateToUserQuery,
                     onNavigateToActivityCheckin = onNavigateToActivityCheckin,
+                    onNavigateToValueCalculator = onNavigateToValueCalculator,
                     onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
                     onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                     onNavigateToAiLab = onNavigateToAiLab
@@ -557,6 +564,7 @@ private fun KeepAliveMainPages(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
+    onNavigateToValueCalculator: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
     onNavigateToCourseStatistics: () -> Unit,
     onNavigateToAiLab: () -> Unit = {}
@@ -604,6 +612,7 @@ private fun KeepAliveMainPages(
                         onNavigateToRecruitment = onNavigateToRecruitment,
                         onNavigateToUserQuery = onNavigateToUserQuery,
                         onNavigateToActivityCheckin = onNavigateToActivityCheckin,
+                        onNavigateToValueCalculator = onNavigateToValueCalculator,
                         onNavigateToUpdate = onNavigateToUpdate, onNavigateToSettings = onNavigateToSettings,
                         onNavigateToCourseStatistics = onNavigateToCourseStatistics,
                         onNavigateToAiLab = onNavigateToAiLab
@@ -637,6 +646,7 @@ private fun MainTabPage(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
+    onNavigateToValueCalculator: () -> Unit,
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit,
     onNavigateToCourseStatistics: () -> Unit,
     onNavigateToAiLab: () -> Unit = {}
@@ -650,7 +660,8 @@ private fun MainTabPage(
                 onNavigateToUserQuery = onNavigateToUserQuery,
                 featureDrawerExpanded = homeFeatureDrawerExpanded,
                 onFeatureDrawerExpandedChange = onHomeFeatureDrawerExpandedChange,
-                onNavigateToActivityCheckin = onNavigateToActivityCheckin
+                onNavigateToActivityCheckin = onNavigateToActivityCheckin,
+                onNavigateToValueCalculator = onNavigateToValueCalculator
             )
 
             MainTab.COURSE.index -> CourseScreen(

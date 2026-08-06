@@ -35,6 +35,21 @@ actual class CourseDatabaseDriverFactory {
         // 迁移近场签到表
         migrateNearFieldCheckinTables(driver)
 
+        // 迁移物品价值计算表
+        try {
+            driver.execute(null, """
+                CREATE TABLE IF NOT EXISTS ValueCalculatorItem (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    itemName TEXT NOT NULL,
+                    price REAL NOT NULL,
+                    purchaseDateMillis INTEGER NOT NULL,
+                    createdAtMillis INTEGER NOT NULL
+                )
+            """.trimIndent(), 0)
+        } catch (_: Exception) {
+            // 忽略创建错误
+        }
+
         return driver
     }
 

@@ -30,6 +30,7 @@ import com.suseoaa.projectoaa.presentation.course.CourseStatisticsScreen
 import com.suseoaa.projectoaa.ui.screen.ailab.AiChatScreen
 import com.suseoaa.projectoaa.ui.screen.ailab.AiLabScreen
 import com.suseoaa.projectoaa.ui.screen.ailab.AcademicAnalysisScreen
+import com.suseoaa.projectoaa.ui.screen.home.ValueCalculatorScreen
 import com.suseoaa.projectoaa.util.DeepLinkManager
 
 @Composable
@@ -178,6 +179,9 @@ fun AppNavHost(
                 },
                 onNavigateToAiLab = {
                     navController.navigate(Screen.AiLab.route)
+                },
+                onNavigateToValueCalculator = {
+                    navController.navigate(Screen.ValueCalculator.route)
                 },
                 mainViewModel = mainViewModel
             )
@@ -330,6 +334,12 @@ fun AppNavHost(
 
         composable(Screen.AcademicAnalysis.route) {
             AcademicAnalysisScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.ValueCalculator.route) {
+            ValueCalculatorScreen(
                 onBack = { navController.popBackStack() }
             )
         }

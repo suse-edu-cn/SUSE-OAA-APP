@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.ManageAccounts
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -28,6 +29,7 @@ fun HomeWithDrawer(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
+    onNavigateToValueCalculator: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
     backGestureProgress: Float? = null,
     backGestureCancelCount: Int = 0,
@@ -73,6 +75,20 @@ fun HomeWithDrawer(
                         onNavigateToActivityCheckin()
                     },
                     sharedBoundKey = "activity_checkin_feature"
+                )
+            }
+
+            item(key = "feature_value_calculator") {
+                FeatureCard(
+                    name = "物品价值计算",
+                    icon = Icons.Default.Calculate,
+                    color = MaterialTheme.colorScheme.surface,
+                    onColor = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        onExpandedChange(true)
+                        onNavigateToValueCalculator()
+                    },
+                    sharedBoundKey = "value_calculator_feature"
                 )
             }
 

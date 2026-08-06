@@ -66,6 +66,9 @@ object PreferencesKeys {
     // AiLab 持久化设置
     val AILAB_SELECTED_MODEL_ID = stringPreferencesKey("ailab_selected_model_id")
     val AILAB_PREFER_GPU = booleanPreferencesKey("ailab_prefer_gpu")
+
+    // 资产计算器持久化设置
+    val ASSET_SORT_TYPE = stringPreferencesKey("asset_sort_type")
 }
 
 internal const val DATA_STORE_FILE_NAME = "auth_prefs.preferences_pb"
@@ -538,6 +541,18 @@ class TokenManager(private val dataStore: DataStore<Preferences>) {
     suspend fun saveModelETag(modelId: String, etag: String) {
         dataStore.edit { preferences ->
             preferences[stringPreferencesKey("etag_$modelId")] = etag
+        }
+    }
+
+    // ==================== 资产计算器设置 ====================
+
+    val assetSortTypeFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.ASSET_SORT_TYPE]
+    }
+
+    suspend fun saveAssetSortType(sortType: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSET_SORT_TYPE] = sortType
         }
     }
 }

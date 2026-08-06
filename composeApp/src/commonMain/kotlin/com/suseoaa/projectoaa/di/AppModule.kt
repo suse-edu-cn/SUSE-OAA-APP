@@ -13,6 +13,7 @@ import com.suseoaa.projectoaa.presentation.course.CourseStatisticsViewModel
 import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
+import com.suseoaa.projectoaa.presentation.home.ValueCalculatorViewModel
 import com.suseoaa.projectoaa.presentation.login.LoginViewModel
 import com.suseoaa.projectoaa.presentation.person.PersonViewModel
 import com.suseoaa.projectoaa.presentation.register.RegisterViewModel
@@ -41,6 +42,7 @@ val appModule = module {
     viewModel { RegisterViewModel(get()) }
     viewModel { ForgetPasswordViewModel(get()) }
     viewModel { HomeViewModel(get(), get(), get()) }
+    viewModel { ValueCalculatorViewModel(get(), get()) }
     viewModel { ChangePasswordViewModel(get()) }
     viewModel { CourseViewModel(get(), get(), get(), get()) }
     viewModel { CourseStatisticsViewModel(get(), get(), get()) }

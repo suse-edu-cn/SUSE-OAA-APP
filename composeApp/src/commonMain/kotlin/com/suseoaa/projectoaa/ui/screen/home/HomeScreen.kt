@@ -47,6 +47,7 @@ fun HomeScreen(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     onNavigateToActivityCheckin: () -> Unit,
+    onNavigateToValueCalculator: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
     featureDrawerExpanded: Boolean = false,
     onFeatureDrawerExpandedChange: (Boolean) -> Unit = {},
@@ -93,6 +94,7 @@ fun HomeScreen(
         onNavigateToRecruitment = onNavigateToRecruitment,
         onNavigateToUserQuery = onNavigateToUserQuery,
         onNavigateToActivityCheckin = onNavigateToActivityCheckin,
+        onNavigateToValueCalculator = onNavigateToValueCalculator,
         bottomBarHeight = bottomBarHeight,
         backGestureProgress = backGestureProgress,
         backGestureCancelCount = backGestureCancelCount

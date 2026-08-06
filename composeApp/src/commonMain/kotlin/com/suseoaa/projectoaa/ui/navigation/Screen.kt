@@ -32,6 +32,7 @@ sealed class Screen(val route: String) {
     data object AiLab : Screen("aiLab")
     data object AiChat : Screen("aiChat")
     data object AcademicAnalysis : Screen("academicAnalysis")
+    data object ValueCalculator : Screen("value_calculator")
 
     // 签到相关
     data object Checkin : Screen("checkin")
