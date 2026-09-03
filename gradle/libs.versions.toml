@@ -2,10 +2,12 @@
 # Core
 agp = "9.0.1"
 haze = "1.7.2"
-kotlin = "2.3.20"
+# 2.4.10：Miuix 0.9.2 的 iOS klib 是用 Kotlin 2.4.0 编译的，2.3.20 的解析器读不了它的 ABI 版本；
+# 用同一 2.4.x 系列里最新的稳定补丁版本，向上兼容 2.4.0 产出的 klib。
+kotlin = "2.4.10"
 
-# Compose Multiplatform
-composeMultiplatform = "1.10.3"
+# Compose Multiplatform（随 Kotlin 2.4.x 一起发布的配套稳定版）
+composeMultiplatform = "1.11.1"
 
 # AndroidX
 coreKtx = "1.18.0"
@@ -14,7 +16,7 @@ lifecycleRuntimeKtx = "2.10.0"
 lifecycleViewmodelCompose = "2.10.0"
 navigationCompose = "2.9.2"
 glance = "1.1.1"
-miuix = "0.9.2"
+miuix = "0.9.3"
 
 # Testing
 junit = "4.13.2"
@@ -37,7 +39,7 @@ kotlinxCoroutines = "1.10.2"
 kotlinxSerializationJson = "1.11.0"
 
 # KMP DateTime
-kotlinxDatetime = "0.6.1"
+kotlinxDatetime = "0.7.1-0.6.x-compat"
 
 # KMP DataStore
 datastorePreferences = "1.2.1"

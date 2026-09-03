@@ -1,7 +1,9 @@
 package com.suseoaa.projectoaa.shared.util
 
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 object OaaClock {
-    fun now(): Instant = kotlinx.datetime.Clock.System.now()
+    fun now(): Instant = Clock.System.now()
 }
+

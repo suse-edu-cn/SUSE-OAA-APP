@@ -34,7 +34,6 @@ import com.suseoaa.projectoaa.shared.domain.model.teachingplan.CollegeOption
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.CourseInfoItem
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.MajorOption
 import com.suseoaa.projectoaa.presentation.teachingplan.CourseInfoViewModel
-import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.ui.component.getListColumns
@@ -71,7 +70,7 @@ fun CourseInfoScreen(
     AdaptivePageScaffold(
         title = "课程信息查询",
         onBack = onBack,
-        modifier = Modifier.sharedBoundsTransition("courseInfo").background(MaterialTheme.colorScheme.background),
+        sharedTransitionKey = "courseInfo",
         compactPadding = 0.dp,
         tabletPadding = 0.dp,
         actions = {

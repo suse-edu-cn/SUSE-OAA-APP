@@ -37,7 +37,11 @@ import com.suseoaa.projectoaa.util.DeepLinkManager
 fun AppNavHost(
     navController: NavHostController,
     startDestination: String = Screen.Login.route,
-    mainViewModel: MainViewModel
+    mainViewModel: MainViewModel,
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    hazeState: dev.chrisbanes.haze.HazeState,
+    bottomBarHeight: androidx.compose.ui.unit.Dp,
+    onBottomBarHeightChanged: (Int) -> Unit
 ) {
     val pendingDeepLink by DeepLinkManager.pendingDeepLink.collectAsState()
 
@@ -183,6 +187,10 @@ fun AppNavHost(
                 onNavigateToValueCalculator = {
                     navController.navigate(Screen.ValueCalculator.route)
                 },
+                pagerState = pagerState,
+                hazeState = hazeState,
+                bottomBarHeight = bottomBarHeight,
+                onBottomBarHeightChanged = onBottomBarHeightChanged,
                 mainViewModel = mainViewModel
             )
         }

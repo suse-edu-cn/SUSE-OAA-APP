@@ -11,19 +11,17 @@ import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import platform.Foundation.NSData
-import platform.Foundation.NSFileManager
-import platform.Foundation.NSFileHandle
-import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSDocumentDirectory
+import platform.Foundation.NSFileManager
+import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDomainMask
-import platform.Foundation.create
-import platform.Foundation.createFileAtPath
-import platform.Foundation.fileHandleForWritingAtPath
+import platform.posix.fclose
+import platform.posix.fopen
+import platform.posix.fwrite
 
+@OptIn(ExperimentalForeignApi::class)
 actual object ModelDownloader {
     
-    @OptIn(ExperimentalForeignApi::class)
     actual suspend fun downloadModel(
         client: HttpClient,
         url: String,
@@ -47,13 +45,8 @@ actual object ModelDownloader {
             if (fileManager.fileExistsAtPath(targetFilePath)) {
                 val attributes = fileManager.attributesOfItemAtPath(targetFilePath, null)
                 downloadedLength = (attributes?.get(platform.Foundation.NSFileSize) as? platform.Foundation.NSNumber)?.longValue ?: 0L
-            } else {
-                fileManager.createFileAtPath(targetFilePath, null, null)
             }
             
-            val fileHandle = NSFileHandle.fileHandleForWritingAtPath(targetFilePath)
-            if (fileHandle == null) return@withContext Pair(false, null)
-
             client.prepareGet(url) {
                 if (!kaggleAuth.isNullOrBlank()) {
                     header("Authorization", "Basic $kaggleAuth")
@@ -65,18 +58,20 @@ actual object ModelDownloader {
                 val isPartial = response.status == HttpStatusCode.PartialContent
                 
                 if (!response.status.isSuccess()) {
-                    fileHandle.closeFile()
                     if (response.status == HttpStatusCode.RequestedRangeNotSatisfiable) {
                         return@execute Pair(true, response.etag())
                     }
                     return@execute Pair(false, "HTTP ${response.status.value}")
                 }
                 
+                val fileMode = if (isPartial) "ab" else "wb"
                 if (!isPartial) {
                     downloadedLength = 0L
-                    fileHandle.truncateFileAtOffset(0uL)
-                } else {
-                    fileHandle.seekToEndOfFile()
+                }
+                
+                val file = fopen(targetFilePath, fileMode)
+                if (file == null) {
+                    return@execute Pair(false, "Cannot open file for writing")
                 }
                 
                 val etag = response.etag()
@@ -87,21 +82,20 @@ actual object ModelDownloader {
                 val buffer = ByteArray(32768)
                 var currentRead = downloadedLength
                 
-                while (!channel.isClosedForRead) {
-                    val read = channel.readAvailable(buffer, 0, buffer.size)
-                    if (read > 0) {
-                        val nsData = buffer.usePinned { pinned ->
-                            NSData.create(
-                                bytes = pinned.addressOf(0),
-                                length = read.toULong()
-                            )
+                try {
+                    while (!channel.isClosedForRead) {
+                        val read = channel.readAvailable(buffer, 0, buffer.size)
+                        if (read > 0) {
+                            buffer.usePinned { pinned ->
+                                fwrite(pinned.addressOf(0), 1u, read.toULong(), file)
+                            }
+                            currentRead += read
+                            onProgress(currentRead, totalLength)
                         }
-                        fileHandle.writeData(nsData)
-                        currentRead += read
-                        onProgress(currentRead, totalLength)
                     }
+                } finally {
+                    fclose(file)
                 }
-                fileHandle.closeFile()
                 Pair(true, etag)
             }
         } catch (e: Exception) {
@@ -139,7 +133,7 @@ actual object ModelDownloader {
         
         // Ensure file is not empty
         val attributes = fileManager.attributesOfItemAtPath(targetFilePath, null)
-        val fileSize = attributes?.get(platform.Foundation.NSFileSize) as? Long ?: 0L
+        val fileSize = (attributes?.get(platform.Foundation.NSFileSize) as? platform.Foundation.NSNumber)?.longValue ?: 0L
         return fileSize > 0L
     }
 
@@ -156,7 +150,7 @@ actual object ModelDownloader {
         return contents.mapNotNull { fileName ->
             val filePath = "$modelDir/$fileName"
             val attributes = fileManager.attributesOfItemAtPath(filePath, null)
-            val fileSize = attributes?.get(platform.Foundation.NSFileSize) as? Long ?: 0L
+            val fileSize = (attributes?.get(platform.Foundation.NSFileSize) as? platform.Foundation.NSNumber)?.longValue ?: 0L
             if (fileSize > 0) LocalModelFile(fileName, fileSize) else null
         }
     }

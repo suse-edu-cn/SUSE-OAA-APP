@@ -21,83 +21,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * 账号筛选类型
- */
-enum class AccountFilterType {
-    ALL,           // 全部账号
-    PASSWORD,      // 账号密码登录
-    QRCODE,        // 扫码登录
-    CAMPUS_YIBIN,  // 宜宾校区
-    CAMPUS_LIBAIHE,// 李白河校区
-    CAMPUS_HUIDONG // 汇东校区
-}
-
-/**
- * 652打卡 UI 状态
- */
-@Suppress("ArrayInDataClass")
-data class CheckinUiState(
-    val accounts: List<CheckinAccountData> = emptyList(),
-    val accountFilter: AccountFilterType = AccountFilterType.ALL,  // 账号筛选
-    val isLoading: Boolean = false,
-    val currentCheckingAccount: CheckinAccountData? = null,
-    val errorMessage: String? = null,
-    val successMessage: String? = null,
-    // 任务列表
-    val pendingTasks: List<CheckinTask> = emptyList(),      // 待打卡任务
-    val completedTasks: List<CheckinTask> = emptyList(),    // 已打卡任务
-    val absentTasks: List<CheckinTask> = emptyList(),       // 缺勤任务（未打卡）
-    val isLoadingTasks: Boolean = false,
-    val selectedAccount: CheckinAccountData? = null,        // 当前查看任务的账号
-    val checkingTaskId: Long? = null,                       // 当前正在打卡的任务ID（per-task状态）
-    // 已打卡任务分页显示状态
-    val displayedCompletedCount: Int = 6,                   // 当前显示的已打卡任务数量
-    val isLoadingMoreCompleted: Boolean = false,            // 是否正在加载更多
-    // 编辑对话框状态
-    val showAddDialog: Boolean = false,
-    val showEditDialog: Boolean = false,
-    val editingAccount: CheckinAccountData? = null,
-    // 验证码对话框状态（密码登录）
-    val showCaptchaDialog: Boolean = false,
-    val captchaImageBytes: ByteArray? = null,
-    val isLoadingCaptcha: Boolean = false,
-    val isLoggingIn: Boolean = false,
-    // 短信二次验证对话框状态
-    val showSmsDialog: Boolean = false,
-    val smsMaskedPhone: String? = null,
-    val isSendingSmsCode: Boolean = false,
-    val isVerifyingSmsCode: Boolean = false,
-    val smsResendCountdownSeconds: Int = 0,
-    // 扫码登录对话框状态
-    val showQrCodeDialog: Boolean = false,
-    val qrCodeImage: String? = null,         // 二维码图片 (Base64)
-    val qrCodeClientId: String? = null,      // 用于轮询的 ClientId
-    val isLoadingQrCode: Boolean = false,
-    val qrCodeScanStatus: QrCodeScanStatus = QrCodeScanStatus.WAITING,
-    val scannedStudentId: String? = null,    // 扫码后获取的学号
-    val scannedName: String? = null,         // 扫码后获取的姓名
-    val scannedCookies: String? = null,      // 扫码登录后的完整 Cookie
-    // 需要重新扫码登录的账号（Session过期）
-    val accountNeedRelogin: CheckinAccountData? = null,
-    val showReloginDialog: Boolean = false,
-    // WebView 扫码登录对话框状态 (保留兼容)
-    val showWebViewLoginDialog: Boolean = false,
-    val qrCodeUrl: String? = null,           // 旧字段，保留兼容
-    val scannedUserInfo: EduUserInfo? = null // 旧字段，保留兼容
-)
-
-/**
- * 二维码扫描状态
- */
-enum class QrCodeScanStatus {
-    WAITING,    // 等待扫描
-    SCANNED,    // 已扫描，等待确认
-    CONFIRMED,  // 已确认
-    EXPIRED,    // 已过期
-    ERROR       // 错误
-}
-
 private enum class PasswordLoginEntry {
     CHECKIN,
     TASKS
@@ -112,7 +35,8 @@ private enum class PasswordLoginEntry {
  */
 class CheckinViewModel(
     private val passwordRepository: CheckinRepository,
-    private val qrCodeRepository: QrCodeCheckinRepository
+    private val qrCodeRepository: QrCodeCheckinRepository,
+    private val autoLogin: PasswordAutoLogin
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CheckinUiState())
@@ -168,17 +92,7 @@ class CheckinViewModel(
     /**
      * 获取筛选后的账号列表
      */
-    fun getFilteredAccounts(): List<CheckinAccountData> {
-        val state = _uiState.value
-        return when (state.accountFilter) {
-            AccountFilterType.ALL -> state.accounts
-            AccountFilterType.PASSWORD -> state.accounts.filter { !it.isQrCodeLogin }
-            AccountFilterType.QRCODE -> state.accounts.filter { it.isQrCodeLogin }
-            AccountFilterType.CAMPUS_YIBIN -> state.accounts.filter { it.selectedLocation == "宜宾" }
-            AccountFilterType.CAMPUS_LIBAIHE -> state.accounts.filter { it.selectedLocation == "李白河" }
-            AccountFilterType.CAMPUS_HUIDONG -> state.accounts.filter { it.selectedLocation == "汇东" }
-        }
-    }
+    fun getFilteredAccounts(): List<CheckinAccountData> = _uiState.value.filteredAccounts
 
     /**
      * 批量打卡（仅密码登录账号）
@@ -260,91 +174,21 @@ class CheckinViewModel(
     }
 
     /**
-     * 为密码登录账号自动执行登录（不打卡，仅登录以获取cookie）
-     * 登录成功后 cookieStorage 中会有有效的 SESSION
-     * @return true=登录成功, false=登录失败
+     * 为密码登录账号自动登录（不打卡，仅登录以获取 cookie）。
+     * 具体的 rememberMe / 验证码 OCR / 重试策略见 [PasswordAutoLogin]，
+     * 这里只负责维护「当前 cookieStorage 里是哪个账号」这一份界面状态。
      */
-    private suspend fun autoLoginForPasswordAccount(
-        account: CheckinAccountData,
-        retryCount: Int = 0
-    ): Boolean {
-        try {
-            if (retryCount == 0) {
-                val fastLogin = passwordRepository.tryAutoLoginWithRememberMe(account).getOrDefault(false)
-                if (fastLogin) {
-                    loggedInPasswordStudentId = account.studentId
-                    println("[AutoLogin] 使用 rememberMe 快速登录成功")
-                    return true
-                }
-                println("[AutoLogin] rememberMe 快速登录未命中，回退验证码登录")
+    private suspend fun autoLoginForPasswordAccount(account: CheckinAccountData): Boolean {
+        // fetchCaptchaImage 会清空 cookie，登录期间先按未登录处理
+        loggedInPasswordStudentId = null
+        return when (autoLogin.login(account)) {
+            is AutoLoginResult.Success -> {
+                loggedInPasswordStudentId = account.studentId
+                true
             }
 
-            // 1. 获取验证码图片
-            val captchaResult = passwordRepository.fetchCaptchaImage()
-            if (captchaResult.isFailure) {
-                println("[AutoLogin] 获取验证码失败: ${captchaResult.exceptionOrNull()?.message}")
-                return false
-            }
-
-            val captchaBytes = captchaResult.getOrThrow()
-
-            // 2. OCR自动识别
-            val ocrResult = try {
-                com.suseoaa.projectoaa.util.PlatformCaptchaOcr.recognize(captchaBytes)
-            } catch (t: Throwable) {
-                println("[AutoLogin] OCR 运行时异常: ${t.message}")
-                if (retryCount < 2) {
-                    return autoLoginForPasswordAccount(account, retryCount + 1)
-                }
-                return false
-            }
-            if (ocrResult.isFailure || ocrResult.getOrNull()?.length != 4) {
-                println("[AutoLogin] OCR识别失败")
-                if (retryCount < 2) {
-                    return autoLoginForPasswordAccount(account, retryCount + 1)
-                }
-                return false
-            }
-
-            val captchaCode = ocrResult.getOrThrow()
-            println("[AutoLogin] OCR识别成功: $captchaCode")
-
-            // 3. 自动登录
-            // fetchCaptchaImage 会清除cookies，登录状态已失效
-            loggedInPasswordStudentId = null
-            val loginResult = passwordRepository.loginWithCaptcha(
-                username = account.studentId,
-                password = account.password,
-                captchaCode = captchaCode,
-                accountId = account.id
-            )
-
-            if (loginResult.isFailure) {
-                val errorMsg = loginResult.exceptionOrNull()?.message ?: ""
-                if (passwordRepository.isSmsVerificationRequired(loginResult.exceptionOrNull())) {
-                    println("[AutoLogin] 检测到短信二次验证，当前自动流程无法继续")
-                    return false
-                }
-                // 验证码错误，最多重试2次
-                if ((errorMsg.contains("验证码") || errorMsg.contains(
-                        "captcha",
-                        ignoreCase = true
-                    )) && retryCount < 2
-                ) {
-                    println("[AutoLogin] 验证码错误，重试第 ${retryCount + 1} 次")
-                    return autoLoginForPasswordAccount(account, retryCount + 1)
-                }
-                println("[AutoLogin] 登录失败: $errorMsg")
-                return false
-            }
-
-            // 登录成功，记录状态
-            loggedInPasswordStudentId = account.studentId
-            println("[AutoLogin] 登录成功")
-            return true
-        } catch (e: Throwable) {
-            println("[AutoLogin] 异常: ${e.message}")
-            return false
+            is AutoLoginResult.SmsRequired,
+            is AutoLoginResult.Failed -> false
         }
     }
 
@@ -1047,8 +891,8 @@ class CheckinViewModel(
             if (!sopSession.isNullOrBlank()) {
                 val userInfo = qrCodeRepository.extractUserInfoFromSopSession(sopSession)
                 if (userInfo != null) {
-                    studentId = userInfo.first
-                    studentName = userInfo.second
+                    studentId = userInfo.studentId
+                    studentName = userInfo.name
                     println("[Checkin] 从 JWT 获取到用户信息: $studentId, $studentName")
                 }
             }

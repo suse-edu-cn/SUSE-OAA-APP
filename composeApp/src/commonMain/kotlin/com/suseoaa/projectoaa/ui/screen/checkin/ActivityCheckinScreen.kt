@@ -28,7 +28,6 @@ import com.suseoaa.projectoaa.shared.database.NearFieldParticipant
 import com.suseoaa.projectoaa.util.PlatformPermissionManager
 import com.suseoaa.projectoaa.util.ToastManager
 import com.suseoaa.projectoaa.util.AppPredictiveBackHandler
-import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
@@ -141,7 +140,7 @@ fun ActivityCheckinScreen(
 
     // 页面布局
     AdaptivePageScaffold(
-        modifier = Modifier.sharedBoundsTransition("activity_checkin_feature"),
+        sharedTransitionKey = "activity_checkin_feature",
         title = "活动签到",
         onBack = handleBack,
         actions = {

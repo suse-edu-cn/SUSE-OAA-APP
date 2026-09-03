@@ -191,7 +191,7 @@ class RecentExamsWidget : GlanceAppWidget() {
                                         val examDate = parsedTime.first.date
                                         val daysLeft = examDate.toEpochDays() - now.toEpochDays()
                                         if (daysLeft > 0) "剩${daysLeft}天"
-                                        else if (daysLeft == 0) "今天"
+                                        else if (daysLeft == 0L) "今天"
                                         else ""
                                     } else ""
 

@@ -40,6 +40,7 @@ import com.suseoaa.projectoaa.ui.component.getDetailColumns
 import com.suseoaa.projectoaa.util.PlatformBackHandler
 import com.suseoaa.projectoaa.util.normalizeFont
 import org.koin.compose.viewmodel.koinViewModel
+import com.suseoaa.projectoaa.ui.animation.pageShellBounds
 import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 
 // 自定义颜色 - 适配暗色模式
@@ -117,36 +118,43 @@ fun CheckinScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.sharedBoundsTransition("checkin"),
-        topBar = {
-            // 只有在显示账号列表时才显示顶部栏，任务列表有自己的顶部栏
-            if (!showInlineTasks || uiState.selectedAccount == null) {
-                TopAppBar(
-                    title = { Text("652打卡") },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
-                        }
-                    },
-                    actions = {
-                        // 扫码添加按钮
-                        IconButton(onClick = { viewModel.showQrCodeDialog() }) {
-                            Icon(Icons.Default.QrCodeScanner, "扫码添加")
-                        }
-                        // 密码添加账号按钮
-                        IconButton(onClick = { viewModel.showAddDialog() }) {
-                            Icon(Icons.Default.Add, "添加账号")
-                        }
-                    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .pageShellBounds("checkin")
+    ) {
+        // 只有在显示账号列表时才显示顶部栏，任务列表有自己的顶部栏
+        if (!showInlineTasks || uiState.selectedAccount == null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(64.dp)
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                }
+                Text(
+                    "652打卡",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f).padding(start = 8.dp)
                 )
+                // 扫码添加按钮
+                IconButton(onClick = { viewModel.showQrCodeDialog() }) {
+                    Icon(Icons.Default.QrCodeScanner, "扫码添加")
+                }
+                // 密码添加账号按钮
+                IconButton(onClick = { viewModel.showAddDialog() }) {
+                    Icon(Icons.Default.Add, "添加账号")
+                }
             }
         }
-    ) { padding ->
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .fillMaxWidth()
+                .weight(1f)
         ) {
             AnimatedContent(
                 targetState = if (showInlineTasks) uiState.selectedAccount else null,

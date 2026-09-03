@@ -11,8 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -72,83 +75,42 @@ fun AcademicAnalysisScreen(
     }
 
     SharedTransitionPageContainer(transitionKey = "academic_analysis") {
-        Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp).padding(end = 4.dp)
-                            )
-                            Text(
-                                text = "AI 学业分析",
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
-                )
-            },
-            bottomBar = {
-                // 底部输入框
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(64.dp)
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                }
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 8.dp)
                 ) {
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("输入你想问的学业问题...") },
-                        shape = RoundedCornerShape(24.dp),
-                        singleLine = true,
-                        enabled = !uiState.isGenerating && uiState.hasGradesData && uiState.isModelAvailable && !uiState.isModelLoading
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp).padding(end = 4.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(
-                        onClick = {
-                            if (inputText.isNotBlank() && !uiState.isModelLoading) {
-                                viewModel.sendMessage(inputText)
-                                inputText = ""
-                            }
-                        },
-                        enabled = inputText.isNotBlank() && !uiState.isGenerating && !uiState.isModelLoading
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "发送",
-                                tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
+                    Text(
+                        text = "AI 学业分析",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-        ) { paddingValues ->
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
+                    .fillMaxWidth()
+                    .weight(1f)
                     .background(MaterialTheme.colorScheme.background)
             ) {
                 if (!uiState.isModelAvailable && !uiState.isModelLoading) {
@@ -212,7 +174,7 @@ fun AcademicAnalysisScreen(
                 }
                 
                 // 模型装载中的遮罩提示
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = uiState.isModelLoading,
                     modifier = Modifier.align(Alignment.Center)
                 ) {
@@ -231,6 +193,52 @@ fun AcademicAnalysisScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text("视手机性能通常需要 3~8 秒\n请耐心等待", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         }
+                    }
+                }
+            }
+
+            // 底部输入框
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .imePadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("输入你想问的学业问题...") },
+                    shape = RoundedCornerShape(24.dp),
+                    singleLine = true,
+                    enabled = !uiState.isGenerating && uiState.hasGradesData && uiState.isModelAvailable && !uiState.isModelLoading
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = {
+                        if (inputText.isNotBlank() && !uiState.isModelLoading) {
+                            viewModel.sendMessage(inputText)
+                            inputText = ""
+                        }
+                    },
+                    enabled = inputText.isNotBlank() && !uiState.isGenerating && !uiState.isModelLoading
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "发送",
+                            tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }

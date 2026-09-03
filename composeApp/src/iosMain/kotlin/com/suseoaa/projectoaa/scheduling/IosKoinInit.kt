@@ -9,11 +9,16 @@ import org.koin.mp.KoinPlatform
 fun initializeKoinIfNeeded() {
     try {
         KoinPlatform.getKoin()
-    } catch (_: Exception) {
-        startKoin {
-            modules(
-                getSharedModules() + listOf(platformModule(), appModule)
-            )
+    } catch (_: Throwable) {
+        try {
+            startKoin {
+                modules(
+                    getSharedModules() + listOf(platformModule(), appModule)
+                )
+            }
+        } catch (_: Throwable) {
+            // Already started concurrently
         }
     }
 }
+

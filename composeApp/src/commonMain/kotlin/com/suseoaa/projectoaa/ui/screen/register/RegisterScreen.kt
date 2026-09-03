@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,12 +19,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.register.RegisterViewModel
+import com.suseoaa.projectoaa.ui.component.BackButton
 import com.suseoaa.projectoaa.util.showToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
@@ -51,24 +50,32 @@ fun RegisterScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("注册") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color = MaterialTheme.colorScheme.background)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .height(64.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BackButton(onClick = onNavigateBack, modifier = Modifier.padding(start = 4.dp))
+            Text(
+                text = "注册",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(start = 12.dp)
             )
         }
-    ) { paddingValues ->
+
         val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.background)
-                .padding(paddingValues)
+                .fillMaxWidth()
+                .weight(1f)
                 .padding(24.dp)
                 .verticalScroll(scrollState)
                 .imePadding(),
@@ -240,3 +247,4 @@ fun RegisterScreen(
         }
     }
 }
+

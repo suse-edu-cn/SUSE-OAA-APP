@@ -68,7 +68,7 @@ class TodayCoursesWidget : GlanceAppWidget() {
         val now = OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val month = now.monthNumber
         val day = now.dayOfMonth
-        val weekdayStr = when(now.dayOfWeek.value) {
+        val weekdayStr = when(now.dayOfWeek.ordinal + 1) {
             1 -> "一"
             2 -> "二"
             3 -> "三"

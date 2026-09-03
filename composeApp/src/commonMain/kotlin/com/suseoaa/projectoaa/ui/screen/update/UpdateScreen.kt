@@ -46,31 +46,34 @@ fun UpdateScreen(
     }
 
     SharedTransitionPageContainer(transitionKey = "update") {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = onNavigateBack,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                                    CircleShape
-                                )
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(64.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
-                )
-            },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { padding ->
+                }
+            }
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = {
@@ -78,8 +81,8 @@ fun UpdateScreen(
                     viewModel.checkForUpdateAuto()
                 },
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val isTablet = maxWidth > 800.dp

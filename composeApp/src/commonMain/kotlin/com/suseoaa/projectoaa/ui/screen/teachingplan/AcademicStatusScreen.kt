@@ -31,7 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
 import com.suseoaa.projectoaa.presentation.teachingplan.AcademicStatusViewModel
-import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
+import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.common.ValueLabelStatItem
 import com.suseoaa.projectoaa.ui.component.useTabletLayout
@@ -81,45 +81,34 @@ fun AcademicStatusScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Scaffold(
-        modifier = Modifier.sharedBoundsTransition("academicStatus"),
-        topBar = {
-            TopAppBar(
-                title = { Text("学业情况查询") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
-                    }
-                },
-                actions = {
-                    // 展开/折叠全部按钮
-                    if (uiState.categories.isNotEmpty()) {
-                        IconButton(
-                            onClick = {
-                                if (uiState.expandedCategories.size == uiState.categories.size) {
-                                    viewModel.collapseAllCategories()
-                                } else {
-                                    viewModel.expandAllCategories()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                if (uiState.expandedCategories.size == uiState.categories.size)
-                                    Icons.Default.KeyboardArrowUp
-                                else
-                                    Icons.Default.KeyboardArrowDown,
-                                contentDescription = if (uiState.expandedCategories.size == uiState.categories.size)
-                                    "全部折叠" else "全部展开"
-                            )
+    AdaptivePageScaffold(
+        title = "学业情况查询",
+        onBack = onBack,
+        sharedTransitionKey = "academicStatus",
+        actions = {
+            // 展开/折叠全部按钮
+            if (uiState.categories.isNotEmpty()) {
+                IconButton(
+                    onClick = {
+                        if (uiState.expandedCategories.size == uiState.categories.size) {
+                            viewModel.collapseAllCategories()
+                        } else {
+                            viewModel.expandAllCategories()
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
+                ) {
+                    Icon(
+                        if (uiState.expandedCategories.size == uiState.categories.size)
+                            Icons.Default.KeyboardArrowUp
+                        else
+                            Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (uiState.expandedCategories.size == uiState.categories.size)
+                            "全部折叠" else "全部展开"
+                    )
+                }
+            }
         }
-    ) { padding ->
+    ) { contentModifier ->
         // 错误提示
         uiState.errorMessage?.let { error ->
             LaunchedEffect(error) {
@@ -129,10 +118,7 @@ fun AcademicStatusScreen(
         }
 
         AdaptiveLayout(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+            modifier = contentModifier
         ) { adaptiveLayoutConfig ->
             val isTablet = adaptiveLayoutConfig.useTabletLayout()
             val expandedCategoryIds = uiState.expandedCategories

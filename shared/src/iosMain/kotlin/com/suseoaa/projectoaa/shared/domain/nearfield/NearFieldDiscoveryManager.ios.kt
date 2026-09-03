@@ -163,8 +163,9 @@ private fun extractIpAddress(data: NSData): String? {
 /**
  * 辅助扩展：将 NSData 转换为 Kotlin 字符串
  */
+@OptIn(kotlinx.cinterop.BetaInteropApi::class)
 private fun NSData.toKString(): String {
-    return NSString.create(this, NSUTF8StringEncoding) as? String ?: ""
+    return NSString.create(data = this, encoding = NSUTF8StringEncoding)?.toString() ?: ""
 }
 
 /**

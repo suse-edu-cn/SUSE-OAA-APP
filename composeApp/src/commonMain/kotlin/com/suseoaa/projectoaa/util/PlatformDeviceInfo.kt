@@ -153,5 +153,5 @@ fun computeModelRecommendation(info: DeviceInfo): ModelRecommendation {
 /** 格式化字节为可读字符串（GB / MB） */
 fun Long.toReadableStorage(): String {
     val gb = this / (1024.0 * 1024.0 * 1024.0)
-    return if (gb >= 1.0) "%.1f GB".format(gb) else "%.0f MB".format(this / (1024.0 * 1024.0))
+    return if (gb >= 1.0) "${gb.format(1)} GB" else "${(this / (1024.0 * 1024.0)).format(0)} MB"
 }

@@ -16,11 +16,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.changePassword.ChangePasswordViewModel
-import com.suseoaa.projectoaa.ui.component.BackButton
+import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.util.showToast
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
-import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,17 +66,13 @@ fun ChangePasswordScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.sharedBoundsTransition("change_password"), topBar = {
-            TopAppBar(title = { Text("修改密码") }, navigationIcon = {
-                BackButton(
-                    onClick = onNavigateBack, modifier = Modifier.padding(start = 8.dp)
-                )
-            })
-        }) { paddingValues ->
+    AdaptivePageScaffold(
+        title = "修改密码",
+        onBack = onNavigateBack,
+        sharedTransitionKey = "change_password"
+    ) { contentModifier ->
         Column(
-            modifier = Modifier.fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.background).padding(paddingValues)
+            modifier = contentModifier
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top

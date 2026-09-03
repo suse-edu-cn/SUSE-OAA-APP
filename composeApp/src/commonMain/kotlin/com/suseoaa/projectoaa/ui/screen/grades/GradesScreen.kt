@@ -19,12 +19,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
+import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
 import com.suseoaa.projectoaa.shared.data.repository.GradeEntity
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayoutConfig
-import com.suseoaa.projectoaa.ui.component.BackButton
 import com.suseoaa.projectoaa.ui.component.getListColumns
 import com.suseoaa.projectoaa.ui.component.common.SlidingSelector
 import com.suseoaa.projectoaa.ui.theme.*
@@ -100,71 +99,61 @@ fun GradesScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.sharedBoundsTransition("grades"),
-        topBar = {
-            TopAppBar(
-                title = { Text("成绩查询") },
-                navigationIcon = {
-                    BackButton(
-                        onClick = onBack,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                },
-                actions = {
-                    var menuExpanded by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton(
-                            onClick = { menuExpanded = true },
-                            enabled = !uiState.isRefreshing
-                        ) {
-                            if (uiState.isRefreshing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "刷新"
-                                )
-                            }
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("更新当前学期") },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.refreshCurrentTermGrades()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("更新全部学期") },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.refreshGrades()
-                                }
-                            )
-                        }
+    AdaptivePageScaffold(
+        title = "成绩查询",
+        onBack = onBack,
+        sharedTransitionKey = "grades",
+        actions = {
+            var menuExpanded by remember { mutableStateOf(false) }
+            Box {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    enabled = !uiState.isRefreshing
+                ) {
+                    if (uiState.isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "刷新"
+                        )
                     }
                 }
-            )
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("更新当前学期") },
+                        onClick = {
+                            menuExpanded = false
+                            viewModel.refreshCurrentTermGrades()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("更新全部学期") },
+                        onClick = {
+                            menuExpanded = false
+                            viewModel.refreshGrades()
+                        }
+                    )
+                }
+            }
         }
-    ) { innerPadding ->
-        AdaptiveLayout { config ->
+    ) { contentModifier ->
+        AdaptiveLayout(modifier = contentModifier) { config ->
             if (config.useSideNavigation) {
                 // 平板横屏：左右布局
                 TabletGradesLayout(
                     uiState = uiState,
                     config = config,
                     onFilterChange = viewModel::updateFilter,
-                    onRefresh = viewModel::refreshGrades,
-                    modifier = Modifier.padding(innerPadding)
+                    onRefresh = viewModel::refreshGrades
                 )
             } else {
                 // 手机/平板竖屏：传统布局
@@ -172,8 +161,7 @@ fun GradesScreen(
                     uiState = uiState,
                     config = config,
                     onFilterChange = viewModel::updateFilter,
-                    onRefresh = viewModel::refreshGrades,
-                    modifier = Modifier.padding(innerPadding)
+                    onRefresh = viewModel::refreshGrades
                 )
             }
         }

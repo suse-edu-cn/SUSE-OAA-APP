@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.ui.screen.home
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
 import com.suseoaa.projectoaa.ui.component.OaaMarkdownText
 import com.suseoaa.projectoaa.ui.component.common.SharedTransitionPageContainer
+import com.suseoaa.projectoaa.ui.animation.pageShellBounds
 import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.theme.*
 import kotlinx.coroutines.delay
@@ -55,89 +57,93 @@ fun DepartmentDetailScreen(
     Surface(
         modifier = Modifier
             .fillMaxSize()
-            .sharedBoundsTransition("department_$departmentName"),
+            .pageShellBounds("department_$departmentName"),
         color = MaterialTheme.colorScheme.background
     ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            departmentName,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
-                )
-            },
-            floatingActionButton = {
-                AnimatedVisibility(
-                    visible = uiState.canEditCurrent && uiState.detailData != null,
-                    enter = scaleIn() + fadeIn(),
-                    exit = scaleOut() + fadeOut()
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .statusBarsPadding()
+                        .height(64.dp)
                 ) {
-                    FloatingActionButton(
-                        modifier = Modifier.sharedBoundsTransition("department_edit_$departmentName"),
-                        onClick = onNavigateToEdit,
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.align(Alignment.CenterStart).padding(start = 4.dp)
                     ) {
-                        Icon(Icons.Default.Edit, "编辑")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
                     }
+                    Text(
+                        departmentName,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
-            }
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.TopStart
-            ) {
-                when {
-                    // 加载中
-                    uiState.isLoadingDetail && !uiState.isUpdating -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    // 错误
-                    uiState.detailError != null -> {
-                        ErrorContent(
-                            error = uiState.detailError ?: "未知错误",
-                            onRetry = { viewModel.fetchDetailInfo(departmentName) },
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                    // 显示内容
-                    uiState.detailData != null -> {
-                        LazyColumn(
-                            contentPadding = PaddingValues(
-                                top = 16.dp,
-                                bottom = 88.dp
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.TopStart
+                ) {
+                    when {
+                        // 加载中
+                        uiState.isLoadingDetail && !uiState.isUpdating -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = MaterialTheme.colorScheme.primary
                             )
-                        ) {
-                            item {
-                                OaaMarkdownText(
-                                    markdown = uiState.detailData!!.data,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    style = MaterialTheme.typography.bodyLarge.copy(
-                                        lineHeight = 28.sp
-                                    )
+                        }
+                        // 错误
+                        uiState.detailError != null -> {
+                            ErrorContent(
+                                error = uiState.detailError ?: "未知错误",
+                                onRetry = { viewModel.fetchDetailInfo(departmentName) },
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+                        // 显示内容
+                        uiState.detailData != null -> {
+                            LazyColumn(
+                                contentPadding = PaddingValues(
+                                    top = 16.dp,
+                                    bottom = 88.dp
                                 )
+                            ) {
+                                item {
+                                    OaaMarkdownText(
+                                        markdown = uiState.detailData!!.data,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            lineHeight = 28.sp
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = uiState.canEditCurrent && uiState.detailData != null,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .navigationBarsPadding()
+            ) {
+                FloatingActionButton(
+                    modifier = Modifier.sharedBoundsTransition("department_edit_$departmentName"),
+                    onClick = onNavigateToEdit,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Edit, "编辑")
                 }
             }
         }
@@ -209,42 +215,41 @@ fun DepartmentEditScreen(
     SharedTransitionPageContainer(
         transitionKey = "department_edit_$departmentName"
     ) {
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "编辑$departmentName",
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
-                        }
-                    },
-                    actions = {
-                        TextButton(
-                            enabled = !uiState.isUpdating && uiState.editContent.isNotBlank(),
-                            onClick = {
-                                shouldCloseAfterSave = true
-                                viewModel.submitUpdate()
-                            }
-                        ) {
-                            Text("保存", fontWeight = FontWeight.Bold)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(64.dp)
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                }
+                Text(
+                    text = "编辑$departmentName",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f).padding(start = 8.dp)
                 )
+                TextButton(
+                    enabled = !uiState.isUpdating && uiState.editContent.isNotBlank(),
+                    onClick = {
+                        shouldCloseAfterSave = true
+                        viewModel.submitUpdate()
+                    }
+                ) {
+                    Text("保存", fontWeight = FontWeight.Bold)
+                }
             }
-        ) { innerPadding ->
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                    .fillMaxWidth()
+                    .weight(1f)
                     .imePadding()
                     .navigationBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 12.dp)

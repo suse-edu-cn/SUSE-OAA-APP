@@ -153,14 +153,7 @@ class CourseReminderService : Service(), KoinComponent {
     }
 
     private fun getCurrentTerm(): Pair<String, String> {
-        val now = OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
-        val month = now.monthNumber
-        val year = now.year
-        return if (month >= 8) {
-            Pair(year.toString(), "3")
-        } else {
-            Pair((year - 1).toString(), "12")
-        }
+        return com.suseoaa.projectoaa.shared.util.getCurrentTerm()
     }
 
     private fun getDailySchedule(year: String): List<TimeSlotConfig> {

@@ -12,7 +12,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,7 +60,9 @@ import dev.chrisbanes.haze.hazeSource
 
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
-import kotlin.math.roundToInt
+import com.suseoaa.projectoaa.ui.component.sukisu.BottomBarMetrics
+import com.suseoaa.projectoaa.ui.component.sukisu.expandedBubbleHeight
+import com.suseoaa.projectoaa.ui.component.sukisu.restingBubbleHeight
 
 // 定义 Tab 的顺序和元数据
 enum class MainTab(
@@ -99,6 +100,10 @@ fun MainScreen(
     onNavigateToUpdate: () -> Unit, onNavigateToSettings: () -> Unit = {},
     onNavigateToCourseStatistics: () -> Unit = {},
     onNavigateToAiLab: () -> Unit = {},
+    pagerState: PagerState,
+    hazeState: HazeState,
+    bottomBarHeight: Dp,
+    onBottomBarHeightChanged: (Int) -> Unit,
     mainViewModel: MainViewModel = koinViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -186,6 +191,10 @@ fun MainScreen(
                 onNavigateToAiLab = onNavigateToAiLab,
                 isLiquidGlassTabbarEnabled = isLiquidGlassTabbarEnabled,
                 liquidGlassTabbarStyle = liquidGlassTabbarStyle,
+                pagerState = pagerState,
+                hazeState = hazeState,
+                bottomBarHeight = bottomBarHeight,
+                onBottomBarHeightChanged = onBottomBarHeightChanged,
                 modifier = modifier
             )
         }
@@ -322,103 +331,12 @@ private fun PhoneLayout(
     onNavigateToAiLab: () -> Unit = {},
     isLiquidGlassTabbarEnabled: Boolean = false,
     liquidGlassTabbarStyle: Int = 1,
+    pagerState: PagerState,
+    hazeState: HazeState,
+    bottomBarHeight: Dp,
+    onBottomBarHeightChanged: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pagerState = rememberPagerState(initialPage = selectedTab, pageCount = { 4 })
-    val scope = rememberCoroutineScope()
-    var isIndicatorDragging by remember { mutableStateOf(false) }
-    var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
-    var dragIndicatorProgress by remember { mutableStateOf<Float?>(null) }
-    val tabIndicatorProgress by remember {
-        derivedStateOf {
-            (pagerState.currentPage + pagerState.currentPageOffsetFraction)
-                .coerceIn(0f, (MainTab.entries.size - 1).toFloat())
-        }
-    }
-    val density = LocalDensity.current
-    val hazeState = remember { HazeState() }
-
-    var isFirstComposition by remember { mutableStateOf(true) }
-
-    // 手势滑动完成后，同步 settledPage 到 selectedTab。
-    // 程序化跨页动画期间通过检测 scrollJob?.isActive 来避免目标页被中途页覆盖。
-    // 使用 isFirstComposition 忽略初始化的首次执行，避免后台恢复时旧的 settledPage 覆盖正确的 selectedTab。
-    LaunchedEffect(pagerState.settledPage, isIndicatorDragging) {
-        if (isFirstComposition) {
-            isFirstComposition = false
-            return@LaunchedEffect
-        }
-        if (!isIndicatorDragging && scrollJob?.isActive != true && pagerState.settledPage != selectedTab) {
-            onTabChange(pagerState.settledPage)
-        }
-    }
-
-    // 若外部或点击产生的 selectedTab 变化，控制 pager 滚动
-    LaunchedEffect(selectedTab) {
-        val isNotAtTarget = pagerState.currentPage != selectedTab || kotlin.math.abs(pagerState.currentPageOffsetFraction) > 0.001f
-        if (!isIndicatorDragging && isNotAtTarget) {
-            scrollJob?.cancel()
-            scrollJob = scope.launch {
-                val maxIndex = MainTab.entries.size - 1
-                val startProgress = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, maxIndex.toFloat())
-                val targetProgress = selectedTab.toFloat().coerceIn(0f, maxIndex.toFloat())
-                val distance = kotlin.math.abs(targetProgress - startProgress)
-                val durationMillis = (220 + (distance * 140).toInt()).coerceAtMost(680)
-
-                val startNanos = androidx.compose.runtime.withFrameNanos { it }
-                var rawFraction = 0f
-                while (rawFraction < 1f) {
-                    val nowNanos = androidx.compose.runtime.withFrameNanos { it }
-                    val elapsedMs = ((nowNanos - startNanos) / 1_000_000f)
-                    rawFraction = if (durationMillis <= 0) 1f else (elapsedMs / durationMillis).coerceIn(0f, 1f)
-                    val easedFraction = androidx.compose.animation.core.FastOutSlowInEasing.transform(rawFraction)
-
-                    val progress = startProgress + (targetProgress - startProgress) * easedFraction
-                    val page = progress.roundToInt().coerceIn(0, maxIndex)
-                    val offsetFraction = (progress - page).coerceIn(-0.5f, 0.5f)
-                    pagerState.scrollToPage(page = page, pageOffsetFraction = offsetFraction)
-                }
-
-                pagerState.scrollToPage(page = selectedTab, pageOffsetFraction = 0f)
-
-                // 这样能够防止因为布局刷新延迟导致的 selectedTab 回退问题
-                androidx.compose.runtime.snapshotFlow { pagerState.settledPage }.first { it == selectedTab }
-            }
-        }
-    }
-
-    // 拖拽释放后，保持选中栏停在目标位，直到 Pager 真正滚动到位再释放覆盖状态
-    LaunchedEffect(
-        pagerState.isScrollInProgress,
-        tabIndicatorProgress,
-        dragIndicatorProgress,
-        isIndicatorDragging
-    ) {
-        val pinnedProgress = dragIndicatorProgress ?: return@LaunchedEffect
-        if (!isIndicatorDragging && !pagerState.isScrollInProgress && kotlin.math.abs(
-                tabIndicatorProgress - pinnedProgress
-            ) < 0.001f
-        ) {
-            dragIndicatorProgress = null
-        }
-    }
-
-    // 拖拽与吸附动画期间，按选中栏进度实时驱动页面位置
-    LaunchedEffect(dragIndicatorProgress, isIndicatorDragging) {
-        if (!isIndicatorDragging) return@LaunchedEffect
-        val progress = dragIndicatorProgress ?: return@LaunchedEffect
-        val maxIndex = MainTab.entries.size - 1
-        val safeProgress = progress.coerceIn(0f, maxIndex.toFloat())
-        val page = safeProgress.roundToInt().coerceIn(0, maxIndex)
-        val offsetFraction = (safeProgress - page).coerceIn(-0.5f, 0.5f)
-        pagerState.scrollToPage(page = page, pageOffsetFraction = offsetFraction)
-    }
-
-    val displayedIndicatorProgress = dragIndicatorProgress ?: tabIndicatorProgress
-
-    // 通过测量获取 BottomBar 的实际高度
-    var bottomBarHeightPx by rememberSaveable { mutableIntStateOf(0) }
-    val bottomBarHeight: Dp = with(density) { bottomBarHeightPx.toDp() }
     Box(
         modifier = modifier.fillMaxSize()
     ) {
@@ -427,7 +345,7 @@ private fun PhoneLayout(
             liquidGlassTabbarStyle = liquidGlassTabbarStyle,
             selectedIndex = { selectedTab },
             onNavigate = onTabChange,
-            onBottomBarHeightChanged = { bottomBarHeightPx = it },
+            onBottomBarHeightChanged = onBottomBarHeightChanged,
             modifier = Modifier.fillMaxSize()
         ) { backdropModifier ->
             HorizontalPager(
@@ -474,71 +392,8 @@ private fun PhoneLayout(
             } // End MainPageBackground
         } // End HorizontalPager
         } // End LiquidGlassBackdropWrapper
-
-        // 底部导航栏 - 测量实际高度
-        if (!(isLiquidGlassTabbarEnabled && liquidGlassTabbarStyle == 2)) {
-            OaaBottomBar(
-            selectedIndex = selectedTab, // 直接拿状态驱动按钮
-            indicatorProgress = displayedIndicatorProgress,
-            onIndicatorDrag = { deltaProgress ->
-                val maxProgress = (MainTab.entries.size - 1).toFloat()
-                val baseProgress = dragIndicatorProgress ?: tabIndicatorProgress
-                val newProgress = (baseProgress + deltaProgress).coerceIn(0f, maxProgress)
-                isIndicatorDragging = true
-                dragIndicatorProgress = newProgress
-            },
-            onIndicatorDragEnd = {
-                val maxIndex = MainTab.entries.size - 1
-                val startProgress = (dragIndicatorProgress ?: tabIndicatorProgress)
-                    .coerceIn(0f, maxIndex.toFloat())
-                val targetIndex = startProgress.roundToInt().coerceIn(0, maxIndex)
-                val targetProgress = targetIndex.toFloat()
-
-                scope.launch {
-                    val snapAnim = androidx.compose.animation.core.Animatable(startProgress)
-                    snapAnim.animateTo(
-                        targetValue = targetProgress,
-                        animationSpec = androidx.compose.animation.core.spring(
-                            dampingRatio = 0.82f,
-                            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
-                        )
-                    ) {
-                        val animatedProgress = value.coerceIn(0f, maxIndex.toFloat())
-                        dragIndicatorProgress = animatedProgress
-                    }
-
-                    dragIndicatorProgress = targetProgress
-                    isIndicatorDragging = false
-
-                    if (targetIndex != selectedTab) {
-                        onTabChange(targetIndex)
-                    } else if (!pagerState.isScrollInProgress && kotlin.math.abs(
-                            tabIndicatorProgress - targetProgress
-                        ) < 0.001f
-                    ) {
-                        // 已在目标页且对齐完成，立即交回给 Pager 进度驱动
-                        dragIndicatorProgress = null
-                    }
-                }
-            },
-            onNavigate = { index ->
-                isIndicatorDragging = false
-                // 点击导航时立即释放拖拽残留覆盖态，避免指示器停留在旧位置。
-                dragIndicatorProgress = null
-                if (selectedTab != index) {
-                    onTabChange(index)
-                }
-            },
-            hazeState = hazeState,
-            isLiquidGlassTabbarEnabled = isLiquidGlassTabbarEnabled,
-            liquidGlassTabbarStyle = liquidGlassTabbarStyle,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .onGloballyPositioned { coordinates ->
-                    bottomBarHeightPx = coordinates.size.height
-                }
-        )
-        }
+        // 底部导航栏已上移到 App() 里的 PersistentBottomTabBar，与 pagerState/hazeState 共享，
+        // 不再随本目的地的转场动画一起被缩放/裁剪。
     }
 }
 
@@ -849,7 +704,12 @@ fun OaaBottomBar(
     Box(
         modifier = modifier
             .navigationBarsPadding()
-            .padding(start = 48.dp, end = 48.dp, top = 12.dp, bottom = 24.dp)
+            .padding(
+                start = 48.dp,
+                end = 48.dp,
+                top = BottomBarMetrics.outerTopPadding,
+                bottom = BottomBarMetrics.outerBottomPadding
+            )
     ) {
         // 1. 底层 Tabbar 背景
         Box(
@@ -907,8 +767,11 @@ fun OaaBottomBar(
             
             val isExpanded = isLiquidGlassTabbarEnabled && (isTransitioning || anyTabPressed)
 
-            // 动画过渡气泡高度
-            val targetBubbleHeight = if (isExpanded) 84.dp else 52.dp
+            // 动画过渡气泡高度（由栏体高度派生，随平台尺寸一起变化）
+            val barHeight = BottomBarMetrics.barHeight
+            val targetBubbleHeight =
+                if (isExpanded) BottomBarMetrics.expandedBubbleHeight
+                else BottomBarMetrics.restingBubbleHeight
             val animatedBubbleHeight by androidx.compose.animation.core.animateDpAsState(
                 targetValue = targetBubbleHeight,
                 animationSpec = androidx.compose.animation.core.spring(
@@ -936,7 +799,7 @@ fun OaaBottomBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = barVerticalPadding)
-                    .height(60.dp)
+                    .height(barHeight)
                     .draggable(
                         state = indicatorDraggableState,
                         orientation = Orientation.Horizontal,
@@ -944,7 +807,7 @@ fun OaaBottomBar(
                     )
             ) {
                 // 计算气泡的垂直偏移（严格数学居中，确保静置和按压时上下对称）
-                val bubbleOffsetY = (60.dp - animatedBubbleHeight) / 2
+                val bubbleOffsetY = (barHeight - animatedBubbleHeight) / 2
 
                 // 玻璃气泡透镜（透镜的背景）
                 val indicatorModifier = if (isLiquidGlassTabbarEnabled) {
@@ -1037,7 +900,10 @@ fun OaaBottomBar(
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                    .padding(
+                                        vertical = BottomBarMetrics.contentVerticalPadding,
+                                        horizontal = 4.dp
+                                    ),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {

@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -104,6 +105,7 @@ import com.suseoaa.projectoaa.util.DeviceInfo
 import com.suseoaa.projectoaa.util.ModelRecommendation
 import com.suseoaa.projectoaa.util.ModelRecommendationLevel
 import com.suseoaa.projectoaa.util.toReadableStorage
+import com.suseoaa.projectoaa.util.format
 import com.suseoaa.projectoaa.util.ToastManager
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -239,40 +241,55 @@ fun AiLabScreen(
         )
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            TopAppBar(
-                title = { Text("AI 实验室", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showSettingsDialog = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "推理设置")
-                    }
-                    IconButton(onClick = { 
-                        viewModel.loadLocalModels()
-                        showModelManagerDialog = true 
-                    }) {
-                        Icon(Icons.Default.Folder, contentDescription = "模型管理")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .statusBarsPadding()
+                .height(64.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = "返回",
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
+            }
+            Text(
+                "AI 实验室",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f).padding(start = 8.dp)
             )
+            IconButton(onClick = { showSettingsDialog = true }) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "推理设置",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            IconButton(onClick = {
+                viewModel.loadLocalModels()
+                showModelManagerDialog = true
+            }) {
+                Icon(
+                    Icons.Default.Folder,
+                    contentDescription = "模型管理",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
-    ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+                .fillMaxWidth()
+                .weight(1f),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                 horizontal = 16.dp,
                 vertical = 12.dp
@@ -393,7 +410,7 @@ private fun DeviceCapabilitySection(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "可用 ${"%.1f".format(availRamGb)}GB / 共 ${"%.1f".format(totalRamGb)}GB",
+                            text = "可用 ${availRamGb.format(1)}GB / 共 ${totalRamGb.format(1)}GB",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -465,7 +482,7 @@ private fun buildHardwareItems(info: DeviceInfo): List<Pair<String, String>> {
         if (info.socModel.isNotBlank()) add("SoC 型号" to info.socModel.take(28))
         add("GPU 渲染器" to info.gpuRenderer.take(28))
         add("NPU 支持" to if (info.hasNpu) info.npuDescription.take(24) else "未检测到")
-        add("总内存" to "${"%.1f".format(totalRamGb)} GB")
+        add("总内存" to "${totalRamGb.format(1)} GB")
         add("总存储" to info.totalStorage.toReadableStorage())
         add("可用存储" to info.availableStorage.toReadableStorage())
         add("系统版本" to info.osVersion)

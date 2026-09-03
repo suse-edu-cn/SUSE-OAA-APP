@@ -987,20 +987,6 @@ class CourseViewModel(
     }
 
     private fun calculateCurrentRealTerm(): Pair<String, String> {
-        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now()
-            .toLocalDateTime(TimeZone.currentSystemDefault())
-        val month = now.monthNumber
-        val year = now.year
-
-        return if (month >= 9) {
-            // 9月及以后：当年第一学期
-            year.toString() to "3"
-        } else if (month >= 2) {
-            // 2-8月：上一年第二学期
-            (year - 1).toString() to "12"
-        } else {
-            // 1月：上一年第一学期
-            (year - 1).toString() to "3"
-        }
+        return com.suseoaa.projectoaa.shared.util.getCurrentTerm()
     }
 }

@@ -115,20 +115,7 @@ object WidgetDataFetcher {
     }
 
     private fun calculateCurrentRealTerm(): Pair<String, String> {
-        val now = OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
-        val month = now.monthNumber
-        val year = now.year
-
-        return if (month >= 9) {
-            // 9月及以后：当年第一学期
-            year.toString() to "3"
-        } else if (month >= 2) {
-            // 2-8月：上一年第二学期
-            (year - 1).toString() to "12"
-        } else {
-            // 1月：上一年第一学期
-            (year - 1).toString() to "3"
-        }
+        return com.suseoaa.projectoaa.shared.util.getCurrentTerm()
     }
 
     private fun getCurrentMonday(): LocalDate {
@@ -239,7 +226,7 @@ object WidgetDataFetcher {
         
         val schedule = getDailySchedule()
         val now = OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
-        val currentDay = now.dayOfWeek.value // 1..7 (Monday..Sunday)
+        val currentDay = now.dayOfWeek.ordinal + 1 // 1..7 (Monday..Sunday)
         val currentHour = now.hour
         val currentMinute = now.minute
         val currentTotalMinutes = currentHour * 60 + currentMinute
@@ -327,7 +314,7 @@ object WidgetDataFetcher {
         
         val schedule = getDailySchedule()
         val now = OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
-        val currentDay = now.dayOfWeek.value // 1..7
+        val currentDay = now.dayOfWeek.ordinal + 1 // 1..7
         
         val todayCoursesList = mutableListOf<Pair<CourseWithTimes, TimeSlotConfig>>()
         

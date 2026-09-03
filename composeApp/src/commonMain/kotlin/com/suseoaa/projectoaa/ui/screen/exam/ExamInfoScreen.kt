@@ -35,7 +35,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.suseoaa.projectoaa.presentation.exam.ExamUiItem
 import com.suseoaa.projectoaa.presentation.exam.ExamUiState
 import com.suseoaa.projectoaa.presentation.exam.ExamViewModel
-import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.presentation.exam.SemesterOption
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
 import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
@@ -89,7 +88,7 @@ fun ExamInfoScreen(
     }
 
     AdaptivePageScaffold(
-        modifier = Modifier.sharedBoundsTransition("exams"),
+        sharedTransitionKey = "exams",
         title = "考试信息查询",
         onBack = onBack,
         containerColor = backgroundColor,

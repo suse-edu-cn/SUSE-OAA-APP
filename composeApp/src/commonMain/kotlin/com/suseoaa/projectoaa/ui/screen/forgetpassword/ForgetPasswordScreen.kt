@@ -16,11 +16,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.forgetpassword.ForgetPasswordViewModel
-import com.suseoaa.projectoaa.ui.component.BackButton
+import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.util.showToast
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
-import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,25 +66,13 @@ fun ForgetPasswordScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.sharedBoundsTransition("forget_password"),
-        topBar = {
-            TopAppBar(
-                title = { Text("忘记密码") },
-                navigationIcon = {
-                    BackButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
-            )
-        }
-    ) { paddingValues ->
+    AdaptivePageScaffold(
+        title = "忘记密码",
+        onBack = onNavigateBack,
+        sharedTransitionKey = "forget_password"
+    ) { contentModifier ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.background)
-                .padding(paddingValues)
+            modifier = contentModifier
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top

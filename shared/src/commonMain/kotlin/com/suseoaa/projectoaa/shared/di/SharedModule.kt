@@ -12,6 +12,11 @@ import com.suseoaa.projectoaa.shared.data.remote.network.SchoolHttpClient
 import com.suseoaa.projectoaa.shared.data.repository.AcademicStatusRepository
 import com.suseoaa.projectoaa.shared.data.repository.AnnouncementRepository
 import com.suseoaa.projectoaa.shared.data.repository.CheckinRepository
+import com.suseoaa.projectoaa.shared.data.repository.checkin.CheckinAccountStore
+import com.suseoaa.projectoaa.shared.data.repository.checkin.CheckinTaskRepository
+import com.suseoaa.projectoaa.shared.data.repository.checkin.CookieStorageTaskGateway
+import com.suseoaa.projectoaa.shared.data.repository.checkin.SopSessionParser
+import com.suseoaa.projectoaa.shared.data.repository.checkin.UiasLoginRepository
 import com.suseoaa.projectoaa.shared.data.repository.GpaRepository
 import com.suseoaa.projectoaa.shared.data.repository.LocalCourseRepository
 import com.suseoaa.projectoaa.shared.data.repository.OaaAuthRepository
@@ -214,23 +219,39 @@ val sharedModule = module {
     // 扫码签到 API 服务
     single { QrCodeCheckinApiService(get(qualifier = named("qrCheckin"))) }
 
+    // 签到公共组件：账号存储、任务读写、_sop_session_ 解析，两条登录链路共用
+    single { CheckinAccountStore(get<CourseDatabase>()) }
+    single { CheckinTaskRepository(get<Json>()) }
+    single { SopSessionParser(get<Json>()) }
+
     // 打卡 Repository - 密码登录 (使用 CourseDatabase)
     single {
+        val api = get<CheckinApiService>()
         CheckinRepository(
-            get<CheckinApiService>(),
-            get<CourseDatabase>(),
-            get<Json>(),
-            get<ClearableCookieStorage>(qualifier = named("checkinCookieStorage"))
+            accountStore = get<CheckinAccountStore>(),
+            loginRepository = UiasLoginRepository(
+                api = api,
+                cookieStorage = get<ClearableCookieStorage>(
+                    qualifier = named("checkinCookieStorage")
+                ),
+                accountStore = get<CheckinAccountStore>()
+            ),
+            taskRepository = get<CheckinTaskRepository>(),
+            taskGateway = CookieStorageTaskGateway(api)
         )
     }
 
     // 扫码签到 Repository (独立)
     single {
         QrCodeCheckinRepository(
-            get<QrCodeCheckinApiService>(),
-            get<CourseDatabase>(),
-            get<Json>(),
-            get<ClearableCookieStorage>(qualifier = named("qrCheckinCookieStorage"))
+            api = get<QrCodeCheckinApiService>(),
+            accountStore = get<CheckinAccountStore>(),
+            taskRepository = get<CheckinTaskRepository>(),
+            sopSessionParser = get<SopSessionParser>(),
+            json = get<Json>(),
+            cookieStorage = get<ClearableCookieStorage>(
+                qualifier = named("qrCheckinCookieStorage")
+            )
         )
     }
 

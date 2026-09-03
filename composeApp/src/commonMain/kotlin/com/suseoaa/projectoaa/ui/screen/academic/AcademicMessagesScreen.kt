@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.ui.screen.academic
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +10,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -74,38 +77,41 @@ fun AcademicMessagesScreen(
     }
 
     SharedTransitionPageContainer(transitionKey = "academic_messages") {
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = "最新调课",
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { viewModel.refreshMessages() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "刷新")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(64.dp)
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 4.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                }
+                Text(
+                    text = "最新调课",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Center)
                 )
+                IconButton(
+                    onClick = { viewModel.refreshMessages() },
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                }
             }
-        ) { paddingValues ->
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
                 onRefresh = { viewModel.refreshMessages() },
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
                 if (uiState.messages.isEmpty()) {
                     Box(

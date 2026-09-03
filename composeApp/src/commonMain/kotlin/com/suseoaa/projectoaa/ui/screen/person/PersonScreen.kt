@@ -269,10 +269,11 @@ fun PersonScreen(
         )
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { _ ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         val isDarkTheme = isSystemInDarkTheme()
         val gradientColors = if (isDarkTheme) DarkGradientColors else LightGradientColors
         val headerTextColor = if (isDarkTheme) Color.White else Color.Black

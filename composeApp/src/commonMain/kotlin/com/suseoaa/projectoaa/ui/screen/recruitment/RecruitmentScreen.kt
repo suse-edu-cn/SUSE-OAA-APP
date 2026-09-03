@@ -76,7 +76,6 @@ import com.suseoaa.projectoaa.presentation.recruitment.RecruitmentFilterOption
 import com.suseoaa.projectoaa.presentation.recruitment.RecruitmentUiState
 import com.suseoaa.projectoaa.presentation.recruitment.RecruitmentViewModel
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.RecruitmentApplication
-import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.util.ToastManager
 import com.suseoaa.projectoaa.util.pickImageForAvatar
@@ -127,7 +126,7 @@ fun RecruitmentScreen(
     }
 
     AdaptivePageScaffold(
-        modifier = Modifier.sharedBoundsTransition("recruitment_feature"),
+        sharedTransitionKey = "recruitment_feature",
         title = "招新换届",
         onBack = onBack,
         actions = {

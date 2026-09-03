@@ -44,107 +44,59 @@ fun AiChatScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("本地 AI 助手", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(
-                            "Gemma 4",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 12.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Psychology,
-                            contentDescription = null,
-                            tint = if (uiState.isDeepThinkingEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            "深度思考",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (uiState.isDeepThinkingEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
-                            checked = uiState.isDeepThinkingEnabled,
-                            onCheckedChange = { viewModel.toggleDeepThinking(it) },
-                            modifier = Modifier.scale(0.8f) // Make switch slightly smaller
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+            }
+            Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+                Text("本地 AI 助手", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(
+                    "Gemma 4",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            )
-        },
-        bottomBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
-                modifier = Modifier.fillMaxWidth()
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = 8.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .navigationBarsPadding(),
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 50.dp, max = 120.dp),
-                        placeholder = { 
-                            Text(if (uiState.isModelLoading) "模型加载中..." else "输入你的问题...") 
-                        },
-                        enabled = !uiState.isModelLoading,
-                        shape = RoundedCornerShape(24.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                        ),
-                        maxLines = 4
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    FilledIconButton(
-                        onClick = {
-                            if (inputText.isNotBlank() && !uiState.isModelLoading) {
-                                viewModel.sendMessage(inputText)
-                                inputText = ""
-                            }
-                        },
-                        enabled = inputText.isNotBlank() && !uiState.isGenerating && !uiState.isModelLoading,
-                        modifier = Modifier.size(50.dp),
-                        shape = RoundedCornerShape(25.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "发送")
-                    }
-                }
+                Icon(
+                    Icons.Default.Psychology,
+                    contentDescription = null,
+                    tint = if (uiState.isDeepThinkingEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    "深度思考",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (uiState.isDeepThinkingEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = uiState.isDeepThinkingEnabled,
+                    onCheckedChange = { viewModel.toggleDeepThinking(it) },
+                    modifier = Modifier.scale(0.8f) // Make switch slightly smaller
+                )
             }
         }
-    ) { paddingValues ->
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .weight(1f)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                .padding(paddingValues)
         ) {
             LazyColumn(
                 state = listState,
@@ -189,7 +141,7 @@ fun AiChatScreen(
             }
             
             // 模型装载中的遮罩提示
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
                 visible = uiState.isModelLoading,
                 modifier = Modifier.align(Alignment.Center)
             ) {
@@ -208,6 +160,52 @@ fun AiChatScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("视手机性能通常需要 3~8 秒\n请耐心等待", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
+                }
+            }
+        }
+
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .imePadding()
+                    .navigationBarsPadding(),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 50.dp, max = 120.dp),
+                    placeholder = {
+                        Text(if (uiState.isModelLoading) "模型加载中..." else "输入你的问题...")
+                    },
+                    enabled = !uiState.isModelLoading,
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    ),
+                    maxLines = 4
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                FilledIconButton(
+                    onClick = {
+                        if (inputText.isNotBlank() && !uiState.isModelLoading) {
+                            viewModel.sendMessage(inputText)
+                            inputText = ""
+                        }
+                    },
+                    enabled = inputText.isNotBlank() && !uiState.isGenerating && !uiState.isModelLoading,
+                    modifier = Modifier.size(50.dp),
+                    shape = RoundedCornerShape(25.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "发送")
                 }
             }
         }

@@ -2,7 +2,7 @@ package com.suseoaa.projectoaa.presentation.checkin
 
 import com.suseoaa.projectoaa.shared.util.OaaClock
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus

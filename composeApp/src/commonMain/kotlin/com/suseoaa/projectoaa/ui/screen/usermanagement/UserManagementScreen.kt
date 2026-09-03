@@ -26,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.suseoaa.projectoaa.presentation.usermanagement.UserManagementViewModel
 import com.suseoaa.projectoaa.shared.domain.model.person.UserQueryData
-import com.suseoaa.projectoaa.ui.animation.sharedBoundsTransition
 import com.suseoaa.projectoaa.ui.component.common.AdaptivePageScaffold
 import com.suseoaa.projectoaa.ui.theme.AppDimensions
 import org.koin.compose.viewmodel.koinViewModel
@@ -49,7 +48,7 @@ fun UserManagementScreen(
     }
 
     AdaptivePageScaffold(
-        modifier = Modifier.sharedBoundsTransition("user_management_feature"),
+        sharedTransitionKey = "user_management_feature",
         title = "权利的游戏",
         onBack = onNavigateBack,
         compactContent = { modifier ->

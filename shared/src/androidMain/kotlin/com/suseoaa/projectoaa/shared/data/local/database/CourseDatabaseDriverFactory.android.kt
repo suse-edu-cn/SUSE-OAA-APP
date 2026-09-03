@@ -57,38 +57,59 @@ actual class CourseDatabaseDriverFactory(private val context: Context) {
         return driver
     }
     
+    private fun getTableColumns(driver: SqlDriver, tableName: String): Set<String> {
+        val columns = mutableSetOf<String>()
+        try {
+            driver.executeQuery(
+                identifier = null,
+                sql = "PRAGMA table_info($tableName)",
+                mapper = { cursor ->
+                    while (cursor.next().value) {
+                        cursor.getString(1)?.let { columns.add(it.lowercase()) }
+                    }
+                    app.cash.sqldelight.db.QueryResult.Unit
+                },
+                parameters = 0
+            )
+        } catch (_: Throwable) {
+        }
+        return columns
+    }
+
     /**
      * 迁移 ExamCache 表，为旧版本数据库添加新字段
      */
     private fun migrateExamCacheTable(driver: SqlDriver) {
-        // 添加新字段的迁移列表
+        val existingColumns = getTableColumns(driver, "ExamCache")
         val alterStatements = listOf(
-            "ALTER TABLE ExamCache ADD COLUMN credit TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE ExamCache ADD COLUMN examType TEXT NOT NULL DEFAULT '考试'",
-            "ALTER TABLE ExamCache ADD COLUMN examName TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE ExamCache ADD COLUMN yearSemester TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE ExamCache ADD COLUMN isCustom INTEGER NOT NULL DEFAULT 0",
-            "ALTER TABLE ExamCache ADD COLUMN xnm TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE ExamCache ADD COLUMN xqm TEXT NOT NULL DEFAULT ''"
+            "credit" to "ALTER TABLE ExamCache ADD COLUMN credit TEXT NOT NULL DEFAULT ''",
+            "examType" to "ALTER TABLE ExamCache ADD COLUMN examType TEXT NOT NULL DEFAULT '考试'",
+            "examName" to "ALTER TABLE ExamCache ADD COLUMN examName TEXT NOT NULL DEFAULT ''",
+            "yearSemester" to "ALTER TABLE ExamCache ADD COLUMN yearSemester TEXT NOT NULL DEFAULT ''",
+            "isCustom" to "ALTER TABLE ExamCache ADD COLUMN isCustom INTEGER NOT NULL DEFAULT 0",
+            "xnm" to "ALTER TABLE ExamCache ADD COLUMN xnm TEXT NOT NULL DEFAULT ''",
+            "xqm" to "ALTER TABLE ExamCache ADD COLUMN xqm TEXT NOT NULL DEFAULT ''"
         )
         
-        // 逐个执行 ALTER TABLE，忽略已存在字段的错误
-        alterStatements.forEach { sql ->
-            try {
-                driver.execute(null, sql, 0)
-            } catch (_: Exception) {
-                // 字段已存在或其他错误，忽略
+        // 逐个执行 ALTER TABLE，仅在字段不存在时执行
+        alterStatements.forEach { (colName, sql) ->
+            if (colName.lowercase() !in existingColumns) {
+                try {
+                    driver.execute(null, sql, 0)
+                } catch (_: Throwable) {
+                    // 字段已存在或其他错误，忽略
+                }
             }
         }
         
         // 确保索引存在
         try {
             driver.execute(null, "CREATE INDEX IF NOT EXISTS idx_exam_student ON ExamCache(studentId)", 0)
-        } catch (_: Exception) {}
+        } catch (_: Throwable) {}
         
         try {
             driver.execute(null, "CREATE INDEX IF NOT EXISTS idx_exam_semester ON ExamCache(studentId, xnm, xqm)", 0)
-        } catch (_: Exception) {}
+        } catch (_: Throwable) {}
     }
 
     /**
@@ -121,15 +142,18 @@ actual class CourseDatabaseDriverFactory(private val context: Context) {
             """.trimIndent(), 0)
 
             // 迁移现有表，添加 status 字段（兼容已创建表的情况）
-            try {
-                driver.execute(null, "ALTER TABLE NearFieldParticipant ADD COLUMN status TEXT NOT NULL DEFAULT '正常'", 0)
-            } catch (_: Exception) {}
+            val participantCols = getTableColumns(driver, "NearFieldParticipant")
+            if ("status" !in participantCols) {
+                try {
+                    driver.execute(null, "ALTER TABLE NearFieldParticipant ADD COLUMN status TEXT NOT NULL DEFAULT '正常'", 0)
+                } catch (_: Throwable) {}
+            }
 
             // 增加唯一索引防止重复签到
             try {
                 driver.execute(null, "CREATE UNIQUE INDEX IF NOT EXISTS idx_participant_task_student ON NearFieldParticipant(taskIdentifier, participantId)", 0)
-            } catch (_: Exception) {}
-        } catch (_: Exception) {
+            } catch (_: Throwable) {}
+        } catch (_: Throwable) {
             // 忽略创建错误
         }
     }

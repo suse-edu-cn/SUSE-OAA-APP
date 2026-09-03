@@ -1,4 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
+import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
@@ -14,8 +16,8 @@ extensions.configure<ApplicationExtension>("android") {
         applicationId = "com.suseoaa.projectoaa"
         minSdk = 28
         targetSdk = 37
-        versionCode = 202226
-        versionName = "2.22.26"
+        versionCode = 202227
+        versionName = "2.22.27"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -26,12 +28,27 @@ extensions.configure<ApplicationExtension>("android") {
 
     signingConfigs {
         create("release") {
-            val storeFilePathStr = System.getenv("KEYSTORE_FILE_PATH")
-            if (!storeFilePathStr.isNullOrEmpty()) {
-                storeFile = file(storeFilePathStr)
+            val ciStoreFile = System.getenv("KEYSTORE_FILE_PATH")
+            val localStoreFilePath = "/Users/vincent/Desktop/SUSE-APP-Key/APP-Key.jks"
+
+            if (!ciStoreFile.isNullOrEmpty()) {
+                // CI 环境
+                storeFile = file(ciStoreFile)
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
+            } else if (file(localStoreFilePath).exists()) {
+                // 本地环境
+                val localProps = Properties()
+                val propsFile = rootProject.file("local.properties")
+                if (propsFile.exists()) {
+                    val fis = FileInputStream(propsFile)
+                    fis.use { stream -> localProps.load(stream) }
+                }
+                storeFile = file(localStoreFilePath)
+                storePassword = localProps.getProperty("STORE_PASSWORD", "")
+                keyAlias = localProps.getProperty("KEY_ALIAS", "")
+                keyPassword = localProps.getProperty("KEY_PASSWORD", "")
             }
         }
     }
@@ -44,7 +61,9 @@ extensions.configure<ApplicationExtension>("android") {
 //                "proguard-rules.pro",
 //                project(":composeApp").file("proguard-rules.pro")
 //            )
-            signingConfig = signingConfigs.getByName("release")
+            if (signingConfigs.getByName("release").storeFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
 
         release {
@@ -55,7 +74,9 @@ extensions.configure<ApplicationExtension>("android") {
                 "proguard-rules.pro",
                 project(":composeApp").file("proguard-rules.pro")
             )
-            signingConfig = signingConfigs.getByName("release")
+            if (signingConfigs.getByName("release").storeFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

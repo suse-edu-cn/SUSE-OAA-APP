@@ -12,13 +12,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
+import com.suseoaa.projectoaa.shared.util.OaaClock
 
 data class AiChatMessage(
     val id: String,
     val content: String,
     val isUser: Boolean,
-    val timestamp: Long = Clock.System.now().toEpochMilliseconds(),
+    val timestamp: Long = OaaClock.now().toEpochMilliseconds(),
     val isThinking: Boolean = false // 用于指示正在深度思考中
 )
 
@@ -96,7 +96,7 @@ class AiChatViewModel(private val tokenManager: com.suseoaa.projectoaa.shared.da
         if (text.isBlank() || _uiState.value.isGenerating) return
 
         val userMessage = AiChatMessage(
-            id = Clock.System.now().toEpochMilliseconds().toString() + "_user",
+            id = OaaClock.now().toEpochMilliseconds().toString() + "_user",
             content = text,
             isUser = true
         )
@@ -111,7 +111,7 @@ class AiChatViewModel(private val tokenManager: com.suseoaa.projectoaa.shared.da
 
         // 调用真实 AI 引擎
         viewModelScope.launch {
-            val aiMessageId = Clock.System.now().toEpochMilliseconds().toString() + "_ai"
+            val aiMessageId = OaaClock.now().toEpochMilliseconds().toString() + "_ai"
             
             // 先在界面上显示一个空的或“思考中...”的状态
             _uiState.update { state ->

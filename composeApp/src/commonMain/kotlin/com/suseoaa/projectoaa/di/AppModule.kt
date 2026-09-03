@@ -4,6 +4,7 @@ import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.changePassword.ChangePasswordViewModel
 import com.suseoaa.projectoaa.presentation.checkin.CheckinExecutor
+import com.suseoaa.projectoaa.presentation.checkin.PasswordAutoLogin
 import com.suseoaa.projectoaa.presentation.checkin.CheckinScheduler
 import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
 import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinManager
@@ -60,11 +61,12 @@ val appModule = module {
     viewModel { AcademicStatusViewModel(get(), get()) }
 
     // 打卡 ViewModel (同时注入两个 Repository)
-    viewModel { CheckinViewModel(get(), get()) }
+    viewModel { CheckinViewModel(get(), get(), get()) }
 
     // 定时签到
     single { ScheduledCheckinManager(get()) }
-    single { CheckinExecutor(get()) }
+    single { PasswordAutoLogin(get()) }
+    single { CheckinExecutor(get(), get()) }
     single { CheckinScheduler(get(), get(), get()) }
     viewModel { ScheduledCheckinViewModel(get(), get(), get(), get()) }
 

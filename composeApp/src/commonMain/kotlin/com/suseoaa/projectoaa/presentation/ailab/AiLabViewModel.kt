@@ -23,6 +23,7 @@ import com.suseoaa.projectoaa.util.AiModelMetadata
 import com.suseoaa.projectoaa.util.AvailableAiModels
 import com.suseoaa.projectoaa.util.LocalModelFile
 import com.suseoaa.projectoaa.util.ModelDownloader
+import com.suseoaa.projectoaa.util.format
 import com.suseoaa.projectoaa.util.isCompatibleWithDevice
 
 /**
@@ -272,7 +273,7 @@ class AiLabViewModel(private val tokenManager: TokenManager) : ViewModel() {
                 if (diffTime >= 500) {
                     val diffBytes = downloaded - lastBytes
                     val speedMbps = (diffBytes.toDouble() / 1024 / 1024) / (diffTime / 1000.0)
-                    val speedStr = "%.1f MB/s".format(speedMbps)
+                    val speedStr = "${speedMbps.format(1)} MB/s"
                     
                     val progress = if (total > 0) downloaded.toFloat() / total.toFloat() else 0f
                     _uiState.update {

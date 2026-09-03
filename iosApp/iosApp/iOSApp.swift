@@ -45,9 +45,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // 从 Kotlin 读取配置，设置最早执行时间
         IosKoinInitKt.initializeKoinIfNeeded()
-        let config = try? IosBackgroundCheckinKt.getConfigSync()
+        let config = IosBackgroundCheckinKt.getConfigSync()
 
-        if let config = config, config.enabled && !config.targetAccountIds.isEmpty {
+        if config.enabled && !config.targetAccountIds.isEmpty {
             // 计算下次签到时间（Swift 侧简单计算）
             let nextRun = calculateNextRunDate(hour: Int(config.scheduledHour), minute: Int(config.scheduledMinute))
             request.earliestBeginDate = nextRun
@@ -84,12 +84,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // 执行签到
         IosBackgroundCheckinKt.executeBackgroundCheckin { success in
-            if success {
+            let isSuccess = success.boolValue
+            if isSuccess {
                 self.scheduleLocalNotification(title: "签到完成", body: "自动签到已成功执行")
             } else {
                 self.scheduleLocalNotification(title: "签到提醒", body: "自动签到未能完成，请打开应用手动签到")
             }
-            task.setTaskCompleted(success: success)
+            task.setTaskCompleted(success: isSuccess)
         }
     }
 

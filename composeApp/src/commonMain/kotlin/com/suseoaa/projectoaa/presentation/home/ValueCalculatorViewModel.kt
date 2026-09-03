@@ -5,9 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.data.local.TokenManager
 import com.suseoaa.projectoaa.shared.data.repository.ValueCalculatorRepository
 import com.suseoaa.projectoaa.shared.database.ValueCalculatorItem
+import com.suseoaa.projectoaa.shared.util.OaaClock
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
@@ -57,7 +57,7 @@ class ValueCalculatorViewModel(
                     // 记录错误或处理
                 }
                 .combine(_sortType) { itemList, currentSortType ->
-                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    val today = OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
                     
                     itemList.sortedWith(Comparator { a, b ->
                         val dateA = Instant.fromEpochMilliseconds(a.purchaseDateMillis).toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -95,7 +95,7 @@ class ValueCalculatorViewModel(
 
     fun saveItem(itemName: String, price: Double, purchaseDateMillis: Long) {
         viewModelScope.launch {
-            val createdAtMillis = Clock.System.now().toEpochMilliseconds()
+            val createdAtMillis = OaaClock.now().toEpochMilliseconds()
             repository.insertItem(
                 itemName = itemName,
                 price = price,

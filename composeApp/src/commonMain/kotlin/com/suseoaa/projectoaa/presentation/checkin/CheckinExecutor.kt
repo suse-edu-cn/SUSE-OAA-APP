@@ -3,7 +3,6 @@ package com.suseoaa.projectoaa.presentation.checkin
 import com.suseoaa.projectoaa.shared.data.repository.CheckinRepository
 import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinAccountData
 import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinResult
-import com.suseoaa.projectoaa.util.PlatformCaptchaOcr
 import kotlinx.coroutines.delay
 
 data class CheckinExecutionResult(
@@ -16,7 +15,8 @@ data class CheckinExecutionResult(
 }
 
 class CheckinExecutor(
-    private val checkinRepository: CheckinRepository
+    private val checkinRepository: CheckinRepository,
+    private val autoLogin: PasswordAutoLogin
 ) {
     suspend fun executeForAccounts(
         accounts: List<CheckinAccountData>,
@@ -71,73 +71,23 @@ class CheckinExecutor(
 
     private suspend fun performAutoCheckin(account: CheckinAccountData): Pair<Boolean, String> {
         return try {
-            // 1. 尝试 rememberMe 快速登录
-            val fastLogin = checkinRepository.tryAutoLoginWithRememberMe(account).getOrDefault(false)
-            if (fastLogin) {
-                println("[CheckinExecutor] 账号 ${account.studentId} rememberMe 快速登录成功")
-                val result = checkinRepository.performCheckinAfterLogin(account)
-                return when (result) {
+            when (val loginResult = autoLogin.login(account)) {
+                is AutoLoginResult.SmsRequired -> {
+                    println("[CheckinExecutor] 账号 ${account.studentId} 需要短信验证，跳过")
+                    Pair(false, "需要短信验证")
+                }
+
+                is AutoLoginResult.Failed -> {
+                    println("[CheckinExecutor] 账号 ${account.studentId} 登录失败: ${loginResult.message}")
+                    Pair(false, loginResult.message)
+                }
+
+                is AutoLoginResult.Success -> when (checkinRepository.performCheckinAfterLogin(account)) {
                     is CheckinResult.Success -> Pair(true, "打卡成功")
                     is CheckinResult.AlreadyChecked -> Pair(true, "已打卡")
                     is CheckinResult.NoTask -> Pair(true, "无任务")
                     is CheckinResult.Failed -> Pair(false, "打卡失败")
                 }
-            }
-
-            // 2. 获取验证码图片
-            val captchaResult = checkinRepository.fetchCaptchaImage()
-            if (captchaResult.isFailure) {
-                val errorMsg = captchaResult.exceptionOrNull()?.message ?: "获取验证码失败"
-                println("[CheckinExecutor] $errorMsg")
-                return Pair(false, errorMsg)
-            }
-
-            val captchaBytes = captchaResult.getOrThrow()
-
-            // 3. OCR 自动识别
-            val ocrResult = try {
-                PlatformCaptchaOcr.recognize(captchaBytes)
-            } catch (t: Throwable) {
-                println("[CheckinExecutor] OCR 异常: ${t.message}")
-                return Pair(false, "OCR识别异常")
-            }
-            if (ocrResult.isFailure || ocrResult.getOrNull()?.length != 4) {
-                println("[CheckinExecutor] OCR 识别失败")
-                return Pair(false, "验证码识别失败")
-            }
-
-            val captchaCode = ocrResult.getOrThrow()
-            println("[CheckinExecutor] OCR 识别成功: $captchaCode")
-
-            // 4. 登录
-            val loginResult = checkinRepository.loginWithCaptcha(
-                username = account.studentId,
-                password = account.password,
-                captchaCode = captchaCode,
-                accountId = account.id
-            )
-
-            if (loginResult.isFailure) {
-                val errorMsg = loginResult.exceptionOrNull()?.message ?: "登录失败"
-                if (errorMsg.contains("验证码") || errorMsg.contains("captcha", ignoreCase = true)) {
-                    println("[CheckinExecutor] 验证码错误，重试")
-                    return performAutoCheckin(account)
-                }
-                if (checkinRepository.isSmsVerificationRequired(loginResult.exceptionOrNull())) {
-                    println("[CheckinExecutor] 账号 ${account.studentId} 需要短信验证，跳过")
-                    return Pair(false, "需要短信验证")
-                }
-                println("[CheckinExecutor] 登录失败: $errorMsg")
-                return Pair(false, errorMsg)
-            }
-
-            // 5. 执行签到
-            val checkinResult = checkinRepository.performCheckinAfterLogin(account)
-            when (checkinResult) {
-                is CheckinResult.Success -> Pair(true, "打卡成功")
-                is CheckinResult.AlreadyChecked -> Pair(true, "已打卡")
-                is CheckinResult.NoTask -> Pair(true, "无任务")
-                is CheckinResult.Failed -> Pair(false, "打卡失败")
             }
         } catch (e: Throwable) {
             println("[CheckinExecutor] 账号 ${account.studentId} 异常: ${e.message}")

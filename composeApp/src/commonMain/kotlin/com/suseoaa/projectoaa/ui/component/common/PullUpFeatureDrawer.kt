@@ -1,7 +1,6 @@
 package com.suseoaa.projectoaa.ui.component.common
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -95,18 +94,25 @@ fun PullUpFeatureDrawer(
         }
     }
 
-    // isExpanded 状态变化（返回键折叠）→ 平滑动画
+    // 这里用弹簧而不是 PageTransition 那套固定时长的 tween，是因为下面 draggableState/
+    // settleToTarget 需要把手指松开时的速度（velocity）自然带入收尾动画，tween 做不到这点。
+    //
+    // 阻尼 0.8（轻微欠阻尼，几乎看不出回弹但仍有一点自然的弹性收尾）、
+    // 刚度用 300（介于原来的 StiffnessLow=200 太慢、和上一版误调的
+    // StiffnessMediumLow=400+阻尼0.9 太硬机械之间）。上一版把阻尼提到 0.9 是为了
+    // 消除回弹，但同时也让动画收敛得又快又直、几乎看不出过渡，反而显得"生硬"；
+    // 这版退回到更接近原始的力学感，但不像原来（0.55）那样明显回弹震荡。
+    //
+    // isExpanded 状态变化 → 平滑动画。展开分支原来是 snapTo（零动画，瞬间跳变），
+    // 这是导致"展开很僵硬"的直接原因——折叠有动画、展开没有，体验不对称；
+    // 现在展开和折叠共用同一个弹簧，两个方向手感一致。
     LaunchedEffect(isExpanded) {
         if (maxPx > 0f && isInitialized && !offsetYAnim.isRunning) {
             val target = if (isExpanded) expandedOffset else collapsedOffset
-            if (!isExpanded) {
-                offsetYAnim.animateTo(
-                    target,
-                    animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow)
-                )
-            } else {
-                offsetYAnim.snapTo(target)
-            }
+            offsetYAnim.animateTo(
+                target,
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+            )
         }
     }
 
@@ -124,7 +130,7 @@ fun PullUpFeatureDrawer(
         if (backGestureCancelCount > 0 && maxPx > 0f && isInitialized) {
             offsetYAnim.animateTo(
                 expandedOffset,
-                animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow)
+                animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
             )
         }
     }
@@ -164,8 +170,8 @@ fun PullUpFeatureDrawer(
                 targetValue = target,
                 initialVelocity = velocity,
                 animationSpec = spring(
-                    dampingRatio = 0.55f,
-                    stiffness = Spring.StiffnessLow
+                    dampingRatio = 0.8f,
+                    stiffness = 300f
                 )
             )
         }

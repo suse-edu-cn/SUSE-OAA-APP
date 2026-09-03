@@ -43,10 +43,7 @@ import com.suseoaa.projectoaa.ui.animation.LocalAnimatedVisibilityScope
 import com.suseoaa.projectoaa.ui.animation.LocalDisableSharedTransition
 import com.suseoaa.projectoaa.ui.animation.LocalPredictiveBackCommitting
 import com.suseoaa.projectoaa.ui.animation.LocalSharedTransitionScope
-import com.suseoaa.projectoaa.ui.animation.ScaleTransition.enterScale
-import com.suseoaa.projectoaa.ui.animation.ScaleTransition.exitScale
-import com.suseoaa.projectoaa.ui.animation.ScaleTransition.popEnterScale
-import com.suseoaa.projectoaa.ui.animation.ScaleTransition.popExitScale
+import com.suseoaa.projectoaa.ui.animation.PageTransition
 import com.suseoaa.projectoaa.util.AppPredictiveBackHandler
 import com.suseoaa.projectoaa.util.PlatformBackSwipeEdge
 import kotlinx.coroutines.CancellationException
@@ -174,8 +171,13 @@ class SharedTransitionNavGraphBuilder(
             val gestureBackTransformState = LocalGestureBackTransformState.current
             val activeBackStackEntryId = LocalGestureBackTargetEntryId.current
 
-            // 从当前作用域中拿到 NavHost 共享过来的退出/进入转场状态
-            val cornerRadius by transition.animateDp(label = "cornerRadius") { state ->
+            // 从当前作用域中拿到 NavHost 共享过来的退出/进入转场状态。
+            // 圆角裁剪和 PageTransition 的缩放/淡入淡出共用同一套 tween 时长与缓动，
+            // 避免各自用不同的动画参数导致圆角先收尾、其余部分还在动的不同步观感。
+            val cornerRadius by transition.animateDp(
+                label = "cornerRadius",
+                transitionSpec = { PageTransition.sharedMotionSpec() }
+            ) { state ->
                 // 当处于退出后的后置阶段（手势拖动或完成离开），赋予 28.dp 圆角，否则 0.dp
                 if (state == EnterExitState.PostExit) 28.dp else 0.dp
             }
@@ -402,21 +404,21 @@ fun SharedNavHost(
                     navController = navController,
                     startDestination = startDestination,
                     modifier = modifier,
-                    // 优雅的缩放动画架构作为底部界面的兜底动画
-                    enterTransition = { enterScale() },
-                    exitTransition = { exitScale() },
+                    // 统一的整页转场动画，见 PageTransition 顶部注释
+                    enterTransition = { PageTransition.foregroundEnter() },
+                    exitTransition = { PageTransition.backgroundRecede() },
                     popEnterTransition = {
                         if (suppressNextPopTransition) {
                             EnterTransition.None
                         } else {
-                            popEnterScale()
+                            PageTransition.backgroundReturn()
                         }
                     },
                     popExitTransition = {
                         if (suppressNextPopTransition) {
                             ExitTransition.None
                         } else {
-                            popExitScale()
+                            PageTransition.foregroundExit()
                         }
                     }
                 ) {

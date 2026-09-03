@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import com.suseoaa.projectoaa.shared.data.repository.OaaAuthRepository
 import com.suseoaa.projectoaa.shared.util.OaaClock

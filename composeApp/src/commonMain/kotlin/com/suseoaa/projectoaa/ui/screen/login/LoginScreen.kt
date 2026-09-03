@@ -2,11 +2,15 @@ package com.suseoaa.projectoaa.ui.screen.login
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,106 +55,108 @@ fun LoginScreen(
         }
     }
 
-    Scaffold() { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.background)
-                .padding(paddingValues)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "欢迎使用青蟹",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "本软件服务于四川轻化工大学开放原子开源协会",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
-                modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
-            )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color = MaterialTheme.colorScheme.background)
+            .safeDrawingPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "欢迎使用青蟹",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = "本软件服务于四川轻化工大学开放原子开源协会",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            modifier = Modifier.padding(top = 8.dp, bottom = 32.dp)
+        )
 
-            // 账号输入框
-            OutlinedTextField(
-                value = uiState.account,
-                onValueChange = { viewModel.updateAccount(it.normalizeFont()) },
-                label = { Text("学号/用户名") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next
-                )
+        // 账号输入框
+        OutlinedTextField(
+            value = uiState.account,
+            onValueChange = { viewModel.updateAccount(it.normalizeFont()) },
+            label = { Text("学号/用户名") },
+            leadingIcon = {
+                Icon(imageVector = Icons.Filled.Person, contentDescription = null)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next
             )
+        )
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // 密码输入框
-            OutlinedTextField(
-                value = uiState.password,
-                onValueChange = { viewModel.updatePassword(it.normalizeFont()) },
-                label = { Text("密码") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                visualTransformation = if (isPasswordVisible)
-                    VisualTransformation.None
-                else
-                    PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
-                ),
-                trailingIcon = {
-                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                        Icon(
-                            imageVector = Icons.Filled.Lock,
-                            contentDescription = if (isPasswordVisible) "隐藏密码" else "显示密码",
-                            tint = if (isPasswordVisible)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                TextButton(onClick = onNavigateToRegister) {
-                    Text("注册账号")
-                }
-                TextButton(onClick = onNavigateToForgetPassword) {
-                    Text("忘记密码", color = Color.Gray)
+        // 密码输入框
+        OutlinedTextField(
+            value = uiState.password,
+            onValueChange = { viewModel.updatePassword(it.normalizeFont()) },
+            label = { Text("密码") },
+            leadingIcon = {
+                Icon(imageVector = Icons.Filled.Lock, contentDescription = null)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            visualTransformation = if (isPasswordVisible)
+                VisualTransformation.None
+            else
+                PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            trailingIcon = {
+                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    Icon(
+                        imageVector = if (isPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = if (isPasswordVisible) "隐藏密码" else "显示密码",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
+        )
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TextButton(onClick = onNavigateToRegister) {
+                Text("注册账号")
+            }
+            TextButton(onClick = onNavigateToForgetPassword) {
+                Text("忘记密码", color = Color.Gray)
+            }
+        }
 
-            // 登录按钮
-            Button(
-                onClick = viewModel::login,
-                enabled = !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("登录")
-                }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // 登录按钮
+        Button(
+            onClick = viewModel::login,
+            enabled = !uiState.isLoading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("登录")
             }
         }
     }

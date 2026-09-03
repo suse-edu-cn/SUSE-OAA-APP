@@ -5,9 +5,13 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.Color
 
 /**
  * 全局共享的过渡动画作用域，用于优雅的共享元素和铺满屏幕动画
@@ -66,6 +70,28 @@ fun Modifier.sharedBoundsTransition(key: String): Modifier = composed {
         this
     }
 }
+
+/**
+ * 页面级容器专用：在 [sharedBoundsTransition] 之外再补一层背景色。
+ *
+ * 卡片展开成整页的共享元素动画，在稳定状态下测算出来的边界在 iOS 上会短一截，
+ * 短的部分正好是底部安全区（Home Indicator 那一条），露出来的是这层布局下面
+ * 未着色的内容，看起来就是一块黑色。这在 [CourseInfoScreen] 里已经用手动追加
+ * `.background(...)` 验证过是有效的修复；这里把它收成一个可复用的函数，任何
+ * 页面级的顶层容器（不只是 `AdaptivePageScaffold`）都可以直接用，不用每个页面
+ * 各自发现、各自修一遍。
+ *
+ * 只用于页面级顶层容器——列表里卡片到详情页那种局部共享元素，不要用这个，
+ * 会在小卡片背后凭空画出一块实心背景。
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun Modifier.pageShellBounds(
+    key: String,
+    backgroundColor: Color = MaterialTheme.colorScheme.background
+): Modifier = this
+    .sharedBoundsTransition(key)
+    .background(backgroundColor)
 
 /**
  * 优雅的共享元素内容动画扩展。（如果在展开时需要内部也保持同步的过度）

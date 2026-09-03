@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>青蟹 · 技术支持</title>
+<meta name="description" content="青蟹 (Project OAA) 技术支持页面 —— 常见问题、联系方式与项目信息。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="crab">🦀</span>
+    <h1>青蟹 · Project OAA</h1>
+    <p class="tagline">SUSE 学生的口袋教务助手 · 四川轻化工大学开放原子开源协会 出品</p>
+    <div class="badges">
+      <span class="badge">Android</span>
+      <span class="badge">iOS</span>
+      <span class="badge">Desktop</span>
+      <span class="badge">MIT License</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/suse-edu-cn/SUSE-OAA-APP/issues">反馈问题</a>
+      <a class="btn btn-secondary" href="https://github.com/suse-edu-cn/SUSE-OAA-APP">查看源码</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="about">
+    <h2>关于青蟹</h2>
+    <p class="section-sub">跨平台教务辅助应用</p>
+    <div class="card">
+      <p>
+        <strong>青蟹（Project OAA）</strong>是由四川轻化工大学开放原子开源协会（SUSE OAA）项目部自主研发的跨平台教务辅助应用。
+        通过对接学校教务系统与 OAA 后端服务，将课表、成绩、考试、GPA 计算、教学计划、校园公告、打卡签到等常用教务功能聚合到一起，
+        用更现代、更流畅的方式替代繁琐的教务网页操作。
+      </p>
+      <p style="margin-bottom:0">
+        应用基于 Kotlin Multiplatform + Compose Multiplatform 构建，一套代码同时覆盖 Android、iOS 与 Desktop 三端。
+      </p>
+    </div>
+  </section>
+
+  <section id="features">
+    <h2>功能特性</h2>
+    <p class="section-sub">日常教务场景中最常用到的功能，都在这里</p>
+    <div class="feature-grid">
+      <div class="feature">
+        <span class="icon">📅</span>
+        <h3>智能课表</h3>
+        <p>多周预览、本周高亮、自定义课程，支持离线缓存查看。</p>
+      </div>
+      <div class="feature">
+        <span class="icon">📊</span>
+        <h3>成绩查询</h3>
+        <p>历史学期成绩一览，含平时 / 实验 / 期末分项成绩。</p>
+      </div>
+      <div class="feature">
+        <span class="icon">🎓</span>
+        <h3>GPA 计算</h3>
+        <p>自动匹配学位课程，精准计算绩点，规划学业更省心。</p>
+      </div>
+      <div class="feature">
+        <span class="icon">📝</span>
+        <h3>考试安排</h3>
+        <p>考试时间、地点与倒计时清晰展示，不再错过考试。</p>
+      </div>
+      <div class="feature">
+        <span class="icon">📖</span>
+        <h3>教学计划</h3>
+        <p>培养方案查看、课程信息检索、学业完成度跟踪。</p>
+      </div>
+      <div class="feature">
+        <span class="icon">📢</span>
+        <h3>校园公告</h3>
+        <p>聚合各院系部门通知，支持按部门筛选查看。</p>
+      </div>
+      <div class="feature">
+        <span class="icon">✅</span>
+        <h3>打卡签到</h3>
+        <p>支持密码登录与扫码签到两种打卡方式。</p>
+      </div>
+      <div class="feature">
+        <span class="icon">🔐</span>
+        <h3>安全加密</h3>
+        <p>RSA 加密传输教务密码，Token 安全存储，全程 HTTPS。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="platforms">
+    <h2>支持平台</h2>
+    <p class="section-sub">三端体验高度一致</p>
+    <div class="platform-list">
+      <div class="platform">
+        <span class="icon">🤖</span>
+        <div class="name">Android</div>
+        <div class="req">最低 API 28（Android 9.0）</div>
+      </div>
+      <div class="platform">
+        <span class="icon">📱</span>
+        <div class="name">iOS</div>
+        <div class="req">最低 iOS 14.0</div>
+      </div>
+      <div class="platform">
+        <span class="icon">💻</span>
+        <div class="name">Desktop</div>
+        <div class="req">Windows / macOS / Linux</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <h2>常见问题</h2>
+    <p class="section-sub">遇到问题，可以先看看这里</p>
+    <div class="card">
+      <div class="faq-item">
+        <p class="faq-q"><span class="mark">Q</span>登录时账号密码安全吗？</p>
+        <p class="faq-a">登录密码在传输前使用 RSA 公钥加密，配合全程 HTTPS 传输；登录凭证仅保存在设备本地，青蟹不会将你的教务密码上传到第三方服务器。</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q"><span class="mark">Q</span>忘记教务系统密码怎么办？</p>
+        <p class="faq-a">教务账号由学校统一管理，青蟹本身不提供密码找回功能，请通过学校教务处或官方教务系统的找回入口重置密码。</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q"><span class="mark">Q</span>打卡签到时验证码识别失败怎么办？</p>
+        <p class="faq-a">应用内置了自动验证码识别功能，遇到识别失败可以重试或手动输入验证码；如果频繁失败，欢迎通过下方渠道反馈，帮助我们持续优化识别模型。</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q"><span class="mark">Q</span>课表 / 成绩数据不是最新的怎么办？</p>
+        <p class="faq-a">应用会在本地缓存课表、成绩等数据以支持离线查看，下拉刷新或重新进入对应页面即可从教务系统同步最新数据。</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q"><span class="mark">Q</span>如何反馈 Bug 或提出建议？</p>
+        <p class="faq-a">最推荐的方式是在 <a href="https://github.com/suse-edu-cn/SUSE-OAA-APP/issues">GitHub Issues</a> 中提交问题，附上你的设备型号、系统版本和复现步骤；也可以通过下方邮箱联系我们。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <h2>联系我们</h2>
+    <p class="section-sub">来自 SUSE OAA 项目部的开发团队，随时欢迎反馈</p>
+    <div class="contact-grid">
+      <div class="contact-item">
+        <span class="icon">✉️</span>
+        <div class="label">邮箱</div>
+        <div class="value"><a href="mailto:huangzhuoruihzr@gmail.com">huangzhuoruihzr@gmail.com</a></div>
+      </div>
+      <div class="contact-item">
+        <span class="icon">🐙</span>
+        <div class="label">GitHub</div>
+        <div class="value"><a href="https://github.com/suse-edu-cn/SUSE-OAA-APP">suse-edu-cn/SUSE-OAA-APP</a></div>
+      </div>
+      <div class="contact-item">
+        <span class="icon">🖥️</span>
+        <div class="label">桌面端</div>
+        <div class="value"><a href="https://github.com/suse-edu-cn/SUSE-OAA-Desktop">SUSE-OAA-Desktop</a></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:16px">
+      青蟹由四川轻化工大学开放原子开源协会（SUSE OAA）项目部维护，是一个学生自发开发的开源教务辅助工具，与学校官方教务系统相互独立。
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="org">四川轻化工大学开放原子开源协会 · SUSE OAA</div>
+    <div>MIT License · <a href="https://github.com/suse-edu-cn/SUSE-OAA-APP">开源仓库</a> · <a href="privacy.html">隐私政策</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

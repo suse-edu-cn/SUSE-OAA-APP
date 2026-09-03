@@ -25,7 +25,8 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
+        // iosX64 (Intel 模拟器) 已移除：Miuix (top.yukonga.miuix.kmp) 没有发布该架构的构件，
+        // 而现代开发机基本都是 Apple Silicon，用 iosSimulatorArm64 即可。
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
@@ -40,13 +41,13 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // Coroutines
-            implementation(libs.kotlinx.coroutines.core)
+            api(libs.kotlinx.coroutines.core)
 
             // Serialization
-            implementation(libs.kotlinx.serialization.json)
+            api(libs.kotlinx.serialization.json)
 
             // DateTime
-            implementation(libs.kotlinx.datetime)
+            api(libs.kotlinx.datetime)
 
             // Ktor Client
             implementation(libs.ktor.client.core)

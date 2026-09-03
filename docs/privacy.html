@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>青蟹 · 隐私政策</title>
+<meta name="description" content="青蟹 (Project OAA) 隐私政策 —— 我们如何处理你的信息。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="hero compact">
+  <div class="wrap">
+    <span class="crab">🦀</span>
+    <h1>隐私政策</h1>
+    <p class="tagline">青蟹 · Project OAA</p>
+    <div class="cta-row">
+      <a class="btn btn-secondary" href="index.html">← 返回首页</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap narrow">
+
+  <p class="updated">最后更新：2026 年 9 月 3 日</p>
+
+  <section id="overview">
+    <h2>概述</h2>
+    <div class="card">
+      <p>
+        青蟹（Project OAA，以下简称"本应用"）由四川轻化工大学开放原子开源协会（SUSE OAA）项目部开发和维护，
+        是一款帮助在校学生更方便地查看课表、成绩、考试安排等教务信息的开源辅助工具。
+      </p>
+      <p style="margin-bottom:0">
+        本应用的开发团队<strong>不会收集、留存或用于分析你的个人信息</strong>，也不会将任何信息出售或提供给无关的第三方。
+        本页说明本应用在实现各项功能时，会如何处理你的信息。
+      </p>
+    </div>
+  </section>
+
+  <section id="data">
+    <h2>我们如何处理你的信息</h2>
+
+    <h3 class="sub-heading">教务 / 签到账号信息</h3>
+    <p>
+      当你使用登录、查询课表成绩、打卡签到等功能时，本应用需要将你的学号与密码等必要信息，直接发送给<strong>学校官方教务系统</strong>或
+      <strong>SUSE OAA 自建的打卡 / 后端服务</strong>，以代替你完成对应的操作。这些信息仅用于完成你主动发起的当次请求，
+      开发团队不会将其另作他用，也不会在自己的服务器上长期留存你的账号密码。
+    </p>
+
+    <h3 class="sub-heading">本地缓存数据</h3>
+    <p>
+      为了支持离线查看和更流畅的体验，课表、成绩、考试安排等数据会缓存在<strong>你设备本地</strong>的数据库中；
+      登录凭证（Token）也仅保存在本机安全存储区域。这些数据不会被上传至开发团队的服务器，卸载应用或清除应用数据即会一并删除。
+    </p>
+
+    <h3 class="sub-heading">验证码识别</h3>
+    <p>
+      登录时的图形验证码识别（ML Kit / ONNX Runtime / Vision Framework）完全在你的设备本地完成推理，
+      验证码图片不会被上传到任何服务器。
+    </p>
+  </section>
+
+  <section id="security">
+    <h2>数据存储与安全</h2>
+    <ul class="plain">
+      <li>登录密码在传输前使用 RSA 公钥加密，所有网络请求均通过 HTTPS 加密传输；</li>
+      <li>教务系统、打卡系统、扫码签到分别使用相互隔离的会话（Cookie），互不干扰；</li>
+      <li>登录 Token 使用系统级安全存储（DataStore）保存在本机；</li>
+      <li>本应用完全开源，代码可在 <a href="https://github.com/suse-edu-cn/SUSE-OAA-APP">GitHub</a> 上自由审查。</li>
+    </ul>
+  </section>
+
+  <section id="third-party">
+    <h2>第三方服务</h2>
+    <p>
+      本应用<strong>不集成任何广告 SDK，也不使用第三方用户行为分析或追踪服务</strong>。应用会在启动时向 GitHub
+      发起一次公开的版本号查询请求，用于检查是否有新版本可用，该请求不包含任何与你身份相关的信息。
+    </p>
+    <p style="margin-bottom:0">
+      本应用对接的学校教务系统、OAA 打卡系统等均为完成教务相关功能所必需，它们各自的隐私与数据处理方式由相应的系统或组织负责，不在本政策约束范围内。
+    </p>
+  </section>
+
+  <section id="rights">
+    <h2>你的权利与选择</h2>
+    <ul class="plain">
+      <li>你可以随时在应用内退出登录，本机保存的账号信息与缓存数据会被清除；</li>
+      <li>卸载应用会删除本机存储的全部本地数据；</li>
+      <li>你的学校教务账号数据由学校统一管理，如需查询、更正或删除相关数据，请联系学校教务处，本应用无法代为处理。</li>
+    </ul>
+  </section>
+
+  <section id="changes">
+    <h2>政策更新</h2>
+    <p style="margin-bottom:0">
+      如果本应用的功能或数据处理方式发生变化，我们会更新本页面内容，并在页面顶部标注最新的更新日期。建议你在使用本应用前留意本页面是否有更新。
+    </p>
+  </section>
+
+  <section id="contact">
+    <h2>联系我们</h2>
+    <div class="contact-grid">
+      <div class="contact-item">
+        <span class="icon">✉️</span>
+        <div class="label">邮箱</div>
+        <div class="value"><a href="mailto:huangzhuoruihzr@gmail.com">huangzhuoruihzr@gmail.com</a></div>
+      </div>
+      <div class="contact-item">
+        <span class="icon">🐙</span>
+        <div class="label">GitHub</div>
+        <div class="value"><a href="https://github.com/suse-edu-cn/SUSE-OAA-APP">suse-edu-cn/SUSE-OAA-APP</a></div>
+      </div>
+      <div class="contact-item">
+        <span class="icon">💬</span>
+        <div class="label">技术支持</div>
+        <div class="value"><a href="index.html">查看支持页面</a></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="org">四川轻化工大学开放原子开源协会 · SUSE OAA</div>
+    <div>MIT License · <a href="https://github.com/suse-edu-cn/SUSE-OAA-APP">开源仓库</a> · <a href="index.html">技术支持</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

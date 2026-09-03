@@ -12,16 +12,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
  * 统一的返回按钮组件
  * 圆形背景，更美观的设计
+ *
+ * @param tint 图标颜色；不传则跟随当前主题的 onSurface。像考试信息这类会根据
+ * 自定义顶栏背景色调整前景色的页面，需要传入匹配的颜色，否则图标会读不清。
  */
 @Composable
 fun BackButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    tint: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Box(
         modifier = modifier
@@ -34,7 +39,7 @@ fun BackButton(
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "返回",
-            tint = MaterialTheme.colorScheme.onSurface,
+            tint = tint,
             modifier = Modifier.size(22.dp)
         )
     }
