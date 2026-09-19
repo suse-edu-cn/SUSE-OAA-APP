@@ -5,6 +5,7 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import com.suseoaa.projectoaa.shared.data.remote.ApiConfig
 
 /**
  * 652打卡 API 服务
@@ -19,8 +20,8 @@ import io.ktor.http.*
 class CheckinApiService(val httpClient: HttpClient) {
 
     companion object {
-        private const val UIAS_BASE = "https://uias.suse.edu.cn"
-        private const val QFHY_BASE = "https://qfhy.suse.edu.cn"
+        private const val UIAS_BASE = ApiConfig.UIAS_BASE
+        private const val QFHY_BASE = ApiConfig.QFHY_BASE
         private const val QDDK_ADMIN_ENTRY = "$QFHY_BASE/xg/app/qddk/admin/qddkdk"
 
         // 登录服务地址

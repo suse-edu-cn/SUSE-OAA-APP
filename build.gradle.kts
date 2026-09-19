@@ -10,3 +10,5 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.sqldelight) apply false
 }
+// 分层规则检查，规则定义见该文件
+apply(from = "gradle/architecture-rules.gradle.kts")

@@ -41,22 +41,21 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func scheduleCheckinRefresh() {
-        let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
-
-        // 从 Kotlin 读取配置，设置最早执行时间
+        // 从 Kotlin 读取配置
         IosKoinInitKt.initializeKoinIfNeeded()
         let config = IosBackgroundCheckinKt.getConfigSync()
 
-        if config.enabled && !config.targetAccountIds.isEmpty {
-            // 计算下次签到时间（Swift 侧简单计算）
-            let nextRun = calculateNextRunDate(hour: Int(config.scheduledHour), minute: Int(config.scheduledMinute))
-            request.earliestBeginDate = nextRun
-            print("[iOS AppDelegate] 后台任务已调度，最早执行时间: \(nextRun)")
-        } else {
-            // 默认1小时后
-            request.earliestBeginDate = Date().addingTimeInterval(3600)
-            print("[iOS AppDelegate] 后台任务已调度（默认1小时后）")
+        guard config.enabled && !config.targetAccountIds.isEmpty else {
+            // 用户未开启或未选择签到账号：取消可能残留的后台任务，不再重复提交
+            BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
+            print("[iOS AppDelegate] 未配置定时签到任务，已取消后台刷新任务")
+            return
         }
+
+        let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
+        let nextRun = calculateNextRunDate(hour: Int(config.scheduledHour), minute: Int(config.scheduledMinute))
+        request.earliestBeginDate = nextRun
+        print("[iOS AppDelegate] 后台任务已调度，最早执行时间: \(nextRun)")
 
         do {
             try BGTaskScheduler.shared.submit(request)
@@ -66,17 +65,24 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func handleCheckinRefresh(task: BGAppRefreshTask) {
-        // 立即调度下一个任务
-        scheduleCheckinRefresh()
-
         // 初始化 Koin
         IosKoinInitKt.initializeKoinIfNeeded()
+
+        // 重新调度下一次任务；若未配置签到任务，上面的 scheduleCheckinRefresh 会自动取消而不是重新提交
+        scheduleCheckinRefresh()
+
+        let config = IosBackgroundCheckinKt.getConfigSync()
+        guard config.enabled && !config.targetAccountIds.isEmpty else {
+            // 没有配置定时签到任务，静默跳过，不弹任何通知
+            print("[iOS AppDelegate] 未配置定时签到任务，跳过本次后台执行")
+            task.setTaskCompleted(success: true)
+            return
+        }
 
         // 发送通知告知用户
         scheduleLocalNotification(title: "定时签到", body: "正在执行自动签到...")
 
         // 设置过期处理
-        let expired = false
         task.expirationHandler = {
             // 任务超时
             print("[iOS AppDelegate] 后台任务超时")

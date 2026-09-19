@@ -6,12 +6,10 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-
-/** 从 `_sop_session_` JWT 中解析出来的用户身份 */
-data class SopSessionUser(
-    val studentId: String,
-    val name: String
-)
+import com.suseoaa.projectoaa.shared.util.AppLog
+import com.suseoaa.projectoaa.shared.domain.model.checkin.SopSessionUser
+import com.suseoaa.projectoaa.shared.domain.repository.CheckinRepository
+import com.suseoaa.projectoaa.shared.domain.repository.QrCodeCheckinRepository
 
 /**
  * `_sop_session_` JWT 解析器。
@@ -52,7 +50,7 @@ class SopSessionParser(private val json: Json) {
         val payload = payloadOf(jwt) ?: return null
         val uid = payload["uid"]?.jsonPrimitive?.content
         if (uid.isNullOrBlank()) {
-            println("[SopSession] payload 中缺少 uid")
+            AppLog.d("[SopSession] payload 中缺少 uid")
             return null
         }
         val name = extraOf(jwt)?.get("userName")?.jsonPrimitive?.content.orEmpty()
@@ -69,7 +67,7 @@ class SopSessionParser(private val json: Json) {
         return try {
             val parts = jwt.split(".")
             if (parts.size != 3) {
-                println("[SopSession] 不是有效的 JWT，段数=${parts.size}")
+                AppLog.d("[SopSession] 不是有效的 JWT，段数=${parts.size}")
                 return null
             }
             val payload = parts[1]
@@ -82,7 +80,7 @@ class SopSessionParser(private val json: Json) {
             val decoded = Base64.UrlSafe.decode(padded).decodeToString()
             json.parseToJsonElement(decoded).jsonObject
         } catch (e: Exception) {
-            println("[SopSession] 解析 JWT payload 失败: ${e.message}")
+            AppLog.e("[SopSession] 解析 JWT payload 失败: ${e.message}")
             null
         }
     }
@@ -94,7 +92,7 @@ class SopSessionParser(private val json: Json) {
         return try {
             json.parseToJsonElement(extraString).jsonObject
         } catch (e: Exception) {
-            println("[SopSession] 解析 extra 失败: ${e.message}")
+            AppLog.e("[SopSession] 解析 extra 失败: ${e.message}")
             null
         }
     }

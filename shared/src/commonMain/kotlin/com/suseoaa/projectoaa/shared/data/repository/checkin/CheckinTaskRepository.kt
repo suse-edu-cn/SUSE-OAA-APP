@@ -11,6 +11,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import com.suseoaa.projectoaa.shared.util.AppLog
+import com.suseoaa.projectoaa.shared.domain.repository.CheckinRepository
+import com.suseoaa.projectoaa.shared.domain.repository.QrCodeCheckinRepository
 
 /**
  * 签到任务的读取与提交。
@@ -65,7 +68,7 @@ class CheckinTaskRepository(private val json: Json) {
         endIndex: Int
     ): Result<List<CheckinTask>> = withContext(Dispatchers.IO) {
         runCatching {
-            println("[Checkin] 加载打卡时间: [$startIndex, $endIndex)")
+            AppLog.d("[Checkin] 加载打卡时间: [$startIndex, $endIndex)")
             val updated = tasks.toMutableList()
             for (i in startIndex until minOf(endIndex, tasks.size)) {
                 val task = tasks[i]
@@ -73,7 +76,7 @@ class CheckinTaskRepository(private val json: Json) {
                 updated[i] = fillSignTime(gateway, task)
             }
             updated
-        }.onFailure { println("[Checkin] 批量加载打卡时间异常: ${it.message}") }
+        }.onFailure { AppLog.e("[Checkin] 批量加载打卡时间异常: ${it.message}") }
     }
 
     /**
@@ -90,10 +93,10 @@ class CheckinTaskRepository(private val json: Json) {
             val detail = fetchTaskDetail(gateway, taskId).getOrElse { error ->
                 return@withContext CheckinResult.Failed(error.message ?: "获取任务详情失败")
             }
-            println("[Checkin] 任务ID: $taskId, 当前状态: ${detail.qdzt}")
+            AppLog.d("[Checkin] 任务ID: $taskId, 当前状态: ${detail.qdzt}")
             submit(gateway, taskId, location, alreadyChecked = detail.qdzt == 1, onStatus = onStatus)
         } catch (e: Exception) {
-            println("[Checkin] checkinTask 异常: ${e.message}")
+            AppLog.e("[Checkin] checkinTask 异常: ${e.message}")
             onStatus("异常: ${e.message}")
             CheckinResult.Failed(e.message ?: "未知错误")
         }
@@ -125,7 +128,7 @@ class CheckinTaskRepository(private val json: Json) {
                     onStatus("无任务")
                     return@withContext CheckinResult.NoTask("未找到今日待签到任务")
                 }
-            println("[Checkin] 找到任务: ${task.rwmc} (ID: ${task.id})")
+            AppLog.d("[Checkin] 找到任务: ${task.rwmc} (ID: ${task.id})")
 
             val detail = fetchTaskDetail(gateway, task.id).getOrElse { error ->
                 return@withContext CheckinResult.Failed(error.message ?: "获取任务详情失败")
@@ -137,7 +140,7 @@ class CheckinTaskRepository(private val json: Json) {
 
             submit(gateway, task.id, location, alreadyChecked = false, onStatus = onStatus)
         } catch (e: Exception) {
-            println("[Checkin] checkinTodayTask 异常: ${e.message}")
+            AppLog.e("[Checkin] checkinTodayTask 异常: ${e.message}")
             onStatus("异常: ${e.message}")
             CheckinResult.Failed(e.message ?: "未知错误")
         }
@@ -161,9 +164,9 @@ class CheckinTaskRepository(private val json: Json) {
             }
             val tasks = body.result?.data.orEmpty()
                 .sortedByDescending { task -> task.needTime.ifEmpty { task.qdksrq } }
-            println("[Checkin] 获取到 ${tasks.size} 个任务 (status=$status)")
+            AppLog.d("[Checkin] 获取到 ${tasks.size} 个任务 (status=$status)")
             tasks
-        }.onFailure { println("[Checkin] 获取任务列表异常(status=$status): ${it.message}") }
+        }.onFailure { AppLog.e("[Checkin] 获取任务列表异常(status=$status): ${it.message}") }
     }
 
     /** 拉取任务详情中的打卡信息（dkxx） */
@@ -202,11 +205,11 @@ class CheckinTaskRepository(private val json: Json) {
         onStatus: (String) -> Unit
     ): CheckinResult {
         val signData = CheckinSignData.build(taskId, location)
-        println("[Checkin] 签到数据: $signData")
+        AppLog.d("[Checkin] 签到数据: $signData")
 
         val response = gateway.submitCheckin(signData)
         val responseText = response.bodyAsText()
-        println("[Checkin] 签到响应: $responseText")
+        AppLog.d("[Checkin] 签到响应: $responseText")
 
         val result = json.decodeFromString<CheckinSubmitResponse>(responseText)
         return if (result.success && result.resultCode == 0) {

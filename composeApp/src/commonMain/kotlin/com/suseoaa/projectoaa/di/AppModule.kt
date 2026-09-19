@@ -3,11 +3,11 @@ package com.suseoaa.projectoaa.di
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.changePassword.ChangePasswordViewModel
-import com.suseoaa.projectoaa.presentation.checkin.CheckinExecutor
-import com.suseoaa.projectoaa.presentation.checkin.PasswordAutoLogin
-import com.suseoaa.projectoaa.presentation.checkin.CheckinScheduler
+import com.suseoaa.projectoaa.domain.checkin.CheckinExecutor
+import com.suseoaa.projectoaa.domain.checkin.PasswordAutoLogin
+import com.suseoaa.projectoaa.domain.checkin.CheckinScheduler
 import com.suseoaa.projectoaa.presentation.checkin.CheckinViewModel
-import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinManager
+import com.suseoaa.projectoaa.domain.checkin.ScheduledCheckinManager
 import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinViewModel
 import com.suseoaa.projectoaa.presentation.course.CourseViewModel
 import com.suseoaa.projectoaa.presentation.course.CourseStatisticsViewModel
@@ -25,9 +25,6 @@ import com.suseoaa.projectoaa.presentation.teachingplan.CourseInfoViewModel
 import com.suseoaa.projectoaa.presentation.teachingplan.StudyRequirementViewModel
 import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
 import com.suseoaa.projectoaa.presentation.usermanagement.UserManagementViewModel
-import com.suseoaa.projectoaa.presentation.ailab.AiLabViewModel
-import com.suseoaa.projectoaa.presentation.ailab.AiChatViewModel
-import com.suseoaa.projectoaa.presentation.ailab.AcademicAnalysisViewModel
 import com.suseoaa.projectoaa.widget.WidgetRefresher
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -38,20 +35,25 @@ import org.koin.dsl.module
  */
 val appModule = module {
     // ==================== ViewModels ====================
-    viewModel { MainViewModel(get(), get()) }
-    viewModel { LoginViewModel(get(), get()) }
+    viewModel { MainViewModel(get(), get(), get(), get(), get()) }
+    viewModel { LoginViewModel(get(), get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { ForgetPasswordViewModel(get()) }
-    viewModel { HomeViewModel(get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get()) }
     viewModel { ValueCalculatorViewModel(get(), get()) }
     viewModel { ChangePasswordViewModel(get()) }
-    viewModel { CourseViewModel(get(), get(), get(), get()) }
+    viewModel { CourseViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { CourseStatisticsViewModel(get(), get(), get()) }
     viewModel { AcademicViewModel(get(), get(), get(), get(), get<WidgetRefresher>()) }
     viewModel { ExamViewModel(get(), get(), get(), get(), get<WidgetRefresher>()) }
-    viewModel { PersonViewModel(get(), get()) }
-    viewModel { GpaViewModel(get(), get()) }
+    viewModel { PersonViewModel(get(), get(), get()) }
+    viewModel { GpaViewModel(get(), get(), get()) }
     viewModel { GradesViewModel(get(), get(), get(), get(), get()) }
+    // 刻意注册为 single 而非 viewModel：UpdateDialog / UpdateScreen / PersonScreen
+    // 三处共用同一实例来共享下载进度（isDownloading / downloadProgress），改成
+    // viewModel 后各页面会拿到独立实例，跳页时正在进行的下载进度会归零。
+    // 正确做法是把下载状态下沉到应用级的 AppUpdateController，ViewModel 只做薄封装，
+    // 属于后续阶段的改造，这里先维持现有行为。
     single { AppUpdateViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { UserManagementViewModel(get()) }
@@ -80,7 +82,4 @@ val appModule = module {
     single { com.suseoaa.projectoaa.util.ToastManager }
 
     // AI 实验室（factory：退出页面即释放，防止模型驻留内存）
-    viewModel { AiLabViewModel(get()) }
-    viewModel { AiChatViewModel(get()) }
-    viewModel { AcademicAnalysisViewModel(get(), get()) }
 }

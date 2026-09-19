@@ -1,10 +1,11 @@
 package com.suseoaa.projectoaa
 
 import android.app.Application
+import android.content.pm.ApplicationInfo
 import com.suseoaa.projectoaa.di.appModule
 import com.suseoaa.projectoaa.di.platformModule
-import com.suseoaa.projectoaa.presentation.checkin.CheckinScheduler
-import com.suseoaa.projectoaa.presentation.checkin.ScheduledCheckinManager
+import com.suseoaa.projectoaa.domain.checkin.CheckinScheduler
+import com.suseoaa.projectoaa.domain.checkin.ScheduledCheckinManager
 import com.suseoaa.projectoaa.scheduling.CheckinAlarmManager
 import com.suseoaa.projectoaa.shared.di.getSharedModules
 import com.suseoaa.projectoaa.util.AppLifecycleObserver
@@ -13,12 +14,17 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.context.GlobalContext
 import org.koin.core.logger.Level
+import com.suseoaa.projectoaa.shared.util.AppLog
 
 class OaaApplication : Application() {
     private var lifecycleObserver: AppLifecycleObserver? = null
 
     override fun onCreate() {
         super.onCreate()
+
+        // 日志必须先于一切初始化，否则启动阶段的日志会被丢弃。
+        // Release 包不装载 Antilog，AppLog 的调用退化为空操作。
+        AppLog.init(debug = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
 
         startKoin {
             androidLogger(Level.DEBUG)
@@ -46,7 +52,7 @@ class OaaApplication : Application() {
                         CheckinAlarmManager.scheduleNextAlarm(this@OaaApplication, config)
                     }
                 } catch (e: Exception) {
-                    println("[OaaApplication] 注册签到闹钟失败: ${e.message}")
+                    AppLog.e("[OaaApplication] 注册签到闹钟失败: ${e.message}")
                 }
             }
 
@@ -57,7 +63,7 @@ class OaaApplication : Application() {
                 )
             }
         } catch (e: Exception) {
-            println("[OaaApplication] 启动定时签到调度器失败: ${e.message}")
+            AppLog.e("[OaaApplication] 启动定时签到调度器失败: ${e.message}")
         }
     }
 

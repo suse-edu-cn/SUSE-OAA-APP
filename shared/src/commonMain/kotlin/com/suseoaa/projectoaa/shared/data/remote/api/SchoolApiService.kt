@@ -12,12 +12,14 @@ import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.Json
+import com.suseoaa.projectoaa.shared.data.remote.ApiConfig
+import com.suseoaa.projectoaa.shared.util.AppLog
 
 class SchoolApiService(
     private val client: HttpClient,
     private val json: Json
 ) {
-    private val baseUrl = "https://jwgl.suse.edu.cn"
+    private val baseUrl = ApiConfig.SCHOOL_BASE
 
     suspend fun getCSRFToken(): HttpResponse {
         return client.get("$baseUrl/xtgl/login_slogin.html")
@@ -54,7 +56,7 @@ class SchoolApiService(
     }
 
     suspend fun querySchedule(year: String, semester: String): HttpResponse {
-        println("[SchoolApiService] 正在发起课表查询 xskbcx_cxXsgrkb 学年=$year, 学期=$semester")
+        AppLog.d("[SchoolApiService] 正在发起课表查询 xskbcx_cxXsgrkb 学年=$year, 学期=$semester")
         return client.submitForm(
             url = "$baseUrl/kbcx/xskbcx_cxXsgrkb.html?gnmkdm=N2151",
             formParameters = parameters {

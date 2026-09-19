@@ -38,7 +38,7 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.updateAll
 
-import com.suseoaa.projectoaa.shared.data.repository.ExamCacheEntity
+import com.suseoaa.projectoaa.shared.domain.model.exam.ExamCacheEntity
 import com.suseoaa.projectoaa.shared.util.OaaClock
 import com.suseoaa.projectoaa.shared.util.parseExamTimeRange
 import kotlinx.datetime.TimeZone

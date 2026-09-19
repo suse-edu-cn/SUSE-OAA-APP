@@ -65,8 +65,6 @@ playServicesMaps = "20.0.0"
 # ML Kit Text Recognition (Android only)
 mlkitTextRecognition = "16.0.1"
 
-# LiteRT-LM（官方推荐的端侧大模型推理框架，替代旧版MediaPipe Tasks GenAI）
-litertlmAndroid = "0.13.1"
 
 # ONNX Runtime (Android)
 onnxruntime = "1.24.3"
@@ -123,6 +121,7 @@ koin-compose-viewmodel = { group = "io.insert-koin", name = "koin-compose-viewmo
 # Coroutines
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 
 # Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
@@ -155,8 +154,6 @@ play-services-maps = { module = "com.google.android.gms:play-services-maps", ver
 mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkitTextRecognition" }
 mlkit-text-recognition-chinese = { module = "com.google.mlkit:text-recognition-chinese", version.ref = "mlkitTextRecognition" }
 
-# LiteRT-LM（官方推荐的端侧LLM推理框架，替代旧版MediaPipe Tasks GenAI，内置弱符号探测防崩溃机制）
-litertlm-android = { module = "com.google.ai.edge.litertlm:litertlm-android", version.ref = "litertlmAndroid" }
 
 # ONNX Runtime (跨平台深度学习推理)
 # 1.22.0+ 完全支持 Android 16KB 页面对齐

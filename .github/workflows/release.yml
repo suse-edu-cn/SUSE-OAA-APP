@@ -92,23 +92,6 @@ jobs:
           java-version: '25'
           cache: 'gradle'
 
-      # -------------------------------------------------------
-      # 修复2：安装 NDK 27.0.12077973（androidApp 指定的版本）
-      # ubuntu-latest 默认不带该 NDK，CMakeLists.txt 编译 native
-      # 库（suseoaa_litert_preload / LiteRtTopKOpenClSampler）时
-      # 必须有对应 NDK 才能成功。
-      # -------------------------------------------------------
-      - name: Setup Android NDK
-        if: steps.check_version.outputs.changed == 'true'
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK 27.0.12077973
-        if: steps.check_version.outputs.changed == 'true'
-        run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-            "ndk;27.0.12077973" \
-            "cmake;3.22.1"
-
       - name: Decode Keystore
         if: steps.check_version.outputs.changed == 'true'
         env:
@@ -130,6 +113,8 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
+          # 发版前同样跑一遍架构检查，避免直推 main 绕过 CI
+          ./gradlew --no-daemon checkArchitecture
           ./gradlew --no-daemon :androidApp:assembleRelease
 
           APK_DIR="androidApp/build/outputs/apk/release"

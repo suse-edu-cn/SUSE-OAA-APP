@@ -116,48 +116,6 @@ data class StudyRequirementCategory(
     val requiredCredits: Double
 )
 
-data class CourseInfoUiState(
-    val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
-    val courses: List<CourseInfoItem> = emptyList(),
-    val filteredCourses: List<CourseInfoItem> = emptyList(),
-    val planId: String = "",
-    val totalCount: Int = 0,
-    val errorMessage: String? = null,
-    val colleges: List<CollegeOption> = emptyList(),
-    val majors: List<MajorOption> = emptyList(),
-    val grades: List<String> = emptyList(),
-    val selectedCollegeId: String = "",
-    val selectedMajorId: String = "",
-    val selectedGrade: String = "",
-    val isLoadingColleges: Boolean = false,
-    val isLoadingMajors: Boolean = false,
-    val isLoadingPlan: Boolean = false,
-    val planInfo: TeachingPlanInfo? = null,
-    val selectedYear: String = "",
-    val selectedSemester: String = "",
-    val searchKeyword: String = "",
-    val selectedCourseType: String = "",
-    val isFilterExpanded: Boolean = true,
-    val isQueryMode: Boolean = false
-)
-
-data class StudyRequirementUiState(
-    val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
-    val categories: List<StudyRequirementCategory> = emptyList(),
-    val selectedGrade: String = "",
-    val selectedCollegeId: String = "",
-    val selectedMajorId: String = "",
-    val grades: List<String> = emptyList(),
-    val colleges: List<CollegeOption> = emptyList(),
-    val majors: List<MajorOption> = emptyList(),
-    val planInfo: TeachingPlanInfo? = null,
-    val errorMessage: String? = null,
-    val isFilterExpanded: Boolean = true,
-    val expandedCategories: Set<String> = emptySet()
-)
-
 object CourseTypeConstants {
     const val GENERAL_REQUIRED = "学科基础必修"
     const val MAJOR_BASE_REQUIRED = "专业基础必修"
@@ -247,43 +205,6 @@ data class AcademicPlanOverview(
     val isPassed: Boolean = false // 是否全部通过
 )
 
-data class AcademicStatusUiState(
-    val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
-    val categories: List<AcademicStatusCategory> = emptyList(),
-    val expandedCategories: Set<String> = emptySet(),
-    val selectedFilter: AcademicStatusFilter = AcademicStatusFilter.ALL,
-    val errorMessage: String? = null,
-    val totalCredits: Double = 0.0,
-    val earnedCredits: Double = 0.0,
-    val studyingCredits: Double = 0.0,
-    val averageGradePoint: Double = 0.0,
-    // 教务系统原始的总体学分要求
-    val planOverview: AcademicPlanOverview = AcademicPlanOverview(),
-    // 其它课程学分要求的课程（qtkcxfyq节点）
-    val otherCourses: List<AcademicStatusCourseItem> = emptyList(),
-    val otherCoursesPassedCount: Int = 0,
-    val otherCoursesTotalCount: Int = 0,
-    // 计划内课程统计
-    val planTotalCourses: Int = 0,
-    val planPassedCount: Int = 0,
-    val planFailedCount: Int = 0,
-    val planStudyingCount: Int = 0,
-    val planNotStudiedCount: Int = 0,
-    // 计划外课程统计
-    val nonPlanCourses: List<AcademicStatusCourseItem> = emptyList(),
-    val nonPlanPassedCount: Int = 0,
-    val nonPlanFailedCount: Int = 0
-)
-
-enum class AcademicStatusFilter(val displayName: String) {
-    ALL("全部"),
-    PASSED("已通过"),
-    FAILED("不及格"),
-    STUDYING("在修"),
-    NOT_STUDIED("未修")
-}
-
 object StudyStatusUtils {
     // XDZT字段: 1=在修, 2=不及格, 3=未修, 4=已通过
     const val STUDYING = "1"
@@ -298,16 +219,6 @@ object StudyStatusUtils {
             NOT_STUDIED -> "未修"
             PASSED -> "已通过"
             else -> "未知"
-        }
-    }
-
-    fun matchesFilter(statusCode: String, filter: AcademicStatusFilter): Boolean {
-        return when (filter) {
-            AcademicStatusFilter.ALL -> true
-            AcademicStatusFilter.PASSED -> statusCode == PASSED
-            AcademicStatusFilter.FAILED -> statusCode == FAILED
-            AcademicStatusFilter.STUDYING -> statusCode == STUDYING
-            AcademicStatusFilter.NOT_STUDIED -> statusCode == NOT_STUDIED
         }
     }
 }

@@ -1,0 +1,33 @@
+-- 整周实践课（教务系统的 sjkList，如"IT项目实习 19-20周"）
+-- 这类课没有固定的星期和节次，整周进行，所以不放进 ClassTime，单独一张表。
+CREATE TABLE PracticeCourse (
+    studentId TEXT NOT NULL,
+    xnm TEXT NOT NULL,
+    xqm TEXT NOT NULL,
+    courseName TEXT NOT NULL,
+    teacher TEXT NOT NULL DEFAULT '',
+    classGroup TEXT NOT NULL DEFAULT '',
+    weeks TEXT NOT NULL DEFAULT '',
+    weeksMask INTEGER NOT NULL DEFAULT 0,
+    credit TEXT NOT NULL DEFAULT '',
+    assessment TEXT NOT NULL DEFAULT '',
+    campus TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (studentId, xnm, xqm, courseName)
+);
+
+-- 查询指定学期的实践课
+selectByTerm:
+SELECT * FROM PracticeCourse WHERE studentId = ? AND xnm = ? AND xqm = ?;
+
+-- 插入或替换
+insertOrReplace:
+INSERT OR REPLACE INTO PracticeCourse(studentId, xnm, xqm, courseName, teacher, classGroup, weeks, weeksMask, credit, assessment, campus)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- 删除指定学期的实践课（同步前先清空，避免退课后残留）
+deleteByTerm:
+DELETE FROM PracticeCourse WHERE studentId = ? AND xnm = ? AND xqm = ?;
+
+-- 删除指定学生的所有实践课
+deleteAllByStudent:
+DELETE FROM PracticeCourse WHERE studentId = ?;

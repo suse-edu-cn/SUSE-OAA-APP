@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -16,12 +15,18 @@ kotlin {
 
     android {
         namespace = "com.suseoaa.projectoaa.shared"
-        compileSdk = 36
+        // 与 composeApp / androidApp 保持一致；此前是 36，三个模块编译用的
+        // android.jar 不同版本，属于容易埋雷的不一致。
+        compileSdk = 37
         minSdk = 28
 
         compilerOptions {
             jvmTarget.set(JvmTarget.fromTarget("25"))
         }
+
+        // 打开 JVM 侧的单元测试。此前 commonTest 只在 iOS 模拟器目标上编译运行，
+        // 意味着这些测试只有 macOS 开发机跑得动，Linux CI 上等于没有测试。
+        withHostTest { }
     }
 
     listOf(
@@ -40,6 +45,12 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            // 基础工具与错误模型；用 api 暴露，让上层模块透传拿到
+            api(project(":core:common"))
+            api(project(":core:datastore"))
+            api(project(":core:database"))
+            api(project(":core:network"))
+
             // Coroutines
             api(libs.kotlinx.coroutines.core)
 
@@ -56,10 +67,6 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
             implementation(libs.ktor.network)
-
-            // SQLDelight
-            api(libs.sqldelight.runtime)
-            api(libs.sqldelight.coroutines)
 
             // Koin DI
             implementation(libs.koin.core)
@@ -81,9 +88,6 @@ kotlin {
             // Ktor Android Engine
             implementation(libs.ktor.client.okhttp)
 
-            // SQLDelight Android Driver
-            implementation(libs.sqldelight.android.driver)
-
             // Coroutines Android
             implementation(libs.kotlinx.coroutines.android)
 
@@ -92,17 +96,11 @@ kotlin {
 
             // Cryptography Provider
             implementation(libs.cryptography.provider.jdk)
-
-            // LiteRT-LM（官方推荐的端侧LLM推理框架，替代旧版MediaPipe Tasks GenAI）
-            implementation(libs.litertlm.android)
         }
 
         iosMain.dependencies {
             // Ktor iOS Engine
             implementation(libs.ktor.client.darwin)
-
-            // SQLDelight iOS Driver
-            implementation(libs.sqldelight.native.driver)
 
             // Cryptography Provider
             implementation(libs.cryptography.provider.apple)
@@ -114,11 +112,3 @@ kotlin {
     }
 }
 
-
-sqldelight {
-    databases {
-        create("CourseDatabase") {
-            packageName.set("com.suseoaa.projectoaa.shared.database")
-        }
-    }
-}

@@ -1,6 +1,7 @@
 @file:SuppressLint("RestrictedApi")
 package com.suseoaa.projectoaa.composeapp.widget
 
+import com.suseoaa.projectoaa.domain.course.TimeSlotConfig
 import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -197,7 +198,7 @@ class TodayCoursesWidget : GlanceAppWidget() {
     @androidx.compose.runtime.Composable
     private fun CourseItem(
         course: CourseWithTimes, 
-        slot: WidgetDataFetcher.TimeSlotConfig
+        slot: TimeSlotConfig
     ) {
         val time = course.times.find { 
             val (start, _) = WidgetDataFetcher.parsePeriod(it.period)

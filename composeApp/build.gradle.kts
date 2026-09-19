@@ -26,6 +26,10 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.fromTarget("25"))
         }
+
+        // 打开 JVM 单元测试源集。此前 composeApp 完全没有测试源集，
+        // 所有 ViewModel 与 presentation 层逻辑都无处可测。
+        withHostTest { }
     }
 
     listOf(
@@ -52,6 +56,24 @@ kotlin {
             implementation(libs.haze.materials)
             // Shared模块
             api(project(":shared"))
+            // 主题、通用组件与液态玻璃渲染
+            api(project(":core:designsystem"))
+            // 平台能力：OCR、下载、权限、Toast、设备信息
+            api(project(":core:platform"))
+            api(project(":core:navigation"))
+            // 业务功能模块
+            implementation(project(":feature:recruitment"))
+            implementation(project(":feature:person"))
+            implementation(project(":feature:academic"))
+            implementation(project(":feature:account"))
+            implementation(project(":feature:update"))
+            implementation(project(":feature:checkin"))
+            implementation(project(":feature:course"))
+            implementation(project(":feature:teachingplan"))
+            implementation(project(":feature:home"))
+            implementation(project(":feature:grades"))
+            implementation(project(":feature:exam"))
+            implementation(project(":feature:gpa"))
 
             // Compose Multiplatform
             implementation(compose.runtime)
@@ -144,6 +166,8 @@ kotlin {
 
         commonTest.dependencies {
             implementation(kotlin("test"))
+            // ViewModel 测试要用 runTest 与可控调度器
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

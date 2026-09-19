@@ -12,6 +12,7 @@ import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.Json
+import com.suseoaa.projectoaa.shared.data.remote.ApiConfig
 
 /**
  * OAA 后端 API 服务 (非教务系统)
@@ -21,7 +22,7 @@ class OaaApiService(
     private val client: HttpClient,
     private val json: Json
 ) {
-    private val baseUrl = "https://api.suseoaa.com"
+    private val baseUrl = ApiConfig.OAA_BASE
 
     // ==================== 登录 ====================
     suspend fun login(request: LoginRequest): LoginResponse {

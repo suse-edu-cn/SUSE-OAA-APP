@@ -1,0 +1,715 @@
+package com.suseoaa.projectoaa.ui.screen.update
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import com.suseoaa.projectoaa.data.repository.GithubAsset
+import com.suseoaa.projectoaa.data.repository.GithubRelease
+import com.suseoaa.projectoaa.presentation.update.AppUpdateViewModel
+import com.suseoaa.projectoaa.presentation.update.getAppVersionName
+import com.suseoaa.projectoaa.ui.component.OaaMarkdownText
+import com.suseoaa.projectoaa.presentation.update.isIosPlatform
+import com.suseoaa.projectoaa.ui.component.common.SharedTransitionPageContainer
+import org.koin.compose.viewmodel.koinViewModel
+import com.suseoaa.projectoaa.shared.data.remote.ApiConfig
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UpdateScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: AppUpdateViewModel = koinViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val allReleases by viewModel.allReleases.collectAsState()
+    val isRefreshing = uiState.isChecking
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchAllReleases()
+        viewModel.checkForUpdateAuto()
+    }
+
+    SharedTransitionPageContainer(transitionKey = "update") {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(64.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    viewModel.fetchAllReleases()
+                    viewModel.checkForUpdateAuto()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    val isTablet = maxWidth > 800.dp
+                    val hasUpdate = uiState.hasUpdate
+                    val latestRelease = uiState.latestRelease
+                    val releaseNotesReleases = remember(
+                        allReleases,
+                        hasUpdate,
+                        latestRelease?.tagName
+                    ) {
+                        if (hasUpdate && latestRelease != null) {
+                            allReleases.filterNot { it.tagName == latestRelease.tagName }
+                        } else {
+                            allReleases
+                        }
+                    }
+                    
+                    val consolidatedLatestRelease = remember(latestRelease, allReleases) {
+                        latestRelease?.copy(body = viewModel.getConsolidatedReleaseNotes())
+                    }
+
+                    if (isTablet) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .padding(vertical = 24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = if (hasUpdate) Arrangement.Top else Arrangement.Center
+                            ) {
+                                HeroVersionSection(
+                                    hasUpdate,
+                                    consolidatedLatestRelease,
+                                    isTablet = true
+                                )
+
+                                if (hasUpdate && consolidatedLatestRelease != null) {
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .padding(horizontal = 32.dp)
+                                    ) {
+                                        ReleaseCard(
+                                            release = consolidatedLatestRelease,
+                                            isLatestRelease = true,
+                                            isCurrentVersion = getAppVersionName() == consolidatedLatestRelease!!.tagName.removePrefix("v"),
+                                            downloadingReleaseTag = uiState.downloadingReleaseTag,
+                                            downloadedReleaseTag = uiState.downloadedReleaseTag,
+                                            isDownloading = uiState.isDownloading,
+                                            downloadProgress = uiState.downloadProgress,
+                                            fixedActionButtons = true,
+                                            modifier = Modifier.fillMaxHeight(),
+                                            viewModel = viewModel
+                                        )
+                                    }
+                                }
+                            }
+
+                            VerticalDivider(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(vertical = 32.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1.2f)
+                                    .fillMaxHeight()
+                            ) {
+                                ReleaseHistorySection(
+                                    allReleases = releaseNotesReleases,
+                                    hasUpdate = false,
+                                    latestRelease = consolidatedLatestRelease,
+                                    isChecking = uiState.isChecking,
+                                    errorMessage = uiState.errorMessage,
+                                    downloadingReleaseTag = uiState.downloadingReleaseTag,
+                                    downloadedReleaseTag = uiState.downloadedReleaseTag,
+                                    isDownloading = uiState.isDownloading,
+                                    downloadProgress = uiState.downloadProgress,
+                                    viewModel = viewModel
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 32.dp)
+                        ) {
+                            item {
+                                HeroVersionSection(
+                                    hasUpdate,
+                                    consolidatedLatestRelease,
+                                    isTablet = false
+                                )
+                            }
+
+                            if (hasUpdate && consolidatedLatestRelease != null) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.padding(
+                                            horizontal = 24.dp,
+                                            vertical = 8.dp
+                                        )
+                                    ) {
+                                        ReleaseCard(
+                                            release = consolidatedLatestRelease,
+                                            isLatestRelease = true,
+                                            isCurrentVersion = getAppVersionName() == consolidatedLatestRelease!!.tagName.removePrefix("v"),
+                                            downloadingReleaseTag = uiState.downloadingReleaseTag,
+                                            downloadedReleaseTag = uiState.downloadedReleaseTag,
+                                            isDownloading = uiState.isDownloading,
+                                            downloadProgress = uiState.downloadProgress,
+                                            viewModel = viewModel
+                                        )
+                                    }
+                                }
+                            }
+
+                            item {
+                                Text(
+                                    text = "Release Notes",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.padding(
+                                        start = 24.dp,
+                                        top = 32.dp,
+                                        bottom = 16.dp
+                                    )
+                                )
+                            }
+
+                            if (releaseNotesReleases.isEmpty()) {
+                                item {
+                                    ReleaseHistoryPlaceholder(
+                                        isChecking = uiState.isChecking,
+                                        errorMessage = uiState.errorMessage
+                                    )
+                                }
+                            } else {
+                                items(releaseNotesReleases) { release ->
+                                    val isLatestRelease = consolidatedLatestRelease?.tagName == release.tagName
+                                    val releaseForDisplay =
+                                        if (isLatestRelease)
+                                            consolidatedLatestRelease!!
+                                        else
+                                            release
+
+                                    Box(
+                                        modifier = Modifier.padding(
+                                            horizontal = 24.dp,
+                                            vertical = 12.dp
+                                        )
+                                    ) {
+                                        ReleaseCard(
+                                            release = releaseForDisplay,
+                                            isLatestRelease = isLatestRelease,
+                                            isCurrentVersion = getAppVersionName() == release.tagName.removePrefix("v"),
+                                            downloadingReleaseTag = uiState.downloadingReleaseTag,
+                                            downloadedReleaseTag = uiState.downloadedReleaseTag,
+                                            isDownloading = uiState.isDownloading,
+                                            downloadProgress = uiState.downloadProgress,
+                                            viewModel = viewModel
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HeroVersionSection(hasUpdate: Boolean, latestRelease: GithubRelease?, isTablet: Boolean) {
+    val currentVersion = getAppVersionName()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = if (isTablet) 0.dp else 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "青蟹",
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onBackground,
+            letterSpacing = 1.sp
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Version $currentVersion",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        if (hasUpdate && latestRelease != null) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(MaterialTheme.colorScheme.error, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "发现新版本 ${latestRelease.tagName}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        } else {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "已是最新版本",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 历史版本列表的空态。拉取失败时必须把原因显示出来——之前这里只处理
+ * "正在加载"，请求一失败就渲染成一片空白，看起来像功能坏了却没有任何线索。
+ */
+@Composable
+private fun ReleaseHistoryPlaceholder(
+    isChecking: Boolean,
+    errorMessage: String?
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(48.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            isChecking -> CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 4.dp
+            )
+
+            errorMessage != null -> Text(
+                text = "获取历史版本失败：$errorMessage",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+            )
+
+            else -> Text(
+                text = "暂无历史版本",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
+    }
+}
+
+@Composable
+fun ReleaseHistorySection(
+    allReleases: List<GithubRelease>,
+    hasUpdate: Boolean,
+    latestRelease: GithubRelease?,
+    isChecking: Boolean,
+    errorMessage: String?,
+    downloadingReleaseTag: String?,
+    downloadedReleaseTag: String?,
+    isDownloading: Boolean,
+    downloadProgress: Int,
+    viewModel: AppUpdateViewModel
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        if (hasUpdate && latestRelease != null) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 32.dp)
+                    .padding(top = 24.dp)
+            ) {
+                ReleaseCard(
+                    release = latestRelease,
+                    isLatestRelease = true,
+                    isCurrentVersion = getAppVersionName() == latestRelease.tagName.removePrefix("v"),
+                    downloadingReleaseTag = downloadingReleaseTag,
+                    downloadedReleaseTag = downloadedReleaseTag,
+                    isDownloading = isDownloading,
+                    downloadProgress = downloadProgress,
+                    viewModel = viewModel
+                )
+            }
+        }
+
+        Text(
+            text = "Release Notes",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(start = 32.dp, top = 32.dp, bottom = 24.dp)
+        )
+
+        if (allReleases.isEmpty()) {
+            ReleaseHistoryPlaceholder(
+                isChecking = isChecking,
+                errorMessage = errorMessage
+            )
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(start = 32.dp, end = 32.dp, bottom = 48.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(allReleases) { release ->
+                    val isLatestRelease = latestRelease?.tagName == release.tagName
+                    val releaseForDisplay =
+                        if (isLatestRelease)
+                            latestRelease
+                        else
+                            release
+
+                    ReleaseCard(
+                        release = releaseForDisplay,
+                        isLatestRelease = isLatestRelease,
+                        isCurrentVersion = getAppVersionName() == release.tagName.removePrefix("v"),
+                        downloadingReleaseTag = downloadingReleaseTag,
+                        downloadedReleaseTag = downloadedReleaseTag,
+                        isDownloading = isDownloading,
+                        downloadProgress = downloadProgress,
+                        viewModel = viewModel
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReleaseCard(
+    release: GithubRelease,
+    isLatestRelease: Boolean,
+    isCurrentVersion: Boolean,
+    downloadingReleaseTag: String?,
+    downloadedReleaseTag: String?,
+    isDownloading: Boolean,
+    downloadProgress: Int,
+    fixedActionButtons: Boolean = false,
+    modifier: Modifier = Modifier,
+    viewModel: AppUpdateViewModel
+) {
+    val isThisReleaseDownloading = downloadingReleaseTag == release.tagName
+    val isThisReleaseReadyToInstall =
+        downloadedReleaseTag == release.tagName && !isDownloading && downloadProgress >= 100
+    val apkAsset = release.assets.firstOrNull { it.name.endsWith(".apk") }
+    val showActionButtons = !isIosPlatform() && apkAsset != null
+
+    Card(
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isCurrentVersion)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+            else
+                MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isCurrentVersion) 0.dp else 4.dp,
+            hoveredElevation = 8.dp
+        ),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(28.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = release.tagName,
+                    style = if (isLatestRelease)
+                        MaterialTheme.typography.headlineMedium
+                    else
+                        MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    letterSpacing = 0.5.sp
+                )
+
+                if (isCurrentVersion) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ) {
+                        Text(
+                            text = "当前版本",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 16.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+            )
+
+            if (fixedActionButtons && showActionButtons) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        OaaMarkdownText(
+                            markdown = release.body,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                ReleaseCardActionButtons(
+                    apkAsset = apkAsset,
+                    release = release,
+                    isThisReleaseReadyToInstall = isThisReleaseReadyToInstall,
+                    isThisReleaseDownloading = isThisReleaseDownloading,
+                    downloadProgress = downloadProgress,
+                    viewModel = viewModel
+                )
+            } else {
+                OaaMarkdownText(
+                    markdown = release.body,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (showActionButtons) {
+                    Spacer(modifier = Modifier.height(28.dp))
+                    ReleaseCardActionButtons(
+                        apkAsset = apkAsset,
+                        release = release,
+                        isThisReleaseReadyToInstall = isThisReleaseReadyToInstall,
+                        isThisReleaseDownloading = isThisReleaseDownloading,
+                        downloadProgress = downloadProgress,
+                        viewModel = viewModel
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReleaseCardActionButtons(
+    apkAsset: GithubAsset?,
+    release: GithubRelease,
+    isThisReleaseReadyToInstall: Boolean,
+    isThisReleaseDownloading: Boolean,
+    downloadProgress: Int,
+    viewModel: AppUpdateViewModel
+) {
+    if (apkAsset == null) return
+
+    if (isThisReleaseReadyToInstall) {
+        Button(
+            onClick = { viewModel.installDownloadedApk() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
+            Text("安装更新", fontWeight = FontWeight.Bold)
+        }
+    } else if (isThisReleaseDownloading) {
+        DownloadProgressCancelButton(
+            progress = downloadProgress,
+            onCancel = { viewModel.cancelDownload() }
+        )
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OutlinedButton(
+                onClick = {
+                    viewModel.downloadApk(
+                        url = apkAsset.downloadUrl,
+                        fileName = apkAsset.name,
+                        digest = apkAsset.digest,
+                        isProxy = false,
+                        releaseTag = release.tagName
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
+                shape = CircleShape,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                )
+            ) {
+                Text("直接下载", fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = {
+                    viewModel.downloadApk(
+                        url = apkAsset.downloadUrl.replace(ApiConfig.GITHUB_DOWNLOAD_PREFIX, ApiConfig.UPDATE_DOWNLOAD_PREFIX),
+                        fileName = apkAsset.name,
+                        digest = apkAsset.digest,
+                        isProxy = true,
+                        releaseTag = release.tagName
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("加速下载", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+/**
+ * 下载中的按钮：背景由进度条慢慢填满，同时保留取消下载的点击能力
+ */
+@Composable
+private fun DownloadProgressCancelButton(
+    progress: Int,
+    onCancel: () -> Unit
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = (progress / 100f).coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 300),
+        label = "downloadProgress"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                shape = CircleShape
+            )
+            .clickable(onClick = onCancel)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(animatedProgress)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+        )
+        Text(
+            text = "取消下载 · $progress%",
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.align(Alignment.Center)
+        )
+    }
+}

@@ -15,11 +15,12 @@ import io.ktor.http.contentType
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import com.suseoaa.projectoaa.shared.data.remote.ApiConfig
 
 class RecruitmentApiService : KoinComponent {
     private val client: HttpClient by inject(named("oaa"))
 
-    private val baseUrl = "https://api.suseoaa.com"
+    private val baseUrl = ApiConfig.OAA_BASE
 
     suspend fun createApplication(request: RecruitmentSubmitRequest): RecruitmentResponse<Unit> {
         return client.post("$baseUrl/application/create") {

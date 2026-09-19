@@ -1,6 +1,7 @@
 @file:SuppressLint("RestrictedApi")
 package com.suseoaa.projectoaa.composeapp.widget
 
+import com.suseoaa.projectoaa.domain.course.TimeSlotConfig
 import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -53,7 +54,7 @@ class NextCourseWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         var errorMsg: String? = null
-        var nextCourseData: Pair<CourseWithTimes, WidgetDataFetcher.TimeSlotConfig>? = null
+        var nextCourseData: Pair<CourseWithTimes, TimeSlotConfig>? = null
         try {
             nextCourseData = WidgetDataFetcher.getNextCourse()
         } catch (e: Exception) {

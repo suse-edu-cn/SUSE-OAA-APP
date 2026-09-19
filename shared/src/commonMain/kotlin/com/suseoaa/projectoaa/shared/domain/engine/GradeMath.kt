@@ -1,6 +1,6 @@
 package com.suseoaa.projectoaa.shared.domain.engine
 
-import com.suseoaa.projectoaa.shared.data.repository.GradeEntity
+import com.suseoaa.projectoaa.shared.domain.model.grade.GradeEntity
 
 /**
  * 成绩数值语义与聚合计算。
@@ -27,6 +27,24 @@ internal fun parseScore(score: String): Double {
         "不及格", "未通过", "不合格", "缓考", "缺考" -> 0.0
         else -> 0.0
     }
+}
+
+/**
+ * 百分制成绩换算成绩点。
+ *
+ * 教务系统只在部分记录里存了绩点，缺失时按本校规则折算：
+ * 95 分及以上封顶 4.5，60 分以下记 0，中间每满 5 分加 0.5 分绩点。
+ *
+ * 这条规则原本在三处各写了一份（GpaRepository 的包装类、GpaViewModel、GradeModels），
+ * 其中 GradeModels 那份用的还是另一套阶梯值——所幸那份是死代码，没有真的影响显示。
+ * 学校若调整折算规则，改这一处即可。
+ *
+ * 跨模块被 composeApp 的 ViewModel 使用，故为 public。
+ */
+fun scoreToGpaPoint(score: Double): Double = when {
+    score >= 95.0 -> 4.5
+    score < 60.0 -> 0.0
+    else -> 1.0 + ((score - 60) / 5).toInt() * 0.5
 }
 
 internal fun parseCredit(credit: String): Double = credit.toDoubleOrNull() ?: 0.0

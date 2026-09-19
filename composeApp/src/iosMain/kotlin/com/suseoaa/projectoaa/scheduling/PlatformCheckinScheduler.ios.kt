@@ -1,15 +1,18 @@
 package com.suseoaa.projectoaa.scheduling
 
-import com.suseoaa.projectoaa.presentation.checkin.SchedulerConfig
+import com.suseoaa.projectoaa.domain.checkin.SchedulerConfig
+import com.suseoaa.projectoaa.shared.util.AppLog
 
-actual class PlatformCheckinScheduler {
-    actual fun schedule(config: SchedulerConfig) {
-        // iOS 的 BGTask 注册在 Swift AppDelegate 中处理
-        // Kotlin 侧只需保存配置，Swift 侧在 scheduleCheckinRefresh() 中读取
-        println("[iOS PlatformCheckinScheduler] schedule called (handled by Swift AppDelegate)")
+/**
+ * iOS 的后台任务由 Swift 侧 AppDelegate 的 BGTask 注册与触发，
+ * Kotlin 侧只落配置，这里是空实现。
+ */
+class IosCheckinScheduler : PlatformCheckinScheduler {
+    override fun schedule(config: SchedulerConfig) {
+        AppLog.d("[iOS CheckinScheduler] schedule called (handled by Swift AppDelegate)")
     }
 
-    actual fun cancel() {
-        println("[iOS PlatformCheckinScheduler] cancel called (handled by Swift AppDelegate)")
+    override fun cancel() {
+        AppLog.d("[iOS CheckinScheduler] cancel called (handled by Swift AppDelegate)")
     }
 }

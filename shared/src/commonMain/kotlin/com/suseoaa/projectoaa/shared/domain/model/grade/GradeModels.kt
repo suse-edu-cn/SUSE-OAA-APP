@@ -83,68 +83,31 @@ data class GradeItem(
     val zymc: String? = ""         // 专业名称
 )
 
-// GPA 计算相关模型
-data class GpaStats(
-    val totalGpa: String = "0.00",
-    val totalCredits: String = "0.0",
-    val degreeGpa: String = "0.00",
-    val degreeCredits: String = "0.0"
+/**
+ * 原先声明在 data/repository 包里，导致 UI 层必须 import 数据层才能拿到模型。
+ * 它是纯领域模型，归位到 domain/model。
+ */
+/**
+ * 成绩实体类 (用于UI层)
+ */
+data class GradeEntity(
+    val studentId: String,
+    val xnm: String,
+    val xqm: String,
+    val courseId: String,
+    val jxbId: String = "",
+    val regularScore: String = "",
+    val regularRatio: String = "",
+    val experimentScore: String = "",
+    val experimentRatio: String = "",
+    val finalScore: String = "",
+    val finalRatio: String = "",
+    val courseName: String,
+    val score: String,
+    val credit: String,
+    val gpa: String,
+    val courseType: String,
+    val examType: String,
+    val teacher: String,
+    val examNature: String
 )
-
-data class GpaCourseWrapper(
-    val originalEntity: GradeItem,
-    val simulatedScore: Double? = null,
-    val isDegreeCourse: Boolean = false
-) {
-    val displayScore: String
-        get() = simulatedScore?.toString() ?: originalEntity.cj ?: "0"
-    
-    val displayGpa: String
-        get() {
-            val score = simulatedScore ?: (originalEntity.cj?.toDoubleOrNull() ?: 0.0)
-            return calculateGpa(score)
-        }
-    
-    val credit: Double
-        get() = originalEntity.xf?.toDoubleOrNull() ?: 0.0
-    
-    private fun calculateGpa(score: Double): String {
-        val gpa = when {
-            score >= 90 -> 4.0
-            score >= 85 -> 3.7
-            score >= 82 -> 3.3
-            score >= 78 -> 3.0
-            score >= 75 -> 2.7
-            score >= 72 -> 2.3
-            score >= 68 -> 2.0
-            score >= 64 -> 1.5
-            score >= 60 -> 1.0
-            else -> 0.0
-        }
-        return gpa.formatDecimal(2)
-    }
-    
-    private fun Double.formatDecimal(decimals: Int): String {
-        var factor = 1.0
-        repeat(decimals) { factor *= 10.0 }
-        val rounded = kotlin.math.round(this * factor) / factor
-        val parts = rounded.toString().split(".")
-        val intPart = parts[0]
-        val decPart = if (parts.size > 1) parts[1] else ""
-        return if (decimals > 0) {
-            "$intPart.${decPart.padEnd(decimals, '0').take(decimals)}"
-        } else {
-            intPart
-        }
-    }
-}
-
-enum class SortOrder {
-    ASCENDING,
-    DESCENDING
-}
-
-enum class FilterType {
-    ALL,
-    DEGREE_ONLY
-}

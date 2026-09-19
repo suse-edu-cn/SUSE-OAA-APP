@@ -519,3 +519,13 @@ sealed class CheckinResult {
     data class NoTask(val message: String) : CheckinResult()
     data class Failed(val error: String) : CheckinResult()
 }
+
+/**
+ * 原先与 SopSessionParser 同处 data 包，导致 domain 层的仓库接口要反向依赖数据层。
+ * 它是纯领域模型，归位到 domain/model。
+ */
+/** 从 `_sop_session_` JWT 中解析出来的用户身份 */
+data class SopSessionUser(
+    val studentId: String,
+    val name: String
+)

@@ -1,14 +1,15 @@
 package com.suseoaa.projectoaa.scheduling
 
 import android.content.Context
-import com.suseoaa.projectoaa.presentation.checkin.SchedulerConfig
+import com.suseoaa.projectoaa.domain.checkin.SchedulerConfig
 
-actual class PlatformCheckinScheduler(private val context: Context) {
-    actual fun schedule(config: SchedulerConfig) {
+/** 用系统闹钟实现定时签到；AlarmManager 需要 Context，故实现留在应用模块。 */
+class AndroidCheckinScheduler(private val context: Context) : PlatformCheckinScheduler {
+    override fun schedule(config: SchedulerConfig) {
         CheckinAlarmManager.scheduleNextAlarm(context, config)
     }
 
-    actual fun cancel() {
+    override fun cancel() {
         CheckinAlarmManager.cancelAlarm(context)
     }
 }

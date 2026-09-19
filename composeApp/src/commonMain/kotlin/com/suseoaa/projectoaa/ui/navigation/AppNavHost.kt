@@ -26,10 +26,7 @@ import com.suseoaa.projectoaa.ui.screen.teachingplan.AcademicStatusScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.CourseInfoScreen
 import com.suseoaa.projectoaa.ui.screen.teachingplan.StudyRequirementScreen
 import com.suseoaa.projectoaa.ui.screen.update.UpdateScreen
-import com.suseoaa.projectoaa.presentation.course.CourseStatisticsScreen
-import com.suseoaa.projectoaa.ui.screen.ailab.AiChatScreen
-import com.suseoaa.projectoaa.ui.screen.ailab.AiLabScreen
-import com.suseoaa.projectoaa.ui.screen.ailab.AcademicAnalysisScreen
+import com.suseoaa.projectoaa.ui.screen.course.CourseStatisticsScreen
 import com.suseoaa.projectoaa.ui.screen.home.ValueCalculatorScreen
 import com.suseoaa.projectoaa.util.DeepLinkManager
 
@@ -181,9 +178,6 @@ fun AppNavHost(
                 onNavigateToCourseStatistics = {
                     navController.navigate(Screen.CourseStatistics.route)
                 },
-                onNavigateToAiLab = {
-                    navController.navigate(Screen.AiLab.route)
-                },
                 onNavigateToValueCalculator = {
                     navController.navigate(Screen.ValueCalculator.route)
                 },
@@ -326,26 +320,6 @@ fun AppNavHost(
             )
         }
 
-        composable(Screen.AiLab.route) {
-            AiLabScreen(
-                onBack = { navController.popBackStack() },
-                onNavigateToAcademicAnalysis = { navController.navigate(Screen.AcademicAnalysis.route) },
-                onNavigateToAiChat = { navController.navigate(Screen.AiChat.route) }
-            )
-        }
-
-        composable(Screen.AiChat.route) {
-            AiChatScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(Screen.AcademicAnalysis.route) {
-            AcademicAnalysisScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        
         composable(Screen.ValueCalculator.route) {
             ValueCalculatorScreen(
                 onBack = { navController.popBackStack() }

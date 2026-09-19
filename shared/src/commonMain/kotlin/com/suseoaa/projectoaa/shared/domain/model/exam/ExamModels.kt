@@ -94,3 +94,24 @@ data class ExamApiItem(
     @SerialName("xm")
     val xm: String? = ""          // 姓名
 )
+
+/**
+ * 原先声明在 data/repository 包里，是纯领域模型，归位到 domain/model。
+ */
+/**
+ * 考试缓存实体类 (用于UI层)
+ */
+data class ExamCacheEntity(
+    val id: Long = 0,
+    val studentId: String,
+    val courseName: String,
+    val time: String,
+    val location: String,
+    val credit: String = "",
+    val examType: String = "考试",
+    val examName: String = "",
+    val yearSemester: String = "",
+    val isCustom: Boolean = false,
+    val xnm: String = "",
+    val xqm: String = ""
+)

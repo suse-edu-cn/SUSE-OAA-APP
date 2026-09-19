@@ -2,8 +2,7 @@ package com.suseoaa.projectoaa.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.suseoaa.projectoaa.shared.data.local.BackgroundPageIds
-import com.suseoaa.projectoaa.shared.data.local.TokenManager
+import com.suseoaa.projectoaa.shared.data.local.store.BackgroundPageIds
 import com.suseoaa.projectoaa.ui.navigation.Screen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -14,14 +13,21 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
-import com.suseoaa.projectoaa.shared.data.repository.OaaAuthRepository
+import com.suseoaa.projectoaa.shared.domain.repository.OaaAuthRepository
 import com.suseoaa.projectoaa.shared.util.OaaClock
+import com.suseoaa.projectoaa.shared.data.local.store.AppearanceStore
+import com.suseoaa.projectoaa.shared.data.local.store.CredentialStore
+import com.suseoaa.projectoaa.shared.data.local.store.SessionStore
+import com.suseoaa.projectoaa.shared.data.local.store.AppSettingsStore
 
 /**
  * 主 ViewModel - 管理应用级状态
  */
 class MainViewModel(
-    private val tokenManager: TokenManager,
+    private val appearanceStore: AppearanceStore,
+    private val credentialStore: CredentialStore,
+    private val sessionStore: SessionStore,
+    private val appSettingsStore: AppSettingsStore,
     private val oaaAuthRepository: OaaAuthRepository
 ) : ViewModel() {
 
@@ -37,7 +43,7 @@ class MainViewModel(
     init {
         // 启动时读取默认起始页并应用
         viewModelScope.launch {
-            val startTab = tokenManager.defaultStartTabFlow.first()
+            val startTab = appSettingsStore.defaultStartTabFlow.first()
             if (startTab != 0) {
                 _selectedMainTab.value = startTab
             }
@@ -45,13 +51,13 @@ class MainViewModel(
 
         // 检查 Token 是否需要刷新
         viewModelScope.launch {
-            val isLoggedIn = tokenManager.isLoggedIn.first()
+            val isLoggedIn = sessionStore.isLoggedIn.first()
             if (isLoggedIn) {
-                val currentStudentId = tokenManager.currentStudentId.first()
-                val userPassword = tokenManager.getPasswordSynchronously()
+                val currentStudentId = sessionStore.currentStudentId.first()
+                val userPassword = credentialStore.getPasswordSynchronously()
 
                 if (!currentStudentId.isNullOrEmpty() && !userPassword.isNullOrEmpty()) {
-                    val lastUpdateTime = tokenManager.getTokenLastUpdateTime()
+                    val lastUpdateTime = sessionStore.getTokenLastUpdateTime()
                     val currentTime = OaaClock.now().toEpochMilliseconds()
                     val tenDaysInMillis = 10L * 24 * 60 * 60 * 1000
 
@@ -60,9 +66,9 @@ class MainViewModel(
                         val result = oaaAuthRepository.login(currentStudentId, userPassword)
                         result.onSuccess { response ->
                             response.data?.token?.let { token ->
-                                tokenManager.saveToken(token)
+                                sessionStore.saveToken(token)
                             }
-                            tokenManager.saveTokenLastUpdateTime(currentTime)
+                            sessionStore.saveTokenLastUpdateTime(currentTime)
                         }
                     }
                 }
@@ -87,7 +93,7 @@ class MainViewModel(
      * 使用 tokenFlow (JWT Token) 而不是 currentStudentId (教务系统学号)
      * 初始值为 null，表示正在加载，防止登录页闪烁
      */
-    val startDestination: StateFlow<String?> = tokenManager.tokenFlow
+    val startDestination: StateFlow<String?> = sessionStore.tokenFlow
         .map { token ->
             if (token.isNullOrEmpty()) {
                 Screen.Login.route
@@ -101,28 +107,28 @@ class MainViewModel(
             initialValue = null  // 初始值为 null，表示正在加载
         )
 
-    val dynamicColorEnabled: StateFlow<Boolean> = tokenManager.dynamicColorEnabledFlow
+    val dynamicColorEnabled: StateFlow<Boolean> = appearanceStore.dynamicColorEnabledFlow
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = false
         )
 
-    val dynamicPaletteLightColorHex: StateFlow<String?> = tokenManager.dynamicColorPaletteLightFlow
+    val dynamicPaletteLightColorHex: StateFlow<String?> = appearanceStore.dynamicColorPaletteLightFlow
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = null
         )
 
-    val dynamicPaletteDarkColorHex: StateFlow<String?> = tokenManager.dynamicColorPaletteDarkFlow
+    val dynamicPaletteDarkColorHex: StateFlow<String?> = appearanceStore.dynamicColorPaletteDarkFlow
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = null
         )
 
-    val appBackgroundImages: StateFlow<Map<String, String?>> = tokenManager.appBackgroundImagesFlow
+    val appBackgroundImages: StateFlow<Map<String, String?>> = appearanceStore.appBackgroundImagesFlow
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
@@ -136,21 +142,21 @@ class MainViewModel(
         )
 
     // 默认起始页（0=首页, 1=课程, 2=教务信息, 3=个人）
-    val defaultStartTab: StateFlow<Int> = tokenManager.defaultStartTabFlow
+    val defaultStartTab: StateFlow<Int> = appSettingsStore.defaultStartTabFlow
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = 0
         )
 
-    val isLiquidGlassTabbarEnabled: StateFlow<Boolean> = tokenManager.liquidGlassTabbarEnabledFlow
+    val isLiquidGlassTabbarEnabled: StateFlow<Boolean> = appSettingsStore.liquidGlassTabbarEnabledFlow
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = false
         )
 
-    val liquidGlassTabbarStyle: StateFlow<Int> = tokenManager.liquidGlassTabbarStyleFlow
+    val liquidGlassTabbarStyle: StateFlow<Int> = appSettingsStore.liquidGlassTabbarStyleFlow
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
@@ -159,7 +165,7 @@ class MainViewModel(
 
     fun saveDefaultStartTab(tabIndex: Int) {
         viewModelScope.launch {
-            tokenManager.saveDefaultStartTab(tabIndex)
+            appSettingsStore.saveDefaultStartTab(tabIndex)
         }
     }
 }

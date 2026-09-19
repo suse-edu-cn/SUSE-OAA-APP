@@ -1,0 +1,43 @@
+name: CI
+
+# 之前仓库只有"版本号变更就发版"这一个 workflow，日常提交没有任何自动检查，
+# 分层规则和测试全靠人肉把关。这里补一条最基本的：每次 push / PR 都跑
+# 架构检查、共享模块单测和编译。
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'gradle'
+
+      - name: Grant execute permission
+        run: chmod +x ./gradlew
+
+      # 先跑架构检查：它只做静态扫描，几秒出结果，坏得早比坏得晚好
+      - name: Architecture rules
+        run: ./gradlew --no-daemon checkArchitecture
+
+      # 不写死模块名：testAndroidHostTest 会在所有声明了该任务的模块上执行，
+      # 新增 feature 模块时不用再改 CI
+      - name: Unit tests
+        run: ./gradlew --no-daemon testAndroidHostTest
+
+      # 只编译不打包：assembleDebug 需要 NDK，日常检查用不上
+      - name: Compile
+        run: ./gradlew --no-daemon :composeApp:compileAndroidMain

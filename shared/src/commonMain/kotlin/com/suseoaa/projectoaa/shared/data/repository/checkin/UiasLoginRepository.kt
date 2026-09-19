@@ -9,6 +9,7 @@ import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import com.suseoaa.projectoaa.shared.util.AppLog
 
 /**
  * UIAS 统一认证的密码登录链路。
@@ -62,7 +63,7 @@ class UiasLoginRepository(
                 val loginPageResponse = api.getLoginPage(rememberCookies)
                 val redirectUrl = loginPageResponse.headers[HttpHeaders.Location]
                 if (loginPageResponse.status.value !in 300..399 || redirectUrl.isNullOrBlank()) {
-                    println(
+                    AppLog.d(
                         "[Checkin] rememberMe 快速登录未命中重定向，status=${loginPageResponse.status.value}"
                     )
                     return@withContext Result.success(false)
@@ -71,15 +72,15 @@ class UiasLoginRepository(
                 api.followRedirect(redirectUrl)
 
                 if (!hasQfhySessionCookie()) {
-                    println("[Checkin] rememberMe 快速登录后未拿到 qfhy SESSION")
+                    AppLog.d("[Checkin] rememberMe 快速登录后未拿到 qfhy SESSION")
                     return@withContext Result.success(false)
                 }
 
                 persistRememberMeCookies(account.id)
-                println("[Checkin] rememberMe 快速登录成功: ${account.studentId}")
+                AppLog.d("[Checkin] rememberMe 快速登录成功: ${account.studentId}")
                 Result.success(true)
             } catch (e: Exception) {
-                println("[Checkin] rememberMe 快速登录异常: ${e.message}")
+                AppLog.e("[Checkin] rememberMe 快速登录异常: ${e.message}")
                 Result.success(false)
             }
         }
@@ -92,12 +93,12 @@ class UiasLoginRepository(
      */
     suspend fun fetchCaptchaImage(): Result<ByteArray> = withContext(Dispatchers.IO) {
         try {
-            println("[Checkin] 开始获取验证码...")
+            AppLog.d("[Checkin] 开始获取验证码...")
             cookieStorage.clear()
             pendingSmsChallenge = null
 
             val loginPageResponse = api.getLoginPage()
-            println("[Checkin] 登录页面响应状态: ${loginPageResponse.status}")
+            AppLog.d("[Checkin] 登录页面响应状态: ${loginPageResponse.status}")
             if (loginPageResponse.status.value != 200) {
                 return@withContext Result.failure(
                     CheckinException("无法访问登录页面 (${loginPageResponse.status.value})")
@@ -107,13 +108,13 @@ class UiasLoginRepository(
             val execution = UiasHtmlParser.execution(loginPageResponse.bodyAsText())
                 ?: return@withContext Result.failure(CheckinException("未找到 execution token"))
             cachedExecution = execution
-            println("[Checkin] execution token: ${execution.take(30)}...")
+            AppLog.d("[Checkin] execution token: ${execution.take(30)}...")
 
             val captchaImageBytes = api.getCaptchaImage()
-            println("[Checkin] 验证码图片大小: ${captchaImageBytes.size} bytes")
+            AppLog.d("[Checkin] 验证码图片大小: ${captchaImageBytes.size} bytes")
             Result.success(captchaImageBytes)
         } catch (e: Exception) {
-            println("[Checkin] 获取验证码异常: ${e.message}")
+            AppLog.e("[Checkin] 获取验证码异常: ${e.message}")
             Result.failure(e)
         }
     }
@@ -133,7 +134,7 @@ class UiasLoginRepository(
             val execution = cachedExecution
                 ?: return@withContext Result.failure(CheckinException("请先获取验证码"))
 
-            println("[Checkin] 开始登录: username=$username, captcha=$captchaCode")
+            AppLog.d("[Checkin] 开始登录: username=$username, captcha=$captchaCode")
 
             // 密码需先反转再做 RSA 加密，这是 UIAS 前端的既有约定
             val encryptedPassword = CheckinRSAEncryptor.encrypt(
@@ -145,18 +146,18 @@ class UiasLoginRepository(
             pendingSmsChallenge = null
 
             val loginResponse = api.submitLogin(encryptedPassword, username, execution, captchaCode)
-            println("[Checkin] 登录响应状态: ${loginResponse.status}")
+            AppLog.d("[Checkin] 登录响应状态: ${loginResponse.status}")
 
             // 登录成功会以 302 重定向回业务系统
             if (loginResponse.status.value == 302) {
                 val redirectUrl = loginResponse.headers[HttpHeaders.Location]
                     ?: return@withContext Result.failure(CheckinException("登录重定向失败"))
-                println("[Checkin] 登录成功，重定向到: $redirectUrl")
+                AppLog.d("[Checkin] 登录成功，重定向到: $redirectUrl")
                 return@withContext finalizeLoginAfterRedirect(redirectUrl, accountId)
             }
 
             val responseBody = loginResponse.bodyAsText()
-            println("[Checkin] 登录失败，响应长度: ${responseBody.length}")
+            AppLog.e("[Checkin] 登录失败，响应长度: ${responseBody.length}")
 
             if (UiasHtmlParser.requiresSmsVerification(responseBody)) {
                 pendingSmsChallenge = PendingSmsChallenge(
@@ -172,10 +173,10 @@ class UiasLoginRepository(
 
             pendingSmsChallenge = null
             val errorMsg = UiasHtmlParser.loginErrorMessage(responseBody, loginResponse.status.value)
-            println("[Checkin] 错误原因: $errorMsg")
+            AppLog.e("[Checkin] 错误原因: $errorMsg")
             Result.failure(CheckinException(errorMsg))
         } catch (e: Exception) {
-            println("[Checkin] 登录异常: ${e.message}")
+            AppLog.e("[Checkin] 登录异常: ${e.message}")
             Result.failure(e)
         }
     }
@@ -286,7 +287,7 @@ class UiasLoginRepository(
             return Result.failure(CheckinException("登录成功但未获取到 SESSION，会话初始化失败"))
         }
 
-        println(
+        AppLog.d(
             "[Checkin] 重定向完成，最终状态=${finalResponse.status.value}, " +
                 "SESSION=${sessionValue.take(16)}..."
         )

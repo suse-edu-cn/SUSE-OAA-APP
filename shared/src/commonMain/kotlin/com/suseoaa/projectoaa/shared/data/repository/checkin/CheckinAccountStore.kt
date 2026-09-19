@@ -4,6 +4,7 @@ import com.suseoaa.projectoaa.shared.database.CheckinAccount
 import com.suseoaa.projectoaa.shared.database.CourseDatabase
 import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinAccountData
 import com.suseoaa.projectoaa.shared.domain.model.checkin.CheckinLocations
+import com.suseoaa.projectoaa.shared.util.AppLog
 
 /**
  * 签到账号的本地存储。
@@ -75,7 +76,7 @@ class CheckinAccountStore(private val database: CourseDatabase) {
                 updatedAt = now,
                 id = existing.id
             )
-            println("[CheckinStore] 更新扫码账号: $studentId")
+            AppLog.d("[CheckinStore] 更新扫码账号: $studentId")
             existing.id
         } else {
             queries.insertQrCodeAccount(
@@ -89,7 +90,7 @@ class CheckinAccountStore(private val database: CourseDatabase) {
                 selectedLocation = selectedLocation
             )
             val newId = queries.selectByStudentId(studentId).executeAsOneOrNull()?.id ?: 0L
-            println("[CheckinStore] 新增扫码账号: $studentId, id=$newId")
+            AppLog.d("[CheckinStore] 新增扫码账号: $studentId, id=$newId")
             newId
         }
     }

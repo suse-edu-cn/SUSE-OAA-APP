@@ -5,6 +5,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.util.*
+import com.suseoaa.projectoaa.shared.data.remote.ApiConfig
 
 /**
  * 扫码签到 API 服务
@@ -29,7 +30,7 @@ import io.ktor.util.*
 class QrCodeCheckinApiService(private val httpClient: HttpClient) {
 
     companion object {
-        private const val QFHY_BASE = "https://qfhy.suse.edu.cn"
+        private const val QFHY_BASE = ApiConfig.QFHY_BASE
 
         // 微信扫码登录相关
         private const val CLIENT_ID_URL = "$QFHY_BASE/edu/v2/weixin/getClientId"

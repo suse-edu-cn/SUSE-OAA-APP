@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.composeapp.widget
 
+import com.suseoaa.projectoaa.domain.course.TimeSlotConfig
 import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -97,8 +98,8 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
     @androidx.compose.runtime.Composable
     private fun TodayFallbackContent(
         context: Context,
-        morning: List<Pair<CourseWithTimes, WidgetDataFetcher.TimeSlotConfig>>,
-        afternoon: List<Pair<CourseWithTimes, WidgetDataFetcher.TimeSlotConfig>>
+        morning: List<Pair<CourseWithTimes, TimeSlotConfig>>,
+        afternoon: List<Pair<CourseWithTimes, TimeSlotConfig>>
     ) {
         val bgSurface = DayNightColorProvider(day = Color(0xFFF3F4F6), night = Color(0xFF1F2937))
         val textPrimary = DayNightColorProvider(day = Color.Black, night = Color.White)
@@ -165,7 +166,7 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
         morningBlocks: List<List<Int>>,
         afternoonBlocks: List<List<Int>>,
         eveningBlocks: List<List<Int>>,
-        weeklyMap: Map<Int, List<Pair<CourseWithTimes, WidgetDataFetcher.TimeSlotConfig>>>
+        weeklyMap: Map<Int, List<Pair<CourseWithTimes, TimeSlotConfig>>>
     ) {
         val bgSurface = DayNightColorProvider(day = Color(0xFFF3F4F6), night = Color(0xFF1F2937))
         val textPrimary = DayNightColorProvider(day = Color.Black, night = Color.White)
@@ -305,10 +306,10 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
     }
 
     private fun findCourseCoveringPeriod(
-        weeklyMap: Map<Int, List<Pair<CourseWithTimes, WidgetDataFetcher.TimeSlotConfig>>>,
+        weeklyMap: Map<Int, List<Pair<CourseWithTimes, TimeSlotConfig>>>,
         day: Int,
         period: Int
-    ): Pair<CourseWithTimes, WidgetDataFetcher.TimeSlotConfig>? {
+    ): Pair<CourseWithTimes, TimeSlotConfig>? {
         return weeklyMap[day]?.find { pair ->
             val time = pair.first.times.find { t ->
                 val (s, _) = WidgetDataFetcher.parsePeriod(t.period)
@@ -341,7 +342,7 @@ class WeeklyScheduleWidget : GlanceAppWidget() {
     private fun PeriodRow(
         context: Context,
         blockPeriods: List<Int>,
-        weeklyMap: Map<Int, List<Pair<CourseWithTimes, WidgetDataFetcher.TimeSlotConfig>>>,
+        weeklyMap: Map<Int, List<Pair<CourseWithTimes, TimeSlotConfig>>>,
         currentDayOfWeek: Int,
         modifier: GlanceModifier = GlanceModifier
     ) {

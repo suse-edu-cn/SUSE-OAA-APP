@@ -5,6 +5,7 @@ import com.suseoaa.projectoaa.scheduling.PlatformCheckinScheduler
 import com.suseoaa.projectoaa.widget.AndroidWidgetRefresher
 import com.suseoaa.projectoaa.widget.WidgetRefresher
 import org.koin.dsl.module
+import com.suseoaa.projectoaa.scheduling.AndroidCheckinScheduler
 
 actual fun platformModule() = module {
     // App 更新仓库（Android 特定实现）
@@ -22,7 +23,7 @@ actual fun platformModule() = module {
     }
 
     // 定时签到平台调度器
-    single { PlatformCheckinScheduler(get()) }
+    single<PlatformCheckinScheduler> { AndroidCheckinScheduler(get()) }
 
     // 桌面小组件刷新器（Android 实现）
     single<WidgetRefresher> { AndroidWidgetRefresher(get()) }
