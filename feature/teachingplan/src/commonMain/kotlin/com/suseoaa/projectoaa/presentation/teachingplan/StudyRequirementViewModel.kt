@@ -3,7 +3,10 @@ package com.suseoaa.projectoaa.presentation.teachingplan
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.shared.domain.repository.TeachingPlanRepository
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -27,13 +30,14 @@ data class StudyRequirementUiState(
     val expandedCategories: Set<String> = emptySet()
 )
 
-
 /**
  * 修读要求查询 ViewModel
  * 可以查看任意专业、任意年级的修读要求
  */
 class StudyRequirementViewModel(
-    private val teachingPlanRepository: TeachingPlanRepository
+    private val teachingPlanRepository: TeachingPlanRepository,
+    private val schoolAccountRepository: SchoolAccountRepository,
+    private val schoolAuthRepository: SchoolAuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StudyRequirementUiState())
@@ -48,12 +52,45 @@ class StudyRequirementViewModel(
         loadColleges()
     }
 
+    private suspend fun ensureSchoolSession(
+        promptIfMissing: Boolean = true,
+        onAccountAdded: () -> Unit
+    ): Boolean {
+        val account = schoolAccountRepository.getCurrentAccount()
+        if (account == null) {
+            if (promptIfMissing) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "修读要求查询",
+                    onAccountAdded = onAccountAdded
+                )
+            }
+            return false
+        }
+        val loginResult = schoolAuthRepository.login(account.studentId, account.password)
+        if (loginResult.isFailure) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = loginResult.exceptionOrNull()?.message ?: "教务系统登录失败",
+                    isLoading = false,
+                    isRefreshing = false
+                )
+            }
+            return false
+        }
+        return true
+    }
+
     /**
      * 加载学院列表
      */
     private fun loadColleges() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+
+            if (!ensureSchoolSession { loadColleges() }) {
+                _uiState.update { it.copy(isLoading = false) }
+                return@launch
+            }
 
             val result = teachingPlanRepository.getCollegeList()
             result.fold(
@@ -104,6 +141,11 @@ class StudyRequirementViewModel(
     private fun loadMajors(collegeId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+
+            if (!ensureSchoolSession { loadMajors(collegeId) }) {
+                _uiState.update { it.copy(isLoading = false) }
+                return@launch
+            }
 
             val result = teachingPlanRepository.getMajorList(collegeId)
             result.fold(
@@ -176,16 +218,23 @@ class StudyRequirementViewModel(
      * 查询修读要求
      */
     fun queryStudyRequirements() {
-        val state = _uiState.value
-        if (state.selectedGrade.isEmpty() ||
-            state.selectedCollegeId.isEmpty() ||
-            state.selectedMajorId.isEmpty()
-        ) {
-            _uiState.update { it.copy(errorMessage = "请选择完整的查询条件") }
-            return
-        }
-
         viewModelScope.launch {
+            if (!ensureSchoolSession {
+                    if (_uiState.value.colleges.isEmpty()) loadColleges() else queryStudyRequirements()
+                }
+            ) {
+                return@launch
+            }
+
+            val state = _uiState.value
+            if (state.selectedGrade.isEmpty() ||
+                state.selectedCollegeId.isEmpty() ||
+                state.selectedMajorId.isEmpty()
+            ) {
+                _uiState.update { it.copy(errorMessage = "请选择完整的查询条件") }
+                return@launch
+            }
+
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
@@ -299,8 +348,9 @@ class StudyRequirementViewModel(
         val state = _uiState.value
         if (state.planInfo != null) {
             viewModelScope.launch {
+                if (!ensureSchoolSession { refresh() }) return@launch
                 _uiState.update { it.copy(isRefreshing = true) }
-                loadCoursesByPlan(state.planInfo!!.planId)
+                loadCoursesByPlan(state.planInfo.planId)
                 _uiState.update { it.copy(isRefreshing = false) }
             }
         } else if (state.selectedGrade.isNotEmpty() &&

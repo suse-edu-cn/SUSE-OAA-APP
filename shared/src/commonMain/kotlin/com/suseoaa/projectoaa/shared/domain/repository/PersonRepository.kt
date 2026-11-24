@@ -20,6 +20,12 @@ interface PersonRepository {
     /** 当前用户及其职位等级，用于决定界面上显示哪些管理入口。 */
     suspend fun getCurrentUser(): Result<CurrentUser>
 
+    /** 从会话内存缓存同步读取当前用户信息，无缓存时返回 null。 */
+    fun getCachedCurrentUser(): CurrentUser? = null
+
+    /** 获取当前用户信息，支持指定是否跳过内存缓存强制刷新。 */
+    suspend fun getCurrentUser(forceRefresh: Boolean): Result<CurrentUser> = getCurrentUser()
+
     /** 修改用户名、邮箱与年级，姓名不可修改；[grade] 为 null 时沿用当前年级。 */
     suspend fun updateProfile(username: String, email: String, grade: Int? = null): Result<String>
 

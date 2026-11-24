@@ -341,6 +341,12 @@ private fun InterviewerManagementDialog(
     val existingUserIds = remember(uiState.interviewers) {
         uiState.interviewers.mapNotNull { it.userId.takeIf { id -> id > 0 } }.toSet()
     }
+    val existingSignatures = remember(uiState.interviewers) {
+        uiState.interviewers
+            .filter { it.name.isNotBlank() }
+            .map { Triple(it.name.trim(), it.resolvedDepartment.trim(), it.role.trim()) }
+            .toSet()
+    }
 
     AlertDialog(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -411,7 +417,7 @@ private fun InterviewerManagementDialog(
                                             style = MaterialTheme.typography.bodyLarge,
                                             fontWeight = FontWeight.Medium
                                         )
-                                        val orgLine = listOf(interviewer.department, interviewer.role)
+                                        val orgLine = listOf(interviewer.resolvedDepartment, interviewer.role)
                                             .filter { it.isNotBlank() }
                                             .joinToString(" · ")
                                         if (orgLine.isNotBlank()) {
@@ -480,7 +486,10 @@ private fun InterviewerManagementDialog(
                         val shown = (selected.values + uiState.userResults)
                             .filter { it.isGraduated != true }.distinctBy { it.userId }
                         items(shown, key = { it.userId }) { user ->
-                            val alreadyAssigned = user.userId in existingUserIds
+                            val userName = user.name.ifBlank { user.username }.trim()
+                            val alreadyAssigned = user.userId in existingUserIds ||
+                                (userName.isNotEmpty() &&
+                                    Triple(userName, user.department.trim(), user.role.trim()) in existingSignatures)
                             val checked = user.userId in selected
                             Row(
                                 modifier = Modifier

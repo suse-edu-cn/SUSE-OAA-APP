@@ -6,7 +6,9 @@ import com.suseoaa.projectoaa.shared.domain.repository.LocalCourseRepository
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseWithTimes
 import com.suseoaa.projectoaa.shared.domain.model.grade.GradeEntity
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
 import com.suseoaa.projectoaa.shared.domain.repository.SchoolGradeRepository
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,7 +25,8 @@ data class CourseNodeData(
 class CourseStatisticsViewModel(
     private val localRepository: LocalCourseRepository,
     private val courseViewModel: CourseViewModel,
-    private val gradeRepository: SchoolGradeRepository
+    private val gradeRepository: SchoolGradeRepository,
+    private val schoolAccountRepository: SchoolAccountRepository
 ) : ViewModel() {
 
     // 所有的系统账号
@@ -148,6 +151,13 @@ class CourseStatisticsViewModel(
     fun syncAllData() {
         if (_isSyncing.value) return
         viewModelScope.launch {
+            if (schoolAccountRepository.getCurrentAccount() == null) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "课程统计同步",
+                    onAccountAdded = { syncAllData() }
+                )
+                return@launch
+            }
             _isSyncing.value = true
             try {
                 val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now()

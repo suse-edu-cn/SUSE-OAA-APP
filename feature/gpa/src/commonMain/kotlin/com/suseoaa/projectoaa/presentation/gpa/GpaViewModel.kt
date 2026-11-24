@@ -3,41 +3,23 @@ package com.suseoaa.projectoaa.presentation.gpa
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.domain.gpa.FilterType
+import com.suseoaa.projectoaa.domain.gpa.GpaCalculator
+import com.suseoaa.projectoaa.domain.gpa.SortOrder
+import com.suseoaa.projectoaa.shared.data.local.store.UserProfileStore
+import com.suseoaa.projectoaa.shared.domain.engine.scoreToGpaPoint
 import com.suseoaa.projectoaa.shared.domain.model.gpa.GpaCourseWrapper
 import com.suseoaa.projectoaa.shared.domain.repository.GpaRepository
-import kotlin.math.pow
-import kotlin.math.round
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAuthRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolGradeRepository
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.suseoaa.projectoaa.shared.data.local.store.SessionStore
-import com.suseoaa.projectoaa.shared.domain.engine.scoreToGpaPoint
-import com.suseoaa.projectoaa.domain.gpa.FilterType
-import com.suseoaa.projectoaa.domain.gpa.GpaCalculator
-import com.suseoaa.projectoaa.domain.gpa.SortOrder
-import com.suseoaa.projectoaa.shared.data.local.store.UserProfileStore
-
-// KMP 兼容的格式化函数（四舍五入）
-private fun Double.format(decimals: Int): String {
-    val factor = 10.0.pow(decimals)
-    val rounded = round(this * factor) / factor
-    val str = rounded.toString()
-    val parts = str.split(".")
-    return if (parts.size == 1) {
-        "$str.${"0".repeat(decimals)}"
-    } else {
-        val intPart = parts[0]
-        val decimalPart = parts[1]
-        if (decimalPart.length >= decimals) {
-            "$intPart.${decimalPart.take(decimals)}"
-        } else {
-            "$intPart.$decimalPart${"0".repeat(decimals - decimalPart.length)}"
-        }
-    }
-}
 
 @Immutable
 data class GpaUiState(
@@ -58,7 +40,9 @@ data class GpaUiState(
 )
 
 class GpaViewModel(
-    private val sessionStore: SessionStore,
+    private val schoolAccountRepository: SchoolAccountRepository,
+    private val schoolAuthRepository: SchoolAuthRepository,
+    private val schoolGradeRepository: SchoolGradeRepository,
     private val userProfileStore: UserProfileStore,
     private val gpaRepository: GpaRepository
 ) : ViewModel() {
@@ -66,29 +50,45 @@ class GpaViewModel(
     private val _uiState = MutableStateFlow(GpaUiState())
     val uiState: StateFlow<GpaUiState> = _uiState.asStateFlow()
 
-    fun loadData() {
+    fun loadData(promptIfMissing: Boolean = true) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                // 获取当前登录的学生ID
-                val studentId = sessionStore.currentStudentId.first()
-                val enrollmentYear = userProfileStore.userInfoFlow.first()["njdm_id"]
-                    ?.take(4)?.toIntOrNull()
-                _uiState.update { it.copy(enrollmentYear = enrollmentYear) }
-
-                if (studentId.isNullOrEmpty()) {
+                // 获取当前默认教务账号
+                val account = schoolAccountRepository.getCurrentAccount()
+                if (account == null) {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = "请先登录"
+                            errorMessage = "请先添加教务系统账号"
+                        )
+                    }
+                    if (promptIfMissing) {
+                        SchoolAccountPromptManager.requestAddAccount(
+                            featureName = "绩点计算",
+                            onAccountAdded = { loadData(promptIfMissing = false) }
                         )
                     }
                     return@launch
                 }
 
-                // 从 Repository 获取 GPA 数据
-                val result = gpaRepository.getGpaData(studentId)
+                val enrollmentYear = userProfileStore.userInfoFlow.first()["njdm_id"]
+                    ?.take(4)?.toIntOrNull()
+                    ?: account.njdmId.take(4).toIntOrNull()
+                _uiState.update { it.copy(enrollmentYear = enrollmentYear) }
+
+                // 从 Repository 获取 GPA 数据；若本地无成绩且失败，自动同步一次成绩再计算
+                var result = gpaRepository.getGpaData(account.studentId)
+                if (result.isFailure && schoolGradeRepository.observeAllGrades(account.studentId).first().isEmpty()) {
+                    val loginResult = schoolAuthRepository.login(account.studentId, account.password)
+                    if (loginResult.isSuccess) {
+                        val fetchResult = schoolGradeRepository.fetchAllHistoryGrades(account)
+                        if (fetchResult.isSuccess) {
+                            result = gpaRepository.getGpaData(account.studentId)
+                        }
+                    }
+                }
 
                 result.onSuccess { courses ->
                     val sortedCourses = courses.sortedByDescending { it.scoreValue }

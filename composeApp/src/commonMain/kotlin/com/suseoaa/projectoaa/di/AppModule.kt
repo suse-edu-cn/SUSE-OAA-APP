@@ -1,6 +1,7 @@
 package com.suseoaa.projectoaa.di
 
 import com.suseoaa.projectoaa.presentation.MainViewModel
+import com.suseoaa.projectoaa.presentation.SchoolAccountPromptViewModel
 import com.suseoaa.projectoaa.presentation.academic.AcademicViewModel
 import com.suseoaa.projectoaa.presentation.changePassword.ChangePasswordViewModel
 import com.suseoaa.projectoaa.domain.checkin.CheckinExecutor
@@ -15,6 +16,7 @@ import com.suseoaa.projectoaa.presentation.gpa.GpaViewModel
 import com.suseoaa.projectoaa.presentation.grades.GradesViewModel
 import com.suseoaa.projectoaa.presentation.home.AnnouncementViewModel
 import com.suseoaa.projectoaa.presentation.home.HomeViewModel
+import com.suseoaa.projectoaa.presentation.appmanagement.AppManagementViewModel
 import com.suseoaa.projectoaa.presentation.organization.OrganizationViewModel
 import com.suseoaa.projectoaa.presentation.home.ValueCalculatorViewModel
 import com.suseoaa.projectoaa.presentation.login.LoginViewModel
@@ -38,6 +40,7 @@ import org.koin.dsl.module
 val appModule = module {
     // ==================== ViewModels ====================
     viewModel { MainViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { SchoolAccountPromptViewModel(get()) }
     viewModel { LoginViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { ForgetPasswordViewModel(get()) }
@@ -45,13 +48,13 @@ val appModule = module {
     viewModel { AnnouncementViewModel(get(), get(), get()) }
     viewModel { ValueCalculatorViewModel(get(), get()) }
     viewModel { ChangePasswordViewModel(get(), get()) }
-    viewModel { CourseViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { CourseStatisticsViewModel(get(), get(), get()) }
-    viewModel { AcademicViewModel(get(), get(), get(), get(), get<WidgetRefresher>()) }
-    viewModel { ExamViewModel(get(), get(), get(), get(), get<WidgetRefresher>()) }
+    viewModel { CourseViewModel(get(), get(), get(), get(), get()) }
+    viewModel { CourseStatisticsViewModel(get(), get(), get(), get()) }
+    viewModel { AcademicViewModel(get(), get(), get<WidgetRefresher>()) }
+    viewModel { ExamViewModel(get(), get(), get<WidgetRefresher>()) }
     viewModel { PersonViewModel(get(), get(), get(), get()) }
-    viewModel { GpaViewModel(get(), get(), get()) }
-    viewModel { GradesViewModel(get(), get(), get(), get(), get()) }
+    viewModel { GpaViewModel(get(), get(), get(), get(), get()) }
+    viewModel { GradesViewModel(get(), get(), get(), get()) }
     // 刻意注册为 single 而非 viewModel：UpdateDialog / UpdateScreen / PersonScreen
     // 三处共用同一实例来共享下载进度（isDownloading / downloadProgress），改成
     // viewModel 后各页面会拿到独立实例，跳页时正在进行的下载进度会归零。
@@ -60,10 +63,11 @@ val appModule = module {
     single { AppUpdateViewModel(get(), get()) }
     viewModel { UserManagementViewModel(get(), get(), get()) }
     viewModel { OrganizationViewModel(get()) }
+    viewModel { AppManagementViewModel(get()) }
     // 教学计划 ViewModels
-    viewModel { StudyRequirementViewModel(get()) }
-    viewModel { CourseInfoViewModel(get(), get(), get(), get()) }
-    viewModel { AcademicStatusViewModel(get(), get()) }
+    viewModel { StudyRequirementViewModel(get(), get(), get()) }
+    viewModel { CourseInfoViewModel(get(), get(), get()) }
+    viewModel { AcademicStatusViewModel(get(), get(), get()) }
 
     // 打卡 ViewModel (同时注入两个 Repository)
     viewModel { CheckinViewModel(get(), get(), get()) }
@@ -79,9 +83,6 @@ val appModule = module {
     viewModel { com.suseoaa.projectoaa.presentation.recruitment.RecruitmentViewModel(get(), get(), get()) }
     viewModel { com.suseoaa.projectoaa.presentation.recruitment.RecruitmentReviewViewModel(get(), get()) }
     viewModel { com.suseoaa.projectoaa.presentation.recruitment.TermManagementViewModel(get(), get()) }
-
-    // 近场活动签到
-    viewModel { com.suseoaa.projectoaa.presentation.checkin.ActivityCheckinViewModel(get(), get()) }
 
     // 工具类
     single { com.suseoaa.projectoaa.util.ToastManager }

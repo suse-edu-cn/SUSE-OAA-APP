@@ -119,15 +119,56 @@ class GraduationFlowTest {
         assertTrue(state.canManageTerms)
     }
 
+    @Test
+    fun reviewFiltersAndExportForwardParametersAndBuildBitmask() = runTest(dispatcher) {
+        val repo = Recruitment()
+        repo.applications = listOf(Application(applicationId = 9, termId = 1, name = "张三"))
+        val vm = RecruitmentReviewViewModel(repo, Organization())
+        vm.ensureLoaded()
+        advanceUntilIdle()
+
+        vm.selectHasResult(false)
+        advanceUntilIdle()
+        assertEquals(false, repo.applicationQueries.last().third)
+
+        vm.updateNameFilter("张三")
+        vm.searchByName()
+        advanceUntilIdle()
+        assertEquals("张三", repo.applicationQueries.last().fourth)
+
+        vm.loadExportFields()
+        advanceUntilIdle()
+        assertEquals(22, vm.uiState.value.exportFieldsConfig?.totalFields)
+
+        vm.exportResults(setOf(0, 2, 21))
+        advanceUntilIdle()
+        assertEquals("1010000000000000000001", repo.exportQueries.single().fourth)
+        assertEquals("result.xlsx", vm.uiState.value.exportedFile?.fileName)
+        vm.consumeExportedFile()
+        assertEquals(null, vm.uiState.value.exportedFile)
+    }
+
+    private data class AppQueryRecord(val termId: Int, val departmentId: Int?, val third: Boolean?, val fourth: String?)
+
     private class Recruitment : RecruitmentRepository {
         val term = Term(termId = 1, editPeriod = Period("2001-01-01", "9998-01-01"), queryPeriod = Period("9998-01-02", "9999-01-01"))
         var myApplications = emptyList<Application>()
         var applications = emptyList<Application>()
+        val applicationQueries = mutableListOf<AppQueryRecord>()
+        val exportQueries = mutableListOf<AppQueryRecord>()
         val interviewerWrites = mutableListOf<List<InterviewerEntry>>()
         val resultWrites = mutableListOf<InterviewDecision>()
         override suspend fun getTerms(year: Int?, type: String?) = Result.success(listOf(term))
         override suspend fun getMyApplications() = Result.success(myApplications)
-        override suspend fun getApplications(termId: Int, departmentId: Int?) = Result.success(applications)
+        override suspend fun getApplications(
+            termId: Int,
+            departmentId: Int?,
+            hasResult: Boolean?,
+            name: String?
+        ): Result<List<Application>> {
+            applicationQueries += AppQueryRecord(termId, departmentId, hasResult, name)
+            return Result.success(applications)
+        }
         override suspend fun getDecisions() = Result.success(listOf("录取第一志愿", "待定", "淘汰"))
         override suspend fun getInterviewResults(termId: Int) = Result.success(emptyList<InterviewResult>())
         override suspend fun getInterviewers(termId: Int) = Result.success(emptyList<Interviewer>())
@@ -140,6 +181,32 @@ class GraduationFlowTest {
         override suspend fun saveInterviewResult(applicationId: Int, existingResultId: Int?, decision: InterviewDecision): Result<Unit> {
             resultWrites += decision
             return Result.success(Unit)
+        }
+        override suspend fun getExportFields(): Result<ExportFieldsConfig> = Result.success(
+            ExportFieldsConfig(
+                totalFields = 22,
+                allBits = "1".repeat(22),
+                fields = listOf(
+                    ExportFieldOption(0, "业务周期"),
+                    ExportFieldOption(2, "学号"),
+                    ExportFieldOption(21, "更新时间")
+                )
+            )
+        )
+        override suspend fun exportInterviewResults(
+            termId: Int,
+            departmentId: Int?,
+            hasResult: Boolean?,
+            fieldsBits: String?
+        ): Result<ExportedSpreadsheet> {
+            exportQueries += AppQueryRecord(termId, departmentId, hasResult, fieldsBits)
+            return Result.success(
+                ExportedSpreadsheet(
+                    fileName = "result.xlsx",
+                    mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    bytes = byteArrayOf(0x50, 0x4B, 0x03, 0x04)
+                )
+            )
         }
         override suspend fun createTerm(year: Int, type: String, title: String, editPeriod: Period, queryPeriod: Period): Result<Unit> = error("unused")
         override suspend fun updateTerm(termId: Int, title: String, editPeriod: Period, queryPeriod: Period): Result<Unit> = error("unused")

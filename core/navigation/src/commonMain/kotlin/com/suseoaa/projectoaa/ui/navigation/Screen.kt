@@ -18,6 +18,7 @@ sealed class Screen(val route: String) {
     data object Recruitment : Screen("recruitment")
     data object UserManagement : Screen("userManagement")
     data object Organization : Screen("organization")
+    data object AppManagement : Screen("appManagement")
     data object Update : Screen("update")
     data object Settings : Screen("settings")
 
@@ -33,7 +34,6 @@ sealed class Screen(val route: String) {
 
     // 签到相关
     data object Checkin : Screen("checkin")
-    data object ActivityCheckin : Screen("activityCheckin")
     data object CheckinTasks : Screen("checkin/tasks/{accountId}") {
         fun createRoute(accountId: Long) = "checkin/tasks/$accountId"
         val arguments = listOf(

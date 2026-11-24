@@ -5,6 +5,8 @@ import com.suseoaa.projectoaa.shared.domain.model.org.Role
 import com.suseoaa.projectoaa.shared.domain.model.person.StoredFile
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.Application
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.ApplicationForm
+import com.suseoaa.projectoaa.shared.domain.model.recruitment.ExportFieldsConfig
+import com.suseoaa.projectoaa.shared.domain.model.recruitment.ExportedSpreadsheet
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewDecision
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewResult
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.Interviewer
@@ -46,7 +48,12 @@ interface RecruitmentRepository {
     suspend fun deleteApplication(applicationId: Int): Result<Unit>
 
     /** 面试官查看申请；[departmentId] 为 null 时后端默认面试官所属部门。 */
-    suspend fun getApplications(termId: Int, departmentId: Int?): Result<List<Application>>
+    suspend fun getApplications(
+        termId: Int,
+        departmentId: Int?,
+        hasResult: Boolean? = null,
+        name: String? = null
+    ): Result<List<Application>>
 
     /** 某部门可以申请的职位。 */
     suspend fun getFillableRoles(departmentId: Int): Result<List<Role>>
@@ -75,4 +82,13 @@ interface RecruitmentRepository {
         existingResultId: Int?,
         decision: InterviewDecision
     ): Result<Unit>
+
+    suspend fun getExportFields(): Result<ExportFieldsConfig>
+
+    suspend fun exportInterviewResults(
+        termId: Int,
+        departmentId: Int? = null,
+        hasResult: Boolean? = null,
+        fieldsBits: String? = null
+    ): Result<ExportedSpreadsheet>
 }

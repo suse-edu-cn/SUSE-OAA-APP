@@ -11,7 +11,8 @@ object ApiConfig {
 
     // ==================== OAA 自建后端 ====================
     /** v2 后端。所有接口路径都以 `/` 开头，直接拼在后面即可，如 `"$OAA_BASE/auth/login"`。 */
-    const val OAA_BASE = "https://v2-api.suseoaa.com/v2"
+    const val OAA_BASE = "https://suseoaa.com/v2"
+    const val OAA_WEB_ORIGIN = "https://suseoaa.com"
 
     // ==================== 教务系统 ====================
     const val SCHOOL_BASE = "https://jwgl.suse.edu.cn"

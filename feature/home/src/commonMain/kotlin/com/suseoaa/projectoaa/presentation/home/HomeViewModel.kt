@@ -8,10 +8,13 @@ import com.suseoaa.projectoaa.shared.domain.model.announcement.AnnouncementStatu
 import com.suseoaa.projectoaa.shared.domain.model.org.Department
 import com.suseoaa.projectoaa.shared.domain.model.org.DepartmentTypes
 import com.suseoaa.projectoaa.shared.domain.model.person.CurrentUser
+import com.suseoaa.projectoaa.shared.domain.permission.OaaPermission
 import com.suseoaa.projectoaa.shared.domain.repository.AnnouncementRepository
 import com.suseoaa.projectoaa.shared.domain.repository.OrganizationRepository
 import com.suseoaa.projectoaa.shared.domain.repository.PersonRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,41 +58,60 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private var summaryJob: Job? = null
+    private var prefetchJob: Job? = null
+
     init {
         viewModelScope.launch {
             sessionStore.tokenFlow
                 .map { !it.isNullOrEmpty() }
                 .distinctUntilChanged()
                 .collect { signedIn ->
-                    _uiState.update { if (signedIn) it.copy(isSignedIn = true) else HomeUiState(isSignedIn = false) }
-                    if (signedIn) refreshHomeSummary(showLoading = false)
+                    if (signedIn) {
+                        val cachedUser = personRepository.getCachedCurrentUser()
+                        val cachedActive = announcementRepository.getCachedAnnouncements(AnnouncementStatus.Active)
+                        _uiState.update { state ->
+                            state.copy(
+                                isSignedIn = true,
+                                currentUser = cachedUser ?: state.currentUser,
+                                activeAnnouncements = cachedActive?.let(::latestByDepartment)
+                                    ?: state.activeAnnouncements,
+                                hasLoadedAnnouncements = state.hasLoadedAnnouncements || cachedActive != null
+                            )
+                        }
+                        refreshHomeSummary(showLoading = false)
+                    } else {
+                        summaryJob?.cancel()
+                        prefetchJob?.cancel()
+                        announcementRepository.invalidateCache()
+                        _uiState.value = HomeUiState(isSignedIn = false)
+                    }
                 }
         }
     }
 
     fun refreshHomeSummary(showLoading: Boolean = true) {
         if (_uiState.value.isSignedIn != true) return
-        viewModelScope.launch {
-            personRepository.getCurrentUser().onSuccess { user ->
-                _uiState.update { it.copy(currentUser = user) }
-            }
-        }
-        refreshDepartmentCards(showLoading)
-    }
-
-    private fun refreshDepartmentCards(showLoading: Boolean) {
-        viewModelScope.launch {
+        summaryJob?.cancel()
+        summaryJob = viewModelScope.launch {
             if (showLoading) {
                 _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             }
+            val userDeferred = async { personRepository.getCurrentUser(forceRefresh = showLoading) }
             val departmentsDeferred = async { organizationRepository.getDepartments(forceRefresh = showLoading) }
-            val announcementsDeferred = async { announcementRepository.getAnnouncements(AnnouncementStatus.Active) }
+            val announcementsDeferred = async {
+                announcementRepository.getAnnouncements(AnnouncementStatus.Active, forceRefresh = showLoading)
+            }
+
+            val userResult = userDeferred.await()
             val departments = departmentsDeferred.await()
             val announcements = announcementsDeferred.await()
 
+            val resolvedUser = userResult.getOrNull() ?: _uiState.value.currentUser
             _uiState.update { state ->
                 state.copy(
                     isLoading = false,
+                    currentUser = resolvedUser,
                     departments = departments.getOrNull()?.let(::orderForHome) ?: state.departments,
                     activeAnnouncements = announcements.getOrNull()?.let(::latestByDepartment)
                         ?: state.activeAnnouncements,
@@ -97,6 +119,28 @@ class HomeViewModel(
                     errorMessage = (departments.exceptionOrNull() ?: announcements.exceptionOrNull())?.message
                 )
             }
+
+            if (announcements.isSuccess) {
+                scheduleBackgroundPrefetch(resolvedUser)
+            }
+        }
+    }
+
+    /**
+     * 首页首屏渲染完毕后再延迟预拉取历史公告（管理员同时预拉取草稿），
+     * 避免抢占首页转场帧与网络带宽；点击部门进入详情时可零等待直出。
+     */
+    private fun scheduleBackgroundPrefetch(user: CurrentUser?) {
+        prefetchJob?.cancel()
+        prefetchJob = viewModelScope.launch {
+            delay(PREFETCH_IDLE_DELAY_MS)
+            val statuses = buildList {
+                add(AnnouncementStatus.History)
+                if (OaaPermission.isDepartmentManager(user)) {
+                    add(AnnouncementStatus.Draft)
+                }
+            }
+            announcementRepository.prefetch(statuses)
         }
     }
 
@@ -111,4 +155,8 @@ class HomeViewModel(
     private fun latestByDepartment(announcements: List<Announcement>): Map<String, Announcement> =
         announcements.groupBy { it.departmentName }
             .mapValues { (_, list) -> list.maxBy { it.publishedAt.orEmpty() } }
+
+    private companion object {
+        const val PREFETCH_IDLE_DELAY_MS = 350L
+    }
 }

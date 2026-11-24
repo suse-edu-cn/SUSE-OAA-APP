@@ -3,13 +3,12 @@ package com.suseoaa.projectoaa.presentation.teachingplan
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
-import com.suseoaa.projectoaa.shared.domain.repository.LocalCourseRepository
-import com.suseoaa.projectoaa.shared.domain.repository.TeachingPlanRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
 import com.suseoaa.projectoaa.shared.domain.repository.SchoolAuthRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.suseoaa.projectoaa.shared.domain.repository.TeachingPlanRepository
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import com.suseoaa.projectoaa.shared.data.local.store.SessionStore
 
 /**
  * 以下 UI 状态原本定义在 shared 的 domain/model 里，属于 UI 层反向下沉到领域层。
@@ -41,14 +40,12 @@ data class CourseInfoUiState(
     val isQueryMode: Boolean = false
 )
 
-
 /**
  * 课程信息查询 ViewModel
  * 支持查询任意学院、专业、年级的课程信息
  */
 class CourseInfoViewModel(
-    private val sessionStore: SessionStore,
-    private val localCourseRepository: LocalCourseRepository,
+    private val schoolAccountRepository: SchoolAccountRepository,
     private val teachingPlanRepository: TeachingPlanRepository,
     private val authRepository: SchoolAuthRepository
 ) : ViewModel() {
@@ -56,11 +53,8 @@ class CourseInfoViewModel(
     private val _uiState = MutableStateFlow(CourseInfoUiState())
     val uiState: StateFlow<CourseInfoUiState> = _uiState.asStateFlow()
 
-    // 当前账户信息
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val currentAccount = sessionStore.currentStudentId
-        .filterNotNull()
-        .flatMapLatest { id -> flow { emit(localCourseRepository.getAccountById(id)) } }
+    // 当前默认教务账户信息
+    private val currentAccount = schoolAccountRepository.observeCurrentAccount()
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     // 可用的学年列表（从课程中提取）
@@ -88,11 +82,10 @@ class CourseInfoViewModel(
 
         // 监听账户变化，自动加载当前学生的课程信息
         viewModelScope.launch {
-            currentAccount.collect { account ->
-                if (account != null && _uiState.value.courses.isEmpty()) {
-                    // 使用当前学生的信息作为默认选择
-                    val collegeId = account.jgId ?: ""
-                    val majorId = account.zyhId ?: ""
+            currentAccount.filterNotNull().collect { account ->
+                if (_uiState.value.courses.isEmpty()) {
+                    val collegeId = account.jgId.orEmpty()
+                    val majorId = account.zyhId.orEmpty()
                     val gradeId = account.njdmId
 
                     _uiState.update {
@@ -116,12 +109,42 @@ class CourseInfoViewModel(
         }
     }
 
+    private suspend fun ensureSchoolSession(onAccountAdded: () -> Unit): Boolean {
+        val account = schoolAccountRepository.getCurrentAccount()
+        if (account == null) {
+            SchoolAccountPromptManager.requestAddAccount(
+                featureName = "课程信息查询",
+                onAccountAdded = onAccountAdded
+            )
+            return false
+        }
+        val loginResult = authRepository.login(account.studentId, account.password)
+        if (loginResult.isFailure) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = loginResult.exceptionOrNull()?.message ?: "教务系统登录失败",
+                    isLoading = false,
+                    isLoadingColleges = false,
+                    isLoadingMajors = false,
+                    isLoadingPlan = false
+                )
+            }
+            return false
+        }
+        return true
+    }
+
     /**
      * 加载学院列表
      */
     private fun loadCollegeList() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingColleges = true) }
+
+            if (!ensureSchoolSession { loadCollegeList() }) {
+                _uiState.update { it.copy(isLoadingColleges = false) }
+                return@launch
+            }
 
             val result = teachingPlanRepository.getCollegeList()
             result.fold(
@@ -154,6 +177,11 @@ class CourseInfoViewModel(
     private fun loadMajorList(collegeId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingMajors = true, majors = emptyList()) }
+
+            if (!ensureSchoolSession { loadMajorList(collegeId) }) {
+                _uiState.update { it.copy(isLoadingMajors = false) }
+                return@launch
+            }
 
             val result = teachingPlanRepository.getMajorList(collegeId)
             result.fold(
@@ -254,19 +282,27 @@ class CourseInfoViewModel(
      * 手动查询课程（点击查询按钮时调用）
      */
     fun queryCourses() {
-        val state = _uiState.value
-        if (state.selectedCollegeId.isEmpty() ||
-            state.selectedGrade.isEmpty() ||
-            state.selectedMajorId.isEmpty()
-        ) {
-            _uiState.update { it.copy(errorMessage = "请选择完整的查询条件") }
-            return
+        viewModelScope.launch {
+            if (!ensureSchoolSession {
+                    if (_uiState.value.colleges.isEmpty()) loadCollegeList() else queryCourses()
+                }
+            ) {
+                return@launch
+            }
+            val state = _uiState.value
+            if (state.selectedCollegeId.isEmpty() ||
+                state.selectedGrade.isEmpty() ||
+                state.selectedMajorId.isEmpty()
+            ) {
+                _uiState.update { it.copy(errorMessage = "请选择完整的查询条件") }
+                return@launch
+            }
+            loadCourseInfoBySelection(
+                state.selectedCollegeId,
+                state.selectedGrade,
+                state.selectedMajorId
+            )
         }
-        loadCourseInfoBySelection(
-            state.selectedCollegeId,
-            state.selectedGrade,
-            state.selectedMajorId
-        )
     }
 
     /**
@@ -277,10 +313,9 @@ class CourseInfoViewModel(
             _uiState.update { it.copy(isLoading = true, isLoadingPlan = true, errorMessage = null) }
 
             try {
-                // 确保已登录
-                val account = currentAccount.value
-                if (account != null) {
-                    authRepository.login(account.studentId, account.password)
+                if (!ensureSchoolSession { loadCourseInfoBySelection(collegeId, gradeId, majorId) }) {
+                    _uiState.update { it.copy(isLoading = false, isLoadingPlan = false) }
+                    return@launch
                 }
 
                 // 获取培养计划
@@ -338,35 +373,40 @@ class CourseInfoViewModel(
      * 加载当前学生的课程信息（快捷入口）
      */
     fun loadStudentCourseInfo() {
-        val account = currentAccount.value
-        if (account == null) {
-            _uiState.update { it.copy(errorMessage = "请先登录") }
-            return
-        }
-
-        val collegeId = account.jgId ?: ""
-        val gradeId = account.njdmId
-        val majorId = account.zyhId ?: ""
-
-        if (collegeId.isEmpty() || gradeId.isEmpty() || majorId.isEmpty()) {
-            _uiState.update {
-                it.copy(errorMessage = "学生信息不完整，请重新登录获取完整信息")
+        viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "课程信息查询",
+                    onAccountAdded = { loadStudentCourseInfo() }
+                )
+                return@launch
             }
-            return
-        }
 
-        // 更新选择状态
-        _uiState.update {
-            it.copy(
-                selectedCollegeId = collegeId,
-                selectedMajorId = majorId,
-                selectedGrade = gradeId,
-                isQueryMode = false
-            )
-        }
+            val collegeId = account.jgId.orEmpty()
+            val gradeId = account.njdmId
+            val majorId = account.zyhId.orEmpty()
 
-        loadMajorList(collegeId)
-        loadCourseInfoBySelection(collegeId, gradeId, majorId)
+            if (collegeId.isEmpty() || gradeId.isEmpty() || majorId.isEmpty()) {
+                _uiState.update {
+                    it.copy(errorMessage = "学生信息不完整，请先刷新课表或成绩获取完整信息")
+                }
+                return@launch
+            }
+
+            // 更新选择状态
+            _uiState.update {
+                it.copy(
+                    selectedCollegeId = collegeId,
+                    selectedMajorId = majorId,
+                    selectedGrade = gradeId,
+                    isQueryMode = false
+                )
+            }
+
+            loadMajorList(collegeId)
+            loadCourseInfoBySelection(collegeId, gradeId, majorId)
+        }
     }
 
     /**
@@ -410,14 +450,6 @@ class CourseInfoViewModel(
         )
     }
 
-    /**
-     * 筛选课程
-     * @param courses 待筛选的课程列表
-     * @param year 学年筛选条件（可选）
-     * @param semester 学期筛选条件（可选）
-     * @param courseType 课程类型筛选条件（可选）
-     * @param keyword 关键字搜索条件（可选）
-     */
     private fun filterCourses(
         courses: List<CourseInfoItem>,
         year: String = "",
@@ -426,27 +458,17 @@ class CourseInfoViewModel(
         keyword: String = ""
     ): List<CourseInfoItem> {
         return courses.filter { course ->
-            // 按学年筛选
-            val yearMatch = year.isEmpty() ||
-                    course.suggestedYear == year
-            // 按学期筛选
-            val semesterMatch = semester.isEmpty() ||
-                    course.suggestedSemester == semester
-            // 按课程类型筛选
-            val typeMatch = courseType.isEmpty() ||
-                    course.courseType == courseType
-            // 按关键字搜索
+            val yearMatch = year.isEmpty() || course.suggestedYear == year
+            val semesterMatch = semester.isEmpty() || course.suggestedSemester == semester
+            val typeMatch = courseType.isEmpty() || course.courseType == courseType
             val keywordMatch = keyword.isEmpty() ||
-                    course.courseName.contains(keyword, ignoreCase = true) ||
-                    course.courseCode.contains(keyword, ignoreCase = true)
+                course.courseName.contains(keyword, ignoreCase = true) ||
+                course.courseCode.contains(keyword, ignoreCase = true)
 
             yearMatch && semesterMatch && typeMatch && keywordMatch
         }
     }
 
-    /**
-     * 设置学年筛选
-     */
     fun setYearFilter(year: String) {
         _uiState.update { state ->
             state.copy(
@@ -462,9 +484,6 @@ class CourseInfoViewModel(
         }
     }
 
-    /**
-     * 设置学期筛选
-     */
     fun setSemesterFilter(semester: String) {
         _uiState.update { state ->
             state.copy(
@@ -480,9 +499,6 @@ class CourseInfoViewModel(
         }
     }
 
-    /**
-     * 设置课程类型筛选
-     */
     fun setCourseTypeFilter(courseType: String) {
         _uiState.update { state ->
             state.copy(
@@ -498,9 +514,6 @@ class CourseInfoViewModel(
         }
     }
 
-    /**
-     * 设置搜索关键字
-     */
     fun setSearchKeyword(keyword: String) {
         _uiState.update { state ->
             state.copy(
@@ -516,9 +529,6 @@ class CourseInfoViewModel(
         }
     }
 
-    /**
-     * 清除所有筛选条件
-     */
     fun clearFilters() {
         _uiState.update { state ->
             state.copy(
@@ -531,13 +541,11 @@ class CourseInfoViewModel(
         }
     }
 
-    /**
-     * 刷新数据
-     */
     fun refresh() {
         val planId = _uiState.value.planId
         if (planId.isNotEmpty()) {
             viewModelScope.launch {
+                if (!ensureSchoolSession { refresh() }) return@launch
                 _uiState.update { it.copy(isRefreshing = true) }
                 loadCourses(planId)
                 _uiState.update { it.copy(isRefreshing = false) }
@@ -547,44 +555,26 @@ class CourseInfoViewModel(
         }
     }
 
-    /**
-     * 清除错误信息
-     */
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    /**
-     * 切换筛选区域展开状态
-     */
     fun toggleFilterExpanded() {
         _uiState.update { it.copy(isFilterExpanded = !it.isFilterExpanded) }
     }
 
-    /**
-     * 设置筛选区域展开状态
-     */
     fun setFilterExpanded(expanded: Boolean) {
         _uiState.update { it.copy(isFilterExpanded = expanded) }
     }
 
-    /**
-     * 获取按学期分组的课程
-     */
     fun getCoursesBySemester(): Map<String, List<CourseInfoItem>> {
         return teachingPlanRepository.groupCoursesBySemester(_uiState.value.filteredCourses)
     }
 
-    /**
-     * 获取按类型分组的课程
-     */
     fun getCoursesByType(): Map<String, List<CourseInfoItem>> {
         return teachingPlanRepository.groupCoursesByType(_uiState.value.filteredCourses)
     }
 
-    /**
-     * 计算当前筛选结果的总学分
-     */
     fun getTotalCredits(): Double {
         return teachingPlanRepository.calculateTotalCredits(_uiState.value.filteredCourses)
     }

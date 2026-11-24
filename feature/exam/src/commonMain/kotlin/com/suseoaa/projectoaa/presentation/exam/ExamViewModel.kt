@@ -3,34 +3,30 @@ package com.suseoaa.projectoaa.presentation.exam
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suseoaa.projectoaa.domain.exam.ExamListBuilder
+import com.suseoaa.projectoaa.domain.exam.ExamUiItem
+import com.suseoaa.projectoaa.domain.exam.SemesterOption
+import com.suseoaa.projectoaa.domain.exam.SemesterOptionsBuilder
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
-import com.suseoaa.projectoaa.shared.domain.repository.LocalCourseRepository
-import com.suseoaa.projectoaa.shared.domain.repository.SchoolAuthRepository
-import com.suseoaa.projectoaa.shared.domain.repository.SchoolInfoRepository
-import com.suseoaa.projectoaa.shared.domain.model.exam.ExamCacheEntity
 import com.suseoaa.projectoaa.shared.domain.model.exam.ExamApiItem
-import com.suseoaa.projectoaa.shared.domain.model.exam.ExamApiResponse
+import com.suseoaa.projectoaa.shared.domain.model.exam.ExamCacheEntity
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolInfoRepository
+import com.suseoaa.projectoaa.shared.util.OaaClock
 import com.suseoaa.projectoaa.shared.util.getCurrentTerm
 import com.suseoaa.projectoaa.shared.util.parseExamTimeRange
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
+import com.suseoaa.projectoaa.widget.WidgetRefresher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.suseoaa.projectoaa.widget.WidgetRefresher
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import com.suseoaa.projectoaa.shared.data.local.store.SessionStore
-import com.suseoaa.projectoaa.domain.exam.ExamListBuilder
-import com.suseoaa.projectoaa.domain.exam.ExamUiItem
-import com.suseoaa.projectoaa.domain.exam.SemesterOption
-import com.suseoaa.projectoaa.domain.exam.SemesterOptionsBuilder
 
 /**
  * 考试页面 UI 状态
@@ -57,9 +53,7 @@ data class ExamUiState(
 )
 
 class ExamViewModel(
-    private val sessionStore: SessionStore,
-    private val localCourseRepository: LocalCourseRepository,
-    private val schoolAuthRepository: SchoolAuthRepository,
+    private val schoolAccountRepository: SchoolAccountRepository,
     private val schoolInfoRepository: SchoolInfoRepository,
     private val widgetRefresher: WidgetRefresher
 ) : ViewModel() {
@@ -67,12 +61,10 @@ class ExamViewModel(
     private val _uiState = MutableStateFlow(ExamUiState())
     val uiState: StateFlow<ExamUiState> = _uiState.asStateFlow()
 
-    // 当前账户流
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val currentAccount: StateFlow<CourseAccountEntity?> = sessionStore.currentStudentId
-        .filterNotNull()
-        .flatMapLatest { id -> flow { emit(localCourseRepository.getAccountById(id)) } }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    // 当前默认账户流（新增或切换账号后自动发出）
+    private val currentAccount: StateFlow<CourseAccountEntity?> =
+        schoolAccountRepository.observeCurrentAccount()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         // 初始化时设置当前学期
@@ -84,11 +76,18 @@ class ExamViewModel(
             )
         }
 
-        // 监听账户变化，动态生成学期选项
+        // 监听账户变化，动态生成学期选项并加载考试
         viewModelScope.launch {
             currentAccount.filterNotNull().collect { account ->
                 generateSemesterOptions(account.njdmId)
                 loadExams()
+            }
+        }
+
+        // 若从通知或深度链接直接进入且无教务账号，自动弹窗添加
+        viewModelScope.launch {
+            if (schoolAccountRepository.getCurrentAccount() == null) {
+                SchoolAccountPromptManager.requestAddAccount(featureName = "考试信息查询")
             }
         }
     }
@@ -118,11 +117,18 @@ class ExamViewModel(
      * 加载考试信息
      */
     fun loadExams() {
-        val account = currentAccount.value ?: return
-        val year = _uiState.value.selectedYear
-        val semester = _uiState.value.selectedSemester
-
         viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "考试信息查询",
+                    onAccountAdded = { loadExams() }
+                )
+                return@launch
+            }
+            val year = _uiState.value.selectedYear
+            val semester = _uiState.value.selectedSemester
+
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
@@ -184,11 +190,18 @@ class ExamViewModel(
      * 刷新考试信息
      */
     fun refresh() {
-        val account = currentAccount.value ?: return
-        val year = _uiState.value.selectedYear
-        val semester = _uiState.value.selectedSemester
-
         viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "考试信息查询",
+                    onAccountAdded = { refresh() }
+                )
+                return@launch
+            }
+            val year = _uiState.value.selectedYear
+            val semester = _uiState.value.selectedSemester
+
             if (_uiState.value.isRefreshing) return@launch
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
 
@@ -238,31 +251,40 @@ class ExamViewModel(
      * 显示添加考试对话框
      */
     fun showAddExamDialog() {
-        val year = _uiState.value.selectedYear
-        val semester = _uiState.value.selectedSemester
-        val semesterName = when (semester) {
-            "3" -> "第1学期"
-            "12" -> "第2学期"
-            "16" -> "第3学期"
-            else -> "第?学期"
-        }
-
-        _uiState.update {
-            it.copy(
-                showEditDialog = true,
-                isAddMode = true,
-                editingExam = ExamUiItem(
-                    id = 0,
-                    courseName = "",
-                    examName = "",
-                    time = "",
-                    location = "",
-                    credit = "",
-                    examType = "考试",
-                    yearSemester = "$year-${year.toIntOrNull()?.plus(1) ?: ""} $semesterName",
-                    isCustom = true
+        viewModelScope.launch {
+            if (schoolAccountRepository.getCurrentAccount() == null) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "添加自定义考试",
+                    onAccountAdded = { showAddExamDialog() }
                 )
-            )
+                return@launch
+            }
+            val year = _uiState.value.selectedYear
+            val semester = _uiState.value.selectedSemester
+            val semesterName = when (semester) {
+                "3" -> "第1学期"
+                "12" -> "第2学期"
+                "16" -> "第3学期"
+                else -> "第?学期"
+            }
+
+            _uiState.update {
+                it.copy(
+                    showEditDialog = true,
+                    isAddMode = true,
+                    editingExam = ExamUiItem(
+                        id = 0,
+                        courseName = "",
+                        examName = "",
+                        time = "",
+                        location = "",
+                        credit = "",
+                        examType = "考试",
+                        yearSemester = "$year-${year.toIntOrNull()?.plus(1) ?: ""} $semesterName",
+                        isCustom = true
+                    )
+                )
+            }
         }
     }
 
@@ -296,11 +318,11 @@ class ExamViewModel(
      * 保存考试信息（添加或更新）
      */
     fun saveExam(exam: ExamUiItem) {
-        val account = currentAccount.value ?: return
-        val year = _uiState.value.selectedYear
-        val semester = _uiState.value.selectedSemester
-
         viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount() ?: return@launch
+            val year = _uiState.value.selectedYear
+            val semester = _uiState.value.selectedSemester
+
             try {
                 val entity = ExamCacheEntity(
                     id = exam.id,
@@ -349,7 +371,7 @@ class ExamViewModel(
     }
 
     /** 当前时间统一在这里取一次，再传给纯函数，方便测试时替换。 */
-    private fun nowLocal() = com.suseoaa.projectoaa.shared.util.OaaClock.now()
+    private fun nowLocal() = OaaClock.now()
         .toLocalDateTime(TimeZone.currentSystemDefault())
 
     private fun processExamItems(items: List<ExamApiItem>): List<ExamUiItem> =
@@ -363,5 +385,4 @@ class ExamViewModel(
         val options = SemesterOptionsBuilder.build(njdmId, now.year, now.monthNumber)
         _uiState.update { it.copy(availableSemesters = options) }
     }
-
 }

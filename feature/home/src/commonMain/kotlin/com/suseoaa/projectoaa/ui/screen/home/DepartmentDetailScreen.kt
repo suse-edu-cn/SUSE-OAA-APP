@@ -45,14 +45,19 @@ fun DepartmentDetailScreen(
     onNavigateToEdit: (announcementId: Int?) -> Unit,
     viewModel: AnnouncementViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val rawUiState by viewModel.uiState.collectAsState()
+    val uiState = if (rawUiState.departmentName == departmentName) {
+        rawUiState
+    } else {
+        remember(departmentName) { viewModel.snapshotFromCache(departmentName) }
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     var pendingDelete by remember { mutableStateOf<Announcement?>(null) }
 
     // 从编辑页返回时也要刷新，所以挂在 ON_RESUME 上
     DisposableEffect(lifecycleOwner, departmentName) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.load(departmentName)
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.load(departmentName, forceRefresh = false)
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -95,10 +100,13 @@ fun DepartmentDetailScreen(
                 if (uiState.isSubmitting) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
-                val hasCachedContent = uiState.active.isNotEmpty() || uiState.history.isNotEmpty() || uiState.drafts.isNotEmpty()
+                val hasCachedContent = uiState.hasLoadedCache ||
+                    uiState.active.isNotEmpty() ||
+                    uiState.history.isNotEmpty() ||
+                    uiState.drafts.isNotEmpty()
                 PullToRefreshBox(
-                    isRefreshing = uiState.isLoading && hasCachedContent,
-                    onRefresh = { viewModel.load(departmentName) },
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { viewModel.load(departmentName, forceRefresh = true) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
@@ -115,7 +123,7 @@ fun DepartmentDetailScreen(
                         uiState.error != null && uiState.active.isEmpty() -> {
                             ErrorContent(
                                 error = uiState.error ?: "未知错误",
-                                onRetry = { viewModel.load(departmentName) },
+                                onRetry = { viewModel.load(departmentName, forceRefresh = true) },
                                 modifier = Modifier.align(Alignment.Center)
                             )
                         }

@@ -11,7 +11,9 @@ import com.suseoaa.projectoaa.shared.data.local.database.CourseDatabaseDriverFac
 import com.suseoaa.projectoaa.shared.data.remote.api.CheckinApiService
 import com.suseoaa.projectoaa.shared.data.remote.OaaTokenManager
 import com.suseoaa.projectoaa.shared.data.remote.api.OaaAnnouncementApi
+import com.suseoaa.projectoaa.shared.data.remote.api.OaaAppApi
 import com.suseoaa.projectoaa.shared.data.remote.api.OaaAuthApi
+import com.suseoaa.projectoaa.shared.data.remote.api.OaaOAuthApi
 import com.suseoaa.projectoaa.shared.data.remote.api.OaaOrganizationApi
 import com.suseoaa.projectoaa.shared.data.remote.api.OaaRecruitmentApi
 import com.suseoaa.projectoaa.shared.data.remote.api.OaaRequester
@@ -24,6 +26,7 @@ import com.suseoaa.projectoaa.shared.data.remote.network.OaaHttpClient
 import com.suseoaa.projectoaa.shared.data.remote.network.SchoolHttpClient
 import com.suseoaa.projectoaa.shared.domain.repository.AcademicStatusRepository
 import com.suseoaa.projectoaa.shared.domain.repository.AnnouncementRepository
+import com.suseoaa.projectoaa.shared.domain.repository.AppManagementRepository
 import com.suseoaa.projectoaa.shared.domain.repository.CheckinRepository
 import com.suseoaa.projectoaa.shared.data.repository.checkin.CheckinAccountStore
 import com.suseoaa.projectoaa.shared.data.repository.checkin.CheckinTaskRepository
@@ -32,6 +35,7 @@ import com.suseoaa.projectoaa.shared.data.repository.checkin.SopSessionParser
 import com.suseoaa.projectoaa.shared.data.repository.checkin.UiasLoginRepository
 import com.suseoaa.projectoaa.shared.domain.repository.GpaRepository
 import com.suseoaa.projectoaa.shared.domain.repository.LocalCourseRepository
+import com.suseoaa.projectoaa.shared.domain.repository.OAuthRepository
 import com.suseoaa.projectoaa.shared.domain.repository.OaaAuthRepository
 import com.suseoaa.projectoaa.shared.domain.repository.OaaRegisterRepository
 import com.suseoaa.projectoaa.shared.domain.repository.OrganizationRepository
@@ -39,6 +43,7 @@ import com.suseoaa.projectoaa.shared.domain.repository.UserManagementRepository
 import com.suseoaa.projectoaa.shared.domain.repository.PersonRepository
 import com.suseoaa.projectoaa.shared.domain.repository.QrCodeCheckinRepository
 import com.suseoaa.projectoaa.shared.domain.repository.RecruitmentRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
 import com.suseoaa.projectoaa.shared.domain.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.shared.domain.repository.SchoolCourseRepository
 import com.suseoaa.projectoaa.shared.domain.repository.SchoolGradeRepository
@@ -62,22 +67,23 @@ import com.suseoaa.projectoaa.shared.data.repository.CheckinRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.QrCodeCheckinRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.AcademicStatusRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.AnnouncementRepositoryImpl
+import com.suseoaa.projectoaa.shared.data.repository.AppManagementRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.GpaRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.LocalCourseRepositoryImpl
-import com.suseoaa.projectoaa.shared.data.repository.NearFieldCheckinRepositoryImpl
+import com.suseoaa.projectoaa.shared.data.repository.OAuthRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.OaaAuthRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.OaaRegisterRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.OrganizationRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.UserManagementRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.PersonRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.RecruitmentRepositoryImpl
+import com.suseoaa.projectoaa.shared.data.repository.SchoolAccountRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.SchoolAuthRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.SchoolCourseRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.SchoolGradeRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.SchoolInfoRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.TeachingPlanRepositoryImpl
 import com.suseoaa.projectoaa.shared.data.repository.ValueCalculatorRepositoryImpl
-import com.suseoaa.projectoaa.shared.domain.repository.NearFieldCheckinRepository
 import com.suseoaa.projectoaa.shared.data.remote.network.SessionCleaner
 
 /**
@@ -135,6 +141,8 @@ val sharedModule = module {
 
     // 刷新 token 专用：不带 401 拦截，避免刷新请求自己触发刷新
     single(qualifier = named("oaaBare")) { OaaHttpClient.createBare(get()) }
+    // OAuth 授权专用：不跟随 302 重定向，以便直接解析回调 code / state
+    single(qualifier = named("oaaNoRedirect")) { OaaHttpClient.createBare(get(), followRedirects = false) }
 
     single {
         val cleaner = get<UserDataCleaner>()
@@ -157,6 +165,8 @@ val sharedModule = module {
     single { OaaOrganizationApi(get()) }
     single { OaaAnnouncementApi(get()) }
     single { OaaRecruitmentApi(get()) }
+    single { OaaAppApi(get()) }
+    single { OaaOAuthApi(get(), get(qualifier = named("oaaNoRedirect")), get<OaaTokenManager>()) }
 
     // OAA 仓库
     single<OaaAuthRepository> {
@@ -165,10 +175,12 @@ val sharedModule = module {
     }
     single<OaaRegisterRepository> { OaaRegisterRepositoryImpl(get()) }
     single<OrganizationRepository> { OrganizationRepositoryImpl(get()) }
-    single<PersonRepository> { PersonRepositoryImpl(get(), get(), get(), get()) }
+    single<PersonRepository> { PersonRepositoryImpl(get(), get(), get(), get(), get()) }
     single<UserManagementRepository> { UserManagementRepositoryImpl(get()) }
-    single<AnnouncementRepository> { AnnouncementRepositoryImpl(get(), get()) }
+    single<AnnouncementRepository> { AnnouncementRepositoryImpl(get(), get(), get()) }
     single<RecruitmentRepository> { RecruitmentRepositoryImpl(get(), get(), get()) }
+    single<AppManagementRepository> { AppManagementRepositoryImpl(get(), get()) }
+    single<OAuthRepository> { OAuthRepositoryImpl(get()) }
 
     // ==================== 教务系统 API ====================
     // 教务系统专用 HttpClient
@@ -183,6 +195,7 @@ val sharedModule = module {
     single { SchoolApiService(get(qualifier = named("school")), get()) }
     single<SchoolAuthRepository> { SchoolAuthRepositoryImpl(get<SchoolApiService>()) }
     single<SchoolCourseRepository> { SchoolCourseRepositoryImpl(get<SchoolApiService>(), get()) }
+    single<SchoolAccountRepository> { SchoolAccountRepositoryImpl(get(), get(), get(), get(), get()) }
 
     // 成绩和信息仓库
     single<SchoolGradeRepository> {
@@ -327,11 +340,6 @@ val sharedModule = module {
                 qualifier = named("qrCheckinCookieStorage")
             )
         )
-    }
-
-    // 近场签到 Repository
-    single<NearFieldCheckinRepository> {
-        NearFieldCheckinRepositoryImpl(get(), get())
     }
 
     // 物品价值计算 Repository

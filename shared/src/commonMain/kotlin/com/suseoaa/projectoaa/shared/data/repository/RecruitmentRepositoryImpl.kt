@@ -18,6 +18,8 @@ import com.suseoaa.projectoaa.shared.domain.model.recruitment.CreateApplicationR
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.CreateInterviewResultRequest
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.CreateInterviewersRequest
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.CreateTermRequest
+import com.suseoaa.projectoaa.shared.domain.model.recruitment.ExportFieldsConfig
+import com.suseoaa.projectoaa.shared.domain.model.recruitment.ExportedSpreadsheet
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewDecision
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewResult
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.Interviewer
@@ -152,9 +154,18 @@ class RecruitmentRepositoryImpl(
     override suspend fun deleteApplication(applicationId: Int): Result<Unit> =
         api.deleteApplication(ApplicationIdRequest(applicationId))
 
-    override suspend fun getApplications(termId: Int, departmentId: Int?): Result<List<Application>> {
-        val applications = api.applications(termId = termId, departmentId = departmentId)
-            .decodeList<Application>("获取申请列表失败").getOrElse { return Result.failure(it) }
+    override suspend fun getApplications(
+        termId: Int,
+        departmentId: Int?,
+        hasResult: Boolean?,
+        name: String?
+    ): Result<List<Application>> {
+        val applications = api.applications(
+            termId = termId,
+            departmentId = departmentId,
+            hasResult = hasResult,
+            name = name
+        ).decodeList<Application>("获取申请列表失败").getOrElse { return Result.failure(it) }
         if (applications.none { it.isGraduated == null }) return Result.success(applications)
 
         // 申请列表的毕业字段尚未写入所有版本的接口文档，优先使用列表返回值，缺失时关联成员信息。
@@ -220,6 +231,21 @@ class RecruitmentRepositoryImpl(
             )
         )
     }
+
+    override suspend fun getExportFields(): Result<ExportFieldsConfig> =
+        api.exportFields()
+
+    override suspend fun exportInterviewResults(
+        termId: Int,
+        departmentId: Int?,
+        hasResult: Boolean?,
+        fieldsBits: String?
+    ): Result<ExportedSpreadsheet> = api.exportResults(
+        termId = termId,
+        departmentId = departmentId,
+        hasResult = hasResult,
+        fieldsBits = fieldsBits
+    )
 
     private inline fun <reified T> Result<JsonElement?>.decodeList(failureMessage: String): Result<List<T>> {
         val element = getOrElse { return Result.failure(it) }

@@ -41,6 +41,8 @@ object OaaPermission {
 
     fun canManageOrganization(user: CurrentUser?): Boolean = isAdmin(user)
 
+    fun canManageApps(user: CurrentUser?): Boolean = isAdmin(user)
+
     fun canManageTerms(user: CurrentUser?): Boolean =
         isAdmin(user) && user?.person?.isGraduated != true
 
@@ -52,9 +54,9 @@ object OaaPermission {
             (target.role == "开发者" && role.name == target.role)
 
     /**
-     * 面试官是按周期单独指定的，客户端没有接口判断「我是不是面试官」，
-     * 所以对部门负责人及以上都开放审核页，不是面试官时由后端返回无权限。
+     * 当前用户拥有面试官身份或属于部门负责人及以上，且未毕业时可进入面试审核。
      */
     fun canReviewApplications(user: CurrentUser?): Boolean =
-        isDepartmentManager(user) && user?.person?.isGraduated != true
+        user != null && user.person.isGraduated != true &&
+            (user.person.isInterviewer == true || isDepartmentManager(user))
 }

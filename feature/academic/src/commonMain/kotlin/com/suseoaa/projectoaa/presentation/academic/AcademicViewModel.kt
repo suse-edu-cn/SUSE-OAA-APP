@@ -4,30 +4,27 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
-import com.suseoaa.projectoaa.shared.domain.model.exam.ExamCacheEntity
-import com.suseoaa.projectoaa.shared.domain.repository.LocalCourseRepository
 import com.suseoaa.projectoaa.shared.domain.model.message.MessageCacheEntity
-import com.suseoaa.projectoaa.shared.domain.repository.SchoolAuthRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
 import com.suseoaa.projectoaa.shared.domain.repository.SchoolInfoRepository
-import com.suseoaa.projectoaa.shared.domain.model.exam.ExamResponse
-import com.suseoaa.projectoaa.shared.domain.model.exam.ExamItem
+import com.suseoaa.projectoaa.shared.util.OaaClock
 import com.suseoaa.projectoaa.shared.util.parseExamTimeRange
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
 import com.suseoaa.projectoaa.widget.WidgetRefresher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import com.suseoaa.projectoaa.shared.data.local.store.SessionStore
 
 /**
  * 考试UI状态
@@ -49,9 +46,7 @@ data class AcademicUiState(
 )
 
 class AcademicViewModel(
-    private val sessionStore: SessionStore,
-    private val localCourseRepository: LocalCourseRepository,
-    private val schoolAuthRepository: SchoolAuthRepository,
+    private val schoolAccountRepository: SchoolAccountRepository,
     private val schoolInfoRepository: SchoolInfoRepository,
     private val widgetRefresher: WidgetRefresher
 ) : ViewModel() {
@@ -59,17 +54,17 @@ class AcademicViewModel(
     private val _uiState = MutableStateFlow(AcademicUiState())
     val uiState: StateFlow<AcademicUiState> = _uiState.asStateFlow()
 
-    // 当前账户流
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val currentAccount: StateFlow<CourseAccountEntity?> = sessionStore.currentStudentId
-        .filterNotNull()
-        .flatMapLatest { id -> flow { emit(localCourseRepository.getAccountById(id)) } }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    // 当前默认教务账户流（随数据库新增/切换实时更新）
+    private val currentAccount: StateFlow<CourseAccountEntity?> =
+        schoolAccountRepository.observeCurrentAccount()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     // 考试列表流 (含精确排序逻辑)
     @OptIn(ExperimentalCoroutinesApi::class)
-    val examList: StateFlow<List<ExamUiState>> = sessionStore.currentStudentId
+    val examList: StateFlow<List<ExamUiState>> = currentAccount
         .filterNotNull()
+        .map { it.studentId }
+        .distinctUntilChanged()
         .flatMapLatest { studentId ->
             schoolInfoRepository.observeExams(studentId)
         }
@@ -79,7 +74,7 @@ class AcademicViewModel(
                 viewModelScope.launch {
                     flow.collect { entities ->
                         val timeZone = TimeZone.currentSystemDefault()
-                        val now = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(timeZone)
+                        val now = OaaClock.now().toLocalDateTime(timeZone)
 
                         val sorted = entities.map { entity ->
                             ExamUiState(
@@ -118,8 +113,10 @@ class AcademicViewModel(
 
     // 消息列表流
     @OptIn(ExperimentalCoroutinesApi::class)
-    val messageList: StateFlow<List<MessageCacheEntity>> = sessionStore.currentStudentId
+    val messageList: StateFlow<List<MessageCacheEntity>> = currentAccount
         .filterNotNull()
+        .map { it.studentId }
+        .distinctUntilChanged()
         .flatMapLatest { studentId ->
             schoolInfoRepository.observeMessages(studentId)
         }
@@ -140,15 +137,31 @@ class AcademicViewModel(
             }
         }
 
-        // 监听账号切换，自动刷新数据
+        // 监听账号新增或切换，自动刷新数据
         viewModelScope.launch {
-            var previousStudentId: String? = null
-            sessionStore.currentStudentId.collect { studentId ->
-                if (studentId != null && previousStudentId != null && studentId != previousStudentId) {
-                    // 账号切换了，自动刷新
-                    refresh()
+            currentAccount
+                .filterNotNull()
+                .map { it.studentId }
+                .distinctUntilChanged()
+                .collect {
+                    refresh(promptIfMissing = false)
                 }
-                previousStudentId = studentId
+        }
+    }
+
+    /**
+     * 执行需要教务账号的操作；若当前没有已添加的教务账号，先弹出添加弹窗，成功后自动继续。
+     */
+    fun requireSchoolAccount(featureName: String, onReady: () -> Unit) {
+        viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account != null) {
+                onReady()
+            } else {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = featureName,
+                    onAccountAdded = onReady
+                )
             }
         }
     }
@@ -156,16 +169,22 @@ class AcademicViewModel(
     fun loadData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
-            // 数据会通过 Flow 自动更新
-
             _uiState.update { it.copy(isLoading = false) }
         }
     }
 
-    fun refresh() {
-        val account = currentAccount.value ?: return
+    fun refresh(promptIfMissing: Boolean = false) {
         viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                if (promptIfMissing) {
+                    SchoolAccountPromptManager.requestAddAccount(
+                        featureName = "教务信息",
+                        onAccountAdded = { refresh(promptIfMissing = false) }
+                    )
+                }
+                return@launch
+            }
             if (_uiState.value.isRefreshing) return@launch
             _uiState.update { it.copy(isRefreshing = true) }
 
@@ -184,9 +203,18 @@ class AcademicViewModel(
         }
     }
 
-    fun refreshExams() {
-        val account = currentAccount.value ?: return
+    fun refreshExams(promptIfMissing: Boolean = false) {
         viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                if (promptIfMissing) {
+                    SchoolAccountPromptManager.requestAddAccount(
+                        featureName = "考试信息查询",
+                        onAccountAdded = { refreshExams(promptIfMissing = false) }
+                    )
+                }
+                return@launch
+            }
             if (_uiState.value.isRefreshing) return@launch
             _uiState.update { it.copy(isRefreshing = true) }
 
@@ -201,9 +229,18 @@ class AcademicViewModel(
         }
     }
 
-    fun refreshMessages() {
-        val account = currentAccount.value ?: return
+    fun refreshMessages(promptIfMissing: Boolean = false) {
         viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                if (promptIfMissing) {
+                    SchoolAccountPromptManager.requestAddAccount(
+                        featureName = "最新调课",
+                        onAccountAdded = { refreshMessages(promptIfMissing = false) }
+                    )
+                }
+                return@launch
+            }
             if (_uiState.value.isRefreshing) return@launch
             _uiState.update { it.copy(isRefreshing = true) }
 

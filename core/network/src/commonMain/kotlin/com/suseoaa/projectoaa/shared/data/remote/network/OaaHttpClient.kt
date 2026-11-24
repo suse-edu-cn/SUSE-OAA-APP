@@ -25,8 +25,13 @@ object OaaHttpClient {
      * 刷新 token 的请求必须走它：如果刷新请求本身也经过 401 拦截，
      * refresh token 失效时会递归触发刷新。
      */
-    fun createBare(json: Json, engine: HttpClientEngine? = null): HttpClient = newClient(engine) {
+    fun createBare(
+        json: Json,
+        engine: HttpClientEngine? = null,
+        followRedirects: Boolean = true
+    ): HttpClient = newClient(engine) {
         installCommon(json)
+        this.followRedirects = followRedirects
     }
 
     /** [engine] 仅供测试注入 MockEngine，正常使用走平台默认引擎。 */

@@ -1,5 +1,6 @@
 package com.suseoaa.projectoaa.shared.data.repository
 
+import com.suseoaa.projectoaa.shared.data.local.store.SessionStore
 import com.suseoaa.projectoaa.shared.data.local.store.UserDataCleaner
 import com.suseoaa.projectoaa.shared.data.remote.api.OaaAuthApi
 import com.suseoaa.projectoaa.shared.data.remote.api.OaaUserApi
@@ -20,8 +21,12 @@ import com.suseoaa.projectoaa.shared.domain.model.person.StoredFile
 import com.suseoaa.projectoaa.shared.domain.model.person.UpdateMeRequest
 import com.suseoaa.projectoaa.shared.domain.repository.OrganizationRepository
 import com.suseoaa.projectoaa.shared.domain.repository.PersonRepository
+import com.suseoaa.projectoaa.shared.util.OaaClock
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.concurrent.Volatile
 import kotlin.time.TimeSource
 
 /**
@@ -31,31 +36,71 @@ class PersonRepositoryImpl(
     private val userApi: OaaUserApi,
     private val authApi: OaaAuthApi,
     private val organizationRepository: OrganizationRepository,
-    private val userDataCleaner: UserDataCleaner
+    private val userDataCleaner: UserDataCleaner,
+    private val sessionStore: SessionStore? = null
 ) : PersonRepository {
+
+    private data class CachedCurrentUser(
+        val user: CurrentUser,
+        val fetchedAtMs: Long,
+        val sessionToken: String?
+    )
+
+    private val userMutex = Mutex()
+
+    @Volatile
+    private var cachedCurrentUser: CachedCurrentUser? = null
+
+    override fun getCachedCurrentUser(): CurrentUser? {
+        val entry = cachedCurrentUser ?: return null
+        if (sessionStore != null && entry.sessionToken != sessionStore.cachedToken) {
+            return null
+        }
+        return entry.user
+    }
 
     override suspend fun logout() {
         // 后端注销失败（断网、token 已过期）不影响本地退出
+        cachedCurrentUser = null
         authApi.logout(LogoutRequest(device = oaaDevice))
         userDataCleaner.clearSession()
     }
 
     override suspend fun getPersonInfo(): Result<PersonData> = userApi.me()
 
-    override suspend fun getCurrentUser(): Result<CurrentUser> {
-        val person = userApi.me().getOrElse { return Result.failure(it) }
+    override suspend fun getCurrentUser(): Result<CurrentUser> = getCurrentUser(forceRefresh = false)
+
+    override suspend fun getCurrentUser(forceRefresh: Boolean): Result<CurrentUser> = userMutex.withLock {
+        val currentToken = sessionStore?.cachedToken
+        val existing = cachedCurrentUser
+        if (sessionStore != null && existing != null && existing.sessionToken != currentToken) {
+            cachedCurrentUser = null
+        } else if (!forceRefresh && existing != null) {
+            val ageMs = OaaClock.now().toEpochMilliseconds() - existing.fetchedAtMs
+            if (ageMs < CURRENT_USER_TTL_MS) {
+                return@withLock Result.success(existing.user)
+            }
+        }
+
+        val person = userApi.me().getOrElse { return@withLock Result.failure(it) }
         // 职位 / 部门列表拿不到时降级为最低权限，不影响页面本身的加载
         val role = organizationRepository.getRoles().getOrNull()?.firstOrNull { it.name == person.role }
         val department = organizationRepository.getDepartments().getOrNull()
             ?.firstOrNull { it.name == person.department }
-        return Result.success(
-            CurrentUser(
-                person = person,
-                level = person.roleLevel ?: role?.level ?: 0,
-                departmentId = department?.id,
-                roleId = role?.id
-            )
+        val user = CurrentUser(
+            person = person,
+            level = person.roleLevel ?: role?.level ?: 0,
+            departmentId = department?.id,
+            roleId = role?.id
         )
+        if (sessionStore == null || sessionStore.cachedToken == currentToken) {
+            cachedCurrentUser = CachedCurrentUser(
+                user = user,
+                fetchedAtMs = OaaClock.now().toEpochMilliseconds(),
+                sessionToken = currentToken
+            )
+        }
+        Result.success(user)
     }
 
     override suspend fun updateProfile(username: String, email: String, grade: Int?): Result<String> {
@@ -74,7 +119,9 @@ class PersonRepositoryImpl(
                 avatar = current.avatar.uri,
                 grade = grade ?: current.resolvedGrade
             )
-        ).map { "信息更新成功" }
+        ).onSuccess {
+            cachedCurrentUser = null
+        }.map { "信息更新成功" }
     }
 
     override suspend fun uploadAvatar(imageData: ByteArray): Result<String> {
@@ -92,7 +139,9 @@ class PersonRepositoryImpl(
                 avatar = uploaded.uri,
                 grade = current.resolvedGrade
             )
-        ).map { "头像更新成功" }
+        ).onSuccess {
+            cachedCurrentUser = null
+        }.map { "头像更新成功" }
     }
 
     override suspend fun uploadFile(
@@ -125,6 +174,7 @@ class PersonRepositoryImpl(
 
     override suspend fun cancelDeleteAccount(code: String): Result<Unit> =
         userApi.cancelDelete(CancelDeleteRequest(code = code))
+            .onSuccess { cachedCurrentUser = null }
 
     override suspend fun checkServerHealth(): Result<ServerHealthStatus> = coroutineScope {
         val start = TimeSource.Monotonic.markNow()
@@ -163,5 +213,6 @@ class PersonRepositoryImpl(
 
     private companion object {
         const val AVATAR_SCENE = "avatar"
+        const val CURRENT_USER_TTL_MS = 60_000L
     }
 }

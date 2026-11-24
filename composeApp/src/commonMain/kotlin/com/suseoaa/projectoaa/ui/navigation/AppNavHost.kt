@@ -142,6 +142,11 @@ fun AppNavHost(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+        composable(Screen.AppManagement.route) {
+            com.suseoaa.projectoaa.ui.screen.appmanagement.AppManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
         composable(
             route = Screen.Main.route
         ) {
@@ -159,6 +164,9 @@ fun AppNavHost(
                 },
                 onNavigateToOrganization = {
                     navController.navigate(Screen.Organization.route)
+                },
+                onNavigateToAppManagement = {
+                    navController.navigate(Screen.AppManagement.route)
                 },
                 onNavigateToChangePassword = {
                     navController.navigate(Screen.ChangePassword.route)
@@ -189,9 +197,6 @@ fun AppNavHost(
                 },
                 onNavigateToCheckin = {
                     navController.navigate(Screen.Checkin.route)
-                },
-                onNavigateToActivityCheckin = {
-                    navController.navigate(Screen.ActivityCheckin.route)
                 },
                 onNavigateToUpdate = {
                     navController.navigate(Screen.Update.route)
@@ -314,13 +319,6 @@ fun AppNavHost(
             val accountId = backStackEntry.savedStateHandle.get<Long>("accountId") ?: -1L
             CheckinTaskScreen(
                 accountId = accountId,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        // 活动签到
-        composable(Screen.ActivityCheckin.route) {
-            com.suseoaa.projectoaa.ui.screen.checkin.ActivityCheckinScreen(
                 onBack = { navController.popBackStack() }
             )
         }

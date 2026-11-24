@@ -72,7 +72,7 @@ fun AcademicMessagesScreen(
 
     LaunchedEffect(Unit) {
         if (uiState.messages.isEmpty()) {
-            viewModel.refreshMessages()
+            viewModel.refreshMessages(promptIfMissing = true)
         }
     }
 
@@ -100,7 +100,7 @@ fun AcademicMessagesScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
                 IconButton(
-                    onClick = { viewModel.refreshMessages() },
+                    onClick = { viewModel.refreshMessages(promptIfMissing = true) },
                     modifier = Modifier.align(Alignment.CenterEnd).padding(end = 4.dp)
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = "刷新")
@@ -108,7 +108,7 @@ fun AcademicMessagesScreen(
             }
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
-                onRefresh = { viewModel.refreshMessages() },
+                onRefresh = { viewModel.refreshMessages(promptIfMissing = true) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)

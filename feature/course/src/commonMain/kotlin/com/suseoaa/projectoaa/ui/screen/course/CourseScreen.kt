@@ -41,6 +41,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.suseoaa.projectoaa.ui.component.LocalMainTabVisible
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
 import com.suseoaa.projectoaa.util.ToastManager
 import com.suseoaa.projectoaa.util.pickImageForAvatar
 import kotlinx.coroutines.launch
@@ -335,7 +336,15 @@ fun CourseScreen(
                                 DropdownMenuItem(
                                     text = { Text("添加自定义课程") },
                                     onClick = {
-                                        menuExpanded = false; showCustomCourseDialog = true
+                                        menuExpanded = false
+                                        if (currentAccount == null) {
+                                            SchoolAccountPromptManager.requestAddAccount(
+                                                featureName = "添加自定义课程",
+                                                onAccountAdded = { showCustomCourseDialog = true }
+                                            )
+                                        } else {
+                                            showCustomCourseDialog = true
+                                        }
                                     }
                                 )
                                 DropdownMenuItem(
@@ -457,7 +466,9 @@ fun CourseScreen(
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Spacer(Modifier.height(16.dp))
-                            Button(onClick = { showLoginDialog = true }) {
+                            Button(onClick = {
+                                SchoolAccountPromptManager.requestAddAccount(featureName = "导入课表")
+                            }) {
                                 Icon(Icons.Default.Add, null)
                                 Spacer(Modifier.width(8.dp))
                                 Text("导入课表")

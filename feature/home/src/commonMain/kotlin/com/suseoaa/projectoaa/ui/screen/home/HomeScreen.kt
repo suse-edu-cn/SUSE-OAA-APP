@@ -48,8 +48,8 @@ fun HomeScreen(
     onNavigateToDetail: (String) -> Unit,
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
-    onNavigateToActivityCheckin: () -> Unit,
     onNavigateToOrganization: () -> Unit = {},
+    onNavigateToAppManagement: () -> Unit = {},
     onNavigateToValueCalculator: () -> Unit,
     onNavigateToLogin: () -> Unit = {},
     bottomBarHeight: Dp = 0.dp,
@@ -98,7 +98,7 @@ fun HomeScreen(
         onNavigateToRecruitment = if (uiState.isSignedIn == false) onNavigateToLogin else onNavigateToRecruitment,
         onNavigateToUserQuery = onNavigateToUserQuery,
         onNavigateToOrganization = onNavigateToOrganization,
-        onNavigateToActivityCheckin = onNavigateToActivityCheckin,
+        onNavigateToAppManagement = onNavigateToAppManagement,
         onNavigateToValueCalculator = onNavigateToValueCalculator,
         bottomBarHeight = bottomBarHeight,
         backGestureProgress = backGestureProgress,
@@ -142,7 +142,10 @@ fun DepartmentGrid(
     /** 游客模式下代替部门卡片显示的登录引导 */
     guestPrompt: (@Composable () -> Unit)? = null
 ) {
-    fun summaryOf(name: String): String? = announcements[name]?.summary()
+    val summaryByDept = remember(announcements) {
+        announcements.mapValues { (_, announcement) -> announcement.summary() }
+    }
+    fun summaryOf(name: String): String? = summaryByDept[name]
         ?: if (hasLoadedAnnouncements) "暂无公告" else null
     val association = departments.firstOrNull { it.type == DepartmentTypes.ASSOCIATION }
     val otherDepts = departments.filter { it != association }

@@ -16,7 +16,9 @@ data class UserListItem(
     @SerialName("grade") val grade: Int? = null,
     @SerialName("is_graduated") val isGraduated: Boolean? = null,
     @SerialName("avatar") val avatar: StoredFile = StoredFile(),
-    @SerialName("role_level") val roleLevel: Int? = null
+    @SerialName("role_level") val roleLevel: Int? = null,
+    @SerialName("is_interviewer") val isInterviewer: Boolean? = null,
+    @SerialName("is_deleting") val isDeleting: Boolean = false
 ) {
     val resolvedGrade: Int? get() = grade?.takeIf(EnrollmentGrade::isValid)
 }

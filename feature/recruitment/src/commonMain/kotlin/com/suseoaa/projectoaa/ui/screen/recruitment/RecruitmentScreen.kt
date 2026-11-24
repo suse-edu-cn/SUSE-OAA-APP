@@ -135,6 +135,13 @@ fun RecruitmentScreen(
                         uiState = reviewState,
                         onSelectTerm = reviewViewModel::selectTerm,
                         onSelectDepartment = reviewViewModel::selectDepartment,
+                        onSelectHasResult = reviewViewModel::selectHasResult,
+                        onUpdateNameFilter = reviewViewModel::updateNameFilter,
+                        onSearchByName = reviewViewModel::searchByName,
+                        onOpenExportDialog = reviewViewModel::loadExportFields,
+                        onExportResults = reviewViewModel::exportResults,
+                        onConsumeExportedFile = reviewViewModel::consumeExportedFile,
+                        onReportMessage = reviewViewModel::reportMessage,
                         onRefresh = reviewViewModel::reload,
                         onSaveDecision = reviewViewModel::saveDecision,
                         modifier = contentModifier

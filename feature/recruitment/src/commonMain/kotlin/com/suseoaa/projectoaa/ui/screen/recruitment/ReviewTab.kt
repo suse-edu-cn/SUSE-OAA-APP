@@ -19,9 +19,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -39,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.suseoaa.projectoaa.presentation.recruitment.RecruitmentReviewUiState
@@ -57,8 +63,9 @@ import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewDecision
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewDecisionRules
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.Term
 import com.suseoaa.projectoaa.ui.component.common.OptionDropdown
+import com.suseoaa.projectoaa.util.rememberFileExporter
 
-// 「面试审核」Tab：按周期、部门查看申请，录入面试结论。
+// 「面试审核」Tab：按周期、部门、评审状态与姓名筛选申请，录入面试结论与导出结果。
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,17 +73,34 @@ internal fun ReviewTab(
     uiState: RecruitmentReviewUiState,
     onSelectTerm: (Term) -> Unit,
     onSelectDepartment: (Department?) -> Unit,
+    onSelectHasResult: (Boolean?) -> Unit,
+    onUpdateNameFilter: (String) -> Unit,
+    onSearchByName: () -> Unit,
+    onOpenExportDialog: () -> Unit,
+    onExportResults: (Set<Int>) -> Unit,
+    onConsumeExportedFile: () -> Unit,
+    onReportMessage: (String) -> Unit,
     onRefresh: () -> Unit,
     onSaveDecision: (Application, InterviewDecision) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var deciding by remember { mutableStateOf<Application?>(null) }
     var previewingPhotoApp by remember { mutableStateOf<Application?>(null) }
+    var showExportDialog by remember { mutableStateOf(false) }
     // 文档没保证列表里一定有申请 ID，展开状态按位置记
     var expandedIndex by remember { mutableStateOf<Int?>(null) }
+    val exportFile = rememberFileExporter()
+
+    LaunchedEffect(uiState.exportedFile) {
+        val file = uiState.exportedFile ?: return@LaunchedEffect
+        onConsumeExportedFile()
+        exportFile(file.fileName, file.mimeType, file.bytes)
+            .onSuccess { onReportMessage(it) }
+            .onFailure { onReportMessage(it.message ?: "保存导出文件失败") }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
-        if (uiState.isLoading || uiState.isSaving) {
+        if (uiState.isLoading || uiState.isSaving || uiState.isExporting) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
         Row(
@@ -104,6 +128,54 @@ internal fun ReviewTab(
             )
             IconButton(onClick = onRefresh) {
                 Icon(Icons.Default.Refresh, contentDescription = "刷新")
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OptionDropdown(
+                label = "状态",
+                options = listOf<Boolean?>(null, false, true),
+                selected = uiState.hasResultFilter,
+                onSelect = onSelectHasResult,
+                optionLabel = {
+                    when (it) {
+                        null -> "全部"
+                        false -> "未评审"
+                        true -> "已评审"
+                    }
+                },
+                placeholder = "全部",
+                modifier = Modifier.weight(0.9f)
+            )
+            OutlinedTextField(
+                value = uiState.nameFilter,
+                onValueChange = onUpdateNameFilter,
+                label = { Text("姓名") },
+                placeholder = { Text("搜索姓名") },
+                singleLine = true,
+                shape = RoundedCornerShape(10.dp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSearchByName() }),
+                trailingIcon = {
+                    IconButton(onClick = onSearchByName) {
+                        Icon(Icons.Default.Search, contentDescription = "按姓名搜索")
+                    }
+                },
+                modifier = Modifier.weight(1.3f)
+            )
+            OutlinedButton(
+                enabled = uiState.selectedTerm != null && !uiState.isExporting,
+                onClick = {
+                    showExportDialog = true
+                    onOpenExportDialog()
+                }
+            ) {
+                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("导出")
             }
         }
 
@@ -181,6 +253,18 @@ internal fun ReviewTab(
                 onSaveDecision(application, decision)
                 deciding = null
             }
+        )
+    }
+
+    if (showExportDialog) {
+        ReviewExportDialog(
+            uiState = uiState,
+            onReloadFields = onOpenExportDialog,
+            onExport = { indices ->
+                showExportDialog = false
+                onExportResults(indices)
+            },
+            onDismiss = { showExportDialog = false }
         )
     }
 }

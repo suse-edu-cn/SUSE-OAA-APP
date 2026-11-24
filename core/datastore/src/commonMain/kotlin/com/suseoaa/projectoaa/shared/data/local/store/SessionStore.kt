@@ -57,6 +57,10 @@ class SessionStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.CURRENT_STUDENT_ID] = studentId }
     }
 
+    suspend fun clearCurrentStudentId() {
+        dataStore.edit { it.remove(Keys.CURRENT_STUDENT_ID) }
+    }
+
     /**
      * v1 时代登录留下的会话：有 access token 却没有 refresh token。
      * v2 后端不认旧 token，这种会话需要清掉让用户重新登录。

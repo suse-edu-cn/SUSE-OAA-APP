@@ -12,8 +12,8 @@ import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseWithTimes
 import com.suseoaa.projectoaa.shared.domain.model.course.PracticeCourseEntity
 import com.suseoaa.projectoaa.shared.domain.repository.LocalCourseRepository
-import com.suseoaa.projectoaa.shared.domain.repository.SchoolAuthRepository
-import com.suseoaa.projectoaa.shared.domain.repository.SchoolCourseRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
 import com.suseoaa.projectoaa.util.encodeBackgroundImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -84,8 +84,7 @@ data class CourseListUiState(
 
 class CourseViewModel(
     private val localRepository: LocalCourseRepository,
-    private val schoolAuthRepository: SchoolAuthRepository,
-    private val schoolCourseRepository: SchoolCourseRepository,
+    private val schoolAccountRepository: SchoolAccountRepository,
     private val appearanceStore: AppearanceStore,
     private val semesterStore: SemesterStore,
     private val sessionStore: SessionStore
@@ -153,17 +152,9 @@ class CourseViewModel(
     val savedAccounts: StateFlow<List<CourseAccountEntity>> = localRepository.getAllAccounts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val currentAccount: StateFlow<CourseAccountEntity?> = sessionStore.currentStudentId
-        .flatMapLatest { selectedId ->
-            savedAccounts.map { accounts ->
-                if (accounts.isEmpty()) null
-                else if (selectedId != null) accounts.find { it.studentId == selectedId }
-                    ?: accounts.firstOrNull()
-                else accounts.firstOrNull()
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val currentAccount: StateFlow<CourseAccountEntity?> =
+        schoolAccountRepository.observeCurrentAccount()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _overlapSelectedAccountIds = MutableStateFlow<Set<String>?>(null)
     val overlapSelectedAccountIds: StateFlow<Set<String>> = combine(
@@ -357,19 +348,23 @@ class CourseViewModel(
 
     private fun loadSemesterStart() {
         viewModelScope.launch {
-            // 从DataStore加载开学日期和第0周标志
-            val savedDate = semesterStore.getSemesterStartDate()
-            _hasWeekZero.value = semesterStore.getSemesterHasWeekZero()
-            if (savedDate != null) {
-                try {
-                    _semesterStartDate.value = LocalDate.parse(savedDate)
-                } catch (e: Exception) {
-                    // 解析失败使用默认值
-                    AppLog.e("[Course] Failed to parse saved semester start date: $savedDate")
-                }
-            }
-            updateRealCurrentWeek()
+            refreshSemesterStartFromStore()
         }
+    }
+
+    private suspend fun refreshSemesterStartFromStore() {
+        // 从DataStore加载开学日期和第0周标志
+        val savedDate = semesterStore.getSemesterStartDate()
+        _hasWeekZero.value = semesterStore.getSemesterHasWeekZero()
+        if (savedDate != null) {
+            try {
+                _semesterStartDate.value = LocalDate.parse(savedDate)
+            } catch (e: Exception) {
+                // 解析失败使用默认值
+                AppLog.e("[Course] Failed to parse saved semester start date: $savedDate")
+            }
+        }
+        updateRealCurrentWeek()
     }
 
     private fun updateRealCurrentWeek() {
@@ -429,18 +424,20 @@ class CourseViewModel(
     }
 
     fun refreshSchedule() {
-        val account = currentAccount.value
-        if (account == null) {
-            _uiState.value = _uiState.value.copy(errorMessage = "请先添加教务账号")
-            return
+        viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                SchoolAccountPromptManager.requestAddAccount(featureName = "课表")
+                return@launch
+            }
+            AppLog.d("[CourseVM] refreshSchedule: studentId=${account.studentId}, password length=${account.password.length}, password hash=${account.password.hashCode()}")
+            fetchAndSaveCourseSchedule(
+                account.studentId,
+                account.password,
+                selectedXnm.value,
+                selectedXqm.value
+            )
         }
-        AppLog.d("[CourseVM] refreshSchedule: studentId=${account.studentId}, password length=${account.password.length}, password hash=${account.password.hashCode()}")
-        fetchAndSaveCourseSchedule(
-            account.studentId,
-            account.password,
-            selectedXnm.value,
-            selectedXqm.value
-        )
     }
 
     fun switchUser(account: CourseAccountEntity) {
@@ -454,7 +451,16 @@ class CourseViewModel(
      */
     fun deleteAccount(account: CourseAccountEntity) {
         viewModelScope.launch {
+            val currentSelectedId = sessionStore.currentStudentId.first()
             localRepository.deleteAccount(account.studentId)
+            if (currentSelectedId == account.studentId) {
+                val nextAccount = localRepository.getAllAccounts().first().firstOrNull()
+                if (nextAccount != null) {
+                    sessionStore.saveCurrentStudentId(nextAccount.studentId)
+                } else {
+                    sessionStore.clearCurrentStudentId()
+                }
+            }
             _uiState.value = _uiState.value.copy(successMessage = "已删除账号: ${account.name}")
         }
     }
@@ -514,66 +520,43 @@ class CourseViewModel(
             AppLog.d("[CourseVM] fetchAndSaveCourseSchedule: username=$username, password length=${password.length}, password hash=${password.hashCode()}")
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
-                statusMessage = "正在登录教务系统...",
+                statusMessage = "正在登录教务系统并导入课表...",
                 errorMessage = null,
                 successMessage = null
             )
 
-            // 1. 登录
-            AppLog.d("[CourseVM] 开始调用 login...")
-            val loginResult = schoolAuthRepository.login(username, password)
-            AppLog.e("[CourseVM] login 返回: isSuccess=${loginResult.isSuccess}, error=${loginResult.exceptionOrNull()?.message}")
-
-            if (loginResult.isFailure) {
-                val errorMsg = loginResult.exceptionOrNull()?.message ?: "教务系统登录失败"
-                AppLog.e("[CourseVM] 登录失败: $errorMsg")
+            schoolAccountRepository.addSchoolAccount(
+                studentId = username,
+                password = password,
+                xnm = xnm,
+                xqm = xqm,
+                forceSetDefault = false
+            ).onSuccess { added ->
+                if (added.scheduleImported) {
+                    refreshSemesterStartFromStore()
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        successMessage = if (added.isSetAsDefault) "导入成功，已设为默认账号" else "导入成功",
+                        statusMessage = null,
+                        errorMessage = null
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = if (added.isSetAsDefault) {
+                            "账号已添加并设为默认，但获取课表失败"
+                        } else {
+                            "获取课表失败，请稍后重试"
+                        },
+                        statusMessage = null
+                    )
+                }
+            }.onFailure { error ->
+                val errorMsg = error.message ?: "教务系统登录失败"
+                AppLog.e("[CourseVM] 登录或导入失败: $errorMsg")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = errorMsg,
-                    statusMessage = null
-                )
-                return@launch
-            }
-
-            AppLog.d("[CourseVM] 登录成功，开始获取课表...")
-
-            // 2. 获取课表
-            _uiState.value = _uiState.value.copy(statusMessage = "正在获取课表 ($xnm-$xqm)...")
-            val courseResult = schoolCourseRepository.getCourseSchedule(xnm, xqm)
-
-            courseResult.onSuccess { courseData ->
-                _uiState.value = _uiState.value.copy(statusMessage = "正在保存...")
-
-                localRepository.saveFromResponse(username, password, courseData)
-
-                // 切换到新导入的账号
-                sessionStore.saveCurrentStudentId(username)
-
-                // 3. 获取校历（开学日期和是否有第0周）
-                _uiState.value = _uiState.value.copy(statusMessage = "正在同步校历...")
-                try {
-                    val calendarInfo = schoolCourseRepository.fetchSemesterStart()
-                    if (calendarInfo != null) {
-                        val parsedDate = LocalDate.parse(calendarInfo.startDate)
-                        _hasWeekZero.value = calendarInfo.hasWeekZero
-                        semesterStore.saveSemesterHasWeekZero(calendarInfo.hasWeekZero)
-                        setSemesterStartDate(parsedDate)
-                    }
-                } catch (e: Exception) {
-                    // 校历获取失败不影响整体流程
-                    AppLog.e("[Course] Failed to fetch semester start: ${e.message}")
-                }
-
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    successMessage = "导入成功",
-                    statusMessage = null,
-                    errorMessage = null
-                )
-            }.onFailure { e ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "获取课表失败: ${e.message}",
                     statusMessage = null
                 )
             }

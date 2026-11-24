@@ -5,18 +5,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.domain.model.course.CourseAccountEntity
 import com.suseoaa.projectoaa.shared.domain.model.grade.GradeEntity
-import com.suseoaa.projectoaa.shared.domain.repository.LocalCourseRepository
+import com.suseoaa.projectoaa.shared.domain.repository.GpaRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
 import com.suseoaa.projectoaa.shared.domain.repository.SchoolAuthRepository
 import com.suseoaa.projectoaa.shared.domain.repository.SchoolGradeRepository
-import com.suseoaa.projectoaa.shared.domain.model.grade.StudentGradeResponse
-import com.suseoaa.projectoaa.shared.domain.repository.GpaRepository
-import kotlin.math.pow
+import com.suseoaa.projectoaa.shared.util.OaaClock
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import com.suseoaa.projectoaa.shared.data.local.store.SessionStore
+import kotlin.math.pow
 
 @Immutable
 data class GradesUiState(
@@ -45,8 +45,7 @@ data class GradesUiState(
 )
 
 class GradesViewModel(
-    private val sessionStore: SessionStore,
-    private val localCourseRepository: LocalCourseRepository,
+    private val schoolAccountRepository: SchoolAccountRepository,
     private val schoolAuthRepository: SchoolAuthRepository,
     private val schoolGradeRepository: SchoolGradeRepository,
     private val gpaRepository: GpaRepository
@@ -55,42 +54,39 @@ class GradesViewModel(
     private val _uiState = MutableStateFlow(GradesUiState())
     val uiState: StateFlow<GradesUiState> = _uiState.asStateFlow()
 
-    // 当前账户流
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val currentAccount: StateFlow<CourseAccountEntity?> = combine(
-        localCourseRepository.getAllAccounts(),
-        sessionStore.currentStudentId
-    ) { accounts, selectedId ->
-        if (accounts.isEmpty()) null
-        else accounts.find { it.studentId == selectedId } ?: accounts.firstOrNull()
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = null
-    )
+    // 当前默认教务账户流
+    private val currentAccount: StateFlow<CourseAccountEntity?> =
+        schoolAccountRepository.observeCurrentAccount().stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null
+        )
 
     // 成绩数据流
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val gradesFlow: StateFlow<List<GradeEntity>> = combine(
-        currentAccount.filterNotNull(),
-        _uiState
-    ) { account, state ->
-        Triple(account.studentId, state.selectedYears, state.selectedSemesters)
-    }.flatMapLatest { (studentId, years, semesters) ->
-        schoolGradeRepository.observeAllGrades(studentId).map { list ->
-            list.filter { it.xnm in years && it.xqm in semesters }
+    private val gradesFlow: StateFlow<List<GradeEntity>> = currentAccount
+        .filterNotNull()
+        .flatMapLatest { account ->
+            _uiState.map { state ->
+                Triple(account.studentId, state.selectedYears, state.selectedSemesters)
+            }
         }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Lazily,
-        initialValue = emptyList()
-    )
+        .flatMapLatest { (studentId, years, semesters) ->
+            schoolGradeRepository.observeAllGrades(studentId).map { list ->
+                list.filter { it.xnm in years && it.xqm in semesters }
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = emptyList()
+        )
 
     init {
         // 初始化当前学年
-        val currentYear = com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault()).year
-        val currentMonth =
-            com.suseoaa.projectoaa.shared.util.OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault()).monthNumber
+        val nowLocal = OaaClock.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val currentYear = nowLocal.year
+        val currentMonth = nowLocal.monthNumber
         // 如果在上半年(1-7月)，使用上一年作为学年
         val academicYear = if (currentMonth < 8) currentYear - 1 else currentYear
 
@@ -128,6 +124,20 @@ class GradesViewModel(
         }
     }
 
+    /**
+     * 进入页面时校验是否有教务账号；若无则弹窗添加并自动设为默认账号。
+     */
+    fun ensureAccountOrPrompt() {
+        viewModelScope.launch {
+            if (schoolAccountRepository.getCurrentAccount() == null) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "成绩查询",
+                    onAccountAdded = { refreshGrades() }
+                )
+            }
+        }
+    }
+
     private fun calculateGpaStats(studentId: String) {
         viewModelScope.launch {
             val result = gpaRepository.getGpaData(studentId)
@@ -148,25 +158,25 @@ class GradesViewModel(
 
                 allCourses.forEach { item ->
                     if (!item.isIncludedInCalculation) return@forEach
-                    
+
                     val credit = item.credit
                     // 排除没有成绩或者模拟成绩为空的项
                     if (credit > 0.0 && item.originalScoreText.isNotEmpty()) {
                         val gpa = item.gpaValue
-                        
+
                         totalPoints += gpa * credit
                         totalCredits += credit
-                        
+
                         if (item.isDegreeCourse) {
                             degreePoints += gpa * credit
                             degreeCredits += credit
                         }
-                        
+
                         // Check if it belongs to current term
                         if (item.originalEntity.xnm in selectedYears && item.originalEntity.xqm in selectedSemesters) {
                             currentPoints += gpa * credit
                             currentCredits += credit
-                            
+
                             if (item.isDegreeCourse) {
                                 currentDegreePoints += gpa * credit
                                 currentDegreeCredits += credit
@@ -174,7 +184,7 @@ class GradesViewModel(
                         }
                     }
                 }
-                
+
                 fun Double.format(decimals: Int): String {
                     val factor = 10.0.pow(decimals)
                     val rounded = kotlin.math.round(this * factor) / factor
@@ -198,7 +208,7 @@ class GradesViewModel(
                 val finalCurrentGpa = if (currentCredits > 0) currentPoints / currentCredits else 0.0
                 val finalCurrentDegreeGpa = if (currentDegreeCredits > 0) currentDegreePoints / currentDegreeCredits else 0.0
 
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         totalGpa = finalTotalGpa.format(2),
                         totalDegreeGpa = finalDegreeGpa.format(2),
@@ -211,8 +221,15 @@ class GradesViewModel(
     }
 
     fun refreshGrades() {
-        val account = currentAccount.value ?: return
         viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "成绩查询",
+                    onAccountAdded = { refreshGrades() }
+                )
+                return@launch
+            }
             if (_uiState.value.isRefreshing) return@launch
             _uiState.update { it.copy(isRefreshing = true, message = "正在连接教务系统...") }
 
@@ -241,9 +258,16 @@ class GradesViewModel(
     }
 
     fun refreshCurrentTermGrades() {
-        val account = currentAccount.value ?: return
-        val state = _uiState.value
         viewModelScope.launch {
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "成绩查询",
+                    onAccountAdded = { refreshCurrentTermGrades() }
+                )
+                return@launch
+            }
+            val state = _uiState.value
             if (state.isRefreshing) return@launch
             _uiState.update { it.copy(isRefreshing = true, message = "正在连接教务系统...") }
 
@@ -258,7 +282,7 @@ class GradesViewModel(
                         for (semester in state.selectedSemesters) {
                             val result = schoolGradeRepository.fetchCurrentTermGrades(account, year, semester)
                             if (result.isSuccess) successCount++
-                            kotlinx.coroutines.delay(300)
+                            delay(300)
                         }
                     }
                     _uiState.update { it.copy(message = "同步完成：成功更新 $successCount 个学期") }

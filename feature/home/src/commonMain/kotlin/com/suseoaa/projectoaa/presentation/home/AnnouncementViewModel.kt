@@ -11,6 +11,7 @@ import com.suseoaa.projectoaa.shared.domain.permission.OaaPermission
 import com.suseoaa.projectoaa.shared.domain.repository.AnnouncementRepository
 import com.suseoaa.projectoaa.shared.domain.repository.OrganizationRepository
 import com.suseoaa.projectoaa.shared.domain.repository.PersonRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,8 @@ data class AnnouncementUiState(
     val currentUser: CurrentUser? = null,
     val canManage: Boolean = false,
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val hasLoadedCache: Boolean = false,
     val error: String? = null,
     /** 当前生效的公告（正常只有一条） */
     val active: List<Announcement> = emptyList(),
@@ -56,34 +59,126 @@ class AnnouncementViewModel(
     private val _uiState = MutableStateFlow(AnnouncementUiState())
     val uiState: StateFlow<AnnouncementUiState> = _uiState.asStateFlow()
 
-    fun load(departmentName: String) {
-        _uiState.update { it.copy(departmentName = departmentName, isLoading = true, error = null) }
-        viewModelScope.launch {
-            val user = _uiState.value.currentUser ?: personRepository.getCurrentUser().getOrNull()
+    private var loadJob: Job? = null
+
+    /**
+     * 同步构造首帧快照，确保从首页进入详情页第一帧即可渲染已有缓存内容。
+     */
+    fun snapshotFromCache(departmentName: String): AnnouncementUiState {
+        val currentState = _uiState.value
+        val existingForDepartment = currentState.takeIf { it.departmentName == departmentName }
+        val cachedUser = existingForDepartment?.currentUser ?: personRepository.getCachedCurrentUser()
+        val canManage = OaaPermission.canManageAnnouncements(cachedUser, departmentName)
+        val cachedActive = announcementRepository.getCachedAnnouncements(AnnouncementStatus.Active)
+        val cachedHistory = announcementRepository.getCachedAnnouncements(AnnouncementStatus.History)
+        val cachedDrafts = if (canManage) {
+            announcementRepository.getCachedAnnouncements(AnnouncementStatus.Draft)
+        } else {
+            emptyList()
+        }
+
+        val activeList = cachedActive?.ofDepartment(departmentName)
+            ?: existingForDepartment?.active.orEmpty()
+        val historyList = cachedHistory?.ofDepartment(departmentName)
+            ?.sortedByDescending { it.publishedAt.orEmpty() }
+            ?: existingForDepartment?.history.orEmpty()
+        val draftList = if (canManage) {
+            cachedDrafts?.ofDepartment(departmentName)
+                ?.sortedByDescending { it.updatedAt }
+                ?: existingForDepartment?.drafts.orEmpty()
+        } else {
+            emptyList()
+        }
+        val hasCache = cachedActive != null || existingForDepartment?.hasLoadedCache == true
+
+        return AnnouncementUiState(
+            departmentName = departmentName,
+            currentUser = cachedUser,
+            canManage = canManage,
+            isLoading = !hasCache,
+            isRefreshing = false,
+            hasLoadedCache = hasCache,
+            error = null,
+            active = activeList,
+            history = historyList,
+            drafts = draftList,
+            isSubmitting = existingForDepartment?.isSubmitting ?: false,
+            message = existingForDepartment?.message
+        )
+    }
+
+    fun load(departmentName: String, forceRefresh: Boolean = false) {
+        val snapshot = snapshotFromCache(departmentName)
+        if (forceRefresh) {
+            val preserved = _uiState.value.takeIf { it.departmentName == departmentName } ?: snapshot
+            _uiState.value = preserved.copy(
+                departmentName = departmentName,
+                isLoading = false,
+                isRefreshing = true,
+                error = null
+            )
+        } else {
+            _uiState.value = snapshot
+        }
+
+        val needsRefresh = forceRefresh ||
+            snapshot.currentUser == null ||
+            !announcementRepository.isCacheFresh(AnnouncementStatus.Active) ||
+            !announcementRepository.isCacheFresh(AnnouncementStatus.History) ||
+            (snapshot.canManage && !announcementRepository.isCacheFresh(AnnouncementStatus.Draft))
+
+        if (!needsRefresh) {
+            return
+        }
+
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            val user = if (forceRefresh || snapshot.currentUser == null) {
+                personRepository.getCurrentUser(forceRefresh = forceRefresh).getOrNull()
+                    ?: snapshot.currentUser
+            } else {
+                snapshot.currentUser
+            }
             val canManage = OaaPermission.canManageAnnouncements(user, departmentName)
             _uiState.update { it.copy(currentUser = user, canManage = canManage) }
 
-            val activeDeferred = async { announcementRepository.getAnnouncements(AnnouncementStatus.Active) }
-            val historyDeferred = async { announcementRepository.getAnnouncements(AnnouncementStatus.History) }
+            val activeDeferred = async {
+                announcementRepository.getAnnouncements(AnnouncementStatus.Active, forceRefresh = forceRefresh)
+            }
+            val historyDeferred = async {
+                announcementRepository.getAnnouncements(AnnouncementStatus.History, forceRefresh = forceRefresh)
+            }
             val draftsDeferred = if (canManage) {
-                async { announcementRepository.getAnnouncements(AnnouncementStatus.Draft) }
+                async {
+                    announcementRepository.getAnnouncements(AnnouncementStatus.Draft, forceRefresh = forceRefresh)
+                }
             } else null
 
             val active = activeDeferred.await()
             val history = historyDeferred.await()
             // 草稿拿不到（比如后端判定无权限）不影响查看公告
-            val drafts = draftsDeferred?.await()?.getOrNull().orEmpty()
+            val drafts = draftsDeferred?.await()
 
-            fun List<Announcement>.ofDepartment() = filter { it.departmentName == departmentName }
-
-            _uiState.update {
-                it.copy(
+            _uiState.update { state ->
+                val nextActive = active.getOrNull()?.ofDepartment(departmentName) ?: state.active
+                val nextHistory = history.getOrNull()?.ofDepartment(departmentName)
+                    ?.sortedByDescending { item -> item.publishedAt.orEmpty() }
+                    ?: state.history
+                val nextDrafts = if (canManage) {
+                    drafts?.getOrNull()?.ofDepartment(departmentName)
+                        ?.sortedByDescending { item -> item.updatedAt }
+                        ?: state.drafts
+                } else {
+                    emptyList()
+                }
+                state.copy(
                     isLoading = false,
-                    active = active.getOrNull().orEmpty().ofDepartment(),
-                    history = history.getOrNull().orEmpty().ofDepartment()
-                        .sortedByDescending { item -> item.publishedAt.orEmpty() },
-                    drafts = drafts.ofDepartment().sortedByDescending { item -> item.updatedAt },
-                    error = active.exceptionOrNull()?.message
+                    isRefreshing = false,
+                    hasLoadedCache = state.hasLoadedCache || active.isSuccess,
+                    active = nextActive,
+                    history = nextHistory,
+                    drafts = nextDrafts,
+                    error = if (nextActive.isEmpty()) active.exceptionOrNull()?.message else null
                 )
             }
         }
@@ -110,6 +205,17 @@ class AnnouncementViewModel(
         }
         if (announcementId == null) {
             _uiState.update { it.copy(editing = null, editTitle = "", editContent = "", isEditorReady = true) }
+            return
+        }
+        announcementRepository.getCachedAnnouncement(announcementId)?.let { cached ->
+            _uiState.update {
+                it.copy(
+                    editing = cached,
+                    editTitle = cached.title,
+                    editContent = cached.content,
+                    isEditorReady = true
+                )
+            }
             return
         }
         viewModelScope.launch {
@@ -193,11 +299,14 @@ class AnnouncementViewModel(
             action()
                 .onSuccess {
                     _uiState.update { it.copy(isSubmitting = false, message = successMessage) }
-                    load(_uiState.value.departmentName)
+                    load(_uiState.value.departmentName, forceRefresh = true)
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(isSubmitting = false, message = error.message ?: "操作失败") }
                 }
         }
     }
+
+    private fun List<Announcement>.ofDepartment(departmentName: String): List<Announcement> =
+        filter { it.departmentName == departmentName }
 }

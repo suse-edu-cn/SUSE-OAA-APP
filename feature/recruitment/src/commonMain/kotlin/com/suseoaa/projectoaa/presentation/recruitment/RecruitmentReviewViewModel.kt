@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.domain.model.org.Department
 import com.suseoaa.projectoaa.shared.domain.model.org.Role
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.Application
+import com.suseoaa.projectoaa.shared.domain.model.recruitment.ExportFieldsConfig
+import com.suseoaa.projectoaa.shared.domain.model.recruitment.ExportedSpreadsheet
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewDecision
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewDecisionRules
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewResult
@@ -32,10 +34,17 @@ data class RecruitmentReviewUiState(
     val roles: List<Role> = emptyList(),
     /** null 表示不指定部门，由后端返回面试官所属部门的申请 */
     val departmentFilter: Department? = null,
+    /** null 表示全部，false 未评审，true 已评审 */
+    val hasResultFilter: Boolean? = null,
+    val nameFilter: String = "",
     val applications: List<Application> = emptyList(),
     /** 申请 ID -> 已录入的面试结果 */
     val results: Map<Int, InterviewResult> = emptyMap(),
-    val decisions: List<String> = emptyList()
+    val decisions: List<String> = emptyList(),
+    val exportFieldsConfig: ExportFieldsConfig? = null,
+    val isLoadingExportFields: Boolean = false,
+    val isExporting: Boolean = false,
+    val exportedFile: ExportedSpreadsheet? = null
 ) {
     fun departmentName(id: Int): String = departments.firstOrNull { it.id == id }?.name ?: "未知部门"
     fun roleName(id: Int): String = roles.firstOrNull { it.id == id }?.name ?: "未知职位"
@@ -91,6 +100,72 @@ class RecruitmentReviewViewModel(
         reload()
     }
 
+    fun selectHasResult(hasResult: Boolean?) {
+        _uiState.update { it.copy(hasResultFilter = hasResult) }
+        reload()
+    }
+
+    fun updateNameFilter(name: String) {
+        _uiState.update { it.copy(nameFilter = name) }
+    }
+
+    fun searchByName() {
+        reload()
+    }
+
+    fun loadExportFields() {
+        if (_uiState.value.isLoadingExportFields || _uiState.value.exportFieldsConfig != null) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingExportFields = true) }
+            recruitmentRepository.getExportFields()
+                .onSuccess { config ->
+                    _uiState.update { it.copy(isLoadingExportFields = false, exportFieldsConfig = config) }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingExportFields = false,
+                            message = error.message ?: "获取导出字段失败"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun exportResults(selectedIndices: Set<Int>) {
+        if (_uiState.value.isExporting) return
+        val term = _uiState.value.selectedTerm ?: run {
+            _uiState.update { it.copy(message = "请先选择招新周期") }
+            return
+        }
+        if (selectedIndices.isEmpty()) {
+            _uiState.update { it.copy(message = "请至少选择一个导出字段") }
+            return
+        }
+        val fieldsBits = _uiState.value.exportFieldsConfig?.buildBits(selectedIndices)
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true) }
+            recruitmentRepository.exportInterviewResults(
+                termId = term.resolvedId,
+                departmentId = _uiState.value.departmentFilter?.id,
+                hasResult = _uiState.value.hasResultFilter,
+                fieldsBits = fieldsBits
+            ).onSuccess { file ->
+                _uiState.update { it.copy(isExporting = false, exportedFile = file) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isExporting = false, message = error.message ?: "导出面试结果失败") }
+            }
+        }
+    }
+
+    fun consumeExportedFile() {
+        _uiState.update { it.copy(exportedFile = null) }
+    }
+
+    fun reportMessage(message: String) {
+        _uiState.update { it.copy(message = message) }
+    }
+
     fun reload() {
         val term = _uiState.value.selectedTerm ?: run {
             _uiState.update { it.copy(isLoading = false, applications = emptyList()) }
@@ -99,8 +174,14 @@ class RecruitmentReviewViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val termId = term.resolvedId
+            val state = _uiState.value
             val applicationsDeferred = async {
-                recruitmentRepository.getApplications(termId, _uiState.value.departmentFilter?.id)
+                recruitmentRepository.getApplications(
+                    termId = termId,
+                    departmentId = state.departmentFilter?.id,
+                    hasResult = state.hasResultFilter,
+                    name = state.nameFilter
+                )
             }
             val resultsDeferred = async { recruitmentRepository.getInterviewResults(termId) }
             val applications = applicationsDeferred.await()

@@ -99,6 +99,7 @@ data class PersonData(
     @SerialName("is_graduated") val isGraduated: Boolean? = null,
     // 文档没写，但线上接口返回了职位等级；老版本后端没有时为 null
     @SerialName("role_level") val roleLevel: Int? = null,
+    @SerialName("is_interviewer") val isInterviewer: Boolean? = null,
     /** 是否正处于注销冷静期；为 false 时后端不返回 [scheduledDeleteAt] */
     @SerialName("is_deleting") val isDeleting: Boolean = false,
     /** 预计永久删除时间（如 "2026-10-26 15:04:05"），仅 [isDeleting] 为 true 时返回 */

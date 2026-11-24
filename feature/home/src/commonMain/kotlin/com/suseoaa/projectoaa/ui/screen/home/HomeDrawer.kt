@@ -7,9 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
-import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Calculate
@@ -32,7 +31,7 @@ fun HomeWithDrawer(
     onNavigateToRecruitment: () -> Unit,
     onNavigateToUserQuery: () -> Unit,
     onNavigateToOrganization: () -> Unit,
-    onNavigateToActivityCheckin: () -> Unit,
+    onNavigateToAppManagement: () -> Unit = {},
     onNavigateToValueCalculator: () -> Unit,
     bottomBarHeight: Dp = 0.dp,
     backGestureProgress: Float? = null,
@@ -65,20 +64,6 @@ fun HomeWithDrawer(
                         onNavigateToRecruitment()
                     },
                     sharedBoundKey = "recruitment_feature"
-                )
-            }
-
-            item(key = "feature_activity_checkin") {
-                FeatureCard(
-                    name = "活动签到",
-                    icon = Icons.AutoMirrored.Filled.BluetoothSearching,
-                    color = MaterialTheme.colorScheme.surface,
-                    onColor = MaterialTheme.colorScheme.primary,
-                    onClick = {
-                        onExpandedChange(true)
-                        onNavigateToActivityCheckin()
-                    },
-                    sharedBoundKey = "activity_checkin_feature"
                 )
             }
 
@@ -124,6 +109,22 @@ fun HomeWithDrawer(
                             onNavigateToOrganization()
                         },
                         sharedBoundKey = "organization_feature"
+                    )
+                }
+            }
+
+            if (OaaPermission.canManageApps(currentUser)) {
+                item(key = "feature_app_management") {
+                    FeatureCard(
+                        name = "应用管理",
+                        icon = Icons.Default.Apps,
+                        color = MaterialTheme.colorScheme.surface,
+                        onColor = MaterialTheme.colorScheme.primary,
+                        onClick = {
+                            onExpandedChange(true)
+                            onNavigateToAppManagement()
+                        },
+                        sharedBoundKey = "app_management_feature"
                     )
                 }
             }

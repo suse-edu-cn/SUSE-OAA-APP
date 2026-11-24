@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suseoaa.projectoaa.shared.domain.model.teachingplan.*
 import com.suseoaa.projectoaa.shared.domain.repository.AcademicStatusRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAccountRepository
+import com.suseoaa.projectoaa.shared.domain.repository.SchoolAuthRepository
+import com.suseoaa.projectoaa.util.SchoolAccountPromptManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import com.suseoaa.projectoaa.shared.data.local.store.SessionStore
 
 /**
  * 以下 UI 状态原本定义在 shared 的 domain/model 里，属于 UI 层反向下沉到领域层。
@@ -64,7 +66,6 @@ fun StudyStatusUtils.matchesFilter(statusCode: String, filter: AcademicStatusFil
         AcademicStatusFilter.NOT_STUDIED -> statusCode == StudyStatusUtils.NOT_STUDIED
     }
 
-
 /**
  * 学业情况查询 ViewModel
  * 显示学生的课程修读状态、学分完成情况等
@@ -72,14 +73,12 @@ fun StudyStatusUtils.matchesFilter(statusCode: String, filter: AcademicStatusFil
  */
 class AcademicStatusViewModel(
     private val academicStatusRepository: AcademicStatusRepository,
-    private val sessionStore: SessionStore
+    private val schoolAccountRepository: SchoolAccountRepository,
+    private val schoolAuthRepository: SchoolAuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AcademicStatusUiState())
     val uiState: StateFlow<AcademicStatusUiState> = _uiState.asStateFlow()
-
-    // 缓存HTML内容，用于"其它课程"请求
-    private var cachedHtmlContent: String = ""
 
     init {
         loadAcademicStatus()
@@ -90,15 +89,36 @@ class AcademicStatusViewModel(
      */
     fun loadAcademicStatus() {
         viewModelScope.launch {
-            val studentId = sessionStore.currentStudentId.first()
-            if (studentId == null) {
-                _uiState.update { it.copy(errorMessage = "请先登录教务系统") }
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        errorMessage = "请先添加教务系统账号"
+                    )
+                }
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "学业情况查询",
+                    onAccountAdded = { loadAcademicStatus() }
+                )
                 return@launch
             }
 
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val result = academicStatusRepository.getAcademicStatusCategories(studentId)
+            val loginResult = schoolAuthRepository.login(account.studentId, account.password)
+            if (loginResult.isFailure) {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "教务登录失败: ${loginResult.exceptionOrNull()?.message ?: "请检查账号密码"}",
+                        isLoading = false
+                    )
+                }
+                return@launch
+            }
+
+            val result = academicStatusRepository.getAcademicStatusCategories(account.studentId)
             result.fold(
                 onSuccess = { (planOverview, categories) ->
                     _uiState.update { state ->
@@ -111,7 +131,7 @@ class AcademicStatusViewModel(
                         )
                     }
                     // 加载每个类别的课程详情
-                    loadAllCategoryCourses(studentId, categories)
+                    loadAllCategoryCourses(account.studentId, categories)
                 },
                 onFailure = { error ->
                     _uiState.update {
@@ -205,7 +225,7 @@ class AcademicStatusViewModel(
                     )
                 }
             },
-            onFailure = { error ->
+            onFailure = {
                 _uiState.update { state ->
                     state.copy(
                         categories = state.categories.map { cat ->
@@ -280,11 +300,29 @@ class AcademicStatusViewModel(
      */
     fun refresh() {
         viewModelScope.launch {
-            val studentId = sessionStore.currentStudentId.first() ?: return@launch
+            val account = schoolAccountRepository.getCurrentAccount()
+            if (account == null) {
+                SchoolAccountPromptManager.requestAddAccount(
+                    featureName = "学业情况查询",
+                    onAccountAdded = { loadAcademicStatus() }
+                )
+                return@launch
+            }
 
             _uiState.update { it.copy(isRefreshing = true) }
 
-            val result = academicStatusRepository.getAcademicStatusCategories(studentId)
+            val loginResult = schoolAuthRepository.login(account.studentId, account.password)
+            if (loginResult.isFailure) {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "教务登录失败: ${loginResult.exceptionOrNull()?.message ?: "请检查账号密码"}",
+                        isRefreshing = false
+                    )
+                }
+                return@launch
+            }
+
+            val result = academicStatusRepository.getAcademicStatusCategories(account.studentId)
             result.fold(
                 onSuccess = { (planOverview, categories) ->
                     _uiState.update { state ->
@@ -294,7 +332,7 @@ class AcademicStatusViewModel(
                             isRefreshing = false
                         )
                     }
-                    loadAllCategoryCourses(studentId, categories)
+                    loadAllCategoryCourses(account.studentId, categories)
                 },
                 onFailure = { error ->
                     _uiState.update {

@@ -5,6 +5,8 @@ import com.suseoaa.projectoaa.shared.domain.model.recruitment.CreateApplicationR
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.CreateInterviewResultRequest
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.CreateInterviewersRequest
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.CreateTermRequest
+import com.suseoaa.projectoaa.shared.domain.model.recruitment.ExportFieldsConfig
+import com.suseoaa.projectoaa.shared.domain.model.recruitment.ExportedSpreadsheet
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.InterviewerIdRequest
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.Term
 import com.suseoaa.projectoaa.shared.domain.model.recruitment.TermIdRequest
@@ -51,11 +53,21 @@ class OaaRecruitmentApi(private val requester: OaaRequester) {
         requester.post("/application/delete", request, "删除申请失败")
 
     /** [departmentId] 为 null 时后端默认查面试官所属部门。 */
-    suspend fun applications(termId: Int?, departmentId: Int?): Result<JsonElement?> =
+    suspend fun applications(
+        termId: Int?,
+        departmentId: Int?,
+        hasResult: Boolean? = null,
+        name: String? = null
+    ): Result<JsonElement?> =
         requester.get(
             "/application/list",
             "获取申请列表失败",
-            params = mapOf("term_id" to termId, "department_id" to departmentId)
+            params = mapOf(
+                "term_id" to termId,
+                "department_id" to departmentId,
+                "has_result" to hasResult,
+                "name" to name?.trim()?.ifBlank { null }
+            )
         )
 
     suspend fun fillableRoles(departmentId: Int): Result<JsonElement?> =
@@ -89,4 +101,29 @@ class OaaRecruitmentApi(private val requester: OaaRequester) {
 
     suspend fun decisions(): Result<JsonElement?> =
         requester.get("/interviewer/result/decision", "获取面试结论选项失败")
+
+    suspend fun exportFields(): Result<ExportFieldsConfig> =
+        requester.get("/interviewer/result/fields", "获取导出字段列表失败")
+
+    suspend fun exportResults(
+        termId: Int,
+        departmentId: Int? = null,
+        hasResult: Boolean? = null,
+        fieldsBits: String? = null
+    ): Result<ExportedSpreadsheet> = requester.getBinary(
+        path = "/interviewer/result/export",
+        fallbackMessage = "导出面试结果失败",
+        params = mapOf(
+            "term_id" to termId,
+            "department_id" to departmentId,
+            "has_result" to hasResult,
+            "fields" to fieldsBits?.ifBlank { null }
+        )
+    ).map { payload ->
+        ExportedSpreadsheet(
+            fileName = payload.fileName,
+            mimeType = payload.contentType,
+            bytes = payload.bytes
+        )
+    }
 }

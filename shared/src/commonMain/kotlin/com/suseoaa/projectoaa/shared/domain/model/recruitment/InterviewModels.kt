@@ -7,17 +7,20 @@ import kotlinx.serialization.Serializable
 /**
  * GET /interviewer/list 的单条面试官记录。
  *
- * 兼容后端可能返回 `interviewer_id` 或 `id` 作为主键，其余成员信息字段均设为可选。
+ * 兼容后端可能返回 `interviewer_id` 或 `id` 作为主键，及 `department_name` / `department`，其余字段均设为可选。
  */
 @Serializable
 data class Interviewer(
     @SerialName("interviewer_id") val interviewerId: Int = 0,
     @SerialName("id") val id: Int = 0,
     @SerialName("term_id") val termId: Int = 0,
+    @SerialName("year") val year: Int = 0,
+    @SerialName("term_type") val termType: String = "",
     @SerialName("user_id") val userId: Int = 0,
     @SerialName("student_id") val studentId: String = "",
     @SerialName("username") val username: String = "",
     @SerialName("name") val name: String = "",
+    @SerialName("department_name") val departmentName: String = "",
     @SerialName("department") val department: String = "",
     @SerialName("role") val role: String = "",
     @SerialName("grade") val grade: Int? = null,
@@ -28,6 +31,7 @@ data class Interviewer(
     @SerialName("updated_at") val updatedAt: String = ""
 ) {
     val resolvedId: Int get() = if (interviewerId != 0) interviewerId else id
+    val resolvedDepartment: String get() = departmentName.ifBlank { department }
     val displayName: String get() = name.ifBlank { username }.ifBlank { remark }.ifBlank { "成员 #$userId" }
 }
 
@@ -119,3 +123,51 @@ data class UpdateInterviewResultRequest(
     @SerialName("result_role_id") val resultRoleId: Int,
     @SerialName("remark") val remark: String
 )
+
+/** GET /interviewer/result/fields 的单个可导出字段。 */
+@Serializable
+data class ExportFieldOption(
+    @SerialName("index") val index: Int = 0,
+    @SerialName("label") val label: String = ""
+)
+
+/** GET /interviewer/result/fields 返回的可导出字段配置与位串模板。 */
+@Serializable
+data class ExportFieldsConfig(
+    @SerialName("total_fields") val totalFields: Int = 0,
+    @SerialName("all_bits") val allBits: String = "",
+    @SerialName("fields") val fields: List<ExportFieldOption> = emptyList()
+) {
+    /** 将选中的字段下标集合编码为 '0'/'1' 位串（传入 /interviewer/result/export 的 fields 参数）。 */
+    fun buildBits(selectedIndices: Set<Int>): String {
+        val count = maxOf(totalFields, allBits.length, fields.maxOfOrNull { it.index + 1 } ?: 0)
+        if (count <= 0) return ""
+        return buildString(count) {
+            for (index in 0 until count) {
+                append(if (index in selectedIndices) '1' else '0')
+            }
+        }
+    }
+}
+
+/** GET /interviewer/result/export 返回的二进制表格文件。 */
+data class ExportedSpreadsheet(
+    val fileName: String,
+    val mimeType: String,
+    val bytes: ByteArray
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ExportedSpreadsheet) return false
+        return fileName == other.fileName &&
+            mimeType == other.mimeType &&
+            bytes.contentEquals(other.bytes)
+    }
+
+    override fun hashCode(): Int {
+        var result = fileName.hashCode()
+        result = 31 * result + mimeType.hashCode()
+        result = 31 * result + bytes.contentHashCode()
+        return result
+    }
+}

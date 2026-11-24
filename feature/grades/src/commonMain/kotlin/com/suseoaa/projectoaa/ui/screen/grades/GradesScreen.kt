@@ -92,6 +92,10 @@ fun GradesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.ensureAccountOrPrompt()
+    }
+
     // 显示Toast消息
     uiState.message?.let { message ->
         showToast(message)

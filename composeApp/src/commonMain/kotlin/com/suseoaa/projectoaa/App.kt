@@ -20,6 +20,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.suseoaa.projectoaa.presentation.MainViewModel
 import com.suseoaa.projectoaa.ui.component.AdaptiveLayout
+import com.suseoaa.projectoaa.ui.component.SchoolAccountPromptHost
 import com.suseoaa.projectoaa.ui.navigation.AppNavHost
 import com.suseoaa.projectoaa.ui.navigation.Screen
 import com.suseoaa.projectoaa.ui.screen.main.MainTab
@@ -139,6 +140,9 @@ fun App(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
+
+            // 全局添加教务账号弹窗
+            SchoolAccountPromptHost()
 
             // 全局 Toast 处理器 - 放在最上层
             ToastHandler()

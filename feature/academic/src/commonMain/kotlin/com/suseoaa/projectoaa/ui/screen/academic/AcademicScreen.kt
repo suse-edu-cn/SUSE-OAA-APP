@@ -145,7 +145,7 @@ fun AcademicScreen(
         baseContent = {
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
-                onRefresh = { viewModel.refresh() }
+                onRefresh = { viewModel.refresh(promptIfMissing = true) }
             ) {
                 AdaptiveLayout { config ->
                     val isTabletLandscape = config.useSideNavigation
@@ -168,7 +168,9 @@ fun AcademicScreen(
                             item(span = { GridItemSpan(config.gridColumns / 2) }) {
                                 TabletReschedulingCard(
                                     messageList = uiState.messages,
-                                    onClick = onNavigateToRescheduling,
+                                    onClick = {
+                                        viewModel.requireSchoolAccount("最新调课", onNavigateToRescheduling)
+                                    },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -176,7 +178,9 @@ fun AcademicScreen(
                             item(span = { GridItemSpan(config.gridColumns - config.gridColumns / 2) }) {
                                 TabletUpcomingExamsCard(
                                     examList = uiState.exams,
-                                    onClick = onNavigateToExams,
+                                    onClick = {
+                                        viewModel.requireSchoolAccount("考试信息查询", onNavigateToExams)
+                                    },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -184,14 +188,18 @@ fun AcademicScreen(
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 ReschedulingCard(
                                     messageList = uiState.messages,
-                                    onClick = onNavigateToRescheduling
+                                    onClick = {
+                                        viewModel.requireSchoolAccount("最新调课", onNavigateToRescheduling)
+                                    }
                                 )
                             }
 
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 UpcomingExamsCard(
                                     examList = uiState.exams,
-                                    onClick = onNavigateToExams
+                                    onClick = {
+                                        viewModel.requireSchoolAccount("考试信息查询", onNavigateToExams)
+                                    }
                                 )
                             }
                         }
@@ -214,11 +222,11 @@ fun AcademicScreen(
                     onColor = unifiedFunctionColor,
                     onClick = {
                         when (func.route) {
-                            "grades" -> onNavigateToGrades()
-                            "gpa" -> onNavigateToGpa()
-                            "studyRequirement" -> onNavigateToStudyRequirement()
-                            "courseInfo" -> onNavigateToCourseInfo()
-                            "academicStatus" -> onNavigateToAcademicStatus()
+                            "grades" -> viewModel.requireSchoolAccount(func.title, onNavigateToGrades)
+                            "gpa" -> viewModel.requireSchoolAccount(func.title, onNavigateToGpa)
+                            "studyRequirement" -> viewModel.requireSchoolAccount(func.title, onNavigateToStudyRequirement)
+                            "courseInfo" -> viewModel.requireSchoolAccount(func.title, onNavigateToCourseInfo)
+                            "academicStatus" -> viewModel.requireSchoolAccount(func.title, onNavigateToAcademicStatus)
                             "jwgl" -> uriHandler.openUri(ApiConfig.SCHOOL_LOGIN_PAGE)
                         }
                     },
